@@ -1,0 +1,98 @@
+[
+  {
+    "id": "S01",
+    "title": "المتكامل بلاس — يمن سوفت",
+    "url": "https://yemensoft.com/ar-motakamel-plus-erp-solutions/",
+    "status": "مقروء",
+    "usage": "مرجع المجالات الوظيفية العامة، لا ترتيب الحقول",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S02",
+    "title": "المتكامل برو — يمن سوفت",
+    "url": "https://yemensoft.com/ar-motakamel-pro-system/",
+    "status": "مقروء",
+    "usage": "مجالات النظام التجاري ووظائف عامة",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S03",
+    "title": "المتكامل الفضي — يمن سوفت",
+    "url": "https://yemensoft.com/ar-motakamel-silver-system/",
+    "status": "مقروء",
+    "usage": "تمييز الإصدار",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S04",
+    "title": "دليل الحسابات V5",
+    "url": "https://www.almotakamelplus.com/wp-content/uploads/2019/10/GeneralLedge-motakamelplusV5.pdf",
+    "status": "تعذر الجلب",
+    "usage": "رابط ظهر بالبحث؛ المحتوى غير متحقق",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S05",
+    "title": "دليل المخزون V5",
+    "url": "https://www.almotakamelplus.com/wp-content/uploads/2019/10/StockInventory-motakamelplusV5.pdf",
+    "status": "تعذر الجلب",
+    "usage": "رابط ظهر بالبحث؛ المحتوى غير متحقق",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S06",
+    "title": "دليل المبيعات V5",
+    "url": "https://www.almotakamelplus.com/wp-content/uploads/2019/10/CustomersSales-motakamelplusV5.pdf",
+    "status": "تعذر الجلب",
+    "usage": "رابط ظهر بالبحث؛ المحتوى غير متحقق",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S07",
+    "title": "السعودية — دليل الفوترة التقني",
+    "url": "https://zatca.gov.sa/en/E-Invoicing/Introduction/Guidelines/Documents/E-invoicing-Detailed-Technical-Guideline.pdf",
+    "status": "مقروء",
+    "usage": "الاعتماد والإبلاغ؛ إصدار الدليل الظاهر نوفمبر 2022 ويعاد فحص المواصفات عند التنفيذ",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S08",
+    "title": "الإمارات — الفوترة الإلكترونية",
+    "url": "https://www.tax.gov.ae/en/taxes/Vat/uae.einvoicing.aspx",
+    "status": "مقروء",
+    "usage": "وجود برنامج الفوترة المنظمة",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S09",
+    "title": "عمان — أسئلة الفوترة الإلكترونية",
+    "url": "https://tms.taxoman.gov.om/portal/ar/e-invoicing-faq",
+    "status": "مقروء",
+    "usage": "وجود مسار تطبيق ومتطلبات محلية",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S10",
+    "title": "البحرين — اللائحة التنفيذية",
+    "url": "https://www.lloc.gov.bh/Legislation/HTM/RFNE1218",
+    "status": "مقروء جزئيًا",
+    "usage": "بيانات الفاتورة والتصحيح؛ فحص التعديلات لازم عند التطبيق",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S11",
+    "title": "اليمن — ضرائب المبيعات",
+    "url": "https://tax.gov.ye/salestaxes/",
+    "status": "مقروء",
+    "usage": "وجود قواعد وفواتير وإقرارات؛ الاختصاص الجغرافي يحتاج تحديدًا",
+    "accessed": "2026-10-20"
+  },
+  {
+    "id": "S12",
+    "title": "قطر — دليل المستثمر",
+    "url": "https://gta.gov.qa/ar/investors-guide",
+    "status": "مقروء جزئيًا",
+    "usage": "وضع VAT المعلن وقت الاطلاع",
+    "accessed": "2026-10-20"
+  }
+]

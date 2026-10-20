@@ -1,0 +1,33 @@
+# Local Python artifacts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Dependencies and build output for later implementation
+node_modules/
+.next/
+dist/
+build/
+coverage/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime data
+*.log
+*.sqlite
+*.sqlite3

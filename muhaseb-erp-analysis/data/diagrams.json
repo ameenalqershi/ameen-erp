@@ -1,0 +1,198 @@
+[
+  {
+    "id": "module-SYS",
+    "title": "خريطة شاشات • إدارة النظام والتهيئة",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-SYS.svg",
+    "mermaid": "diagrams/source/module-SYS.mmd"
+  },
+  {
+    "id": "module-GL",
+    "title": "خريطة شاشات • الحسابات العامة",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-GL.svg",
+    "mermaid": "diagrams/source/module-GL.mmd"
+  },
+  {
+    "id": "module-CASH",
+    "title": "خريطة شاشات • الصناديق والبنوك",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-CASH.svg",
+    "mermaid": "diagrams/source/module-CASH.mmd"
+  },
+  {
+    "id": "module-INV",
+    "title": "خريطة شاشات • المخازن والأصناف",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-INV.svg",
+    "mermaid": "diagrams/source/module-INV.mmd"
+  },
+  {
+    "id": "module-SAL",
+    "title": "خريطة شاشات • المبيعات والعملاء",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-SAL.svg",
+    "mermaid": "diagrams/source/module-SAL.mmd"
+  },
+  {
+    "id": "module-PUR",
+    "title": "خريطة شاشات • المشتريات والموردون",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-PUR.svg",
+    "mermaid": "diagrams/source/module-PUR.mmd"
+  },
+  {
+    "id": "module-POS",
+    "title": "خريطة شاشات • نقاط البيع",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-POS.svg",
+    "mermaid": "diagrams/source/module-POS.mmd"
+  },
+  {
+    "id": "module-IMP",
+    "title": "خريطة شاشات • الاستيراد والاعتمادات",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-IMP.svg",
+    "mermaid": "diagrams/source/module-IMP.mmd"
+  },
+  {
+    "id": "module-FA",
+    "title": "خريطة شاشات • الأصول الثابتة",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-FA.svg",
+    "mermaid": "diagrams/source/module-FA.mmd"
+  },
+  {
+    "id": "module-COST",
+    "title": "خريطة شاشات • الموازنات ومراكز التكلفة",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-COST.svg",
+    "mermaid": "diagrams/source/module-COST.mmd"
+  },
+  {
+    "id": "module-HR",
+    "title": "خريطة شاشات • الموارد البشرية والرواتب",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-HR.svg",
+    "mermaid": "diagrams/source/module-HR.mmd"
+  },
+  {
+    "id": "module-MFG",
+    "title": "خريطة شاشات • التصنيع",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-MFG.svg",
+    "mermaid": "diagrams/source/module-MFG.mmd"
+  },
+  {
+    "id": "module-PRJ",
+    "title": "خريطة شاشات • المشروعات والمقاولات",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-PRJ.svg",
+    "mermaid": "diagrams/source/module-PRJ.mmd"
+  },
+  {
+    "id": "module-TAX",
+    "title": "خريطة شاشات • الضرائب والفوترة الإلكترونية",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-TAX.svg",
+    "mermaid": "diagrams/source/module-TAX.mmd"
+  },
+  {
+    "id": "module-RPT",
+    "title": "خريطة شاشات • التقارير والتحليل",
+    "description": "الخطوط توضح ترتيب التنقل داخل الفئة؛ ليست تسلسلًا محاسبيًا إلزاميًا.",
+    "svg": "diagrams/svg/module-RPT.svg",
+    "mermaid": "diagrams/source/module-RPT.mmd"
+  },
+  {
+    "id": "system-map",
+    "title": "خريطة النظام وحدود الأقسام",
+    "description": "كل قسم يمر بضوابط الشركة والصلاحية، والأستاذ العام مصدر القوائم.",
+    "svg": "diagrams/svg/system-map.svg",
+    "mermaid": "diagrams/source/system-map.mmd"
+  },
+  {
+    "id": "document-lifecycle",
+    "title": "حالات المستند والموافقة",
+    "description": "حالة التنفيذ والتحصيل والإرسال الضريبي مستقلة عن هذه الدورة.",
+    "svg": "diagrams/svg/document-lifecycle.svg",
+    "mermaid": "diagrams/source/document-lifecycle.mmd"
+  },
+  {
+    "id": "purchase-to-pay",
+    "title": "دورة الشراء حتى السداد",
+    "description": "",
+    "svg": "diagrams/svg/purchase-to-pay.svg",
+    "mermaid": "diagrams/source/purchase-to-pay.mmd"
+  },
+  {
+    "id": "sale-to-cash",
+    "title": "دورة البيع حتى التحصيل",
+    "description": "",
+    "svg": "diagrams/svg/sale-to-cash.svg",
+    "mermaid": "diagrams/source/sale-to-cash.mmd"
+  },
+  {
+    "id": "stock-transfer",
+    "title": "تحويل مخزون وجرد",
+    "description": "",
+    "svg": "diagrams/svg/stock-transfer.svg",
+    "mermaid": "diagrams/source/stock-transfer.mmd"
+  },
+  {
+    "id": "returns",
+    "title": "المرتجعات والتصحيح المالي",
+    "description": "",
+    "svg": "diagrams/svg/returns.svg",
+    "mermaid": "diagrams/source/returns.mmd"
+  },
+  {
+    "id": "period-close",
+    "title": "الإقفال والمطابقات",
+    "description": "",
+    "svg": "diagrams/svg/period-close.svg",
+    "mermaid": "diagrams/source/period-close.mmd"
+  },
+  {
+    "id": "einvoice",
+    "title": "الفوترة الإلكترونية: حالات مستقلة",
+    "description": "تصور تصميمي متعدد الدول؛ شروط كل مسار والمهل من المواصفة المحلية المعتمدة.",
+    "svg": "diagrams/svg/einvoice.svg",
+    "mermaid": "diagrams/source/einvoice.mmd"
+  },
+  {
+    "id": "posting-sequence",
+    "title": "التكامل والأثر الذري",
+    "description": "عند فشل أي كتابة داخل المعاملة تتراجع جميع كتاباتها. الإرسال الخارجي لا يقع داخل قفل المخزون.",
+    "svg": "diagrams/svg/posting-sequence.svg",
+    "mermaid": "diagrams/source/posting-sequence.mmd"
+  },
+  {
+    "id": "imports",
+    "title": "استيراد وتكلفة شحنة",
+    "description": "",
+    "svg": "diagrams/svg/imports.svg",
+    "mermaid": "diagrams/source/imports.mmd"
+  },
+  {
+    "id": "extensions",
+    "title": "تكامل الامتدادات مع الحسابات",
+    "description": "",
+    "svg": "diagrams/svg/extensions.svg",
+    "mermaid": "diagrams/source/extensions.mmd"
+  },
+  {
+    "id": "opening-migration",
+    "title": "نقل الأرصدة وبدء التشغيل",
+    "description": "",
+    "svg": "diagrams/svg/opening-migration.svg",
+    "mermaid": "diagrams/source/opening-migration.mmd"
+  },
+  {
+    "id": "data-model",
+    "title": "خريطة الكيانات والعلاقات الرئيسية",
+    "description": "العلاقات التفصيلية والكاردينالية في أصل Mermaid من نوع ER المرافق.",
+    "svg": "diagrams/svg/data-model.svg",
+    "mermaid": "diagrams/source/data-model.mmd"
+  }
+]

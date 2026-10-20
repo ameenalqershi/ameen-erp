@@ -1,0 +1,138 @@
+[
+  {
+    "page": 1,
+    "file": "diagrams/svg/system-map.svg"
+  },
+  {
+    "page": 2,
+    "file": "diagrams/svg/document-lifecycle.svg"
+  },
+  {
+    "page": 3,
+    "file": "diagrams/svg/purchase-to-pay.svg"
+  },
+  {
+    "page": 4,
+    "file": "diagrams/svg/sale-to-cash.svg"
+  },
+  {
+    "page": 5,
+    "file": "diagrams/svg/stock-transfer.svg"
+  },
+  {
+    "page": 6,
+    "file": "diagrams/svg/returns.svg"
+  },
+  {
+    "page": 7,
+    "file": "diagrams/svg/period-close.svg"
+  },
+  {
+    "page": 8,
+    "file": "diagrams/svg/einvoice.svg"
+  },
+  {
+    "page": 9,
+    "file": "diagrams/svg/posting-sequence.svg"
+  },
+  {
+    "page": 10,
+    "file": "diagrams/svg/imports.svg"
+  },
+  {
+    "page": 11,
+    "file": "diagrams/svg/extensions.svg"
+  },
+  {
+    "page": 12,
+    "file": "diagrams/svg/opening-migration.svg"
+  },
+  {
+    "page": 13,
+    "file": "diagrams/svg/data-model.svg"
+  },
+  {
+    "page": 14,
+    "file": "diagrams/svg/module-SYS.svg"
+  },
+  {
+    "page": 15,
+    "file": "diagrams/svg/module-GL.svg"
+  },
+  {
+    "page": 16,
+    "file": "diagrams/svg/module-CASH.svg"
+  },
+  {
+    "page": 17,
+    "file": "diagrams/svg/module-INV.svg"
+  },
+  {
+    "page": 18,
+    "file": "diagrams/svg/module-SAL.svg"
+  },
+  {
+    "page": 19,
+    "file": "diagrams/svg/module-PUR.svg"
+  },
+  {
+    "page": 20,
+    "file": "diagrams/svg/module-POS.svg"
+  },
+  {
+    "page": 21,
+    "file": "diagrams/svg/module-IMP.svg"
+  },
+  {
+    "page": 22,
+    "file": "diagrams/svg/module-FA.svg"
+  },
+  {
+    "page": 23,
+    "file": "diagrams/svg/module-COST.svg"
+  },
+  {
+    "page": 24,
+    "file": "diagrams/svg/module-HR.svg"
+  },
+  {
+    "page": 25,
+    "file": "diagrams/svg/module-MFG.svg"
+  },
+  {
+    "page": 26,
+    "file": "diagrams/svg/module-PRJ.svg"
+  },
+  {
+    "page": 27,
+    "file": "diagrams/svg/module-TAX.svg"
+  },
+  {
+    "page": 28,
+    "file": "diagrams/svg/module-RPT.svg"
+  },
+  {
+    "page": 29,
+    "file": "wireframes/chart-of-accounts.svg"
+  },
+  {
+    "page": 30,
+    "file": "wireframes/item-card.svg"
+  },
+  {
+    "page": 31,
+    "file": "wireframes/journal.svg"
+  },
+  {
+    "page": 32,
+    "file": "wireframes/receipt.svg"
+  },
+  {
+    "page": 33,
+    "file": "wireframes/sales-invoice.svg"
+  },
+  {
+    "page": 34,
+    "file": "wireframes/trial-balance.svg"
+  }
+]

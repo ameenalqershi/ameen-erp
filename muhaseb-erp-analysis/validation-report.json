@@ -1,0 +1,302 @@
+{
+  "scope": "فحص اتساق حزمة التحليل؛ اختبارات قبول التطبيق لم تنفذ",
+  "modules": 15,
+  "screens": 150,
+  "field_occurrences": 2759,
+  "diagrams": 28,
+  "wireframes": 6,
+  "passed": true,
+  "checks": [
+    {
+      "check": "unique_screen_ids",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "valid_modules",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "valid_screen_references",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "unique_field_ids",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "field_contract",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "screen_contract",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "honest_evidence_status",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "module_documents",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "each_screen_in_module_diagram",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "all_diagram_sources",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "valid_svg_xml",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "check": "unique_html_ids",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "local_html_links",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "check": "offline_no_external_assets",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "check": "all_screens_in_html",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "csv_columns_screens",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "csv_count_screens",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "csv_columns_fields",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "csv_count_fields",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "csv_columns_traceability",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "csv_count_traceability",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "csv_columns_parity-matrix",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "csv_count_parity-matrix",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "referenced_rules_exist",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "document_example_arithmetic",
+      "passed": true,
+      "detail": "فحص حساب المثال المكتوب فقط، وليس اختبار برنامج"
+    },
+    {
+      "check": "fx_example_arithmetic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "landed_cost_example_arithmetic",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "thirty_core_acceptance_scenarios",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT01",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT02",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT03",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT04",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT05",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT06",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT07",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT08",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT09",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT10",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT11",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT12",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT13",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT14",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT15",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT16",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT17",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT18",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT19",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT20",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT21",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT22",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT23",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT24",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT25",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT26",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT27",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT28",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT29",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_references_AT30",
+      "passed": true,
+      "detail": ""
+    }
+  ],
+  "browser_validation": "لم ينجح تشغيل Chromium داخل قيود البيئة؛ تفحص الرسومات عبر librsvg، والروابط والبنية بفحص محلي"
+}

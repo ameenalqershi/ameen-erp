@@ -1,0 +1,532 @@
+[
+  {
+    "path": "QUALITY.md",
+    "bytes": 2312,
+    "sha256": "96a8401f2b27031f8bef59a5e8b7473ff550c0d469f203296b369d96ac8b0fa5"
+  },
+  {
+    "path": "README.md",
+    "bytes": 5543,
+    "sha256": "f17ef5cc2dbb224f2cb9d606c7a69109d46c3fc00e77c6b6f59e7ca5d465d7fd"
+  },
+  {
+    "path": "data/diagrams.json",
+    "bytes": 8673,
+    "sha256": "20d9fdc4abbccb71f6efab78ebcf40f264e021a211a615ebb3c10d5058728ca8"
+  },
+  {
+    "path": "data/fields.csv",
+    "bytes": 750196,
+    "sha256": "0e2829bf0a800fea91297c9f96e2edce22fcab1015437fcae18f5458b38b57ea"
+  },
+  {
+    "path": "data/modules.json",
+    "bytes": 3871,
+    "sha256": "47d1628de34266619de56162767b583b3f7b3bbd951a81f94a9115015679572d"
+  },
+  {
+    "path": "data/parity-matrix.csv",
+    "bytes": 27506,
+    "sha256": "9d2f3c02f8fa2e7879f5040c7fc29abfab4a595cd8c7d883ed77e58eca598b93"
+  },
+  {
+    "path": "data/pdf-pages.json",
+    "bytes": 2290,
+    "sha256": "492f0ca73746efb1fa7028c4418948abb9d54b5b36c72ca4a38e748587edc6f9"
+  },
+  {
+    "path": "data/report-logic-check.json",
+    "bytes": 202,
+    "sha256": "8348852f945692664f327eb488188414036c0f315ac46504505b8e2a273740a4"
+  },
+  {
+    "path": "data/screens.csv",
+    "bytes": 69773,
+    "sha256": "e73ef26a4e17b53b7dc99e4f18b8effd588bb0c60b4f57a64048c97f80307f58"
+  },
+  {
+    "path": "data/screens.json",
+    "bytes": 1784824,
+    "sha256": "500ed1453f7acf43256e05483339e54d2e2b32143a965082f51ea873a6ff7df6"
+  },
+  {
+    "path": "data/sources.json",
+    "bytes": 3805,
+    "sha256": "80d271168aa491db6afdd72c0d55a392af0aa554f699f1bcab52601257ec79c7"
+  },
+  {
+    "path": "data/traceability.csv",
+    "bytes": 71759,
+    "sha256": "e99132e32c0591f3bd8e22f0556da4bad81ac8defa3acd0f22dc3729d506ebbe"
+  },
+  {
+    "path": "diagrams/source/data-model.mmd",
+    "bytes": 1326,
+    "sha256": "2603d7f7918784dfb81c2d044bf90dbbcbca233b0645202ed11273fcd9abbbef"
+  },
+  {
+    "path": "diagrams/source/document-lifecycle.mmd",
+    "bytes": 636,
+    "sha256": "39a3eec334657682b06e6dc18c381ad7e0fab84e3ec946d49439fab7222bac4b"
+  },
+  {
+    "path": "diagrams/source/einvoice.mmd",
+    "bytes": 638,
+    "sha256": "ba2751a953a1f199c1f2da47dceb553c1c111208415f2a48f9c55fb1f1b05483"
+  },
+  {
+    "path": "diagrams/source/extensions.mmd",
+    "bytes": 449,
+    "sha256": "705cab6a4f4f44164de77381e6217a312264e04acf628dfcb2cd0386fad63709"
+  },
+  {
+    "path": "diagrams/source/imports.mmd",
+    "bytes": 538,
+    "sha256": "be3203abd0e64e1bf3352a77719733d0a8fc52b085eddee6317cb9bf695e0d6b"
+  },
+  {
+    "path": "diagrams/source/module-CASH.mmd",
+    "bytes": 1104,
+    "sha256": "15c07c98388b5719f6ab3e763e10820b253a74f3223685f563fb153255e81fbb"
+  },
+  {
+    "path": "diagrams/source/module-COST.mmd",
+    "bytes": 826,
+    "sha256": "e447cfabac39797aaf4c41d14083e98b84483f624911847e903f9d05bb073445"
+  },
+  {
+    "path": "diagrams/source/module-FA.mmd",
+    "bytes": 695,
+    "sha256": "1b9728928db057e861229ab9bd0c3135f23c5bcab14b99e3867865bc06e05061"
+  },
+  {
+    "path": "diagrams/source/module-GL.mmd",
+    "bytes": 1428,
+    "sha256": "d917c48197d58bce19ebfda7115863d1cf705fd5ab569c384d96592f8b89015d"
+  },
+  {
+    "path": "diagrams/source/module-HR.mmd",
+    "bytes": 930,
+    "sha256": "6a984e259b86c35b9d20b0ffc246e2fd320f41d048ab9d2d0c22c680180a83c8"
+  },
+  {
+    "path": "diagrams/source/module-IMP.mmd",
+    "bytes": 807,
+    "sha256": "2b47a78ff74ded9f0fef7a872a42a47e334a1857d8a3d678dea6327fbccb4ab8"
+  },
+  {
+    "path": "diagrams/source/module-INV.mmd",
+    "bytes": 1587,
+    "sha256": "2ed6734d494525dc347d29f43d0e90f4c853b38d031d3a3ccfbda51d80446fb9"
+  },
+  {
+    "path": "diagrams/source/module-MFG.mmd",
+    "bytes": 859,
+    "sha256": "6614e588f9405e6ced38cca5e051ff14fa652f9191ae84726c7160dbc351bdec"
+  },
+  {
+    "path": "diagrams/source/module-POS.mmd",
+    "bytes": 705,
+    "sha256": "a0ad5b96b46b4f195a9976c6135c8d1bbde00be997a97b75327780bc05154a99"
+  },
+  {
+    "path": "diagrams/source/module-PRJ.mmd",
+    "bytes": 838,
+    "sha256": "0a6b33771e6e50352ff8c068b1d76e4c585357f526eb3f9f587bd13bb704ad96"
+  },
+  {
+    "path": "diagrams/source/module-PUR.mmd",
+    "bytes": 1388,
+    "sha256": "a8f7f3ce9c71cf3173cd21a7b278375709ebed2b20a602259b03565272ade419"
+  },
+  {
+    "path": "diagrams/source/module-RPT.mmd",
+    "bytes": 1275,
+    "sha256": "7514a068ac8534453107fa5320f8afe2ac07c8d9a1ab1cd7ea6a03328e78e458"
+  },
+  {
+    "path": "diagrams/source/module-SAL.mmd",
+    "bytes": 1652,
+    "sha256": "f92ac7e0a3e3a3c5f760b661013af11bb5b333ef67f6beaafbcd2b1178b129e3"
+  },
+  {
+    "path": "diagrams/source/module-SYS.mmd",
+    "bytes": 1620,
+    "sha256": "ca0af9b9c2c3d537aa98cd3fc3f1b66b034df7d31aa3d7f86812a8fba028fc57"
+  },
+  {
+    "path": "diagrams/source/module-TAX.mmd",
+    "bytes": 1163,
+    "sha256": "b4b031d7d25dfa44f25d39360a4dd560fe5967905f463c1f64238c2d7113659f"
+  },
+  {
+    "path": "diagrams/source/opening-migration.mmd",
+    "bytes": 498,
+    "sha256": "5d28da6f83832a926bb2e9728527b3675c3a5fd665758d469b0ac27fc1c6738c"
+  },
+  {
+    "path": "diagrams/source/period-close.mmd",
+    "bytes": 563,
+    "sha256": "56f95ca6124af72c4c4c8a0758fb378c8950cb23c17b1f5d144fbdbbee04671e"
+  },
+  {
+    "path": "diagrams/source/posting-sequence.mmd",
+    "bytes": 586,
+    "sha256": "4ce2994a7990adf9cc146f5c7cc336c2d999e661496c7958acd0843d2eb3e94d"
+  },
+  {
+    "path": "diagrams/source/purchase-to-pay.mmd",
+    "bytes": 594,
+    "sha256": "80ea16eb2be61013a467aa439edc4a238578b6ef5d7c9c120912752c766dba52"
+  },
+  {
+    "path": "diagrams/source/returns.mmd",
+    "bytes": 587,
+    "sha256": "f11150585eefac6d09aa5dc716f4dc392554c42c61980ec25258118dbe04fe58"
+  },
+  {
+    "path": "diagrams/source/sale-to-cash.mmd",
+    "bytes": 603,
+    "sha256": "a34f0f9c2fb70ca6252fb2cdc4c79323153c08cf5cb0d12fb1b2a06600fed580"
+  },
+  {
+    "path": "diagrams/source/stock-transfer.mmd",
+    "bytes": 530,
+    "sha256": "b16059120c35901151aa8c22d52ad57d8212ae8cf7416ca5695fe6f12a252ac8"
+  },
+  {
+    "path": "diagrams/source/system-map.mmd",
+    "bytes": 845,
+    "sha256": "a0fd49c7f6e1f5d9956ffc9230a2b25fe05ba4e611193b1f3cc38ec34e800ac8"
+  },
+  {
+    "path": "diagrams/svg/data-model.svg",
+    "bytes": 9363,
+    "sha256": "23d42f20b27e00d2112cbf94361e2bff22967e6805b177b92532b51212ee9e18"
+  },
+  {
+    "path": "diagrams/svg/document-lifecycle.svg",
+    "bytes": 8294,
+    "sha256": "1282cb83238e4c61cf38d60096b48d1d93edf7ff9ba0e54b590eb06438db398a"
+  },
+  {
+    "path": "diagrams/svg/einvoice.svg",
+    "bytes": 7255,
+    "sha256": "6fa8194022efc64738290975616c51803dc981c7d314866f2cef4f9117d8cef4"
+  },
+  {
+    "path": "diagrams/svg/extensions.svg",
+    "bytes": 4921,
+    "sha256": "659fd42d770e848b568f18411ddd4b46e4d6bc61e6e25d81055830b52081ac95"
+  },
+  {
+    "path": "diagrams/svg/imports.svg",
+    "bytes": 5927,
+    "sha256": "8bfa4051e2feeba3b0884a515bcfe5d045a5b96dd8019fd58346de8fd4d892e2"
+  },
+  {
+    "path": "diagrams/svg/module-CASH.svg",
+    "bytes": 10228,
+    "sha256": "07214419fb29db0eb8fdc03e868ed875de3e0e98a21bb56500a413a1daddb46a"
+  },
+  {
+    "path": "diagrams/svg/module-COST.svg",
+    "bytes": 8564,
+    "sha256": "19a8c65e51e9d8cca747c389a5b1cc006f1f141ef28e350cc84f912a54559d73"
+  },
+  {
+    "path": "diagrams/svg/module-FA.svg",
+    "bytes": 7225,
+    "sha256": "848da9ba7fe3e0227bf9a55a309b427139655091414a8aef5b6fdb0103b4f88d"
+  },
+  {
+    "path": "diagrams/svg/module-GL.svg",
+    "bytes": 13755,
+    "sha256": "a64009f559b57c3ed56ae24593fefdeccbba40f9c86c1c1b7c87293afd7c6a71"
+  },
+  {
+    "path": "diagrams/svg/module-HR.svg",
+    "bytes": 9540,
+    "sha256": "2625746795aaa88f493af21f74c18d627743e4d9d83625d1e0680711f0372bbf"
+  },
+  {
+    "path": "diagrams/svg/module-IMP.svg",
+    "bytes": 8087,
+    "sha256": "2e72408e17316b14cbd13acbdb66777776de84ad1285ad85b2f0f64855abf38c"
+  },
+  {
+    "path": "diagrams/svg/module-INV.svg",
+    "bytes": 14210,
+    "sha256": "6f9e03f88e76bc030bdca5f33a188f6e73dbe66ca705650e5d19503e46f3064a"
+  },
+  {
+    "path": "diagrams/svg/module-MFG.svg",
+    "bytes": 8791,
+    "sha256": "9aa83a8e311f3cb31bb9604f2f78fc11aaffce60dc457b1d0113c78ec930a06f"
+  },
+  {
+    "path": "diagrams/svg/module-POS.svg",
+    "bytes": 7348,
+    "sha256": "b0eb4e0f0f49c96051f0c29955de93bc863e8fb0659bdbc69505159ca93b22c8"
+  },
+  {
+    "path": "diagrams/svg/module-PRJ.svg",
+    "bytes": 8109,
+    "sha256": "cd805b130e7956ed97d98d5e85898a5f35fac451587509935ad8258f7aa8708f"
+  },
+  {
+    "path": "diagrams/svg/module-PUR.svg",
+    "bytes": 12869,
+    "sha256": "1ed688049d6160ed1c720d3b38b76855a64ab267960ed4af69728a56b6ea3d88"
+  },
+  {
+    "path": "diagrams/svg/module-RPT.svg",
+    "bytes": 11205,
+    "sha256": "dee55bac0a6b7a728b90ca63832db76bf95dc91daa1524f21ebc898033ea2d08"
+  },
+  {
+    "path": "diagrams/svg/module-SAL.svg",
+    "bytes": 15289,
+    "sha256": "b1434829d4164d12860dfa44a496526ec3300e9a2f0b7679e6f863fd34ad297d"
+  },
+  {
+    "path": "diagrams/svg/module-SYS.svg",
+    "bytes": 14707,
+    "sha256": "d354bb77c0c900166841a5aa0d859f9c3277116c0e570c2d071bf59d062737ea"
+  },
+  {
+    "path": "diagrams/svg/module-TAX.svg",
+    "bytes": 11660,
+    "sha256": "6a77a54738db970a89c135fd3875b9c89f2144bed75f3957ac08fa6b00ba6cd6"
+  },
+  {
+    "path": "diagrams/svg/opening-migration.svg",
+    "bytes": 5407,
+    "sha256": "c91d7fa368275f8daadcfe2ac5b9264b9a296b3ec43314a649501cc0026295b0"
+  },
+  {
+    "path": "diagrams/svg/period-close.svg",
+    "bytes": 6065,
+    "sha256": "bc32ddbef2fc6b79f03f058f484eb6156141cc7ff476816bf307d9168acec7b7"
+  },
+  {
+    "path": "diagrams/svg/posting-sequence.svg",
+    "bytes": 6464,
+    "sha256": "876209786cd2167c83811b7fca0860d72e045f41f8e58ae2c1b4ec4e66f81a0c"
+  },
+  {
+    "path": "diagrams/svg/purchase-to-pay.svg",
+    "bytes": 6175,
+    "sha256": "5eb44f5ef3a695c293e9fadce2f060c07ebc94d077eb05b18fcae2d12ab6ea59"
+  },
+  {
+    "path": "diagrams/svg/returns.svg",
+    "bytes": 6283,
+    "sha256": "54ff4889b8b097aca5c88cf13b553630c78c7e1830036cf5c69c0a505c764125"
+  },
+  {
+    "path": "diagrams/svg/sale-to-cash.svg",
+    "bytes": 6673,
+    "sha256": "c93de4ccea17dd141f250481ba3ac6d2909a1e4ba1daae69484cf11bc8d6adf3"
+  },
+  {
+    "path": "diagrams/svg/stock-transfer.svg",
+    "bytes": 5684,
+    "sha256": "54399850c0ccd7f7ef340065b2adb8f9712539c739504bd83cda4ee0755ca040"
+  },
+  {
+    "path": "diagrams/svg/system-map.svg",
+    "bytes": 9527,
+    "sha256": "0941aafcb5af03e8826bca92a6882d210f4caa8e167a121055f9ed74a733e244"
+  },
+  {
+    "path": "diagrams-atlas.pdf",
+    "bytes": 212425,
+    "sha256": "30330cc7a3b48439e8db5045661010711a5b25af837c1d9171924dcb081c8329"
+  },
+  {
+    "path": "docs/01-scope-and-decisions.md",
+    "bytes": 7580,
+    "sha256": "7f55763196a1522746315f7c9a50199be3515ce3c223edbdacbb2a0357442973"
+  },
+  {
+    "path": "docs/02-accounting-and-business-rules.md",
+    "bytes": 15745,
+    "sha256": "63119e411a2b641ff3321300b4c2aa388c6492b82fea9450cd493a5581c36810"
+  },
+  {
+    "path": "docs/03-screen-contract-and-ux.md",
+    "bytes": 7215,
+    "sha256": "0593421aa5ba4b31825d92c49b0dae53ed8242ae1d931a84dc9a799d5d3f9137"
+  },
+  {
+    "path": "docs/04-localization.md",
+    "bytes": 6977,
+    "sha256": "ba0ecfde28f836e543d4dffb1b7562db0a7d8d939a9d13f9c12452ae28062082"
+  },
+  {
+    "path": "docs/05-data-and-controls.md",
+    "bytes": 8782,
+    "sha256": "68c2bfae604b401b0096c32c4af7dac8e212ace392e25437086a0064584a2c2a"
+  },
+  {
+    "path": "docs/06-reference-parity.md",
+    "bytes": 5380,
+    "sha256": "ad6c97d4bcbbec97a76eb40d735319b48558b202aff7aad06368f8b4b967cfa5"
+  },
+  {
+    "path": "docs/07-workflows-and-acceptance.md",
+    "bytes": 8838,
+    "sha256": "122dc8d2c77f0661f8a387a6e0105515e44405d09863cfa48d9e3191ce1908b5"
+  },
+  {
+    "path": "docs/08-reports-and-roadmap.md",
+    "bytes": 5989,
+    "sha256": "f2f0a8626148d82495701594d5647a5cb7b8fc52891b48ba3676a081b07c5fcc"
+  },
+  {
+    "path": "docs/modules/CASH.md",
+    "bytes": 40813,
+    "sha256": "0fc552da1d0b6fb61186399af0ff0435e0523c1cfda0c7cfce1f2f95ba9bb3ca"
+  },
+  {
+    "path": "docs/modules/COST.md",
+    "bytes": 17684,
+    "sha256": "0baa9e93eafca338d60e2910a847818f38736a4b65ddcbb99cc9e90a871f509c"
+  },
+  {
+    "path": "docs/modules/FA.md",
+    "bytes": 22614,
+    "sha256": "f81c49e948331062f3faefb92695c96b579fc845a200c21987dbf0294d5535c6"
+  },
+  {
+    "path": "docs/modules/GL.md",
+    "bytes": 48440,
+    "sha256": "e25586448b124ffb4d83ea0b50b7844073bc9b831f89c5f4f9e6f412d60fed89"
+  },
+  {
+    "path": "docs/modules/HR.md",
+    "bytes": 25053,
+    "sha256": "f505f60f93ae3c506accaf09841cff3e33f53a346b5eaf8ad79ffc8aaffd4509"
+  },
+  {
+    "path": "docs/modules/IMP.md",
+    "bytes": 24082,
+    "sha256": "454b0a7a55c65b890db20b3ae77a2097f8936452c858ae38cf2124db7c8fbd8d"
+  },
+  {
+    "path": "docs/modules/INV.md",
+    "bytes": 59486,
+    "sha256": "61fbc5028582f3758041a7e9d5c7fa91261bf278b421c0748b64ac546ee9eac4"
+  },
+  {
+    "path": "docs/modules/MFG.md",
+    "bytes": 22323,
+    "sha256": "2c2cb05eb289b07aebaf6feb4ebfe4b9c0944b2a561020caf10a862d42a935ba"
+  },
+  {
+    "path": "docs/modules/POS.md",
+    "bytes": 23763,
+    "sha256": "7dd8c390b9893899bbafb978b33e499446fc503b414148c589ffc292533eaf31"
+  },
+  {
+    "path": "docs/modules/PRJ.md",
+    "bytes": 24984,
+    "sha256": "2226428a8c47d31bbae3eb2372f37306c66f8978328c793e1c78064874717517"
+  },
+  {
+    "path": "docs/modules/PUR.md",
+    "bytes": 53226,
+    "sha256": "811c7f045c3c580a8ad05e32abeaa35fe6e1cdb3ee45239f2350d301f17d86e0"
+  },
+  {
+    "path": "docs/modules/RPT.md",
+    "bytes": 40600,
+    "sha256": "f6c5be3f0e23ec2271afa2ec53750fc14cd1d6379f32c3d205bde3f7fd2f6d67"
+  },
+  {
+    "path": "docs/modules/SAL.md",
+    "bytes": 61094,
+    "sha256": "7c71014d79cdb56569e4086be37c49fad1400fdfec229bd165629f98481bb6e4"
+  },
+  {
+    "path": "docs/modules/SYS.md",
+    "bytes": 51986,
+    "sha256": "965980a59334be172045e3618bf93ba8adde50a167ca64db946138d928f89fe2"
+  },
+  {
+    "path": "docs/modules/TAX.md",
+    "bytes": 28079,
+    "sha256": "94356e7eca37ce2b4052c7f3e288ef0cdb0e437861e44f00c91410ffa714bece"
+  },
+  {
+    "path": "index.html",
+    "bytes": 1409740,
+    "sha256": "71684631391634e3dfd0f91583e93e41eb7728cc4303cc4aa5e7a9fa64ae27df"
+  },
+  {
+    "path": "references/README.md",
+    "bytes": 353,
+    "sha256": "ac82f63fd552c18ae2f28a54a6477abda883ab8fe7f4b894f1b5e6e5f3a0340c"
+  },
+  {
+    "path": "scripts/build.py",
+    "bytes": 58268,
+    "sha256": "4b503d29f6d56ee33341c03e9dd94c872e10fd8bb0500a81ec3d568940164a19"
+  },
+  {
+    "path": "scripts/catalog.py",
+    "bytes": 81954,
+    "sha256": "0cf3b627b766ab2f9c0fb8e9cf5fe6630150290da5d552a1f59ae8092c98e5e8"
+  },
+  {
+    "path": "scripts/check_report_logic.cjs",
+    "bytes": 2754,
+    "sha256": "04f48acf1a83946b63fd4604b01a7f061fd3b751cf93219610ac52c46f9da069"
+  },
+  {
+    "path": "scripts/export_pdf.py",
+    "bytes": 967,
+    "sha256": "b1518d471f0163c2f42b2d712dc0e16178775de65510f61e1e1d9223605a713d"
+  },
+  {
+    "path": "scripts/validate.py",
+    "bytes": 5437,
+    "sha256": "7e80dd6c07f5ed5bd5d58dbdc09e96bd7348ddb4164eb099794812db8d5fc739"
+  },
+  {
+    "path": "validation-report.json",
+    "bytes": 6055,
+    "sha256": "dd095f071fad9fd9ed91c3a18327a95d537e4e0aeab385512a2c89eb41f686ce"
+  },
+  {
+    "path": "wireframes/chart-of-accounts.svg",
+    "bytes": 9046,
+    "sha256": "9974476534c51861c265948769089e3f18e3e8e2bb74af7ee4de73641a4730aa"
+  },
+  {
+    "path": "wireframes/item-card.svg",
+    "bytes": 8919,
+    "sha256": "a22a43b4c2f76551acee5c758abc0be3b2311b695a3622931de775e2569ee0ca"
+  },
+  {
+    "path": "wireframes/journal.svg",
+    "bytes": 9307,
+    "sha256": "74a740245681681dc36f1cabdea6b365b695a77642e18d2df1e00b815bff7e60"
+  },
+  {
+    "path": "wireframes/receipt.svg",
+    "bytes": 8970,
+    "sha256": "bcd1593233752e8fe72d5099ae9d1807f6531372d5e36fc3c63fbf1ab9b894f7"
+  },
+  {
+    "path": "wireframes/sales-invoice.svg",
+    "bytes": 9896,
+    "sha256": "d3969b706ea7ca9099ee6b1d79f2d4ee765f2aae6cce65c453d6b7ee112b2858"
+  },
+  {
+    "path": "wireframes/trial-balance.svg",
+    "bytes": 9354,
+    "sha256": "a783fc0aa22b810caa8c47e671920c32a84f20338d956924104cba93883dcbd5"
+  }
+]
