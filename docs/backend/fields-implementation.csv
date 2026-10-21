@@ -699,24 +699,24 @@ CASH11,CASH11-F10,أنشأه,system,pending,,
 CASH11,CASH11-F11,وقت الإنشاء,system,pending,,
 CASH11,CASH11-F12,رقم إصدار التعديل,system,pending,,
 CASH11,CASH11-F13,آخر تعديل,system,pending,,
-INV01,INV01-F01,المعرف الداخلي,system,pending,,
-INV01,INV01-F02,الشركة,system,pending,,
-INV01,INV01-F03,الرمز,required,pending,,
-INV01,INV01-F04,الاسم العربي,required,pending,,
-INV01,INV01-F05,الاسم الإنجليزي,optional,pending,,
-INV01,INV01-F06,فعال,required,pending,,
-INV01,INV01-F07,ملاحظات,optional,pending,,
-INV01,INV01-F08,الفرع,required,pending,,
-INV01,INV01-F09,أمين المخزن,required,pending,,
-INV01,INV01-F10,نوع المخزن,required,pending,,
-INV01,INV01-F11,حساب المخزون,required,pending,,
-INV01,INV01-F12,تتبع الرف,required,pending,,
-INV01,INV01-F13,رمز الموقع,conditional,pending,,
-INV01,INV01-F14,وصف الموقع,conditional,pending,,
-INV01,INV01-F15,أنشأه,system,pending,,
-INV01,INV01-F16,وقت الإنشاء,system,pending,,
-INV01,INV01-F17,رقم إصدار التعديل,system,pending,,
-INV01,INV01-F18,آخر تعديل,system,pending,,
+INV01,INV01-F01,المعرف الداخلي,system,implemented,Warehouse.Id,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F08,الفرع,required,implemented,BranchId,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F09,أمين المخزن,required,partial,KeeperMembershipId: initial active ERP membership with branch scope,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F10,نوع المخزن,required,partial,Warehouse.Type: Standard/Quarantine initial inferred scope,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F11,حساب المخزون,required,implemented,InventoryAccountId,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F12,تتبع الرف,required,implemented,TrackLocations,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F13,رمز الموقع,conditional,implemented,Locations[].Code,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F14,وصف الموقع,conditional,implemented,Locations[].Description,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F15,أنشأه,system,audit,AuditEvent.ActorId: warehouse.created,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F16,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: warehouse.created,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F17,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
+INV01,INV01-F18,آخر تعديل,system,audit,AuditEvent.OccurredAt: warehouse.edited / warehouse.status-changed,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
 INV02,INV02-F01,المعرف الداخلي,system,implemented,ItemGroup.Id,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
 INV02,INV02-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
 INV02,INV02-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups

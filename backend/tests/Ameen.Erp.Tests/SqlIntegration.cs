@@ -168,6 +168,7 @@ public static class SqlIntegration
             await RecurringSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await AccountSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
             await FoundationSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
+            await WarehouseSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await ItemSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await ItemGroupSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await UnitSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);

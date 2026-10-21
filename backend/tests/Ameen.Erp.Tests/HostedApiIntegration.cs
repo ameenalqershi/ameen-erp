@@ -265,6 +265,29 @@ public static class HostedApiIntegration
                     Ensure(response.StatusCode == HttpStatusCode.UnprocessableEntity, "HTTP invalid group page accepted");
                 Console.WriteLine("  HOST PASS INV02 usage and disabled item references with paging over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS INV04 item lifecycle, barcode search, exact conversion, unit usage and audit over HTTPS/JWT/SQL");
+                var warehouseBranch = await Command(client, $"/api/v1/companies/{companyId}/branches", new CreateBranchRequest("HTTP-WH-B", "فرع مخزن", "مدينة", "عنوان"));
+                var warehouseAccount = await Command(client, $"/api/v1/companies/{companyId}/accounts", new CreateAccountRequest("HTTP-WH-A", "مخزون", AccountType.Asset, null, true, true, false, null, NormalBalance.Debit));
+                Guid warehouseKeeper;
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/memberships?limit=200"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    warehouseKeeper = json.RootElement.GetProperty("items").EnumerateArray().Single(x => x.GetProperty("subject").GetString() == "sql-owner").GetProperty("id").GetGuid();
+                var warehousesPath = $"/api/v1/companies/{companyId}/warehouses";
+                var whRequest = new CreateWarehouseRequest("HTTP-WH", "مخزن", warehouseBranch.ResourceId, warehouseKeeper, warehouseAccount.ResourceId,
+                    WarehouseType.Quarantine, true, new[] { new WarehouseLocationRequest("001", "رف") });
+                var wh = await Command(client, warehousesPath, whRequest);
+                wh = await Command(client, warehousesPath + $"/{wh.ResourceId}", new EditWarehouseRequest(wh.Version, whRequest.Code, "مخزن معدل", whRequest.BranchId,
+                    whRequest.KeeperMembershipId, whRequest.InventoryAccountId, whRequest.Type, true, new[] { new WarehouseLocationRequest("002", "عزل") }, null, null, "تعديل"), method: HttpMethod.Put);
+                using (var response = await client.GetAsync(warehousesPath + $"/{wh.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("locations")[0].GetProperty("code").GetString() == "002", "HTTP warehouse locations failed");
+                using (var response = await client.GetAsync(warehousesPath + "?search=HTTP-WH"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP warehouse search failed");
+                await Command(client, warehousesPath + $"/{wh.ResourceId}/status", new SetWarehouseStatusRequest(wh.Version, false, "إيقاف"));
+                using (var response = await client.GetAsync(warehousesPath + $"/{wh.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "HTTP warehouse audit failed");
+                Console.WriteLine("  HOST PASS INV01 create/edit/locations/search/status/audit over HTTPS/JWT/SQL");
                 var ratesPath = $"/api/v1/companies/{companyId}/exchange-rates";
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));
                 var rate = await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date, 1.25m, "HTTP source"));

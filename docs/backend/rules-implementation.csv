@@ -1,6 +1,6 @@
 rule_id,scope,implemented_and_remaining,evidence
 BR01,manual-journal,Decimal واتزان دقيق؛ رفض فقدان الدقة؛ فروق التقريب تحتاج سطرًا صريحًا,Program.cs: BR01 / Wire contract
-BR02,partial,شركة وفرع وحساب ومركز وعملة وسعر ووحدة ومجموعة وصنف؛ لا مخازن أو أطراف أو ضرائب بعد,Program.cs: BR02; SqlIntegration.cs: company isolation
+BR02,partial,شركة وفرع وحساب ومركز وعملة وسعر ووحدة ومجموعة وصنف؛ مخازن ومواقع؛ لا أطراف أو ضرائب بعد,Program.cs: BR02; SqlIntegration.cs: company isolation
 BR03,manual-journal,تاريخ الوثيقة والأثر ووقت الترحيل مستقلة؛ فترة مفتوحة,Program.cs: BR03
 BR04,partial,حساب فعال فرعي وعملة ومركز صحيح؛ المشروع والطرف لاحقًا,Program.cs: BR04
 BR05,partial,ذرية القيد والتدقيق وOutbox والنتيجة وسجل التوليد الدوري؛ الدفاتر المساعدة والعامل الخارجي لم تنفذ,Program.cs: BR05; SqlIntegration.cs / RecurringSqlIntegration.cs: constraint rollback

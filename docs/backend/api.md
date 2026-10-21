@@ -182,3 +182,5 @@
 بطاقة الصنف وقيم القوائم الأولية والمعامل والباركود والسعر والتحويل في [INV04](items.md).
 
 امتداد INV02: `GET /api/v1/companies/{companyId}/item-groups/{id}/usage` لملخص مراجع المجموعة وموانعها، و`GET /api/v1/companies/{companyId}/item-groups/{id}/items` لصفحات الأصناف المباشرة أو الشجرة. كلاهما يتطلب `ledger.read` على جميع الفروع؛ تفاصيل المعاملات والحدود في [عقد المجموعة](item-groups.md).
+
+واجهات INV01 تحت `/api/v1/companies/{companyId}/warehouses` لإنشاء وتعديل وقراءة وبحث وتعطيل المخازن ومواقعها وتدقيقها، ومراجع الحساب عبر `/accounts/{id}/warehouses`. [العقد والصلاحيات وحدود التنفيذ](warehouses.md).

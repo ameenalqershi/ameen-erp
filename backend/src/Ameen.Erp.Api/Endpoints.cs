@@ -43,6 +43,20 @@ public static class Endpoints
             Results.Ok(await s.ListBranchAudit(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("SYS02 Branches");
         app.MapGet(p + "/branches/search", async (Guid companyId, string? search, Guid? parentId, bool? isActive, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.SearchBranches(companyId, Actor(h), search, parentId, isActive, offset ?? 0, limit ?? 50, ct))).Produces<Page<Branch>>().RequireAuthorization().WithTags("SYS02 Branches");
+        app.MapGet(p + "/warehouses", async (Guid companyId, string? search, Guid? branchId, bool? isActive, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.SearchWarehouses(companyId, Actor(h), search, branchId, isActive, offset ?? 0, limit ?? 50, ct))).Produces<Page<Warehouse>>().RequireAuthorization().WithTags("INV01 Warehouses");
+        app.MapPost(p + "/warehouses", async (Guid companyId, CreateWarehouseRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.CreateWarehouse(companyId, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV01 Warehouses");
+        app.MapGet(p + "/warehouses/{id:guid}", async (Guid companyId, Guid id, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetWarehouse(companyId, id, Actor(h), ct))).Produces<Warehouse>().RequireAuthorization().WithTags("INV01 Warehouses");
+        app.MapPut(p + "/warehouses/{id:guid}", async (Guid companyId, Guid id, EditWarehouseRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.EditWarehouse(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV01 Warehouses");
+        app.MapPost(p + "/warehouses/{id:guid}/status", async (Guid companyId, Guid id, SetWarehouseStatusRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.SetWarehouseStatus(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV01 Warehouses");
+        app.MapGet(p + "/warehouses/{id:guid}/audit-events", async (Guid companyId, Guid id, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListWarehouseAudit(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("INV01 Warehouses");
+        app.MapGet(p + "/accounts/{id:guid}/warehouses", async (Guid companyId, Guid id, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListAccountWarehouses(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<Warehouse>>().RequireAuthorization().WithTags("INV01 Warehouses");
         app.MapGet(p + "/items", async (Guid companyId, string? search, Guid? groupId, bool? isActive, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.SearchItems(companyId, Actor(h), search, groupId, isActive, offset ?? 0, limit ?? 50, ct))).Produces<Page<Item>>().RequireAuthorization().WithTags("INV04 Items");
         app.MapPost(p + "/items", async (Guid companyId, CreateItemRequest r, ErpService s, HttpContext h, CancellationToken ct) =>

@@ -419,6 +419,7 @@ FiscalCalendarTests.Register(Test);
 RateAndCloseTests.Register(Test);
 UnitTests.Register(Test);
 ItemGroupTests.Register(Test);
+WarehouseTests.Register(Test);
 ItemTests.Register(Test);
 ItemGroupUsageTests.Register(Test);
 CostCenterTests.Register(Test);

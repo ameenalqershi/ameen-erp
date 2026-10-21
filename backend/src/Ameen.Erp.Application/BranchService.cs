@@ -37,6 +37,7 @@ public sealed partial class ErpService
         return visited.ToArray();
     }
     private async Task<bool> HasBranchUsage(Guid cid, Guid[] ids, CancellationToken ct) =>
+        (await store.Find<Warehouse>(cid, x => ids.Contains(x.BranchId), ct)).Count > 0 ||
         (await store.Find<JournalEntry>(cid, x => ids.Contains(x.BranchId), ct)).Count > 0 ||
         (await store.Find<RecurringJournalTemplate>(cid, x => ids.Contains(x.BranchId), ct)).Count > 0;
 
@@ -68,6 +69,8 @@ public sealed partial class ErpService
         {
             var branch = await Required<Branch>(cid, id, token); Check.Version(branch, request.ExpectedVersion);
             var reason = Check.Text(request.Reason, "سبب تغيير الحالة", 500);
+            if (!request.IsActive)
+                Check.That(!(await store.Find<Warehouse>(cid, x => x.BranchId == id && x.IsActive, token)).Any(), "branch_used_by_active_warehouse", "الفرع مرتبط بمخزن فعال.", ErrorKind.Conflict);
             if (!request.IsActive)
                 Check.That(!(await store.Find<Branch>(cid, x => x.ParentId == id && x.IsActive, token)).Any(),
                     "active_child_branches", "عطل الفروع التابعة أولًا.", ErrorKind.Conflict);

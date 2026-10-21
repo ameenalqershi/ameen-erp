@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 25,
+  "partially_implemented_screens": 26,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 216,
-    "audit": 47,
+    "implemented": 229,
+    "audit": 50,
     "derived": 4,
-    "partial": 23,
-    "pending": 2469
+    "partial": 25,
+    "pending": 2451
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -1050,6 +1050,86 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CostCenterTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "INV01": {
+      "api": "GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses",
+      "implemented": "بطاقة مخزن ومواقع وحقول ثنائية اللغة وإصدار؛ أمين من عضوية فعالة في الفرع؛ بحث مقيد بالفروع وتعديل وحالة وتدقيق؛ حماية مراجع الحساب والفرع",
+      "remaining": "نوع Standard/Quarantine ومرجع الأمين Membership نطاق أولي غير محسوم؛ نطاق صلاحيات مخزن مستقل والاستخدام المستندي ومتـاح البيع والحركات وقفل المواقع بعد الحركة وأولوية حساب المخزن/المجموعة غير منفذة",
+      "fields": {
+        "INV01-F01": {
+          "status": "implemented",
+          "binding": "Warehouse.Id"
+        },
+        "INV01-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "INV01-F03": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "INV01-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "INV01-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
+        "INV01-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "INV01-F07": {
+          "status": "implemented",
+          "binding": "Notes"
+        },
+        "INV01-F08": {
+          "status": "implemented",
+          "binding": "BranchId"
+        },
+        "INV01-F09": {
+          "status": "partial",
+          "binding": "KeeperMembershipId: initial active ERP membership with branch scope"
+        },
+        "INV01-F10": {
+          "status": "partial",
+          "binding": "Warehouse.Type: Standard/Quarantine initial inferred scope"
+        },
+        "INV01-F11": {
+          "status": "implemented",
+          "binding": "InventoryAccountId"
+        },
+        "INV01-F12": {
+          "status": "implemented",
+          "binding": "TrackLocations"
+        },
+        "INV01-F13": {
+          "status": "implemented",
+          "binding": "Locations[].Code"
+        },
+        "INV01-F14": {
+          "status": "implemented",
+          "binding": "Locations[].Description"
+        },
+        "INV01-F17": {
+          "status": "implemented",
+          "binding": "Revision"
+        },
+        "INV01-F15": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: warehouse.created"
+        },
+        "INV01-F16": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: warehouse.created"
+        },
+        "INV01-F18": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: warehouse.edited / warehouse.status-changed"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/WarehouseTests.cs; backend/tests/Ameen.Erp.Tests/WarehouseSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "INV02": {
       "api": "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups",

@@ -9,7 +9,7 @@ namespace Ameen.Erp.Infrastructure;
 
 public sealed partial class ErpDbContext : DbContext
 {
-    public const int SchemaVersion = 10;
+    public const int SchemaVersion = 11;
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options) { }
 
     private static EntityTypeBuilder<T> Tenant<T>(ModelBuilder model, string table) where T : CompanyEntity
@@ -201,6 +201,7 @@ public sealed partial class ErpDbContext : DbContext
         idem.Property(x => x.Fingerprint).HasMaxLength(64);
         idem.HasIndex(x => new { x.CompanyId, x.Key }).IsUnique();
 
+        ConfigureWarehouses(model);
         ConfigureRecurring(model);
         // Use one date-only storage contract for all accounting dates.
         foreach (var entityType in model.Model.GetEntityTypes().ToArray())
@@ -222,6 +223,10 @@ public sealed partial class ErpDbContext : DbContext
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "receipt_immutable", "نتيجة الطلب المحفوظة غير قابلة للتعديل.");
         foreach (var entry in ChangeTracker.Entries<RecurringJournalGeneration>())
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "recurring_generation_immutable", "سجل توليد القيد غير قابل للتعديل أو الحذف.");
+        foreach (var entry in ChangeTracker.Entries<WarehouseLocation>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            Check.That(ChangeTracker.Entries<Warehouse>().Any(w => w.Entity.CompanyId == entry.Entity.CompanyId && w.Entity.Id == entry.Entity.WarehouseId &&
+                (w.State == EntityState.Added || (w.State == EntityState.Modified && w.Property(x => x.Version).IsModified))),
+                "warehouse_locations_owner_required", "تعديل المواقع يتطلب تحميل المخزن وتغيير إصداره.");
         foreach (var entry in ChangeTracker.Entries<ItemUnit>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
             Check.That(ChangeTracker.Entries<Item>().Any(t => t.Entity.CompanyId == entry.Entity.CompanyId && t.Entity.Id == entry.Entity.ItemId &&
                 (t.State == EntityState.Added || (t.State == EntityState.Modified && t.Property(x => x.Version).IsModified))),

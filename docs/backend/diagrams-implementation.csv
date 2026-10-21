@@ -2,7 +2,7 @@ diagram_id,analysis_source,status,scope
 module-SYS,muhaseb-erp-analysis/diagrams/source/module-SYS.mmd,partial,تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات
 module-GL,muhaseb-erp-analysis/diagrams/source/module-GL.mmd,partial,دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة
 module-CASH,muhaseb-erp-analysis/diagrams/source/module-CASH.mmd,not-started,لم يبدأ التنفيذ
-module-INV,muhaseb-erp-analysis/diagrams/source/module-INV.mmd,partial,وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ المخازن والحركات والتكلفة والتتبع التشغيلي لم تنفذ
+module-INV,muhaseb-erp-analysis/diagrams/source/module-INV.mmd,partial,وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ
 module-SAL,muhaseb-erp-analysis/diagrams/source/module-SAL.mmd,not-started,لم يبدأ التنفيذ
 module-PUR,muhaseb-erp-analysis/diagrams/source/module-PUR.mmd,not-started,لم يبدأ التنفيذ
 module-POS,muhaseb-erp-analysis/diagrams/source/module-POS.mmd,not-started,لم يبدأ التنفيذ
@@ -26,4 +26,4 @@ posting-sequence,muhaseb-erp-analysis/diagrams/source/posting-sequence.mmd,parti
 imports,muhaseb-erp-analysis/diagrams/source/imports.mmd,not-started,لم يبدأ التنفيذ
 extensions,muhaseb-erp-analysis/diagrams/source/extensions.mmd,not-started,لم يبدأ التنفيذ
 opening-migration,muhaseb-erp-analysis/diagrams/source/opening-migration.mmd,not-started,لم يبدأ التنفيذ
-data-model,muhaseb-erp-analysis/diagrams/source/data-model.mmd,partial,شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT؛ DOCUMENT والدفاتر المساعدة لاحقًا
+data-model,muhaseb-erp-analysis/diagrams/source/data-model.mmd,partial,شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا

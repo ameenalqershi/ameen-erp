@@ -19,6 +19,7 @@ public interface IErpStore
         Func<IQueryable<T>, IOrderedQueryable<T>> order, int offset, int limit, CancellationToken ct) where T : CompanyEntity;
     void Add(Entity entity);
     void RemoveLines(IEnumerable<JournalLine> lines);
+    void RemoveWarehouseLocations(IEnumerable<WarehouseLocation> locations);
     void RemoveItemUnits(IEnumerable<ItemUnit> units);
     void RemoveRecurringLines(IEnumerable<RecurringJournalLine> lines);
     Task Save(CancellationToken ct);
@@ -141,3 +142,10 @@ public sealed record ItemQuantityConversion(Guid ItemId, Guid ItemVersion, Guid 
 public sealed record ItemGroupUsage(Guid GroupId, Guid GroupVersion, int DirectChildGroups, int ActiveDirectChildGroups,
     int DescendantGroups, int DirectItems, int ActiveDirectItems, int SubtreeItems, int ActiveSubtreeItems,
     bool StructureLocked, bool HasDeactivationBlockers);
+
+public sealed record WarehouseLocationRequest(string Code, string Description);
+public sealed record CreateWarehouseRequest(string Code, string Name, Guid BranchId, Guid KeeperMembershipId, Guid InventoryAccountId,
+    WarehouseType Type, bool TrackLocations, WarehouseLocationRequest[] Locations, string? EnglishName = null, string? Notes = null);
+public sealed record EditWarehouseRequest(Guid ExpectedVersion, string Code, string Name, Guid BranchId, Guid KeeperMembershipId, Guid InventoryAccountId,
+    WarehouseType Type, bool TrackLocations, WarehouseLocationRequest[] Locations, string? EnglishName, string? Notes, string Reason);
+public sealed record SetWarehouseStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);

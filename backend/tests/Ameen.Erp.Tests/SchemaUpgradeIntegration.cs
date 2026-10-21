@@ -167,6 +167,16 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(itemScript); await db.Database.ExecuteSqlRawAsync(itemScript);
         Ensure(!await db.Set<Item>().AnyAsync(), "Migration invented items");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 009→010 preserves prior data and adds item/unit tables");
+        var warehouseScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "011_warehouses.sql"));
+        await db.Database.ExecuteSqlRawAsync("CREATE TABLE [WarehouseLocations] ([TestOnly] int NULL)");
+        try { await db.Database.ExecuteSqlRawAsync(warehouseScript); throw new Exception("Conflicting warehouse upgrade succeeded"); }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=11").AnyAsync(), "Failed upgrade saved version 11");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='Warehouses'").SingleAsync() == 0, "Failed warehouse upgrade left table");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE [WarehouseLocations]");
+        await db.Database.ExecuteSqlRawAsync(warehouseScript); await db.Database.ExecuteSqlRawAsync(warehouseScript);
+        Ensure(!await db.Set<Warehouse>().AnyAsync(), "Migration invented warehouses");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 010→011 adds empty warehouses and locations, preserving prior data");
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

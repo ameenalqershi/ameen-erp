@@ -23,6 +23,7 @@ public sealed partial class ErpService
     }
 
     private async Task<bool> HasAccountUsage(Guid cid, Guid[] ids, CancellationToken ct) =>
+        (await store.Find<Warehouse>(cid, x => ids.Contains(x.InventoryAccountId), ct)).Count > 0 ||
         (await store.Find<JournalEntry>(cid, x => x.Lines.Any(l => ids.Contains(l.AccountId)), ct)).Count > 0 ||
         (await store.Find<RecurringJournalTemplate>(cid, x => x.Lines.Any(l => ids.Contains(l.AccountId)), ct)).Count > 0 ||
         (await store.Find<ItemGroup>(cid, x => ids.Contains(x.SalesAccountId) ||

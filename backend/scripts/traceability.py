@@ -120,6 +120,14 @@ screen("COST01", "GET/POST /companies/{companyId}/cost-centers; GET /search; GET
        [(12, "AuditEvent.ActorId: cost-center.created"), (13, "AuditEvent.OccurredAt: cost-center.created"), (15, "AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed")])
 MAP["COST01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CostCenterTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+screen("INV01", "GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses",
+       "بطاقة مخزن ومواقع وحقول ثنائية اللغة وإصدار؛ أمين من عضوية فعالة في الفرع؛ بحث مقيد بالفروع وتعديل وحالة وتدقيق؛ حماية مراجع الحساب والفرع",
+       "نوع Standard/Quarantine ومرجع الأمين Membership نطاق أولي غير محسوم؛ نطاق صلاحيات مخزن مستقل والاستخدام المستندي ومتـاح البيع والحركات وقفل المواقع بعد الحركة وأولوية حساب المخزن/المجموعة غير منفذة",
+       {1: "Warehouse.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "BranchId", 9: "KeeperMembershipId", 10: "Type", 11: "InventoryAccountId", 12: "TrackLocations", 13: "Locations[].Code", 14: "Locations[].Description", 17: "Revision"},
+       [(15, "AuditEvent.ActorId: warehouse.created"), (16, "AuditEvent.OccurredAt: warehouse.created"), (18, "AuditEvent.OccurredAt: warehouse.edited / warehouse.status-changed")])
+MAP["INV01"]["fields"]["INV01-F09"] = dict(status="partial", binding="KeeperMembershipId: initial active ERP membership with branch scope")
+MAP["INV01"]["fields"]["INV01-F10"] = dict(status="partial", binding="Warehouse.Type: Standard/Quarantine initial inferred scope")
+MAP["INV01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["WarehouseTests.cs", "WarehouseSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("INV02", "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups",
        "شجرة مجموعات بلا دورات وربط حسابات المبيعات والمخزون والتكلفة؛ بحث وتعديل وحالة وتدقيق؛ ملخص الاستخدام المباشر والفرعي وأصنافه بصفحات مع أسباب القفل؛ حماية بنية الحساب المرتبط ومنع تعطيله مع مجموعة فعالة",
        "مرجع الضريبة الافتراضي وسياسة تجاوز إعدادات المجموعة غير منفذين؛ استخدام الأصناف يقفل البنية وحسابا المخزون والتكلفة مطلوبان لغير الخدمة؛ لا ترحيل مخزون",
@@ -179,7 +187,7 @@ for code, n, binding, status in [
 
 RULES = {
     "BR01": ("manual-journal", "Decimal واتزان دقيق؛ رفض فقدان الدقة؛ فروق التقريب تحتاج سطرًا صريحًا", "Program.cs: BR01 / Wire contract"),
-    "BR02": ("partial", "شركة وفرع وحساب ومركز وعملة وسعر ووحدة ومجموعة وصنف؛ لا مخازن أو أطراف أو ضرائب بعد", "Program.cs: BR02; SqlIntegration.cs: company isolation"),
+    "BR02": ("partial", "شركة وفرع وحساب ومركز وعملة وسعر ووحدة ومجموعة وصنف؛ مخازن ومواقع؛ لا أطراف أو ضرائب بعد", "Program.cs: BR02; SqlIntegration.cs: company isolation"),
     "BR03": ("manual-journal", "تاريخ الوثيقة والأثر ووقت الترحيل مستقلة؛ فترة مفتوحة", "Program.cs: BR03"),
     "BR04": ("partial", "حساب فعال فرعي وعملة ومركز صحيح؛ المشروع والطرف لاحقًا", "Program.cs: BR04"),
     "BR05": ("partial", "ذرية القيد والتدقيق وOutbox والنتيجة وسجل التوليد الدوري؛ الدفاتر المساعدة والعامل الخارجي لم تنفذ", "Program.cs: BR05; SqlIntegration.cs / RecurringSqlIntegration.cs: constraint rollback"),
@@ -223,11 +231,11 @@ def generate():
     diagram_notes = {
         "module-SYS": "تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات",
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
-        "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ المخازن والحركات والتكلفة والتتبع التشغيلي لم تنفذ",
+        "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
-        "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT؛ DOCUMENT والدفاتر المساعدة لاحقًا",
+        "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",
         "document-lifecycle": "الدورة منفذة للقيد اليدوي؛ الرفض يعيد Draft مع سبب وتاريخ في التدقيق؛ محاولة الترحيل ليست حالة دائمة",
         "posting-sequence": "ذرية القيد وOutbox والتدقيق؛ لا دفاتر مساعدة أو عامل إرسال خارجي بعد",
         "period-close": "فحص القيود المعلقة واتزانها فقط؛ باقي مسار المطابقة والإقفال السنوي غير منفذ",
