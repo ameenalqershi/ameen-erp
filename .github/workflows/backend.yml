@@ -1,0 +1,48 @@
+name: Backend verification
+on:
+  push:
+    paths: ['backend/**', 'docs/backend/**', 'muhaseb-erp-analysis/**', '.github/workflows/backend.yml']
+  pull_request:
+    paths: ['backend/**', 'docs/backend/**', 'muhaseb-erp-analysis/**', '.github/workflows/backend.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Start isolated SQL Server
+        shell: bash
+        run: |
+          sql_test_password="Ci!$(openssl rand -hex 24)"
+          echo "::add-mask::$sql_test_password"
+          echo "AMEEN_TEST_SQL_CONNECTION=Server=127.0.0.1,1433;User Id=sa;Password=$sql_test_password;Encrypt=True;TrustServerCertificate=True" >> "$GITHUB_ENV"
+          docker run --detach --name ameen-sql --publish 127.0.0.1:1433:1433 --env ACCEPT_EULA=Y --env MSSQL_PID=Developer --env MSSQL_SA_PASSWORD="$sql_test_password" mcr.microsoft.com/mssql/server:2022-latest
+          for attempt in {1..60}; do
+            if docker exec ameen-sql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$sql_test_password" -C -Q 'SELECT 1' > /dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'SQL Server failed to become ready'
+          exit 1
+      - name: Domain, application, mapping and live SQL integration tests
+        run: python3 backend/scripts/verify.py --sql
+      - name: Save verification evidence and generated API contract
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-verification
+          path: backend/.artifacts/
+          if-no-files-found: warn
+      - name: Publish API
+        working-directory: backend
+        run: dotnet publish src/Ameen.Erp.Api/Ameen.Erp.Api.csproj -c Release --no-restore --output .artifacts/api
+      - name: Clean up disposable SQL Server
+        if: always()
+        run: docker rm --force ameen-sql || true

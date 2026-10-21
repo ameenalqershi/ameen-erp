@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Ameen.Erp.Application/Ameen.Erp.Application.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(RuntimePackageVersion)" />
+    <!-- Override SqlClient's older transitive PKCS dependency; keep NuGet vulnerability auditing enabled. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="$(RuntimePackageVersion)" />
+  </ItemGroup>
+</Project>

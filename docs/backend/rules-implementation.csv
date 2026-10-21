@@ -1,0 +1,21 @@
+rule_id,scope,implemented_and_remaining,evidence
+BR01,manual-journal,Decimal واتزان دقيق؛ رفض فقدان الدقة؛ فروق التقريب تحتاج سطرًا صريحًا,Program.cs: BR01 / Wire contract
+BR02,partial,شركة وفرع وحساب ومركز وعملة وسعر؛ لا مخازن أو أطراف أو ضرائب بعد,Program.cs: BR02; SqlIntegration.cs: company isolation
+BR03,manual-journal,تاريخ الوثيقة والأثر ووقت الترحيل مستقلة؛ فترة مفتوحة,Program.cs: BR03
+BR04,partial,حساب فعال فرعي وعملة ومركز صحيح؛ المشروع والطرف لاحقًا,Program.cs: BR04
+BR05,partial,ذرية القيد والتدقيق وOutbox والنتيجة؛ الدفاتر المساعدة والعامل الخارجي لم تنفذ,Program.cs: BR05; SqlIntegration.cs: constraint rollback
+BR06,partial,Idempotency per company/actor/operation/body؛ قيد يدوي واحد؛ مفتاح مصدر المستند المؤتمت لاحقًا,Program.cs: BR06; SqlIntegration.cs: concurrency
+BR07,manual-journal,حماية المرحل وعكس مرتبط بفترة مفتوحة وتثبيت سعر الأصل,Program.cs: BR07
+BR08,partial,منع قيد يدوي للحساب الرقابي؛ مطابقة دفاتر مساعدة لاحقًا,Program.cs: BR08
+BR09,partial,تدقيق الأوامر وفصل المنشئ والمعتمد؛ مسارات مراجعة متعددة لاحقًا,Program.cs: BR09 / Workflow
+BR10,manual-journal,سعر موجب مؤرخ ثابت ومبالغ أصلية ووظيفية وعكس تاريخي,Program.cs: BR10
+BR11,not-started,لم يبدأ التنفيذ,none
+BR12,not-started,لم يبدأ التنفيذ,none
+BR13,not-started,لم يبدأ التنفيذ,none
+BR14,partial,منع إقفال الأستاذ مع قيود معلقة؛ الإقفال الشامل والسنوي لاحقًا,Program.cs: BR03; SqlIntegration.cs: close/post race
+BR15,partial,تقارير الأستاذ تستبعد المسودات؛ لا تقارير ذمم منفذة,Program.cs: RPT01 RPT02
+BR16,not-started,لم يبدأ التنفيذ,none
+BR17,not-started,لم يبدأ التنفيذ,none
+BR18,partial,عزل الشركات والفروع وعضويات حالية؛ نطاق الحساب والسعر والتصدير لاحقًا,Program.cs: BR18 / SYS06
+BR19,not-started,لم يبدأ التنفيذ,none
+BR20,not-started,لم تنفذ ضرائب أو ملفات تشريعية أو تكاملات دولة,none

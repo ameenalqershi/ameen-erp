@@ -1,0 +1,56 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DA69267B-E082-4D15-A8F4-31EF446D3635}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ameen.Erp.Domain", "src\Ameen.Erp.Domain\Ameen.Erp.Domain.csproj", "{FCC7AD08-4DBF-4734-9AEF-5CB1E4A84A4C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ameen.Erp.Application", "src\Ameen.Erp.Application\Ameen.Erp.Application.csproj", "{FE86E84F-3DE0-4B80-A82A-B885341F13A7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ameen.Erp.Infrastructure", "src\Ameen.Erp.Infrastructure\Ameen.Erp.Infrastructure.csproj", "{9D516089-6F44-47CA-96EC-2591413DAFED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ameen.Erp.Api", "src\Ameen.Erp.Api\Ameen.Erp.Api.csproj", "{817C04B1-1CAC-4660-A124-908D3B2F6161}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{FF1C57B2-BA16-473B-BC59-6C36AE5E1453}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ameen.Erp.Tests", "tests\Ameen.Erp.Tests\Ameen.Erp.Tests.csproj", "{49CC9C9C-7945-49FF-8712-19508A82F0F2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FCC7AD08-4DBF-4734-9AEF-5CB1E4A84A4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCC7AD08-4DBF-4734-9AEF-5CB1E4A84A4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCC7AD08-4DBF-4734-9AEF-5CB1E4A84A4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCC7AD08-4DBF-4734-9AEF-5CB1E4A84A4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE86E84F-3DE0-4B80-A82A-B885341F13A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE86E84F-3DE0-4B80-A82A-B885341F13A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE86E84F-3DE0-4B80-A82A-B885341F13A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE86E84F-3DE0-4B80-A82A-B885341F13A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D516089-6F44-47CA-96EC-2591413DAFED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D516089-6F44-47CA-96EC-2591413DAFED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D516089-6F44-47CA-96EC-2591413DAFED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D516089-6F44-47CA-96EC-2591413DAFED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{817C04B1-1CAC-4660-A124-908D3B2F6161}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{817C04B1-1CAC-4660-A124-908D3B2F6161}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{817C04B1-1CAC-4660-A124-908D3B2F6161}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{817C04B1-1CAC-4660-A124-908D3B2F6161}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49CC9C9C-7945-49FF-8712-19508A82F0F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49CC9C9C-7945-49FF-8712-19508A82F0F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49CC9C9C-7945-49FF-8712-19508A82F0F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49CC9C9C-7945-49FF-8712-19508A82F0F2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{FCC7AD08-4DBF-4734-9AEF-5CB1E4A84A4C} = {DA69267B-E082-4D15-A8F4-31EF446D3635}
+		{FE86E84F-3DE0-4B80-A82A-B885341F13A7} = {DA69267B-E082-4D15-A8F4-31EF446D3635}
+		{9D516089-6F44-47CA-96EC-2591413DAFED} = {DA69267B-E082-4D15-A8F4-31EF446D3635}
+		{817C04B1-1CAC-4660-A124-908D3B2F6161} = {DA69267B-E082-4D15-A8F4-31EF446D3635}
+		{49CC9C9C-7945-49FF-8712-19508A82F0F2} = {FF1C57B2-BA16-473B-BC59-6C36AE5E1453}
+	EndGlobalSection
+EndGlobal

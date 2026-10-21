@@ -1,0 +1,11 @@
+**/bin
+**/obj
+.env
+.env.*
+*.pfx
+*.pem
+*.key
+tests
+database
+scripts
+README.md

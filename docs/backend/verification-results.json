@@ -1,0 +1,114 @@
+{
+  "startedAtUtc": "2026-10-21T04:25:01.728004+00:00",
+  "sdk": "10.0.402",
+  "targetFramework": "net10.0",
+  "configuration": "Release",
+  "liveSqlRequested": true,
+  "steps": [
+    {
+      "command": [
+        "/usr/bin/python3",
+        "/root/ameen-erp/backend/scripts/traceability.py",
+        "--check"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/root/.dotnet10/dotnet",
+        "restore",
+        "Ameen.Erp.sln",
+        "--locked-mode",
+        "--disable-parallel",
+        "-m:1"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/root/.dotnet10/dotnet",
+        "build",
+        "Ameen.Erp.sln",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:UseSharedCompilation=false",
+        "-m:1"
+      ],
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/root/.dotnet10/dotnet",
+        "tests/Ameen.Erp.Tests/bin/Release/net10.0/Ameen.Erp.Tests.dll",
+        "--sql"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "result": "passed",
+  "sourceSha256": "12f2626b459bdc7b17284a612251a90434a1e902c8b8ef594f6eca87dc85e23d",
+  "checks": [
+    "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
+    "PASS BR01: line must contain exactly one positive side",
+    "PASS BR01: disallow negative or excessive precision amounts",
+    "PASS BR03 AT02: closed period rejects journal",
+    "PASS BR03: period closure rejects outstanding drafts",
+    "PASS BR03: reopening requires separate privilege and reason",
+    "PASS BR09: journal creator cannot approve own journal",
+    "PASS Workflow: post requires approved status",
+    "PASS BR05: persistence failure rolls back state, audit, sequence and receipt",
+    "PASS BR05: failed posting leaves approved journal and no outbox",
+    "PASS BR06 AT03: replay posting returns identical receipt and one outbox",
+    "PASS BR06: simultaneous identical create requests have one result",
+    "PASS BR06: reusing key for different payload fails",
+    "PASS BR06: revoked permission is checked before idempotent replay",
+    "PASS BR07: stale update cannot overwrite a draft",
+    "PASS BR07: posted document rejects editing and cancellation",
+    "PASS BR07: reversal remains draft until separately approved and posted",
+    "PASS BR07: reserve one reversal and release it on cancellation",
+    "PASS BR07: reversal draft cannot replace source amounts",
+    "PASS BR08: control accounts reject manual journals",
+    "PASS BR04: parent and inactive accounts reject posting",
+    "PASS BR04: required cost center and center branch are validated",
+    "PASS BR02 AT25: another company account cannot be referenced",
+    "PASS BR18: branch scope applies to create, detail and reports",
+    "PASS BR09: configuration administrator has no implicit financial rights",
+    "PASS BR10: missing, negative and future exchange rates fail",
+    "PASS BR10: mixed currencies balance functionally and preserve historical reversal rate",
+    "PASS RPT01 RPT02: opening, movement, closing and running page balances reconcile",
+    "PASS RPT01: historical report excludes later reversal",
+    "PASS RPT01: account level replaces descendants without double counting",
+    "PASS RPT01: hide zero retains accounts with offsetting posted movement",
+    "PASS RPT01 RPT02: cost-center filter applies to opening, movement and running balance",
+    "PASS RPT01 RPT02: cost-center scope cannot bypass company or branch permissions",
+    "PASS RPT02: external reference filters opening and movement with exact matching",
+    "PASS RPT01: invalid hierarchy level fails validation",
+    "PASS SYS03: fiscal calendar has no gaps including leap February",
+    "PASS SYS10: cancelled document numbers are never reused",
+    "PASS SYS06: disabled membership immediately loses read and replay access",
+    "PASS BR07: EF persistence rejects posted line changes through both save paths",
+    "PASS BR07: EF persistence rejects modifying posted journal content",
+    "PASS BR09: EF persistence rejects audit deletion",
+    "PASS Workflow: return requires reason and restores editable draft",
+    "PASS Wire contract: exact decimal strings and date-only JSON roundtrip",
+    "PASS Wire contract: excessive decimal precision and exponents are rejected without rounding",
+    "PASS SQL model: composite company foreign keys and unique idempotency/number indexes",
+    "PASS API: every ERP endpoint requires authentication and carries screen trace tags",
+    "PASS HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON",
+    "  SQL PASS concurrent idempotency across independent connections",
+    "  SQL PASS draft replacement, materialization, posting replay and one outbox",
+    "  SQL PASS real constraint failure rolls back journal, audit, outbox and receipt; retry succeeds",
+    "  SQL PASS linked reversal, reports, SQL translation and pagination",
+    "  SQL PASS report center, hierarchy and exact reference filters",
+    "  SQL PASS period closure and posting serialize correctly",
+    "  SQL PASS database-level company isolation",
+    "  SQL PASS runtime role can save commands and cannot modify audit history",
+    "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
+    "PASS SQL Server integration"
+  ],
+  "passed": 48,
+  "total": 48,
+  "failed": 0,
+  "finishedAtUtc": "2026-10-21T04:25:23.801286+00:00"
+}

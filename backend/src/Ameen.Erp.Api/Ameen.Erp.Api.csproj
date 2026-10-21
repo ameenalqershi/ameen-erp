@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="../Ameen.Erp.Infrastructure/Ameen.Erp.Infrastructure.csproj" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(RuntimePackageVersion)" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="$(RuntimePackageVersion)" />
+  </ItemGroup>
+</Project>

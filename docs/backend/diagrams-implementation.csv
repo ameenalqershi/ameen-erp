@@ -1,0 +1,29 @@
+diagram_id,analysis_source,status,scope
+module-SYS,muhaseb-erp-analysis/diagrams/source/module-SYS.mmd,partial,تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات
+module-GL,muhaseb-erp-analysis/diagrams/source/module-GL.mmd,partial,الأستاذ اليدوي فقط؛ باقي وظائف GL غير مكتملة
+module-CASH,muhaseb-erp-analysis/diagrams/source/module-CASH.mmd,not-started,لم يبدأ التنفيذ
+module-INV,muhaseb-erp-analysis/diagrams/source/module-INV.mmd,not-started,لم يبدأ التنفيذ
+module-SAL,muhaseb-erp-analysis/diagrams/source/module-SAL.mmd,not-started,لم يبدأ التنفيذ
+module-PUR,muhaseb-erp-analysis/diagrams/source/module-PUR.mmd,not-started,لم يبدأ التنفيذ
+module-POS,muhaseb-erp-analysis/diagrams/source/module-POS.mmd,not-started,لم يبدأ التنفيذ
+module-IMP,muhaseb-erp-analysis/diagrams/source/module-IMP.mmd,not-started,لم يبدأ التنفيذ
+module-FA,muhaseb-erp-analysis/diagrams/source/module-FA.mmd,not-started,لم يبدأ التنفيذ
+module-COST,muhaseb-erp-analysis/diagrams/source/module-COST.mmd,partial,مراكز مستقلة فقط بلا هرمية أو موازنات
+module-HR,muhaseb-erp-analysis/diagrams/source/module-HR.mmd,not-started,لم يبدأ التنفيذ
+module-MFG,muhaseb-erp-analysis/diagrams/source/module-MFG.mmd,not-started,لم يبدأ التنفيذ
+module-PRJ,muhaseb-erp-analysis/diagrams/source/module-PRJ.mmd,not-started,لم يبدأ التنفيذ
+module-TAX,muhaseb-erp-analysis/diagrams/source/module-TAX.mmd,not-started,لم يبدأ التنفيذ
+module-RPT,muhaseb-erp-analysis/diagrams/source/module-RPT.mmd,partial,ميزان وأستاذ جزئيان
+system-map,muhaseb-erp-analysis/diagrams/source/system-map.mmd,partial,أساس SYS وGL وبعض COST وRPT؛ بقية الأقسام لم تبدأ
+document-lifecycle,muhaseb-erp-analysis/diagrams/source/document-lifecycle.mmd,partial,الدورة منفذة للقيد اليدوي؛ الرفض يعيد Draft مع سبب وتاريخ في التدقيق؛ محاولة الترحيل ليست حالة دائمة
+purchase-to-pay,muhaseb-erp-analysis/diagrams/source/purchase-to-pay.mmd,not-started,لم يبدأ التنفيذ
+sale-to-cash,muhaseb-erp-analysis/diagrams/source/sale-to-cash.mmd,not-started,لم يبدأ التنفيذ
+stock-transfer,muhaseb-erp-analysis/diagrams/source/stock-transfer.mmd,not-started,لم يبدأ التنفيذ
+returns,muhaseb-erp-analysis/diagrams/source/returns.mmd,not-started,لم يبدأ التنفيذ
+period-close,muhaseb-erp-analysis/diagrams/source/period-close.mmd,partial,فحص القيود المعلقة واتزانها فقط؛ باقي مسار المطابقة والإقفال السنوي غير منفذ
+einvoice,muhaseb-erp-analysis/diagrams/source/einvoice.mmd,not-started,لم يبدأ التنفيذ
+posting-sequence,muhaseb-erp-analysis/diagrams/source/posting-sequence.mmd,partial,ذرية القيد وOutbox والتدقيق؛ لا دفاتر مساعدة أو عامل إرسال خارجي بعد
+imports,muhaseb-erp-analysis/diagrams/source/imports.mmd,not-started,لم يبدأ التنفيذ
+extensions,muhaseb-erp-analysis/diagrams/source/extensions.mmd,not-started,لم يبدأ التنفيذ
+opening-migration,muhaseb-erp-analysis/diagrams/source/opening-migration.mmd,not-started,لم يبدأ التنفيذ
+data-model,muhaseb-erp-analysis/diagrams/source/data-model.mmd,partial,شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ DOCUMENT والدفاتر المساعدة لاحقًا

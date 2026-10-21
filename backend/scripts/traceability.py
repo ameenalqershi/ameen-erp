@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+"""Generate/check explicit implementation coverage without changing the approved analysis."""
+import argparse
+import csv
+import hashlib
+import io
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+ANALYSIS = ROOT / "muhaseb-erp-analysis"
+OUT = ROOT / "docs/backend"
+
+# Only explicitly reviewed fields are mapped. Unlisted fields remain pending.
+# 'audit' means recoverable from the audit stream, not a direct form/response field.
+MAP = {}
+
+
+def screen(code, api, implemented, remaining, fields, audit=()):
+    MAP[code] = dict(api=api, implemented=implemented, remaining=remaining, fields={
+        f"{code}-F{n:02}": dict(status="implemented", binding=b) for n, b in fields.items()
+    })
+    for n, b in audit:
+        MAP[code]["fields"][f"{code}-F{n:02}"] = dict(status="audit", binding=b)
+
+
+screen("SYS01", "GET/POST /companies; GET /companies/{companyId}",
+       "إنشاء الشركة وعملتها الوظيفية وعضوية مالك الإعداد", "الاسم الإنجليزي والقانوني والعناوين والبيانات التجارية والضريبية وتعديل البطاقة وتعطيلها",
+       {1: "Company.Id / CreateCompanyRequest.Id (client-generated UUID)", 2: "route.companyId", 3: "Code", 4: "Name", 9: "CountryCode", 11: "FunctionalCurrency", 17: "Version"},
+       [(15, "AuditEvent.ActorId: company.created"), (16, "AuditEvent.OccurredAt: company.created")])
+screen("SYS02", "GET/POST /companies/{companyId}/branches",
+       "فروع مستقلة داخل الشركة وفحص نطاق المستخدم", "هرمية الإدارات والعناوين والمسؤول ومركز افتراضي وتعديل وتعطيل الفرع",
+       {1: "Branch.Id", 2: "CompanyId", 3: "Code", 4: "Name", 16: "Version"}, [(14, "AuditEvent.ActorId"), (15, "AuditEvent.OccurredAt")])
+screen("SYS03", "GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods",
+       "سنة وفترات شهرية متصلة بلا تداخل؛ حالة إقفال الأستاذ", "تعديل تقويم معتمد وفترات مخصصة وإقفال السنة؛ لا يوجد تقويم مختلف لكل فرع",
+       {1: "CompanyId", 4: "FiscalYear.Code", 5: "FiscalYear.StartsOn", 6: "FiscalYear.EndsOn", 7: "FiscalPeriod.Code", 8: "FiscalPeriod.StartsOn", 9: "FiscalPeriod.EndsOn", 13: "Version"},
+       [(11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
+screen("SYS04", "GET/POST /companies/{companyId}/currencies",
+       "رمز ISO ودقة مستقلة لكل عملة", "الأسماء ورمز العرض واسم الجزء وتعديل البطاقة وحالتها",
+       {1: "Currency.Id", 2: "CompanyId", 3: "Code", 8: "Code", 9: "Scale", 14: "Version"}, [(12, "AuditEvent.ActorId"), (13, "AuditEvent.OccurredAt")])
+screen("SYS05", "GET/POST /companies/{companyId}/exchange-rates",
+       "سعر موجب مؤرخ محفوظ بلا تعديل؛ اختيار أحدث سعر نافذ عند إعداد السطر", "أنواع شراء/بيع/محاسبي متعددة وإعدادات نطاقات الأسعار",
+       {1: "CompanyId", 4: "CurrencyCode", 6: "EffectiveDate", 8: "Source", 9: "RateToFunctional", 12: "Version"},
+       [(10, "AuditEvent.ActorId"), (11, "AuditEvent.OccurredAt")])
+screen("SYS06", "POST /companies/{companyId}/memberships/{id}/status",
+       "تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC", "شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا",
+       {1: "Membership.Id", 2: "CompanyId", 16: "Version"})
+screen("SYS07", "GET/POST /companies/{companyId}/memberships",
+       "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته", "كتالوج أدوار قابل للإدارة وحدود مبالغ وعملات وصلاحيات بقية الأقسام",
+       {1: "CompanyId", 7: "GrantedPermissions[]", 13: "Version"}, [(11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
+screen("SYS08", "GET/POST /companies/{companyId}/memberships",
+       "نطاق الشركة والفروع مطبق على الأوامر والتقارير", "نطاق الحساب والمخزن والصندوق والعملاء ومراكز التكلفة المستقل",
+       {1: "CompanyId", 4: "Subject", 6: "AllBranches / BranchIds[]", 13: "Version"}, [(11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
+screen("SYS09", "internal: Company.RequireSeparateApprover; /journals/{id}/approve",
+       "فصل إلزامي بين منشئ القيد ومعتمده", "شاشة إعداد المسارات متعددة المراحل والحدود والتنبيهات",
+       {1: "CompanyId"})
+screen("SYS10", "internal: NumberSequence; POST /companies/{companyId}/journals",
+       "تسلسل JV لكل شركة وسنة داخل معاملة؛ لا إعادة استخدام للملغى", "واجهة إعداد البوادئ والتسلسلات لكل أنواع المستندات والفروع",
+       {1: "CompanyId"})
+screen("SYS14", "GET /companies/{companyId}/audit-events",
+       "قراءة سجل أحداث غير قابل للتعديل عبر التطبيق مع هوية ووقت وبيانات التغيير", "مرشحات التاريخ والمستخدم ونوع الحدث والشاشة؛ تصدير؛ تدقيق عمليات القراءة",
+       {1: "CompanyId", 9: "Action", 10: "ActorId"})
+screen("GL01", "GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status",
+       "شجرة حسابات وتصنيف ورقابة وإلزام مركز وعملة وتعطيل مضبوط", "الأسماء الإضافية والملاحظات والطبيعة الصريحة وتعديل بنية الدليل",
+       {1: "Account.Id", 2: "CompanyId", 3: "Code", 4: "Name", 6: "IsActive", 8: "ParentId", 9: "Type", 10: "IsPosting", 12: "CurrencyCode", 13: "IsControl", 14: "RequiresCostCenter", 17: "Version"},
+       [(15, "AuditEvent.ActorId: account.created"), (16, "AuditEvent.OccurredAt: account.created"), (18, "AuditEvent.OccurredAt: account.status-changed")])
+screen("GL03", "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}",
+       "قيد يدوي متعدد العملات والمراكز بدورة مستقلة وأرقام وسعر تاريخي", "المشروع والطرف والمرفقات وأنواع القيود والعكس المجدول وتعديل تواريخ المسودة",
+       {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 16: "Lines[].AccountId", 17: "Lines[].Debit", 18: "Lines[].Credit", 19: "Lines[].CurrencyCode", 20: "Lines[].ExchangeRate (ExchangeRateId on input)", 21: "Lines[].CostCenterId", 24: "Lines[].Description", 25: "CreatedBy", 26: "CreatedAt", 27: "Version"},
+       [(28, "AuditEvent.OccurredAt: journal.edited")])
+screen("GL05", "POST /companies/{companyId}/journals/{id}/submit|approve|return",
+       "تقديم واعتماد مستقل وإعادة مسببّة للمسودة", "قائمة مراجعة بمرشح الفترة ومراجع منفصل عن المعتمد ومراحل اعتماد متعددة",
+       {1: "route.companyId", 2: "JournalEntry.BranchId", 3: "JournalEntry.State", 7: "JournalEntry.Number", 13: "Version"},
+       [(6, "AuditEvent.ActorId: journal.approve / journal.return"), (8, "AuditEvent.Action / Details.after"), (9, "AuditEvent.Details.reason: journal.return"), (11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
+screen("GL06", "POST /companies/{companyId}/journals/{id}/post",
+       "ترحيل قيد يدوي واحد ذري مع منع التكرار وOutbox", "مستندات المصدر والترحيل الجماعي ومعاينة نتائج الدفعات وعامل إرسال Outbox",
+       {1: "route.companyId", 2: "JournalEntry.BranchId", 3: "State", 6: "PostedAt", 7: "route.id", 9: "CommandReceipt.ResourceId / Number", 12: "Version"},
+       [(10, "AuditEvent.ActorId: journal.post"), (11, "AuditEvent.OccurredAt: journal.post")])
+screen("GL07", "POST /companies/{companyId}/journals/{id}/reverse",
+       "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا", "عكس مستندات الدفاتر المساعدة وفحص التبعيات والضريبة؛ عكس تلقائي مجدول",
+       {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 13: "ReversesJournalId", 14: "ReversalReason", 15: "AccountingDate", 16: "CreatedBy", 17: "CreatedAt", 18: "Version"})
+screen("GL11", "POST /companies/{companyId}/periods/{id}/close",
+       "إقفال فترة الأستاذ بعد رفض القيود المعلقة وفحص اتزان المرحل", "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة",
+       {1: "route.companyId", 4: "route.id (period only)", 12: "Version"}, [(9, "AuditEvent.ActorId: period.closed"), (10, "AuditEvent.ActorId"), (11, "AuditEvent.OccurredAt")])
+screen("GL12", "POST /companies/{companyId}/periods/{id}/reopen",
+       "فتح فترة بصلاحية مستقلة وسبب مسجل", "مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي",
+       {1: "route.companyId", 4: "route.id", 5: "ChangePeriodRequest.Reason", 10: "Version"}, [(8, "AuditEvent.ActorId"), (9, "AuditEvent.OccurredAt")])
+screen("COST01", "GET/POST /companies/{companyId}/cost-centers",
+       "تعريف مركز مرتبط اختياريًا بفرع وإلزامه على الحساب", "شجرة مراكز وأنواع ومسؤول وتعديل وتعطيل البطاقة",
+       {1: "CostCenter.Id", 2: "CompanyId", 3: "Code", 4: "Name", 9: "BranchId", 14: "Version"}, [(12, "AuditEvent.ActorId"), (13, "AuditEvent.OccurredAt")])
+screen("RPT01", "GET /companies/{companyId}/reports/trial-balance",
+       "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج", "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
+       {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 9: "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)", 10: "query.costCenterId", 11: "query.showZero"})
+screen("RPT02", "GET /companies/{companyId}/reports/accounts/{accountId}/ledger",
+       "حساب واحد برصيد افتتاحي وجارٍ صحيح عبر الصفحات؛ مرشح مركز ومرجع خارجي يطبقان على الافتتاح والحركة", "نطاق حسابات وتصدير وطباعة وطرق عرض إضافية",
+       {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 11: "query.costCenterId", 12: "query.externalReference (exact case-sensitive match)"})
+
+# Partial/derived semantics are explicit, never counted as full field implementation.
+for code, n, binding, status in [
+    ("SYS03", 10, "FiscalPeriod.IsClosed: general ledger only", "partial"),
+    ("SYS05", 5, "Company.FunctionalCurrency", "derived"),
+    ("SYS06", 6, "Membership.IsActive (ERP membership, not identity account)", "partial"),
+    ("SYS06", 12, "Membership.IsActive (ERP membership only)", "partial"),
+    ("SYS09", 8, "Company.RequireSeparateApprover always true; no configuration API", "partial"),
+    ("SYS10", 5, "scope JV:FiscalYear.Id", "derived"),
+    ("SYS10", 6, "fixed JV-{yearCode}-", "partial"),
+    ("SYS10", 7, "NumberSequence.LastNumber + 1; internal only", "partial"),
+    ("GL03", 4, "FiscalPeriod.FiscalYearId", "derived"),
+    ("GL03", 8, "currency is on each line; no single document currency", "partial"),
+    ("GL03", 9, "rate is on each line; no single document rate", "partial"),
+    ("GL07", 4, "FiscalPeriod.FiscalYearId", "derived"),
+    ("GL07", 8, "Lines[].CurrencyCode copied from original", "partial"),
+    ("GL07", 9, "Lines[].ExchangeRate copied from original", "partial"),
+    ("GL11", 3, "FiscalPeriod.IsClosed: general ledger only", "partial"),
+    ("RPT01", 5, "Currency: functional currency only; no selection", "partial"),
+    ("RPT01", 7, "Posted and Reversed originals only; no selection", "partial"),
+    ("RPT02", 5, "Currency: functional currency; original line amounts retained", "partial"),
+    ("RPT02", 7, "Posted and Reversed originals only", "partial"),
+    ("RPT02", 9, "route.accountId: one account only", "partial"),
+]:
+    MAP[code]["fields"][f"{code}-F{n:02}"] = dict(status=status, binding=binding)
+
+RULES = {
+    "BR01": ("manual-journal", "Decimal واتزان دقيق؛ رفض فقدان الدقة؛ فروق التقريب تحتاج سطرًا صريحًا", "Program.cs: BR01 / Wire contract"),
+    "BR02": ("partial", "شركة وفرع وحساب ومركز وعملة وسعر؛ لا مخازن أو أطراف أو ضرائب بعد", "Program.cs: BR02; SqlIntegration.cs: company isolation"),
+    "BR03": ("manual-journal", "تاريخ الوثيقة والأثر ووقت الترحيل مستقلة؛ فترة مفتوحة", "Program.cs: BR03"),
+    "BR04": ("partial", "حساب فعال فرعي وعملة ومركز صحيح؛ المشروع والطرف لاحقًا", "Program.cs: BR04"),
+    "BR05": ("partial", "ذرية القيد والتدقيق وOutbox والنتيجة؛ الدفاتر المساعدة والعامل الخارجي لم تنفذ", "Program.cs: BR05; SqlIntegration.cs: constraint rollback"),
+    "BR06": ("partial", "Idempotency per company/actor/operation/body؛ قيد يدوي واحد؛ مفتاح مصدر المستند المؤتمت لاحقًا", "Program.cs: BR06; SqlIntegration.cs: concurrency"),
+    "BR07": ("manual-journal", "حماية المرحل وعكس مرتبط بفترة مفتوحة وتثبيت سعر الأصل", "Program.cs: BR07"),
+    "BR08": ("partial", "منع قيد يدوي للحساب الرقابي؛ مطابقة دفاتر مساعدة لاحقًا", "Program.cs: BR08"),
+    "BR09": ("partial", "تدقيق الأوامر وفصل المنشئ والمعتمد؛ مسارات مراجعة متعددة لاحقًا", "Program.cs: BR09 / Workflow"),
+    "BR10": ("manual-journal", "سعر موجب مؤرخ ثابت ومبالغ أصلية ووظيفية وعكس تاريخي", "Program.cs: BR10"),
+    "BR14": ("partial", "منع إقفال الأستاذ مع قيود معلقة؛ الإقفال الشامل والسنوي لاحقًا", "Program.cs: BR03; SqlIntegration.cs: close/post race"),
+    "BR15": ("partial", "تقارير الأستاذ تستبعد المسودات؛ لا تقارير ذمم منفذة", "Program.cs: RPT01 RPT02"),
+    "BR18": ("partial", "عزل الشركات والفروع وعضويات حالية؛ نطاق الحساب والسعر والتصدير لاحقًا", "Program.cs: BR18 / SYS06"),
+    "BR20": ("not-started", "لم تنفذ ضرائب أو ملفات تشريعية أو تكاملات دولة", "none"),
+}
+
+
+def csv_text(headers, rows):
+    stream = io.StringIO(newline="")
+    writer = csv.writer(stream, lineterminator="\n")
+    writer.writerow(headers)
+    writer.writerows(rows)
+    return stream.getvalue()
+
+
+def generate():
+    screens = json.loads((ANALYSIS / "data/screens.json").read_text())
+    diagrams = json.loads((ANALYSIS / "data/diagrams.json").read_text())
+    assert len(screens) == 150 and len(diagrams) == 28
+    assert set(MAP).issubset({s["id"] for s in screens})
+    field_rows, screen_rows = [], []
+    for s in screens:
+        mapping = MAP.get(s["id"], {})
+        known = mapping.get("fields", {})
+        assert set(known).issubset({f["id"] for f in s["fields"]}), s["id"]
+        screen_rows.append([s["id"], s["module"], s["name"], "partial" if mapping else "not-started",
+                            mapping.get("api", ""), mapping.get("implemented", ""), mapping.get("remaining", "الشاشة كاملة"),
+                            "backend/tests/Ameen.Erp.Tests/Program.cs" if mapping else ""])
+        for f in s["fields"]:
+            found = known.get(f["id"], {})
+            field_rows.append([s["id"], f["id"], f["name"], f["requirement"], found.get("status", "pending"), found.get("binding", ""), mapping.get("api", "") if found else ""])
+    assert len(field_rows) == 2759 and len({r[1] for r in field_rows}) == 2759
+    diagram_notes = {
+        "module-SYS": "تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات",
+        "module-GL": "الأستاذ اليدوي فقط؛ باقي وظائف GL غير مكتملة",
+        "module-COST": "مراكز مستقلة فقط بلا هرمية أو موازنات",
+        "module-RPT": "ميزان وأستاذ جزئيان",
+        "system-map": "أساس SYS وGL وبعض COST وRPT؛ بقية الأقسام لم تبدأ",
+        "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ DOCUMENT والدفاتر المساعدة لاحقًا",
+        "document-lifecycle": "الدورة منفذة للقيد اليدوي؛ الرفض يعيد Draft مع سبب وتاريخ في التدقيق؛ محاولة الترحيل ليست حالة دائمة",
+        "posting-sequence": "ذرية القيد وOutbox والتدقيق؛ لا دفاتر مساعدة أو عامل إرسال خارجي بعد",
+        "period-close": "فحص القيود المعلقة واتزانها فقط؛ باقي مسار المطابقة والإقفال السنوي غير منفذ",
+    }
+    outputs = {
+        "screens-implementation.csv": csv_text(["screen_id", "module", "name", "status", "api", "implemented_scope", "remaining", "test_file"], screen_rows),
+        "fields-implementation.csv": csv_text(["screen_id", "field_id", "name", "requirement", "status", "binding", "api"], field_rows),
+        "diagrams-implementation.csv": csv_text(["diagram_id", "analysis_source", "status", "scope"], [
+            [d["id"], "muhaseb-erp-analysis/" + d["mermaid"], "partial" if d["id"] in diagram_notes else "not-started", diagram_notes.get(d["id"], "لم يبدأ التنفيذ")]
+            for d in diagrams]),
+        "rules-implementation.csv": csv_text(["rule_id", "scope", "implemented_and_remaining", "evidence"], [
+            [f"BR{i:02}", *RULES.get(f"BR{i:02}", ("not-started", "لم يبدأ التنفيذ", "none"))] for i in range(1, 21)]),
+        "implementation-map.json": json.dumps({
+            "analysis_screens_sha256": hashlib.sha256((ANALYSIS / "data/screens.json").read_bytes()).hexdigest(),
+            "screen_count": len(screens), "field_count": len(field_rows), "diagram_count": len(diagrams),
+            "partially_implemented_screens": len(MAP), "complete_screens": 0,
+            "field_status_counts": {state: sum(r[4] == state for r in field_rows) for state in ["implemented", "audit", "derived", "partial", "pending"]},
+            "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
+            "screens": MAP,
+        }, ensure_ascii=False, indent=2) + "\n",
+    }
+    return outputs
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    for item in json.loads((ANALYSIS / "manifest.json").read_text()):
+        data = (ANALYSIS / item["path"]).read_bytes()
+        if hashlib.sha256(data).hexdigest() != item["sha256"]:
+            raise SystemExit("Analysis changed: " + item["path"])
+    outputs = generate()
+    OUT.mkdir(parents=True, exist_ok=True)
+    for name, content in outputs.items():
+        path = OUT / name
+        if args.check:
+            if not path.exists() or path.read_text() != content:
+                raise SystemExit("Traceability stale: " + str(path.relative_to(ROOT)))
+        else:
+            path.write_text(content)
+    print("PASS: analysis hashes; 150 screens; 2759 fields; 28 diagrams; 20 rules; 21 partial screens; no full-screen completion claim.")
+
+
+if __name__ == "__main__":
+    main()

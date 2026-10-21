@@ -1,0 +1,897 @@
+{
+  "analysis_screens_sha256": "500ed1453f7acf43256e05483339e54d2e2b32143a965082f51ea873a6ff7df6",
+  "screen_count": 150,
+  "field_count": 2759,
+  "diagram_count": 28,
+  "partially_implemented_screens": 21,
+  "complete_screens": 0,
+  "field_status_counts": {
+    "implemented": 131,
+    "audit": 32,
+    "derived": 4,
+    "partial": 16,
+    "pending": 2576
+  },
+  "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
+  "screens": {
+    "SYS01": {
+      "api": "GET/POST /companies; GET /companies/{companyId}",
+      "implemented": "إنشاء الشركة وعملتها الوظيفية وعضوية مالك الإعداد",
+      "remaining": "الاسم الإنجليزي والقانوني والعناوين والبيانات التجارية والضريبية وتعديل البطاقة وتعطيلها",
+      "fields": {
+        "SYS01-F01": {
+          "status": "implemented",
+          "binding": "Company.Id / CreateCompanyRequest.Id (client-generated UUID)"
+        },
+        "SYS01-F02": {
+          "status": "implemented",
+          "binding": "route.companyId"
+        },
+        "SYS01-F03": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "SYS01-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "SYS01-F09": {
+          "status": "implemented",
+          "binding": "CountryCode"
+        },
+        "SYS01-F11": {
+          "status": "implemented",
+          "binding": "FunctionalCurrency"
+        },
+        "SYS01-F17": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "SYS01-F15": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: company.created"
+        },
+        "SYS01-F16": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: company.created"
+        }
+      }
+    },
+    "SYS02": {
+      "api": "GET/POST /companies/{companyId}/branches",
+      "implemented": "فروع مستقلة داخل الشركة وفحص نطاق المستخدم",
+      "remaining": "هرمية الإدارات والعناوين والمسؤول ومركز افتراضي وتعديل وتعطيل الفرع",
+      "fields": {
+        "SYS02-F01": {
+          "status": "implemented",
+          "binding": "Branch.Id"
+        },
+        "SYS02-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS02-F03": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "SYS02-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "SYS02-F16": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "SYS02-F14": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "SYS02-F15": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        }
+      }
+    },
+    "SYS03": {
+      "api": "GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods",
+      "implemented": "سنة وفترات شهرية متصلة بلا تداخل؛ حالة إقفال الأستاذ",
+      "remaining": "تعديل تقويم معتمد وفترات مخصصة وإقفال السنة؛ لا يوجد تقويم مختلف لكل فرع",
+      "fields": {
+        "SYS03-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS03-F04": {
+          "status": "implemented",
+          "binding": "FiscalYear.Code"
+        },
+        "SYS03-F05": {
+          "status": "implemented",
+          "binding": "FiscalYear.StartsOn"
+        },
+        "SYS03-F06": {
+          "status": "implemented",
+          "binding": "FiscalYear.EndsOn"
+        },
+        "SYS03-F07": {
+          "status": "implemented",
+          "binding": "FiscalPeriod.Code"
+        },
+        "SYS03-F08": {
+          "status": "implemented",
+          "binding": "FiscalPeriod.StartsOn"
+        },
+        "SYS03-F09": {
+          "status": "implemented",
+          "binding": "FiscalPeriod.EndsOn"
+        },
+        "SYS03-F13": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "SYS03-F11": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "SYS03-F12": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        },
+        "SYS03-F10": {
+          "status": "partial",
+          "binding": "FiscalPeriod.IsClosed: general ledger only"
+        }
+      }
+    },
+    "SYS04": {
+      "api": "GET/POST /companies/{companyId}/currencies",
+      "implemented": "رمز ISO ودقة مستقلة لكل عملة",
+      "remaining": "الأسماء ورمز العرض واسم الجزء وتعديل البطاقة وحالتها",
+      "fields": {
+        "SYS04-F01": {
+          "status": "implemented",
+          "binding": "Currency.Id"
+        },
+        "SYS04-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS04-F03": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "SYS04-F08": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "SYS04-F09": {
+          "status": "implemented",
+          "binding": "Scale"
+        },
+        "SYS04-F14": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "SYS04-F12": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "SYS04-F13": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        }
+      }
+    },
+    "SYS05": {
+      "api": "GET/POST /companies/{companyId}/exchange-rates",
+      "implemented": "سعر موجب مؤرخ محفوظ بلا تعديل؛ اختيار أحدث سعر نافذ عند إعداد السطر",
+      "remaining": "أنواع شراء/بيع/محاسبي متعددة وإعدادات نطاقات الأسعار",
+      "fields": {
+        "SYS05-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS05-F04": {
+          "status": "implemented",
+          "binding": "CurrencyCode"
+        },
+        "SYS05-F06": {
+          "status": "implemented",
+          "binding": "EffectiveDate"
+        },
+        "SYS05-F08": {
+          "status": "implemented",
+          "binding": "Source"
+        },
+        "SYS05-F09": {
+          "status": "implemented",
+          "binding": "RateToFunctional"
+        },
+        "SYS05-F12": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "SYS05-F10": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "SYS05-F11": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        },
+        "SYS05-F05": {
+          "status": "derived",
+          "binding": "Company.FunctionalCurrency"
+        }
+      }
+    },
+    "SYS06": {
+      "api": "POST /companies/{companyId}/memberships/{id}/status",
+      "implemented": "تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC",
+      "remaining": "شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا",
+      "fields": {
+        "SYS06-F01": {
+          "status": "implemented",
+          "binding": "Membership.Id"
+        },
+        "SYS06-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS06-F16": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "SYS06-F06": {
+          "status": "partial",
+          "binding": "Membership.IsActive (ERP membership, not identity account)"
+        },
+        "SYS06-F12": {
+          "status": "partial",
+          "binding": "Membership.IsActive (ERP membership only)"
+        }
+      }
+    },
+    "SYS07": {
+      "api": "GET/POST /companies/{companyId}/memberships",
+      "implemented": "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته",
+      "remaining": "كتالوج أدوار قابل للإدارة وحدود مبالغ وعملات وصلاحيات بقية الأقسام",
+      "fields": {
+        "SYS07-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS07-F07": {
+          "status": "implemented",
+          "binding": "GrantedPermissions[]"
+        },
+        "SYS07-F13": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "SYS07-F11": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "SYS07-F12": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        }
+      }
+    },
+    "SYS08": {
+      "api": "GET/POST /companies/{companyId}/memberships",
+      "implemented": "نطاق الشركة والفروع مطبق على الأوامر والتقارير",
+      "remaining": "نطاق الحساب والمخزن والصندوق والعملاء ومراكز التكلفة المستقل",
+      "fields": {
+        "SYS08-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS08-F04": {
+          "status": "implemented",
+          "binding": "Subject"
+        },
+        "SYS08-F06": {
+          "status": "implemented",
+          "binding": "AllBranches / BranchIds[]"
+        },
+        "SYS08-F13": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "SYS08-F11": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "SYS08-F12": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        }
+      }
+    },
+    "SYS09": {
+      "api": "internal: Company.RequireSeparateApprover; /journals/{id}/approve",
+      "implemented": "فصل إلزامي بين منشئ القيد ومعتمده",
+      "remaining": "شاشة إعداد المسارات متعددة المراحل والحدود والتنبيهات",
+      "fields": {
+        "SYS09-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS09-F08": {
+          "status": "partial",
+          "binding": "Company.RequireSeparateApprover always true; no configuration API"
+        }
+      }
+    },
+    "SYS10": {
+      "api": "internal: NumberSequence; POST /companies/{companyId}/journals",
+      "implemented": "تسلسل JV لكل شركة وسنة داخل معاملة؛ لا إعادة استخدام للملغى",
+      "remaining": "واجهة إعداد البوادئ والتسلسلات لكل أنواع المستندات والفروع",
+      "fields": {
+        "SYS10-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS10-F05": {
+          "status": "derived",
+          "binding": "scope JV:FiscalYear.Id"
+        },
+        "SYS10-F06": {
+          "status": "partial",
+          "binding": "fixed JV-{yearCode}-"
+        },
+        "SYS10-F07": {
+          "status": "partial",
+          "binding": "NumberSequence.LastNumber + 1; internal only"
+        }
+      }
+    },
+    "SYS14": {
+      "api": "GET /companies/{companyId}/audit-events",
+      "implemented": "قراءة سجل أحداث غير قابل للتعديل عبر التطبيق مع هوية ووقت وبيانات التغيير",
+      "remaining": "مرشحات التاريخ والمستخدم ونوع الحدث والشاشة؛ تصدير؛ تدقيق عمليات القراءة",
+      "fields": {
+        "SYS14-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "SYS14-F09": {
+          "status": "implemented",
+          "binding": "Action"
+        },
+        "SYS14-F10": {
+          "status": "implemented",
+          "binding": "ActorId"
+        }
+      }
+    },
+    "GL01": {
+      "api": "GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status",
+      "implemented": "شجرة حسابات وتصنيف ورقابة وإلزام مركز وعملة وتعطيل مضبوط",
+      "remaining": "الأسماء الإضافية والملاحظات والطبيعة الصريحة وتعديل بنية الدليل",
+      "fields": {
+        "GL01-F01": {
+          "status": "implemented",
+          "binding": "Account.Id"
+        },
+        "GL01-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "GL01-F03": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "GL01-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "GL01-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "GL01-F08": {
+          "status": "implemented",
+          "binding": "ParentId"
+        },
+        "GL01-F09": {
+          "status": "implemented",
+          "binding": "Type"
+        },
+        "GL01-F10": {
+          "status": "implemented",
+          "binding": "IsPosting"
+        },
+        "GL01-F12": {
+          "status": "implemented",
+          "binding": "CurrencyCode"
+        },
+        "GL01-F13": {
+          "status": "implemented",
+          "binding": "IsControl"
+        },
+        "GL01-F14": {
+          "status": "implemented",
+          "binding": "RequiresCostCenter"
+        },
+        "GL01-F17": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "GL01-F15": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: account.created"
+        },
+        "GL01-F16": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: account.created"
+        },
+        "GL01-F18": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: account.status-changed"
+        }
+      }
+    },
+    "GL03": {
+      "api": "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}",
+      "implemented": "قيد يدوي متعدد العملات والمراكز بدورة مستقلة وأرقام وسعر تاريخي",
+      "remaining": "المشروع والطرف والمرفقات وأنواع القيود والعكس المجدول وتعديل تواريخ المسودة",
+      "fields": {
+        "GL03-F01": {
+          "status": "implemented",
+          "binding": "JournalEntry.Id"
+        },
+        "GL03-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "GL03-F03": {
+          "status": "implemented",
+          "binding": "BranchId"
+        },
+        "GL03-F05": {
+          "status": "implemented",
+          "binding": "Number"
+        },
+        "GL03-F06": {
+          "status": "implemented",
+          "binding": "DocumentDate"
+        },
+        "GL03-F07": {
+          "status": "implemented",
+          "binding": "AccountingDate"
+        },
+        "GL03-F10": {
+          "status": "implemented",
+          "binding": "Description"
+        },
+        "GL03-F11": {
+          "status": "implemented",
+          "binding": "ExternalReference"
+        },
+        "GL03-F12": {
+          "status": "implemented",
+          "binding": "State"
+        },
+        "GL03-F16": {
+          "status": "implemented",
+          "binding": "Lines[].AccountId"
+        },
+        "GL03-F17": {
+          "status": "implemented",
+          "binding": "Lines[].Debit"
+        },
+        "GL03-F18": {
+          "status": "implemented",
+          "binding": "Lines[].Credit"
+        },
+        "GL03-F19": {
+          "status": "implemented",
+          "binding": "Lines[].CurrencyCode"
+        },
+        "GL03-F20": {
+          "status": "implemented",
+          "binding": "Lines[].ExchangeRate (ExchangeRateId on input)"
+        },
+        "GL03-F21": {
+          "status": "implemented",
+          "binding": "Lines[].CostCenterId"
+        },
+        "GL03-F24": {
+          "status": "implemented",
+          "binding": "Lines[].Description"
+        },
+        "GL03-F25": {
+          "status": "implemented",
+          "binding": "CreatedBy"
+        },
+        "GL03-F26": {
+          "status": "implemented",
+          "binding": "CreatedAt"
+        },
+        "GL03-F27": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "GL03-F28": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: journal.edited"
+        },
+        "GL03-F04": {
+          "status": "derived",
+          "binding": "FiscalPeriod.FiscalYearId"
+        },
+        "GL03-F08": {
+          "status": "partial",
+          "binding": "currency is on each line; no single document currency"
+        },
+        "GL03-F09": {
+          "status": "partial",
+          "binding": "rate is on each line; no single document rate"
+        }
+      }
+    },
+    "GL05": {
+      "api": "POST /companies/{companyId}/journals/{id}/submit|approve|return",
+      "implemented": "تقديم واعتماد مستقل وإعادة مسببّة للمسودة",
+      "remaining": "قائمة مراجعة بمرشح الفترة ومراجع منفصل عن المعتمد ومراحل اعتماد متعددة",
+      "fields": {
+        "GL05-F01": {
+          "status": "implemented",
+          "binding": "route.companyId"
+        },
+        "GL05-F02": {
+          "status": "implemented",
+          "binding": "JournalEntry.BranchId"
+        },
+        "GL05-F03": {
+          "status": "implemented",
+          "binding": "JournalEntry.State"
+        },
+        "GL05-F07": {
+          "status": "implemented",
+          "binding": "JournalEntry.Number"
+        },
+        "GL05-F13": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "GL05-F06": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: journal.approve / journal.return"
+        },
+        "GL05-F08": {
+          "status": "audit",
+          "binding": "AuditEvent.Action / Details.after"
+        },
+        "GL05-F09": {
+          "status": "audit",
+          "binding": "AuditEvent.Details.reason: journal.return"
+        },
+        "GL05-F11": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "GL05-F12": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        }
+      }
+    },
+    "GL06": {
+      "api": "POST /companies/{companyId}/journals/{id}/post",
+      "implemented": "ترحيل قيد يدوي واحد ذري مع منع التكرار وOutbox",
+      "remaining": "مستندات المصدر والترحيل الجماعي ومعاينة نتائج الدفعات وعامل إرسال Outbox",
+      "fields": {
+        "GL06-F01": {
+          "status": "implemented",
+          "binding": "route.companyId"
+        },
+        "GL06-F02": {
+          "status": "implemented",
+          "binding": "JournalEntry.BranchId"
+        },
+        "GL06-F03": {
+          "status": "implemented",
+          "binding": "State"
+        },
+        "GL06-F06": {
+          "status": "implemented",
+          "binding": "PostedAt"
+        },
+        "GL06-F07": {
+          "status": "implemented",
+          "binding": "route.id"
+        },
+        "GL06-F09": {
+          "status": "implemented",
+          "binding": "CommandReceipt.ResourceId / Number"
+        },
+        "GL06-F12": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "GL06-F10": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: journal.post"
+        },
+        "GL06-F11": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: journal.post"
+        }
+      }
+    },
+    "GL07": {
+      "api": "POST /companies/{companyId}/journals/{id}/reverse",
+      "implemented": "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا",
+      "remaining": "عكس مستندات الدفاتر المساعدة وفحص التبعيات والضريبة؛ عكس تلقائي مجدول",
+      "fields": {
+        "GL07-F01": {
+          "status": "implemented",
+          "binding": "JournalEntry.Id"
+        },
+        "GL07-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "GL07-F03": {
+          "status": "implemented",
+          "binding": "BranchId"
+        },
+        "GL07-F05": {
+          "status": "implemented",
+          "binding": "Number"
+        },
+        "GL07-F06": {
+          "status": "implemented",
+          "binding": "DocumentDate"
+        },
+        "GL07-F07": {
+          "status": "implemented",
+          "binding": "AccountingDate"
+        },
+        "GL07-F10": {
+          "status": "implemented",
+          "binding": "Description"
+        },
+        "GL07-F11": {
+          "status": "implemented",
+          "binding": "ExternalReference"
+        },
+        "GL07-F12": {
+          "status": "implemented",
+          "binding": "State"
+        },
+        "GL07-F13": {
+          "status": "implemented",
+          "binding": "ReversesJournalId"
+        },
+        "GL07-F14": {
+          "status": "implemented",
+          "binding": "ReversalReason"
+        },
+        "GL07-F15": {
+          "status": "implemented",
+          "binding": "AccountingDate"
+        },
+        "GL07-F16": {
+          "status": "implemented",
+          "binding": "CreatedBy"
+        },
+        "GL07-F17": {
+          "status": "implemented",
+          "binding": "CreatedAt"
+        },
+        "GL07-F18": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "GL07-F04": {
+          "status": "derived",
+          "binding": "FiscalPeriod.FiscalYearId"
+        },
+        "GL07-F08": {
+          "status": "partial",
+          "binding": "Lines[].CurrencyCode copied from original"
+        },
+        "GL07-F09": {
+          "status": "partial",
+          "binding": "Lines[].ExchangeRate copied from original"
+        }
+      }
+    },
+    "GL11": {
+      "api": "POST /companies/{companyId}/periods/{id}/close",
+      "implemented": "إقفال فترة الأستاذ بعد رفض القيود المعلقة وفحص اتزان المرحل",
+      "remaining": "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة",
+      "fields": {
+        "GL11-F01": {
+          "status": "implemented",
+          "binding": "route.companyId"
+        },
+        "GL11-F04": {
+          "status": "implemented",
+          "binding": "route.id (period only)"
+        },
+        "GL11-F12": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "GL11-F09": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: period.closed"
+        },
+        "GL11-F10": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "GL11-F11": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        },
+        "GL11-F03": {
+          "status": "partial",
+          "binding": "FiscalPeriod.IsClosed: general ledger only"
+        }
+      }
+    },
+    "GL12": {
+      "api": "POST /companies/{companyId}/periods/{id}/reopen",
+      "implemented": "فتح فترة بصلاحية مستقلة وسبب مسجل",
+      "remaining": "مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي",
+      "fields": {
+        "GL12-F01": {
+          "status": "implemented",
+          "binding": "route.companyId"
+        },
+        "GL12-F04": {
+          "status": "implemented",
+          "binding": "route.id"
+        },
+        "GL12-F05": {
+          "status": "implemented",
+          "binding": "ChangePeriodRequest.Reason"
+        },
+        "GL12-F10": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "GL12-F08": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "GL12-F09": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        }
+      }
+    },
+    "COST01": {
+      "api": "GET/POST /companies/{companyId}/cost-centers",
+      "implemented": "تعريف مركز مرتبط اختياريًا بفرع وإلزامه على الحساب",
+      "remaining": "شجرة مراكز وأنواع ومسؤول وتعديل وتعطيل البطاقة",
+      "fields": {
+        "COST01-F01": {
+          "status": "implemented",
+          "binding": "CostCenter.Id"
+        },
+        "COST01-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "COST01-F03": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "COST01-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "COST01-F09": {
+          "status": "implemented",
+          "binding": "BranchId"
+        },
+        "COST01-F14": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "COST01-F12": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId"
+        },
+        "COST01-F13": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt"
+        }
+      }
+    },
+    "RPT01": {
+      "api": "GET /companies/{companyId}/reports/trial-balance",
+      "implemented": "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج",
+      "remaining": "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
+      "fields": {
+        "RPT01-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "RPT01-F02": {
+          "status": "implemented",
+          "binding": "BranchIds"
+        },
+        "RPT01-F03": {
+          "status": "implemented",
+          "binding": "query.from"
+        },
+        "RPT01-F04": {
+          "status": "implemented",
+          "binding": "query.to"
+        },
+        "RPT01-F09": {
+          "status": "implemented",
+          "binding": "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)"
+        },
+        "RPT01-F10": {
+          "status": "implemented",
+          "binding": "query.costCenterId"
+        },
+        "RPT01-F11": {
+          "status": "implemented",
+          "binding": "query.showZero"
+        },
+        "RPT01-F05": {
+          "status": "partial",
+          "binding": "Currency: functional currency only; no selection"
+        },
+        "RPT01-F07": {
+          "status": "partial",
+          "binding": "Posted and Reversed originals only; no selection"
+        }
+      }
+    },
+    "RPT02": {
+      "api": "GET /companies/{companyId}/reports/accounts/{accountId}/ledger",
+      "implemented": "حساب واحد برصيد افتتاحي وجارٍ صحيح عبر الصفحات؛ مرشح مركز ومرجع خارجي يطبقان على الافتتاح والحركة",
+      "remaining": "نطاق حسابات وتصدير وطباعة وطرق عرض إضافية",
+      "fields": {
+        "RPT02-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "RPT02-F02": {
+          "status": "implemented",
+          "binding": "BranchIds"
+        },
+        "RPT02-F03": {
+          "status": "implemented",
+          "binding": "query.from"
+        },
+        "RPT02-F04": {
+          "status": "implemented",
+          "binding": "query.to"
+        },
+        "RPT02-F11": {
+          "status": "implemented",
+          "binding": "query.costCenterId"
+        },
+        "RPT02-F12": {
+          "status": "implemented",
+          "binding": "query.externalReference (exact case-sensitive match)"
+        },
+        "RPT02-F05": {
+          "status": "partial",
+          "binding": "Currency: functional currency; original line amounts retained"
+        },
+        "RPT02-F07": {
+          "status": "partial",
+          "binding": "Posted and Reversed originals only"
+        },
+        "RPT02-F09": {
+          "status": "partial",
+          "binding": "route.accountId: one account only"
+        }
+      }
+    }
+  }
+}

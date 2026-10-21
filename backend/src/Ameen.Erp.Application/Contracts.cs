@@ -1,0 +1,68 @@
+using System.Linq.Expressions;
+using Ameen.Erp.Domain;
+
+namespace Ameen.Erp.Application;
+
+public sealed record Actor(string Subject, bool IsPlatformAdministrator = false);
+public interface IClock { DateTimeOffset UtcNow { get; } }
+public sealed class SystemClock : IClock { public DateTimeOffset UtcNow => DateTimeOffset.UtcNow; }
+
+// All tenant reads require a company key; there is no unscoped generic query.
+public interface IErpStore
+{
+    Task<Company?> GetCompany(Guid id, CancellationToken ct);
+    Task<bool> CompanyCodeExists(string code, CancellationToken ct);
+    Task<IReadOnlyList<Company>> CompaniesFor(string subject, CancellationToken ct);
+    Task<T?> Get<T>(Guid companyId, Guid id, CancellationToken ct) where T : CompanyEntity;
+    Task<IReadOnlyList<T>> Find<T>(Guid companyId, Expression<Func<T, bool>> predicate, CancellationToken ct) where T : CompanyEntity;
+    Task<Page<T>> ReadPage<T>(Guid companyId, Expression<Func<T, bool>> predicate,
+        Func<IQueryable<T>, IOrderedQueryable<T>> order, int offset, int limit, CancellationToken ct) where T : CompanyEntity;
+    void Add(Entity entity);
+    void RemoveLines(IEnumerable<JournalLine> lines);
+    Task Save(CancellationToken ct);
+}
+
+public sealed record CommandReceipt(Guid ResourceId, Guid Version, string Status, string? Number = null);
+public sealed record CommandIdentity(Guid CompanyId, string Key, string Operation, string ActorId, string Fingerprint);
+public interface ITransactionRunner
+{
+    Task<CommandReceipt> Run(CommandIdentity identity, Func<CancellationToken, Task> authorize,
+        Func<CancellationToken, Task<CommandReceipt>> work, CancellationToken ct);
+}
+
+public sealed record CreateCompanyRequest(Guid Id, string Code, string Name, string CountryCode, string FunctionalCurrency, int CurrencyScale);
+public sealed record CreateBranchRequest(string Code, string Name);
+public sealed record CreateCurrencyRequest(string Code, int Scale);
+public sealed record CreateExchangeRateRequest(string CurrencyCode, DateOnly EffectiveDate, decimal RateToFunctional, string Source);
+public sealed record CreateFiscalYearRequest(string Code, DateOnly StartsOn, DateOnly EndsOn);
+public sealed record CreateCostCenterRequest(string Code, string Name, Guid? BranchId);
+public sealed record GrantMembershipRequest(string Subject, string[] Permissions, bool AllBranches, Guid[] BranchIds, Guid? ExpectedVersion);
+public sealed record SetMembershipStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+public sealed record CreateAccountRequest(string Code, string Name, AccountType Type, Guid? ParentId,
+    bool IsPosting, bool IsControl, bool RequiresCostCenter, string? CurrencyCode);
+public sealed record SetAccountStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+public sealed record ChangePeriodRequest(Guid ExpectedVersion, string Reason);
+public sealed record JournalLineRequest(Guid AccountId, Guid? CostCenterId, string Description,
+    string CurrencyCode, Guid? ExchangeRateId, decimal Debit, decimal Credit);
+public sealed record CreateJournalRequest(Guid BranchId, DateOnly DocumentDate, DateOnly AccountingDate,
+    string Description, string? ExternalReference, JournalLineRequest[] Lines);
+public sealed record EditJournalRequest(Guid ExpectedVersion, string Description, JournalLineRequest[] Lines);
+public sealed record TransitionRequest(Guid ExpectedVersion, string? Reason = null);
+public sealed record ReverseJournalRequest(Guid ExpectedVersion, DateOnly AccountingDate, string Reason);
+
+public sealed record Page<T>(IReadOnlyList<T> Items, int TotalCount, int Offset, int Limit);
+public sealed record JournalSummary(Guid Id, Guid Version, string Number, Guid BranchId, DateOnly AccountingDate,
+    string Description, JournalState State, decimal Debit, decimal Credit);
+public sealed record TrialBalanceRow(Guid AccountId, string Code, string Name, decimal OpeningDebit,
+    decimal OpeningCredit, decimal PeriodDebit, decimal PeriodCredit, decimal ClosingDebit, decimal ClosingCredit,
+    Guid? ParentId, int Level, bool IsPosting);
+public sealed record TrialBalanceResult(Guid CompanyId, string Currency, DateOnly From, DateOnly To,
+    IReadOnlyList<Guid> BranchIds, IReadOnlyList<TrialBalanceRow> Rows, decimal TotalOpeningDebit,
+    decimal TotalOpeningCredit, decimal TotalPeriodDebit, decimal TotalPeriodCredit, decimal TotalClosingDebit, decimal TotalClosingCredit,
+    Guid? CostCenterId, int? AccountLevel, bool ShowZero);
+public sealed record LedgerRow(Guid JournalId, string Number, DateOnly AccountingDate, int Position,
+    string Description, decimal Debit, decimal Credit, decimal RunningBalance, string CurrencyCode,
+    decimal OriginalDebit, decimal OriginalCredit, decimal ExchangeRate);
+public sealed record AccountLedgerResult(Guid AccountId, string Currency, DateOnly From, DateOnly To,
+    decimal OpeningBalance, decimal ClosingBalance, decimal PeriodDebit, decimal PeriodCredit, Page<LedgerRow> Entries,
+    Guid CompanyId, IReadOnlyList<Guid> BranchIds, Guid? CostCenterId, string? ExternalReference);

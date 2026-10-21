@@ -31,3 +31,11 @@ Thumbs.db
 *.log
 *.sqlite
 *.sqlite3
+
+# .NET
+**/bin/
+**/obj/
+TestResults/
+*.user
+*.suo
+.artifacts/

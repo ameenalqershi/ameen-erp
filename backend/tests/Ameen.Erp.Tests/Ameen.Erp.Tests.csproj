@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Ameen.Erp.Api/Ameen.Erp.Api.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../database/*.sql" Link="database/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
