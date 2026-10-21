@@ -92,3 +92,5 @@ dotnet run --project src/Ameen.Erp.Api
 ابدأ استئناف العمل من [سجل التقدم والتسليم](../docs/backend/PROGRESS.md). بعد تحديث المصفوفات ونتائج التحقق، شغّل `python3 scripts/progress.py` ثم `python3 scripts/progress.py --check` من مجلد backend؛ CI يفحص تطابق الجداول مع الأدلة المسجلة.
 
 بطاقة المخزن ومواقعه وحماية مراجع الحساب والفرع وترقية 011 موثقة في [INV01](../docs/backend/warehouses.md).
+
+[تنظيم الملفات حسب الوحدات والمسؤوليات](../docs/backend/code-organization.md): مسارات API منفصلة، ملف لكل كيان وعقد، Features لخدمات التطبيق وPersistence/Configurations لتهيئة EF.

@@ -161,7 +161,7 @@
 
 رموز شائعة: `journal_unbalanced`، `period_closed`، `self_approval_forbidden`، `branch_access_denied`، `version_conflict`، `idempotency_conflict`، `already_reversed`، `control_account_protected`، `write_conflict`.
 
-المراجع النهائية لأسماء وحقول الأوامر [Contracts.cs](../../backend/src/Ameen.Erp.Application/Contracts.cs) ولمساراتها [Endpoints.cs](../../backend/src/Ameen.Erp.Api/Endpoints.cs). الطلبات في .NET 10 ترفض الخصائص غير المعروفة والمعاملات الإلزامية المحذوفة؛ الحقول القابلة للقيمة null تُرسل صراحة عندما لا تكون اختيارية في عقد constructor.
+المراجع النهائية لأسماء وحقول الأوامر [مجلد العقود حسب الوظيفة](../../backend/src/Ameen.Erp.Application/Contracts) ولمساراتها [ملفات Endpoints حسب الوحدة](../../backend/src/Ameen.Erp.Api/Endpoints). الطلبات في .NET 10 ترفض الخصائص غير المعروفة والمعاملات الإلزامية المحذوفة؛ الحقول القابلة للقيمة null تُرسل صراحة عندما لا تكون اختيارية في عقد constructor.
 
 تفاصيل GL01 وحقول `normalBalance` و`englishName` و`notes` وقواعد تعديل البنية وسجل الاستخدام في [عقد الحسابات](accounts.md).
 

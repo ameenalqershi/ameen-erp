@@ -1,0 +1,21 @@
+using System.Linq.Expressions;
+using Ameen.Erp.Domain;
+
+namespace Ameen.Erp.Application;
+
+public interface IErpStore
+{
+    Task<Company?> GetCompany(Guid id, CancellationToken ct);
+    Task<bool> CompanyCodeExists(string code, CancellationToken ct);
+    Task<IReadOnlyList<Company>> CompaniesFor(string subject, CancellationToken ct);
+    Task<T?> Get<T>(Guid companyId, Guid id, CancellationToken ct) where T : CompanyEntity;
+    Task<IReadOnlyList<T>> Find<T>(Guid companyId, Expression<Func<T, bool>> predicate, CancellationToken ct) where T : CompanyEntity;
+    Task<Page<T>> ReadPage<T>(Guid companyId, Expression<Func<T, bool>> predicate,
+        Func<IQueryable<T>, IOrderedQueryable<T>> order, int offset, int limit, CancellationToken ct) where T : CompanyEntity;
+    void Add(Entity entity);
+    void RemoveLines(IEnumerable<JournalLine> lines);
+    void RemoveWarehouseLocations(IEnumerable<WarehouseLocation> locations);
+    void RemoveItemUnits(IEnumerable<ItemUnit> units);
+    void RemoveRecurringLines(IEnumerable<RecurringJournalLine> lines);
+    Task Save(CancellationToken ct);
+}
