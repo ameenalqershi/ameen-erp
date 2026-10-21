@@ -83,3 +83,5 @@ flowchart TB
 الإصدار 002 يضيف القوالب؛ يتطلب `/health/ready` في التطبيق الحالي أيضًا الإصدارات 003 إلى 007؛ راجع [بطاقة GL01](accounts.md) و[دليل التهيئة](currencies-and-cost-centers.md)، ثم أعد تطبيق runtime-role.sql. لا تطبق API الترقية تلقائيًا، ويجب تنسيقها مع إصدار التطبيق. سجل التوليد محمي من التعديل والحذف في التطبيق ودور قاعدة البيانات؛ تعطيل القالب هو أسلوب إيقافه دون حذف تاريخه.
 
 اختبارات [RecurringTests.cs](../../backend/tests/Ameen.Erp.Tests/RecurringTests.cs) تشمل التقويم والفروع والصلاحيات والأسعار والإصدارات والتراجع ودورة القيد. وتختبر [RecurringSqlIntegration.cs](../../backend/tests/Ameen.Erp.Tests/RecurringSqlIntegration.cs) اتصالات مستقلة ومفاتيح متنافسة وفشل حفظ حقيقي وصلاحيات التشغيل. ويختبر [SchemaUpgradeIntegration.cs](../../backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs) فشل ترقية DDL والتراجع ثم حفظ البيانات القديمة بعد نجاحها. اختبارات المضيف تستخدم HTTPS وJWT حقيقيًا ضد جهة OIDC مؤقتة.
+
+عند استخدام [فترات SYS03 المخصصة](fiscal-calendar.md)، يرفض التقويم الدوري والتوليد فترة تحتوي أكثر من موعد للقالب برمز `ambiguous_recurring_period`، لأن التوليد الحالي واحد لكل قالب وفترة.

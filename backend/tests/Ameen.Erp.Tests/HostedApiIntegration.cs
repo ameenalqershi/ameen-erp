@@ -288,6 +288,24 @@ public static class HostedApiIntegration
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Branch HTTP audit failed");
                 Console.WriteLine("  HOST PASS SYS02 branch addresses, tree, edit, search, usage, status and audit over HTTPS/JWT/SQL");
 
+                var calendarPath = companyPath + "/fiscal-years";
+                var fiscalYear = await Command(client, calendarPath, new CreateFiscalYearRequest("2026", new(2026, 1, 1), new(2026, 12, 31),
+                    new[] { new FiscalPeriodRequest("2026-H1", new(2026, 1, 1), new(2026, 6, 30)), new FiscalPeriodRequest("2026-H2", new(2026, 7, 1), new(2026, 12, 31)) }));
+                using (var response = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("periods").GetArrayLength() == 2 &&
+                        json.RootElement.GetProperty("state").GetString() == "Open" && json.RootElement.GetProperty("generalLedgerOnly").GetBoolean(), "Custom HTTP calendar failed");
+                using (var response = await client.GetAsync(calendarPath + "/search?search=2026"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Calendar HTTP search failed");
+                using (var response = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Calendar HTTP audit failed");
+                using (var response = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("journalCount").GetInt32() == 0, "Calendar HTTP usage failed");
+                Console.WriteLine("  HOST PASS SYS03 explicit periods, calendar state, search, usage and audit over HTTPS/JWT/SQL");
+
                 using var preflight = new HttpRequestMessage(HttpMethod.Options, path);
                 preflight.Headers.Add("Origin", "https://permitted.example");
                 preflight.Headers.Add("Access-Control-Request-Method", "POST");

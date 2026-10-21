@@ -135,20 +135,17 @@ public sealed partial class ErpService
             var company = await Company(cid, token);
             if (!(await store.Find<FiscalYear>(cid, x => true, token)).Any())
                 Check.That(company.FiscalYearStartsOn == request.StartsOn, "company_fiscal_start_mismatch", "بداية أول سنة يجب أن تطابق البداية المحددة في بطاقة الشركة.");
+            Check.That(request.StartsOn >= company.FiscalYearStartsOn, "company_fiscal_start_mismatch", "السنة لا تسبق البداية المحددة في بطاقة الشركة.");
             var year = new FiscalYear(cid, request.Code, request.StartsOn, request.EndsOn);
             Check.That(!(await store.Find<FiscalYear>(cid, x => x.Code == year.Code || (x.StartsOn <= year.EndsOn && x.EndsOn >= year.StartsOn), token)).Any(),
                 "fiscal_year_overlap", "السنة تتداخل مع سنة قائمة أو تكرر رمزها.", ErrorKind.Conflict);
-            store.Add(year);
-            var current = year.StartsOn; var index = 1;
-            while (current <= year.EndsOn)
-            {
-                var endOfMonth = new DateOnly(current.Year, current.Month, DateTime.DaysInMonth(current.Year, current.Month));
-                var end = endOfMonth < year.EndsOn ? endOfMonth : year.EndsOn;
-                store.Add(new FiscalPeriod(cid, year.Id, $"{year.Code}-{index:00}", current, end));
-                if (end == year.EndsOn) break;
-                current = end.AddDays(1); index++;
-            }
-            Audit(cid, actor, "fiscal-year.created", year, new { year.StartsOn, year.EndsOn });
+            var periods = PrepareFiscalPeriods(year, request.Periods);
+            var codes = periods.Select(x => x.Code).ToArray();
+            Check.That(!(await store.Find<FiscalPeriod>(cid, x => codes.Contains(x.Code), token)).Any(),
+                "duplicate_period_code", "رمز الفترة مستخدم في الشركة.", ErrorKind.Conflict);
+            store.Add(year); foreach (var period in periods) store.Add(period);
+            Audit(cid, actor, "fiscal-year.created", year, new { year.Code, year.StartsOn, year.EndsOn,
+                Periods = periods.Select(x => new { x.Id, x.Code, x.StartsOn, x.EndsOn }), GeneralLedgerOnly = true });
             return Receipt(year, "Created");
         }, ct);
 

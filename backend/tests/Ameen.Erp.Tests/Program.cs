@@ -415,6 +415,7 @@ tests.Add(("API: every ERP endpoint requires authentication and carries screen t
 
 CompanyTests.Register(Test);
 BranchTests.Register(Test);
+FiscalCalendarTests.Register(Test);
 CostCenterTests.Register(Test);
 CurrencyTests.Register(Test);
 AccountTests.Register(Test);

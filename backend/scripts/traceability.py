@@ -38,10 +38,13 @@ screen("SYS02", "GET/POST /companies/{companyId}/branches; GET /search; GET/PUT 
        [(14, "AuditEvent.ActorId: branch.created"), (15, "AuditEvent.OccurredAt: branch.created"), (17, "AuditEvent.OccurredAt: branch.edited / branch.status-changed")])
 MAP["SYS02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["BranchTests.cs", "BranchSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
-screen("SYS03", "GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods",
-       "سنة وفترات شهرية متصلة بلا تداخل؛ حالة إقفال الأستاذ", "تعديل تقويم معتمد وفترات مخصصة وإقفال السنة؛ لا يوجد تقويم مختلف لكل فرع",
-       {1: "CompanyId", 4: "FiscalYear.Code", 5: "FiscalYear.StartsOn", 6: "FiscalYear.EndsOn", 7: "FiscalPeriod.Code", 8: "FiscalPeriod.StartsOn", 9: "FiscalPeriod.EndsOn", 13: "Version"},
-       [(11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
+screen("SYS03", "GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods",
+       "تقويم شهري افتراضي أو فترات صريحة تغطي السنة بلا فجوات أو تداخل؛ حالة إقفال الأستاذ مشتقة؛ بحث واستخدام وتدقيق؛ حماية التزامن والترحيل",
+       "تعديل تقويم قائم وإصدار عددي وإقفال السنة الشامل غير منفذ؛ لا يوجد تقويم مختلف لكل فرع؛ الفترة ذات أكثر من موعد دوري ترفض التوليد؛ لا حذف أو تعطيل بديل للإقفال",
+       {1: "CompanyId", 3: "FiscalCalendar.State (GeneralLedgerOnly)", 4: "FiscalYear.Code", 5: "FiscalYear.StartsOn", 6: "FiscalYear.EndsOn", 7: "FiscalPeriod.Code / FiscalPeriodRequest.Code", 8: "FiscalPeriod.StartsOn / FiscalPeriodRequest.StartsOn", 9: "FiscalPeriod.EndsOn / FiscalPeriodRequest.EndsOn", 10: "FiscalPeriod.IsClosed"},
+       [(11, "AuditEvent.ActorId: fiscal-year.created"), (12, "AuditEvent.OccurredAt: fiscal-year.created"), (14, "AuditEvent.OccurredAt: period.closed / period.reopened")])
+MAP["SYS03"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["FiscalCalendarTests.cs", "FiscalCalendarSqlIntegration.cs", "HostedApiIntegration.cs"])
 screen("SYS04", "GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
        "بطاقة عملة بأسماء ورمز عرض واسم جزء وإصدار عددي؛ تحرير وحالة وبحث وتدقيق؛ قفل الدقة بعد الاستخدام وفحص التعطيل عند الترحيل",
        "الرمز الداخلي موحد مع رمز العملة ولا يربط بقائمة ISO خارجية وغير قابل لإعادة التسمية؛ أسماء العملة الوظيفية والبطاقات القديمة تبدأ برمز ISO وتحتاج تحريرًا؛ تحويل الدقة التاريخية غير متاح",

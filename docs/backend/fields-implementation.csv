@@ -40,20 +40,20 @@ SYS02,SYS02-F14,أنشأه,system,audit,AuditEvent.ActorId: branch.created,GET/P
 SYS02,SYS02-F15,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: branch.created,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS02,SYS02-F16,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS02,SYS02-F17,آخر تعديل,system,audit,AuditEvent.OccurredAt: branch.edited / branch.status-changed,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
-SYS03,SYS03-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
+SYS03,SYS03-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
 SYS03,SYS03-F02,الفرع,conditional,pending,,
-SYS03,SYS03-F03,الحالة,system,pending,,
-SYS03,SYS03-F04,السنة,required,implemented,FiscalYear.Code,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F05,من تاريخ,required,implemented,FiscalYear.StartsOn,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F06,إلى تاريخ,required,implemented,FiscalYear.EndsOn,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F07,الفترة,required,implemented,FiscalPeriod.Code,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F08,بدايتها,required,implemented,FiscalPeriod.StartsOn,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F09,نهايتها,required,implemented,FiscalPeriod.EndsOn,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F10,حالة الفترة,system,partial,FiscalPeriod.IsClosed: general ledger only,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F11,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F13,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
-SYS03,SYS03-F14,آخر تعديل,system,pending,,
+SYS03,SYS03-F03,الحالة,system,implemented,FiscalCalendar.State (GeneralLedgerOnly),GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F04,السنة,required,implemented,FiscalYear.Code,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F05,من تاريخ,required,implemented,FiscalYear.StartsOn,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F06,إلى تاريخ,required,implemented,FiscalYear.EndsOn,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F07,الفترة,required,implemented,FiscalPeriod.Code / FiscalPeriodRequest.Code,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F08,بدايتها,required,implemented,FiscalPeriod.StartsOn / FiscalPeriodRequest.StartsOn,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F09,نهايتها,required,implemented,FiscalPeriod.EndsOn / FiscalPeriodRequest.EndsOn,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F10,حالة الفترة,system,partial,FiscalPeriod.IsClosed: general ledger only,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F11,أنشأه,system,audit,AuditEvent.ActorId: fiscal-year.created,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: fiscal-year.created,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F13,رقم إصدار التعديل,system,pending,,
+SYS03,SYS03-F14,آخر تعديل,system,audit,AuditEvent.OccurredAt: period.closed / period.reopened,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
 SYS04,SYS04-F01,المعرف الداخلي,system,implemented,Currency.Id,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS04,SYS04-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS04,SYS04-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events

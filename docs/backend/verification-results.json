@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T11:51:39.678554+00:00",
+  "startedAtUtc": "2026-10-21T14:38:49.898039+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "5a7eab0b0901376f846e09ee4cfd83be4756f60d22dc209095928edaee259ffb",
+  "sourceSha256": "494ce5894f9ba3bc36c400b9842f42432104d9b26d11a98c90f97c58ac30c76b",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -119,6 +119,15 @@
     "PASS SYS02: cross-company parent and default center rejected",
     "PASS SYS02 GL04: inactive template locks structure and disabled branch blocks generation",
     "PASS SYS02: replay, stale version and failed commit preserve revision and audit",
+    "PASS SYS03: custom periods are sorted, exact and audited",
+    "PASS SYS03: custom coverage rejects gaps overlaps outside bounds and missing ends atomically",
+    "PASS SYS03: custom empty null entry reversed range and duplicate codes rejected",
+    "PASS SYS03: default monthly generation preserves leap day and maximum date",
+    "PASS SYS03: custom period posting and GL close state match calendar and usage",
+    "PASS SYS03: year cannot precede company fiscal start or overlap another year",
+    "PASS SYS03: usage and audit protect global scope and foreign company calendar",
+    "PASS SYS03: failed calendar saves no periods audit or receipt and exact retry replays",
+    "PASS SYS03 GL04: custom period with multiple recurring dates is explicitly rejected",
     "PASS COST01: bilingual hierarchy and responsible member roundtrip with scoped search",
     "PASS COST01: direct and indirect cycles are rejected atomically",
     "PASS COST01: branch parent cannot own a global or another-branch child",
@@ -205,6 +214,7 @@
     "  SQL PASS COST01 hierarchy, responsibility FK, concurrent replay, scoped search and subtree usage lock",
     "  SQL PASS SYS04/COST01 audit failures roll back cards and receipts; exact retries succeed",
     "  SQL PASS COST01 tenant FKs and SYS04/COST01 status writes under runtime role",
+    "  SQL PASS SYS03 custom periods, concurrent replay/overlap protection, SQL reads, atomic rollback and runtime-role retry",
     "  SQL PASS SYS02 concurrent replay, SQL search, rollback/retry, runtime role, tenant FKs and legacy address completion",
     "  SQL PASS SYS01 profile, nullable date, leading zeros and concurrent edit replay",
     "  SQL PASS SYS01 audit failure rolls back company revision, fields and receipt; exact retry succeeds",
@@ -214,11 +224,12 @@
     "  HOST PASS GL01 create/detail/PUT edit/replay, explicit nature, usage and audit over production HTTPS/JWT/SQL",
     "  HOST PASS SYS01 required profile, PUT edit, integer revision, inactive-company write guard and reactivation",
     "  HOST PASS SYS02 branch addresses, tree, edit, search, usage, status and audit over HTTPS/JWT/SQL",
+    "  HOST PASS SYS03 explicit periods, calendar state, search, usage and audit over HTTPS/JWT/SQL",
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 132,
-  "total": 132,
+  "passed": 141,
+  "total": 141,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T11:52:09.400711+00:00"
+  "finishedAtUtc": "2026-10-21T14:39:14.642321+00:00"
 }

@@ -32,6 +32,10 @@
 | GET | `/currencies/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read، كل الفروع |
 | GET / POST | `/exchange-rates` | قائمة / CreateExchangeRateRequest | read / company.configure |
 | GET / POST | `/fiscal-years` | قائمة / CreateFiscalYearRequest | read / company.configure |
+| GET | `/fiscal-years/search` | Page&lt;FiscalYear&gt;؛ search/offset/limit | ledger.read |
+| GET | `/fiscal-years/{id}` | FiscalCalendar؛ السنة والفترات وحالة إقفال الأستاذ | ledger.read |
+| GET | `/fiscal-years/{id}/usage` | FiscalYearUsage | ledger.read لكل الفروع |
+| GET | `/fiscal-years/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read لكل الفروع |
 | GET | `/periods` | قائمة الفترات | ledger.read |
 | POST | `/periods/{id}/close` | ChangePeriodRequest | period.close |
 | POST | `/periods/{id}/reopen` | ChangePeriodRequest | period.reopen |
@@ -145,3 +149,5 @@
 عقد SYS01 الإلزامي الجديد، وضوابط تعطيل الشركة وترقية الشركات القديمة في [بطاقة الشركة](companies.md).
 
 تفاصيل البحث والتعديل والحالة والاستخدام والتدقيق للفروع في [عقد SYS02](branches.md).
+
+إنشاء السنة يقبل `periods` اختيارية لفترات صريحة؛ الضوابط وحدود حالة الإقفال في [التقويم المالي SYS03](fiscal-calendar.md).

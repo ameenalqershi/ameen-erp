@@ -7,10 +7,10 @@
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 180,
-    "audit": 37,
+    "audit": 38,
     "derived": 4,
     "partial": 18,
-    "pending": 2520
+    "pending": 2519
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -187,13 +187,17 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/BranchTests.cs; backend/tests/Ameen.Erp.Tests/BranchSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS03": {
-      "api": "GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods",
-      "implemented": "سنة وفترات شهرية متصلة بلا تداخل؛ حالة إقفال الأستاذ",
-      "remaining": "تعديل تقويم معتمد وفترات مخصصة وإقفال السنة؛ لا يوجد تقويم مختلف لكل فرع",
+      "api": "GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods",
+      "implemented": "تقويم شهري افتراضي أو فترات صريحة تغطي السنة بلا فجوات أو تداخل؛ حالة إقفال الأستاذ مشتقة؛ بحث واستخدام وتدقيق؛ حماية التزامن والترحيل",
+      "remaining": "تعديل تقويم قائم وإصدار عددي وإقفال السنة الشامل غير منفذ؛ لا يوجد تقويم مختلف لكل فرع؛ الفترة ذات أكثر من موعد دوري ترفض التوليد؛ لا حذف أو تعطيل بديل للإقفال",
       "fields": {
         "SYS03-F01": {
           "status": "implemented",
           "binding": "CompanyId"
+        },
+        "SYS03-F03": {
+          "status": "implemented",
+          "binding": "FiscalCalendar.State (GeneralLedgerOnly)"
         },
         "SYS03-F04": {
           "status": "implemented",
@@ -209,33 +213,34 @@
         },
         "SYS03-F07": {
           "status": "implemented",
-          "binding": "FiscalPeriod.Code"
+          "binding": "FiscalPeriod.Code / FiscalPeriodRequest.Code"
         },
         "SYS03-F08": {
           "status": "implemented",
-          "binding": "FiscalPeriod.StartsOn"
+          "binding": "FiscalPeriod.StartsOn / FiscalPeriodRequest.StartsOn"
         },
         "SYS03-F09": {
           "status": "implemented",
-          "binding": "FiscalPeriod.EndsOn"
-        },
-        "SYS03-F13": {
-          "status": "implemented",
-          "binding": "Version"
-        },
-        "SYS03-F11": {
-          "status": "audit",
-          "binding": "AuditEvent.ActorId"
-        },
-        "SYS03-F12": {
-          "status": "audit",
-          "binding": "AuditEvent.OccurredAt"
+          "binding": "FiscalPeriod.EndsOn / FiscalPeriodRequest.EndsOn"
         },
         "SYS03-F10": {
           "status": "partial",
           "binding": "FiscalPeriod.IsClosed: general ledger only"
+        },
+        "SYS03-F11": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: fiscal-year.created"
+        },
+        "SYS03-F12": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: fiscal-year.created"
+        },
+        "SYS03-F14": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: period.closed / period.reopened"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/FiscalCalendarTests.cs; backend/tests/Ameen.Erp.Tests/FiscalCalendarSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS04": {
       "api": "GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",

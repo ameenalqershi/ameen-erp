@@ -51,7 +51,11 @@ public sealed record SetCurrencyStatusRequest(Guid ExpectedVersion, bool IsActiv
 public sealed record CurrencyUsage(Guid CurrencyId, bool IsFunctionalCurrency, int AccountCount, int ExchangeRateCount,
     int JournalCount, int RecurringTemplateCount);
 public sealed record CreateExchangeRateRequest(string CurrencyCode, DateOnly EffectiveDate, decimal RateToFunctional, string Source);
-public sealed record CreateFiscalYearRequest(string Code, DateOnly StartsOn, DateOnly EndsOn);
+public sealed record FiscalPeriodRequest(string Code, DateOnly StartsOn, DateOnly EndsOn);
+public sealed record CreateFiscalYearRequest(string Code, DateOnly StartsOn, DateOnly EndsOn, FiscalPeriodRequest[]? Periods = null);
+public enum FiscalCalendarState { Open, PartiallyClosed, Closed }
+public sealed record FiscalCalendar(FiscalYear Year, IReadOnlyList<FiscalPeriod> Periods, FiscalCalendarState State, bool GeneralLedgerOnly);
+public sealed record FiscalYearUsage(Guid FiscalYearId, int JournalCount, int UnpostedJournalCount, int RecurringGenerationCount);
 public sealed record CreateCostCenterRequest(string Code, string Name, Guid? BranchId, Guid? ParentId = null,
     Guid? ResponsibleMembershipId = null, string? EnglishName = null, string? Notes = null);
 public sealed record EditCostCenterRequest(Guid ExpectedVersion, string Code, string Name, Guid? BranchId,
