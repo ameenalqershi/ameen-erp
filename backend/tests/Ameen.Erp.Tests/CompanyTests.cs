@@ -76,7 +76,7 @@ public static class CompanyTests
             var key = Fixture.Key(); var draft = await f.Draft(key: key); var c = await Company(f);
             var off = await f.Service.SetCompanyStatus(f.CompanyId, f.Owner, Fixture.Key(), new(c.Version, false, "إيقاف التشغيل"), default);
             await Error("company_inactive", () => f.Draft(key: key));
-            await Error("company_inactive", () => f.Service.CreateBranch(f.CompanyId, f.Owner, Fixture.Key(), new("OFF", "معطل"), default));
+            await Error("company_inactive", () => f.Service.CreateBranch(f.CompanyId, f.Owner, Fixture.Key(), new("OFF", "معطل", "مدينة الاختبار", "عنوان الاختبار"), default));
             await Error("company_inactive", () => f.Action(draft, "submit"));
             Ensure((await f.Service.GetJournal(f.CompanyId, draft.ResourceId, f.Clerk, default)).State == JournalState.Draft);
             Ensure((await f.Service.ListCompanies(f.Clerk, default)).Single().IsActive == false);

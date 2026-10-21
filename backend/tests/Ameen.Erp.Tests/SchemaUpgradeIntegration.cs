@@ -119,6 +119,24 @@ public static class SchemaUpgradeIntegration
             !upgradedCompany.IsProfileComplete && upgradedCompany.LegalName is null && upgradedCompany.City is null,
             "Company upgrade changed financial identity or invented legal data");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 005→006 upgrade preserves company and derives calendar without invented legal data");
+        var branchScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "007_branch_cards.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Branches] ADD CONSTRAINT [CK_Branch_Revision] CHECK ([IsActive] IN (0,1))");
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(branchScript);
+            throw new Exception("Conflicting branch upgrade unexpectedly succeeded");
+        }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=7").AnyAsync(), "Failed upgrade saved version 7");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('Branches') AND name='ParentId'").SingleAsync() == 0, "Failed branch upgrade left partial DDL");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Branches] DROP CONSTRAINT [CK_Branch_Revision]");
+        await db.Database.ExecuteSqlRawAsync(branchScript); await db.Database.ExecuteSqlRawAsync(branchScript);
+        var previousBranch = f.Store.All<Branch>().Single(x => x.Id == f.BranchId);
+        var upgradedBranch = await db.Set<Branch>().SingleAsync(x => x.CompanyId == f.CompanyId && x.Id == f.BranchId);
+        Ensure(upgradedBranch.Version == previousBranch.Version && upgradedBranch.Code == previousBranch.Code && upgradedBranch.IsActive &&
+            upgradedBranch.Revision == 1 && !upgradedBranch.IsProfileComplete && upgradedBranch.ParentId is null && upgradedBranch.DefaultCostCenterId is null,
+            "Branch upgrade changed legacy identity or invented address");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 006→007 preserves branch identity without invented address");
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

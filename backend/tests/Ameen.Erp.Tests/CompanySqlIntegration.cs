@@ -42,10 +42,10 @@ public static class CompanySqlIntegration
         await using (var db = Context()) await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Companies] SET [LegalName]=NULL WHERE [Id]={cid}");
         var incomplete = await Call(s => s.GetCompany(cid, owner, default));
         Ensure(!incomplete.IsProfileComplete, "Legacy incomplete profile not detected");
-        await Error("company_profile_incomplete", () => Call(s => s.CreateBranch(cid, owner, Fixture.Key(), new("PROFILE-BLOCKED", "محجوب"), default)));
+        await Error("company_profile_incomplete", () => Call(s => s.CreateBranch(cid, owner, Fixture.Key(), new("PROFILE-BLOCKED", "محجوب", "مدينة الاختبار", "عنوان الاختبار"), default)));
         await Call(s => s.EditCompany(cid, owner, Fixture.Key(), new(incomplete.Version, incomplete.Code, incomplete.Name, incomplete.CountryCode,
             incomplete.FunctionalCurrency, completeProfile, "استكمال بيانات قديمة"), default));
-        var branchKey = Fixture.Key(); var branchRequest = new CreateBranchRequest("COMPANY-STATUS", "اختبار الحالة");
+        var branchKey = Fixture.Key(); var branchRequest = new CreateBranchRequest("COMPANY-STATUS", "اختبار الحالة", "مدينة الاختبار", "عنوان الاختبار");
         var branch = await Call(s => s.CreateBranch(cid, owner, branchKey, branchRequest, default));
         company = await Call(s => s.GetCompany(cid, owner, default));
         var off = await Call(s => s.SetCompanyStatus(cid, owner, Fixture.Key(), new(company.Version, false, "تعطيل"), default));

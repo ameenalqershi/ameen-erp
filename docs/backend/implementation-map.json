@@ -6,11 +6,11 @@
   "partially_implemented_screens": 22,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 173,
-    "audit": 36,
+    "implemented": 180,
+    "audit": 37,
     "derived": 4,
     "partial": 18,
-    "pending": 2528
+    "pending": 2520
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -119,9 +119,9 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/CompanyTests.cs; backend/tests/Ameen.Erp.Tests/CompanySqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS02": {
-      "api": "GET/POST /companies/{companyId}/branches",
-      "implemented": "فروع مستقلة داخل الشركة وفحص نطاق المستخدم",
-      "remaining": "هرمية الإدارات والعناوين والمسؤول ومركز افتراضي وتعديل وتعطيل الفرع",
+      "api": "GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
+      "implemented": "بطاقة فرع وعنوان وشجرة بلا دورات؛ بحث ضمن الصلاحية دون توريث الفروع؛ قفل بنية المستخدم؛ مركز افتراضي متسق؛ تعديل وحالة واستخدام وتدقيق",
+      "remaining": "نوع الموقع وقيمه ومرجع المدير بانتظار حسم التحليل؛ المركز الافتراضي إعداد لا يملأ سطور القيود تلقائيًا؛ الشركات القديمة تستكمل عناوين فروعها قبل التشغيل",
       "fields": {
         "SYS02-F01": {
           "status": "implemented",
@@ -139,19 +139,52 @@
           "status": "implemented",
           "binding": "Name"
         },
+        "SYS02-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
+        "SYS02-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "SYS02-F07": {
+          "status": "implemented",
+          "binding": "Notes"
+        },
+        "SYS02-F08": {
+          "status": "implemented",
+          "binding": "ParentId"
+        },
+        "SYS02-F10": {
+          "status": "implemented",
+          "binding": "City"
+        },
+        "SYS02-F11": {
+          "status": "implemented",
+          "binding": "Address"
+        },
+        "SYS02-F12": {
+          "status": "implemented",
+          "binding": "DefaultCostCenterId"
+        },
         "SYS02-F16": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "Revision"
         },
         "SYS02-F14": {
           "status": "audit",
-          "binding": "AuditEvent.ActorId"
+          "binding": "AuditEvent.ActorId: branch.created"
         },
         "SYS02-F15": {
           "status": "audit",
-          "binding": "AuditEvent.OccurredAt"
+          "binding": "AuditEvent.OccurredAt: branch.created"
+        },
+        "SYS02-F17": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: branch.edited / branch.status-changed"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/BranchTests.cs; backend/tests/Ameen.Erp.Tests/BranchSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS03": {
       "api": "GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods",

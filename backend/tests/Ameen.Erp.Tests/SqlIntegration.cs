@@ -154,7 +154,7 @@ public static class SqlIntegration
                 {
                     await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(restrictedConnection).Options);
                     var service = new ErpService(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock());
-                    await service.CreateBranch(f.CompanyId, f.Owner, Fixture.Key(), new("RUNTIME", "اختبار صلاحية التشغيل"), default);
+                    await service.CreateBranch(f.CompanyId, f.Owner, Fixture.Key(), new("RUNTIME", "اختبار صلاحية التشغيل", "مدينة الاختبار", "عنوان الاختبار"), default);
                     try
                     {
                         await Execute(restrictedConnection, "UPDATE [AuditEvents] SET [ActorId]=[ActorId] WHERE 1=0");
@@ -168,6 +168,7 @@ public static class SqlIntegration
             await RecurringSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await AccountSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
             await FoundationSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
+            await BranchSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await CompanySqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await HostedApiIntegration.Run(options.ConnectionString, f.CompanyId, f.Request());
         }
@@ -211,7 +212,7 @@ public static class SqlIntegration
         public async Task Initialize()
         {
             await Call(s => s.CreateCompany(Owner, Fixture.Key(), new(CompanyId, "SQLTEST", "اختبار SQL", "YE", "SAR", 2, Fixture.Profile()), default));
-            BranchId = (await Call(s => s.CreateBranch(CompanyId, Owner, Fixture.Key(), new("MAIN", "الرئيسي"), default))).ResourceId;
+            BranchId = (await Call(s => s.CreateBranch(CompanyId, Owner, Fixture.Key(), new("MAIN", "الرئيسي", "مدينة الاختبار", "عنوان الاختبار"), default))).ResourceId;
             await Call(s => s.CreateFiscalYear(CompanyId, Owner, Fixture.Key(), new("2026", new(2026, 1, 1), new(2026, 12, 31)), default));
             foreach (var actor in new[] { Clerk, Approver })
                 await Call(s => s.GrantMembership(CompanyId, Owner, Fixture.Key(), new(actor.Subject, Permissions.All, true, Array.Empty<Guid>(), null), default));

@@ -108,8 +108,8 @@ public sealed class Fixture
     public async Task Initialize()
     {
         await Service.CreateCompany(Owner, Key(), new(CompanyId, "TEST", "شركة الاختبار", "YE", "SAR", 2, Fixture.Profile()), default);
-        BranchId = (await Service.CreateBranch(CompanyId, Owner, Key(), new("MAIN", "الرئيسي"), default)).ResourceId;
-        OtherBranchId = (await Service.CreateBranch(CompanyId, Owner, Key(), new("OTHER", "الآخر"), default)).ResourceId;
+        BranchId = (await Service.CreateBranch(CompanyId, Owner, Key(), new("MAIN", "الرئيسي", "مدينة الاختبار", "عنوان الاختبار"), default)).ResourceId;
+        OtherBranchId = (await Service.CreateBranch(CompanyId, Owner, Key(), new("OTHER", "الآخر", "مدينة الاختبار", "عنوان الاختبار"), default)).ResourceId;
         await Service.CreateFiscalYear(CompanyId, Owner, Key(), new("2026", new(2026, 1, 1), new(2026, 12, 31)), default);
         await Service.GrantMembership(CompanyId, Owner, Key(), new(Clerk.Subject,
             new[] { Permissions.Read, Permissions.Draft, Permissions.Approve, Permissions.Post, Permissions.Reverse }, true, Array.Empty<Guid>(), null), default);

@@ -9,7 +9,7 @@ namespace Ameen.Erp.Infrastructure;
 
 public sealed partial class ErpDbContext : DbContext
 {
-    public const int SchemaVersion = 6;
+    public const int SchemaVersion = 7;
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options) { }
 
     private static EntityTypeBuilder<T> Tenant<T>(ModelBuilder model, string table) where T : CompanyEntity
@@ -56,6 +56,11 @@ public sealed partial class ErpDbContext : DbContext
         var branch = Tenant<Branch>(model, "Branches");
         branch.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
         branch.Property(x => x.Code).HasMaxLength(32); branch.Property(x => x.Name).HasMaxLength(200);
+        branch.Property(x => x.EnglishName).HasMaxLength(200); branch.Property(x => x.Notes).HasMaxLength(2000);
+        branch.Property(x => x.City).HasMaxLength(200); branch.Property(x => x.Address).HasMaxLength(500);
+        branch.Ignore(x => x.IsProfileComplete); Constraint(branch, "CK_Branch_Revision", "[Revision] > 0");
+        branch.HasOne<Branch>().WithMany().HasForeignKey(x => new { x.CompanyId, x.ParentId }).OnDelete(DeleteBehavior.NoAction);
+        branch.HasOne<CostCenter>().WithMany().HasForeignKey(x => new { x.CompanyId, x.DefaultCostCenterId }).OnDelete(DeleteBehavior.NoAction);
 
         var member = Tenant<Membership>(model, "Memberships");
         member.Property(x => x.Subject).HasMaxLength(200).UseCollation("Latin1_General_100_BIN2");

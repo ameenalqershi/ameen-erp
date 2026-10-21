@@ -23,23 +23,23 @@ SYS01,SYS01-F21,الشارع,required,implemented,Street,GET/POST /companies; GE
 SYS01,SYS01-F22,رقم المبنى,conditional,implemented,BuildingNumber,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
 SYS01,SYS01-F23,الرمز البريدي,conditional,implemented,PostalCode,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
 SYS01,SYS01-F24,الرقم الإضافي,conditional,implemented,AdditionalNumber,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
-SYS02,SYS02-F01,المعرف الداخلي,system,implemented,Branch.Id,GET/POST /companies/{companyId}/branches
-SYS02,SYS02-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/branches
-SYS02,SYS02-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/branches
-SYS02,SYS02-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/branches
-SYS02,SYS02-F05,الاسم الإنجليزي,optional,pending,,
-SYS02,SYS02-F06,فعال,required,pending,,
-SYS02,SYS02-F07,ملاحظات,optional,pending,,
-SYS02,SYS02-F08,الفرع الأب,optional,pending,,
+SYS02,SYS02-F01,المعرف الداخلي,system,implemented,Branch.Id,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F08,الفرع الأب,optional,implemented,ParentId,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS02,SYS02-F09,المدير,optional,pending,,
-SYS02,SYS02-F10,المدينة,required,pending,,
-SYS02,SYS02-F11,العنوان,required,pending,,
-SYS02,SYS02-F12,مركز التكلفة الافتراضي,optional,pending,,
+SYS02,SYS02-F10,المدينة,required,implemented,City,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F11,العنوان,required,implemented,Address,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F12,مركز التكلفة الافتراضي,optional,implemented,DefaultCostCenterId,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS02,SYS02-F13,نوع الموقع,required,pending,,
-SYS02,SYS02-F14,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{companyId}/branches
-SYS02,SYS02-F15,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/branches
-SYS02,SYS02-F16,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/branches
-SYS02,SYS02-F17,آخر تعديل,system,pending,,
+SYS02,SYS02-F14,أنشأه,system,audit,AuditEvent.ActorId: branch.created,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F15,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: branch.created,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F16,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS02,SYS02-F17,آخر تعديل,system,audit,AuditEvent.OccurredAt: branch.edited / branch.status-changed,GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS03,SYS03-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
 SYS03,SYS03-F02,الفرع,conditional,pending,,
 SYS03,SYS03-F03,الحالة,system,pending,,

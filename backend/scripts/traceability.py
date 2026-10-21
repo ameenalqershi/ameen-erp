@@ -31,9 +31,13 @@ screen("SYS01", "GET/POST /companies; GET/PUT /companies/{companyId}; POST /stat
        [(15, "AuditEvent.ActorId: company.created"), (16, "AuditEvent.OccurredAt: company.created"), (18, "AuditEvent.OccurredAt: company.edited / company.status-changed")])
 MAP["SYS01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CompanyTests.cs", "CompanySqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
-screen("SYS02", "GET/POST /companies/{companyId}/branches",
-       "فروع مستقلة داخل الشركة وفحص نطاق المستخدم", "هرمية الإدارات والعناوين والمسؤول ومركز افتراضي وتعديل وتعطيل الفرع",
-       {1: "Branch.Id", 2: "CompanyId", 3: "Code", 4: "Name", 16: "Version"}, [(14, "AuditEvent.ActorId"), (15, "AuditEvent.OccurredAt")])
+screen("SYS02", "GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
+       "بطاقة فرع وعنوان وشجرة بلا دورات؛ بحث ضمن الصلاحية دون توريث الفروع؛ قفل بنية المستخدم؛ مركز افتراضي متسق؛ تعديل وحالة واستخدام وتدقيق",
+       "نوع الموقع وقيمه ومرجع المدير بانتظار حسم التحليل؛ المركز الافتراضي إعداد لا يملأ سطور القيود تلقائيًا؛ الشركات القديمة تستكمل عناوين فروعها قبل التشغيل",
+       {1: "Branch.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "ParentId", 10: "City", 11: "Address", 12: "DefaultCostCenterId", 16: "Revision"},
+       [(14, "AuditEvent.ActorId: branch.created"), (15, "AuditEvent.OccurredAt: branch.created"), (17, "AuditEvent.OccurredAt: branch.edited / branch.status-changed")])
+MAP["SYS02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["BranchTests.cs", "BranchSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("SYS03", "GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods",
        "سنة وفترات شهرية متصلة بلا تداخل؛ حالة إقفال الأستاذ", "تعديل تقويم معتمد وفترات مخصصة وإقفال السنة؛ لا يوجد تقويم مختلف لكل فرع",
        {1: "CompanyId", 4: "FiscalYear.Code", 5: "FiscalYear.StartsOn", 6: "FiscalYear.EndsOn", 7: "FiscalPeriod.Code", 8: "FiscalPeriod.StartsOn", 9: "FiscalPeriod.EndsOn", 13: "Version"},

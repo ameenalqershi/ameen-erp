@@ -19,6 +19,11 @@
 | GET | `/usage` | CompanyUsage | ledger.read لكل الفروع |
 | GET | `/profile-audit-events` | Page&lt;AuditEvent&gt; | read + audit.read لكل الفروع |
 | GET / POST | `/branches` | قائمة / CreateBranchRequest | read / company.configure |
+| GET | `/branches/search` | Page&lt;Branch&gt;؛ search/parentId/isActive | ledger.read بنطاق الفروع |
+| GET / PUT | `/branches/{id}` | Branch / EditBranchRequest | read / company.configure لكل الفروع |
+| POST | `/branches/{id}/status` | SetBranchStatusRequest | company.configure لكل الفروع |
+| GET | `/branches/{id}/usage` | BranchUsage | ledger.read لكل الفروع |
+| GET | `/branches/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read لكل الفروع |
 | GET / POST | `/currencies` | قائمة / CreateCurrencyRequest | read / company.configure |
 | GET | `/currencies/search` | Page&lt;Currency&gt;؛ search/isActive | ledger.read |
 | GET / PUT | `/currencies/{id}` | Currency / EditCurrencyRequest | read / company.configure |
@@ -97,7 +102,7 @@
 {"code":"1101","name":"النقدية","type":"Asset","parentId":null,"isPosting":true,"isControl":false,"requiresCostCenter":false,"currencyCode":"YER","normalBalance":"Debit"}
 ```
 
-تعريف الفرع `{"code":"MAIN","name":"الرئيسي"}` والسنة `{"code":"2026","startsOn":"2026-01-01","endsOn":"2026-12-31"}` يولد الفترات الشهرية آليًا.
+تعريف الفرع `{"code":"MAIN","name":"الرئيسي","city":"صنعاء","address":"عنوان الفرع الفعلي"}` والسنة `{"code":"2026","startsOn":"2026-01-01","endsOn":"2026-12-31"}` يولد الفترات الشهرية آليًا.
 
 مثال قيد؛ استبدل معرفات الفرع والحسابين بالقيم المنشأة فعلًا:
 
@@ -138,3 +143,5 @@
 حقول العملات والمراكز وقواعدها وحدودها في [عقد SYS04 وCOST01](currencies-and-cost-centers.md).
 
 عقد SYS01 الإلزامي الجديد، وضوابط تعطيل الشركة وترقية الشركات القديمة في [بطاقة الشركة](companies.md).
+
+تفاصيل البحث والتعديل والحالة والاستخدام والتدقيق للفروع في [عقد SYS02](branches.md).

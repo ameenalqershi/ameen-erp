@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T10:19:28.188909+00:00",
+  "startedAtUtc": "2026-10-21T11:51:39.678554+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "5b6859a8d16234e07771479f66d0e5844edc3e4735383045ca1a306958e9cc74",
+  "sourceSha256": "5a7eab0b0901376f846e09ee4cfd83be4756f60d22dc209095928edaee259ffb",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -107,6 +107,18 @@
     "PASS SYS01: inactive company can correct its profile without enabling business commands",
     "PASS SYS01: duplicate company code and cross-company authority do not bypass membership",
     "PASS SYS01: metadata edit is replayable, stale-protected and rollback-safe",
+    "PASS SYS02: bilingual address, parent, search and audit roundtrip",
+    "PASS SYS02: required address rejects blank without partial creation",
+    "PASS SYS02: self and indirect branch cycles rejected",
+    "PASS SYS02: disable parent requires inactive children and activation requires active ancestors",
+    "PASS SYS02: hierarchy does not grant access to child or parent filters",
+    "PASS SYS02: cancelled descendant journal locks ancestor structure but not metadata",
+    "PASS SYS02: disable after approval blocks posting while historical reports remain",
+    "PASS SYS02: default center must be active and global or same branch",
+    "PASS SYS02 COST01: global default center cannot move outside referencing branch",
+    "PASS SYS02: cross-company parent and default center rejected",
+    "PASS SYS02 GL04: inactive template locks structure and disabled branch blocks generation",
+    "PASS SYS02: replay, stale version and failed commit preserve revision and audit",
     "PASS COST01: bilingual hierarchy and responsible member roundtrip with scoped search",
     "PASS COST01: direct and indirect cycles are rejected atomically",
     "PASS COST01: branch parent cannot own a global or another-branch child",
@@ -171,6 +183,7 @@
     "  SQL PASS atomic/idempotent schema 003→004 upgrade preserves currency identity and precision",
     "  SQL PASS atomic/idempotent schema 004→005 upgrade preserves legacy center and existing journal dimensions",
     "  SQL PASS atomic/idempotent schema 005→006 upgrade preserves company and derives calendar without invented legal data",
+    "  SQL PASS atomic/idempotent schema 006→007 preserves branch identity without invented address",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
     "  SQL PASS concurrent idempotency across independent connections",
@@ -192,6 +205,7 @@
     "  SQL PASS COST01 hierarchy, responsibility FK, concurrent replay, scoped search and subtree usage lock",
     "  SQL PASS SYS04/COST01 audit failures roll back cards and receipts; exact retries succeed",
     "  SQL PASS COST01 tenant FKs and SYS04/COST01 status writes under runtime role",
+    "  SQL PASS SYS02 concurrent replay, SQL search, rollback/retry, runtime role, tenant FKs and legacy address completion",
     "  SQL PASS SYS01 profile, nullable date, leading zeros and concurrent edit replay",
     "  SQL PASS SYS01 audit failure rolls back company revision, fields and receipt; exact retry succeeds",
     "  SQL PASS SYS01 incomplete-profile guard, correction, inactive-company replay denial and reactivation",
@@ -199,11 +213,12 @@
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
     "  HOST PASS GL01 create/detail/PUT edit/replay, explicit nature, usage and audit over production HTTPS/JWT/SQL",
     "  HOST PASS SYS01 required profile, PUT edit, integer revision, inactive-company write guard and reactivation",
+    "  HOST PASS SYS02 branch addresses, tree, edit, search, usage, status and audit over HTTPS/JWT/SQL",
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 120,
-  "total": 120,
+  "passed": 132,
+  "total": 132,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T10:19:53.498916+00:00"
+  "finishedAtUtc": "2026-10-21T11:52:09.400711+00:00"
 }

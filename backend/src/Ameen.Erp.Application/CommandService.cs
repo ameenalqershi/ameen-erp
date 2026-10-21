@@ -90,9 +90,11 @@ public sealed partial class ErpService
     public Task<CommandReceipt> CreateBranch(Guid cid, Actor actor, string key, CreateBranchRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "branch.create", request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
         {
-            var branch = new Branch(cid, request.Code, request.Name);
+            var branch = new Branch(cid, request.Code, request.Name, request.City, request.Address, request.ParentId, request.DefaultCostCenterId, request.EnglishName, request.Notes);
+            await ValidateBranchTree(cid, branch.Id, branch.ParentId, token);
+            await ValidateBranchDefaultCenter(cid, branch.Id, branch.DefaultCostCenterId, token);
             Check.That(!(await store.Find<Branch>(cid, x => x.Code == branch.Code, token)).Any(), "duplicate_code", "رمز الفرع مكرر.", ErrorKind.Conflict);
-            store.Add(branch); Audit(cid, actor, "branch.created", branch, new { branch.Code });
+            store.Add(branch); Audit(cid, actor, "branch.created", branch, new { after = BranchSnapshot(branch) });
             return Receipt(branch, "Created");
         }, ct);
 
@@ -234,7 +236,8 @@ public sealed partial class ErpService
     private async Task<Branch> ActiveBranch(Guid cid, Guid id, CancellationToken ct)
     {
         var branch = await Required<Branch>(cid, id, ct);
-        Check.That(branch.IsActive, "inactive_branch", "الفرع غير فعال."); return branch;
+        Check.That(branch.IsActive, "inactive_branch", "الفرع غير فعال.");
+        Check.That(branch.IsProfileComplete, "branch_profile_incomplete", "استكمل المدينة والعنوان للفرع قبل التشغيل."); return branch;
     }
 
     public Task<CommandReceipt> ChangePeriod(Guid cid, Guid id, Actor actor, string key, ChangePeriodRequest request, bool close, CancellationToken ct) =>

@@ -36,7 +36,13 @@ public sealed record EditCompanyRequest(Guid ExpectedVersion, string Code, strin
 public sealed record SetCompanyStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
 public sealed record CompanyUsage(Guid CompanyId, int BranchCount, int AccountCount, int CurrencyCount, int FiscalYearCount,
     int JournalCount, int RecurringTemplateCount, int ExchangeRateCount, bool CanChangeFunctionalCurrency);
-public sealed record CreateBranchRequest(string Code, string Name);
+public sealed record CreateBranchRequest(string Code, string Name, string City, string Address,
+    Guid? ParentId = null, Guid? DefaultCostCenterId = null, string? EnglishName = null, string? Notes = null);
+public sealed record EditBranchRequest(Guid ExpectedVersion, string Code, string Name, string City, string Address,
+    Guid? ParentId, Guid? DefaultCostCenterId, string? EnglishName, string? Notes, string Reason);
+public sealed record SetBranchStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+public sealed record BranchUsage(Guid BranchId, int ChildCount, int CostCenterCount, int MembershipCount,
+    int JournalCount, int RecurringTemplateCount, bool HasSubtreeFinancialUsage);
 public sealed record CreateCurrencyRequest(string Code, int Scale, string Name, string? EnglishName = null,
     string? Notes = null, string? DisplaySymbol = null, string? FractionName = null);
 public sealed record EditCurrencyRequest(Guid ExpectedVersion, int Scale, string Name, string? EnglishName,

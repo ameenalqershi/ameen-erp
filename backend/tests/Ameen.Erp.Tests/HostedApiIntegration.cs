@@ -262,7 +262,7 @@ public static class HostedApiIntegration
                 using (var blockedWrite = new HttpRequestMessage(HttpMethod.Post, companyPath + "/branches"))
                 {
                     blockedWrite.Headers.Add("Idempotency-Key", Fixture.Key());
-                    blockedWrite.Content = new StringContent(JsonSerializer.Serialize(new CreateBranchRequest("BLOCKED", "موقوف"), JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    blockedWrite.Content = new StringContent(JsonSerializer.Serialize(new CreateBranchRequest("BLOCKED", "موقوف", "مدينة الاختبار", "عنوان الاختبار"), JsonDefaults.Options), Encoding.UTF8, "application/json");
                     using var result = await client.SendAsync(blockedWrite);
                     Ensure(result.StatusCode == HttpStatusCode.Conflict && (await result.Content.ReadAsStringAsync()).Contains("company_inactive", StringComparison.Ordinal), "Inactive company accepted HTTP write");
                 }
@@ -271,6 +271,22 @@ public static class HostedApiIntegration
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Company HTTP audit differs");
                 await Command(client, companyPath + "/status", new SetCompanyStatusRequest(companyReceipt.Version, true, "تفعيل"));
                 Console.WriteLine("  HOST PASS SYS01 required profile, PUT edit, integer revision, inactive-company write guard and reactivation");
+                var branchesPath = companyPath + "/branches";
+                var parentBranch = await Command(client, branchesPath, new CreateBranchRequest("PARENT", "أب", "مدينة", "عنوان"));
+                var childBranch = await Command(client, branchesPath, new CreateBranchRequest("CHILD", "ابن", "مدينة", "عنوان", parentBranch.ResourceId));
+                childBranch = await Command(client, branchesPath + $"/{childBranch.ResourceId}",
+                    new EditBranchRequest(childBranch.Version, "CHILD", "ابن معدل", "مدينة", "عنوان 001", parentBranch.ResourceId, null, "HTTP child", null, "تحديث"), method: HttpMethod.Put);
+                using (var response = await client.GetAsync(branchesPath + $"/search?parentId={parentBranch.ResourceId}&search=HTTP"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("items")[0].GetProperty("revision").GetInt32() == 2, "Branch HTTP search failed");
+                using (var response = await client.GetAsync(branchesPath + $"/{parentBranch.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("childCount").GetInt32() == 1, "Branch HTTP usage failed");
+                await Command(client, branchesPath + $"/{childBranch.ResourceId}/status", new SetBranchStatusRequest(childBranch.Version, false, "إيقاف"));
+                using (var response = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Branch HTTP audit failed");
+                Console.WriteLine("  HOST PASS SYS02 branch addresses, tree, edit, search, usage, status and audit over HTTPS/JWT/SQL");
 
                 using var preflight = new HttpRequestMessage(HttpMethod.Options, path);
                 preflight.Headers.Add("Origin", "https://permitted.example");

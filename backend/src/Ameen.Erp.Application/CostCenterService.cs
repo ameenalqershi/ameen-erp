@@ -49,6 +49,9 @@ public sealed partial class ErpService
             var reason = Check.Text(request.Reason, "سبب التعديل", 500);
             var candidate = new CostCenter(cid, request.Code, request.Name, request.BranchId, request.ParentId,
                 request.ResponsibleMembershipId, request.EnglishName, request.Notes);
+            if (candidate.BranchId != center.BranchId && candidate.BranchId is Guid targetBranch)
+                Check.That(!(await store.Find<Branch>(cid, x => x.DefaultCostCenterId == id && x.Id != targetBranch, token)).Any(),
+                    "center_is_branch_default", "المركز افتراضي لفرع آخر؛ أزل الربط قبل تغيير النطاق.", ErrorKind.Conflict);
             var structureChanged = center.Code != candidate.Code || center.ParentId != candidate.ParentId || center.BranchId != candidate.BranchId;
             if (structureChanged)
             {
@@ -75,8 +78,12 @@ public sealed partial class ErpService
             var center = await Required<CostCenter>(cid, id, token); Check.Version(center, request.ExpectedVersion);
             var reason = Check.Text(request.Reason, "سبب تغيير الحالة", 500);
             if (!request.IsActive)
+            {
+                Check.That(!(await store.Find<Branch>(cid, x => x.DefaultCostCenterId == id, token)).Any(),
+                    "center_is_branch_default", "أزل ربط المركز الافتراضي من الفروع قبل تعطيله.", ErrorKind.Conflict);
                 Check.That(!(await store.Find<CostCenter>(cid, x => x.ParentId == id && x.IsActive, token)).Any(),
                     "active_child_centers", "عطل المراكز الفرعية أولًا.", ErrorKind.Conflict);
+            }
             else
             {
                 if (center.BranchId is Guid branch) await ActiveBranch(cid, branch, token);
