@@ -147,6 +147,16 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(unitScript); await db.Database.ExecuteSqlRawAsync(unitScript);
         Ensure(!await db.Set<UnitOfMeasure>().AnyAsync(), "Migration invented unit catalog");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 007→008 adds empty unit catalog and preserves prior data");
+        var groupScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "009_item_groups.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Branches] ADD CONSTRAINT [CK_ItemGroup_Revision] CHECK ([Revision] > 0)");
+        try { await db.Database.ExecuteSqlRawAsync(groupScript); throw new Exception("Conflicting group upgrade succeeded"); }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=9").AnyAsync(), "Failed upgrade saved version 9");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='ItemGroups'").SingleAsync() == 0, "Failed group upgrade left table");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Branches] DROP CONSTRAINT [CK_ItemGroup_Revision]");
+        await db.Database.ExecuteSqlRawAsync(groupScript); await db.Database.ExecuteSqlRawAsync(groupScript);
+        Ensure(!await db.Set<ItemGroup>().AnyAsync(), "Migration invented groups");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 008→009 preserves prior data and adds empty item groups");
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

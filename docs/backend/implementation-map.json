@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 23,
+  "partially_implemented_screens": 24,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 189,
-    "audit": 41,
+    "implemented": 201,
+    "audit": 44,
     "derived": 4,
     "partial": 20,
-    "pending": 2505
+    "pending": 2490
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -1050,6 +1050,74 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CostCenterTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "INV02": {
+      "api": "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups",
+      "implemented": "شجرة مجموعات بلا دورات وربط حسابات المبيعات والمخزون والتكلفة؛ بحث وتعديل وحالة وتدقيق؛ حماية بنية الحساب المرتبط ومنع تعطيله مع مجموعة فعالة",
+      "remaining": "مرجع الضريبة الافتراضي واستخدام الأصناف وسياسة تجاوز إعدادات المجموعة غير منفذة؛ شروط إلزام حساب المخزون والتكلفة حسب نوع الصنف تحسم مع INV04؛ لا ترحيل مخزون",
+      "fields": {
+        "INV02-F01": {
+          "status": "implemented",
+          "binding": "ItemGroup.Id"
+        },
+        "INV02-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "INV02-F03": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "INV02-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "INV02-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
+        "INV02-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "INV02-F07": {
+          "status": "implemented",
+          "binding": "Notes"
+        },
+        "INV02-F08": {
+          "status": "implemented",
+          "binding": "ParentId"
+        },
+        "INV02-F09": {
+          "status": "implemented",
+          "binding": "InventoryAccountId"
+        },
+        "INV02-F10": {
+          "status": "implemented",
+          "binding": "SalesAccountId"
+        },
+        "INV02-F11": {
+          "status": "implemented",
+          "binding": "CostAccountId"
+        },
+        "INV02-F15": {
+          "status": "implemented",
+          "binding": "Revision"
+        },
+        "INV02-F13": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: item-group.created"
+        },
+        "INV02-F14": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: item-group.created"
+        },
+        "INV02-F16": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: item-group.edited / item-group.status-changed"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/ItemGroupTests.cs; backend/tests/Ameen.Erp.Tests/ItemGroupSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "INV03": {
       "api": "GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",

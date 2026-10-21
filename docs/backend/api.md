@@ -24,6 +24,11 @@
 | POST | `/branches/{id}/status` | SetBranchStatusRequest | company.configure لكل الفروع |
 | GET | `/branches/{id}/usage` | BranchUsage | ledger.read لكل الفروع |
 | GET | `/branches/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read لكل الفروع |
+| GET / POST | `/item-groups` | Page&lt;ItemGroup&gt; / CreateItemGroupRequest | ledger.read / company.configure لكل الفروع |
+| GET / PUT | `/item-groups/{id}` | ItemGroup / EditItemGroupRequest | ledger.read / company.configure لكل الفروع |
+| POST | `/item-groups/{id}/status` | SetItemGroupStatusRequest | company.configure لكل الفروع |
+| GET | `/item-groups/{id}/audit-events` | Page&lt;AuditEvent&gt; | ledger.read + audit.read لكل الفروع |
+| GET | `/accounts/{id}/item-groups` | Page&lt;ItemGroup&gt; | ledger.read لكل الفروع |
 | GET / POST | `/units` | Page&lt;UnitOfMeasure&gt; / CreateUnitRequest | ledger.read / company.configure لكل الفروع |
 | GET / PUT | `/units/{id}` | UnitOfMeasure / EditUnitRequest | ledger.read / company.configure لكل الفروع |
 | POST | `/units/{id}/status` | SetUnitStatusRequest | company.configure لكل الفروع |
@@ -165,3 +170,5 @@
 تفاصيل استعلام السعر النافذ وموانع إقفال الأستاذ وحدودهما في [SYS05 وGL11](rates-and-close-preview.md).
 
 دليل الوحدات العام وحدود الدقة والتحويل في [INV03](units.md).
+
+شجرة المجموعات وروابط الحسابات وحدود الضريبة والاستخدام في [INV02](item-groups.md).

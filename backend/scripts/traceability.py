@@ -120,6 +120,12 @@ screen("COST01", "GET/POST /companies/{companyId}/cost-centers; GET /search; GET
        [(12, "AuditEvent.ActorId: cost-center.created"), (13, "AuditEvent.OccurredAt: cost-center.created"), (15, "AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed")])
 MAP["COST01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CostCenterTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+screen("INV02", "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups",
+       "شجرة مجموعات بلا دورات وربط حسابات المبيعات والمخزون والتكلفة؛ بحث وتعديل وحالة وتدقيق؛ حماية بنية الحساب المرتبط ومنع تعطيله مع مجموعة فعالة",
+       "مرجع الضريبة الافتراضي واستخدام الأصناف وسياسة تجاوز إعدادات المجموعة غير منفذة؛ شروط إلزام حساب المخزون والتكلفة حسب نوع الصنف تحسم مع INV04؛ لا ترحيل مخزون",
+       {1: "ItemGroup.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "ParentId", 9: "InventoryAccountId", 10: "SalesAccountId", 11: "CostAccountId", 15: "Revision"},
+       [(13, "AuditEvent.ActorId: item-group.created"), (14, "AuditEvent.OccurredAt: item-group.created"), (16, "AuditEvent.OccurredAt: item-group.edited / item-group.status-changed")])
+MAP["INV02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["ItemGroupTests.cs", "ItemGroupSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("INV03", "GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",
        "دليل وحدات بأسماء ورمز قياسي ووصف ودقة كمية وإصدار عددي؛ بحث وتعديل وحالة وتدقيق؛ لا معامل تحويل عام",
        "عرض الاستخدام وقفل البنية عند ربط ITEM_UNIT ينفذان مع INV04؛ لا باركود أو تحويل أو حركة مخزون بعد؛ الرمز القياسي تحقق شكلي بلا سجل خارجي؛ دقة كمية 0..6 حد تقني معلن",

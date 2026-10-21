@@ -122,3 +122,9 @@ public sealed record AccountLedgerResult(Guid AccountId, string Currency, DateOn
 public sealed record CreateUnitRequest(string Code, string Name, string StandardCode, int QuantityScale, string Description, string? EnglishName = null, string? Notes = null);
 public sealed record EditUnitRequest(Guid ExpectedVersion, string Code, string Name, string StandardCode, int QuantityScale, string Description, string? EnglishName, string? Notes, string Reason);
 public sealed record SetUnitStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+
+public sealed record CreateItemGroupRequest(string Code, string Name, Guid SalesAccountId, Guid? ParentId = null,
+    Guid? InventoryAccountId = null, Guid? CostAccountId = null, string? EnglishName = null, string? Notes = null);
+public sealed record EditItemGroupRequest(Guid ExpectedVersion, string Code, string Name, Guid SalesAccountId, Guid? ParentId,
+    Guid? InventoryAccountId, Guid? CostAccountId, string? EnglishName, string? Notes, string Reason);
+public sealed record SetItemGroupStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);

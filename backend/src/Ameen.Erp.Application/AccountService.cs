@@ -24,7 +24,9 @@ public sealed partial class ErpService
 
     private async Task<bool> HasAccountUsage(Guid cid, Guid[] ids, CancellationToken ct) =>
         (await store.Find<JournalEntry>(cid, x => x.Lines.Any(l => ids.Contains(l.AccountId)), ct)).Count > 0 ||
-        (await store.Find<RecurringJournalTemplate>(cid, x => x.Lines.Any(l => ids.Contains(l.AccountId)), ct)).Count > 0;
+        (await store.Find<RecurringJournalTemplate>(cid, x => x.Lines.Any(l => ids.Contains(l.AccountId)), ct)).Count > 0 ||
+        (await store.Find<ItemGroup>(cid, x => ids.Contains(x.SalesAccountId) ||
+            (x.InventoryAccountId != null && ids.Contains(x.InventoryAccountId.Value)) || (x.CostAccountId != null && ids.Contains(x.CostAccountId.Value)), ct)).Count > 0;
 
     public Task<CommandReceipt> EditAccount(Guid cid, Guid id, Actor actor, string key, EditAccountRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "account.edit:" + id, request,
@@ -60,7 +62,7 @@ public sealed partial class ErpService
                 if (candidate.CurrencyCode is not null) await RequireCurrency(cid, candidate.CurrencyCode, token);
                 // Preserve historical report grouping and the meaning of pending/cancelled documents and templates.
                 Check.That(!await HasAccountUsage(cid, AccountSubtree(id, accounts), token),
-                    "account_structure_in_use", "الحساب أو أحد فروعه مستخدم في قيود أو قوالب؛ يلزم مسار تحويل معتمد لتغيير بنيته.", ErrorKind.Conflict);
+                    "account_structure_in_use", "الحساب أو أحد فروعه مستخدم في قيود أو قوالب أو مجموعات أصناف؛ يلزم مسار تحويل معتمد لتغيير بنيته.", ErrorKind.Conflict);
             }
             var before = AccountSnapshot(account);
             account.Configure(candidate.Code, candidate.Name, candidate.Type, candidate.ParentId, candidate.IsPosting,

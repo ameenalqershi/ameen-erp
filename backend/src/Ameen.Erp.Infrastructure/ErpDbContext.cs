@@ -9,7 +9,7 @@ namespace Ameen.Erp.Infrastructure;
 
 public sealed partial class ErpDbContext : DbContext
 {
-    public const int SchemaVersion = 8;
+    public const int SchemaVersion = 9;
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options) { }
 
     private static EntityTypeBuilder<T> Tenant<T>(ModelBuilder model, string table) where T : CompanyEntity
@@ -52,6 +52,16 @@ public sealed partial class ErpDbContext : DbContext
         Constraint(currency, "CK_Currency_Revision", "[Revision] > 0");
         currency.HasAlternateKey(x => new { x.CompanyId, x.Code });
         Constraint(currency, "CK_Currency_Scale", "[Scale] BETWEEN 0 AND 6");
+
+        var itemGroup = Tenant<ItemGroup>(model, "ItemGroups");
+        itemGroup.Property(x => x.Code).HasMaxLength(32); itemGroup.Property(x => x.Name).HasMaxLength(200);
+        itemGroup.Property(x => x.EnglishName).HasMaxLength(200); itemGroup.Property(x => x.Notes).HasMaxLength(2000);
+        itemGroup.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
+        itemGroup.HasOne<ItemGroup>().WithMany().HasForeignKey(x => new { x.CompanyId, x.ParentId }).OnDelete(DeleteBehavior.NoAction);
+        itemGroup.HasOne<Account>().WithMany().HasForeignKey(x => new { x.CompanyId, x.SalesAccountId }).OnDelete(DeleteBehavior.NoAction);
+        itemGroup.HasOne<Account>().WithMany().HasForeignKey(x => new { x.CompanyId, x.InventoryAccountId }).OnDelete(DeleteBehavior.NoAction);
+        itemGroup.HasOne<Account>().WithMany().HasForeignKey(x => new { x.CompanyId, x.CostAccountId }).OnDelete(DeleteBehavior.NoAction);
+        Constraint(itemGroup, "CK_ItemGroup_Revision", "[Revision] > 0");
 
         var unit = Tenant<UnitOfMeasure>(model, "UnitsOfMeasure");
         unit.Property(x => x.Code).HasMaxLength(32); unit.Property(x => x.Name).HasMaxLength(200);

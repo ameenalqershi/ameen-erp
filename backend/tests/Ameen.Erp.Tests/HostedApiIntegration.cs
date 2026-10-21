@@ -188,6 +188,24 @@ public static class HostedApiIntegration
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Recurring HTTP usage differs");
                 Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
                 Authenticate(Token("sql-owner"));
+                var groupSales = await Command(client, $"/api/v1/companies/{companyId}/accounts", new CreateAccountRequest("HTTP-GROUP-SALES", "مبيعات", AccountType.Revenue, null, true, false, false, null, NormalBalance.Credit));
+                var groupsPath = $"/api/v1/companies/{companyId}/item-groups";
+                var group = await Command(client, groupsPath, new CreateItemGroupRequest("HTTP-GROUP", "مجموعة", groupSales.ResourceId));
+                group = await Command(client, groupsPath + $"/{group.ResourceId}", new EditItemGroupRequest(group.Version, "HTTP-GROUP", "مجموعة معدلة", groupSales.ResourceId, null, null, null, "HTTP item group", null, "تعديل"), method: HttpMethod.Put);
+                using (var response = await client.GetAsync(groupsPath + "?search=HTTP&isActive=true"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP group search failed");
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/accounts/{groupSales.ResourceId}/item-groups"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP account group references failed");
+                await Command(client, groupsPath + $"/{group.ResourceId}/status", new SetItemGroupStatusRequest(group.Version, false, "تعطيل"));
+                using (var response = await client.GetAsync(groupsPath + $"/{group.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(!json.RootElement.GetProperty("isActive").GetBoolean() && json.RootElement.GetProperty("revision").GetInt32() == 3, "HTTP group status failed");
+                using (var response = await client.GetAsync(groupsPath + $"/{group.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "HTTP group audit failed");
+                Console.WriteLine("  HOST PASS INV02 create/edit/search/status/detail/audit and account references over HTTPS/JWT/SQL");
                 var unitsPath = $"/api/v1/companies/{companyId}/units";
                 var unitCard = await Command(client, unitsPath, UnitTests.Request() with { Code = "HTTP-UNIT" });
                 unitCard = await Command(client, unitsPath + $"/{unitCard.ResourceId}",

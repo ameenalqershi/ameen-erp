@@ -219,6 +219,9 @@ public sealed partial class ErpService
         Command(cid, actor, key, "account.status:" + id, request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
         {
             var account = await Required<Account>(cid, id, token); Check.Version(account, request.ExpectedVersion);
+            if (!request.IsActive)
+                Check.That(!(await store.Find<ItemGroup>(cid, x => x.IsActive && (x.SalesAccountId == id || x.InventoryAccountId == id || x.CostAccountId == id), token)).Any(),
+                    "account_used_by_active_group", "الحساب مرتبط بمجموعة أصناف فعالة؛ عدل الربط أو عطل المجموعة أولًا.", ErrorKind.Conflict);
             var reason = Check.Text(request.Reason, "السبب", 500);
             if (!request.IsActive)
                 Check.That(!(await store.Find<Account>(cid, x => x.ParentId == id && x.IsActive, token)).Any(),

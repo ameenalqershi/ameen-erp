@@ -43,6 +43,20 @@ public static class Endpoints
             Results.Ok(await s.ListBranchAudit(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("SYS02 Branches");
         app.MapGet(p + "/branches/search", async (Guid companyId, string? search, Guid? parentId, bool? isActive, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.SearchBranches(companyId, Actor(h), search, parentId, isActive, offset ?? 0, limit ?? 50, ct))).Produces<Page<Branch>>().RequireAuthorization().WithTags("SYS02 Branches");
+        app.MapGet(p + "/item-groups", async (Guid companyId, string? search, Guid? parentId, bool? isActive, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.SearchItemGroups(companyId, Actor(h), search, parentId, isActive, offset ?? 0, limit ?? 50, ct))).Produces<Page<ItemGroup>>().RequireAuthorization().WithTags("INV02 Item groups");
+        app.MapPost(p + "/item-groups", async (Guid companyId, CreateItemGroupRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.CreateItemGroup(companyId, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV02 Item groups");
+        app.MapGet(p + "/item-groups/{id:guid}", async (Guid companyId, Guid id, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetItemGroup(companyId, id, Actor(h), ct))).Produces<ItemGroup>().RequireAuthorization().WithTags("INV02 Item groups");
+        app.MapPut(p + "/item-groups/{id:guid}", async (Guid companyId, Guid id, EditItemGroupRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.EditItemGroup(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV02 Item groups");
+        app.MapPost(p + "/item-groups/{id:guid}/status", async (Guid companyId, Guid id, SetItemGroupStatusRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.SetItemGroupStatus(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV02 Item groups");
+        app.MapGet(p + "/item-groups/{id:guid}/audit-events", async (Guid companyId, Guid id, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListItemGroupAudit(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("INV02 Item groups");
+        app.MapGet(p + "/accounts/{id:guid}/item-groups", async (Guid companyId, Guid id, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListAccountItemGroups(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<ItemGroup>>().RequireAuthorization().WithTags("INV02 Item groups");
         app.MapGet(p + "/units", async (Guid companyId, string? search, bool? isActive, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.SearchUnits(companyId, Actor(h), search, isActive, offset ?? 0, limit ?? 50, ct))).Produces<Page<UnitOfMeasure>>().RequireAuthorization().WithTags("INV03 Units");
         app.MapPost(p + "/units", async (Guid companyId, CreateUnitRequest r, ErpService s, HttpContext h, CancellationToken ct) =>

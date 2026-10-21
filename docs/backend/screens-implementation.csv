@@ -42,7 +42,7 @@ CASH09,CASH,حركة الشيكات,not-started,,,الشاشة كاملة,
 CASH10,CASH,المطابقة البنكية,not-started,,,الشاشة كاملة,
 CASH11,CASH,جرد الصندوق,not-started,,,الشاشة كاملة,
 INV01,INV,المخازن والمواقع,not-started,,,الشاشة كاملة,
-INV02,INV,مجموعات الأصناف,not-started,,,الشاشة كاملة,
+INV02,INV,مجموعات الأصناف,partial,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups,شجرة مجموعات بلا دورات وربط حسابات المبيعات والمخزون والتكلفة؛ بحث وتعديل وحالة وتدقيق؛ حماية بنية الحساب المرتبط ومنع تعطيله مع مجموعة فعالة,مرجع الضريبة الافتراضي واستخدام الأصناف وسياسة تجاوز إعدادات المجموعة غير منفذة؛ شروط إلزام حساب المخزون والتكلفة حسب نوع الصنف تحسم مع INV04؛ لا ترحيل مخزون,backend/tests/Ameen.Erp.Tests/ItemGroupTests.cs; backend/tests/Ameen.Erp.Tests/ItemGroupSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs
 INV03,INV,الوحدات والباركود,partial,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events,دليل وحدات بأسماء ورمز قياسي ووصف ودقة كمية وإصدار عددي؛ بحث وتعديل وحالة وتدقيق؛ لا معامل تحويل عام,عرض الاستخدام وقفل البنية عند ربط ITEM_UNIT ينفذان مع INV04؛ لا باركود أو تحويل أو حركة مخزون بعد؛ الرمز القياسي تحقق شكلي بلا سجل خارجي؛ دقة كمية 0..6 حد تقني معلن,backend/tests/Ameen.Erp.Tests/UnitTests.cs; backend/tests/Ameen.Erp.Tests/UnitSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs
 INV04,INV,بطاقة الصنف,not-started,,,الشاشة كاملة,
 INV05,INV,الدفعات والأرقام التسلسلية,not-started,,,الشاشة كاملة,

@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T18:11:53.514222+00:00",
+  "startedAtUtc": "2026-10-21T18:43:39.337800+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "bea60c9c1a88d8cadbb17c552d84dd456663b362b98b6ccd482e2fc2f403a9ed",
+  "sourceSha256": "b2f59322bd5939da21fe4f09cd6242b1244328d4145fe2ae37a192dc3602c666",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -148,6 +148,12 @@
     "PASS INV03: create and edit replay cannot double-advance revision",
     "PASS INV03: failed persistence rolls back unit revision audit and receipt",
     "PASS INV03: writes and audit enforce permissions and foreign unit isolation",
+    "PASS INV02: group hierarchy bilingual fields and accounting references roundtrip",
+    "PASS INV02: cycles and disabled parents rejected",
+    "PASS INV02: wrong account classification and unprotected inventory account rejected",
+    "PASS INV02 GL01: group reference locks account structure and blocks disabling active dependency",
+    "PASS INV02: edit replay stale version and rollback preserve card and audit",
+    "PASS INV02: company references and permission boundaries enforced",
     "PASS COST01: bilingual hierarchy and responsible member roundtrip with scoped search",
     "PASS COST01: direct and indirect cycles are rejected atomically",
     "PASS COST01: branch parent cannot own a global or another-branch child",
@@ -214,6 +220,7 @@
     "  SQL PASS atomic/idempotent schema 005→006 upgrade preserves company and derives calendar without invented legal data",
     "  SQL PASS atomic/idempotent schema 006→007 preserves branch identity without invented address",
     "  SQL PASS atomic/idempotent schema 007→008 adds empty unit catalog and preserves prior data",
+    "  SQL PASS atomic/idempotent schema 008→009 preserves prior data and adds empty item groups",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
     "  SQL PASS concurrent idempotency across independent connections",
@@ -235,6 +242,7 @@
     "  SQL PASS COST01 hierarchy, responsibility FK, concurrent replay, scoped search and subtree usage lock",
     "  SQL PASS SYS04/COST01 audit failures roll back cards and receipts; exact retries succeed",
     "  SQL PASS COST01 tenant FKs and SYS04/COST01 status writes under runtime role",
+    "  SQL PASS INV02 replay, concurrent cycle prevention, rollback/retry under runtime role, SQL search/account usage and tenant FK",
     "  SQL PASS INV03 concurrent creation/edit replay, SQL search, audit rollback/retry, runtime role and precision constraint",
     "  SQL PASS SYS03 custom periods, concurrent replay/overlap protection, SQL reads, atomic rollback and runtime-role retry",
     "  SQL PASS SYS02 concurrent replay, SQL search, rollback/retry, runtime role, tenant FKs and legacy address completion",
@@ -242,6 +250,7 @@
     "  SQL PASS SYS01 audit failure rolls back company revision, fields and receipt; exact retry succeeds",
     "  SQL PASS SYS01 incomplete-profile guard, correction, inactive-company replay denial and reactivation",
     "  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL",
+    "  HOST PASS INV02 create/edit/search/status/detail/audit and account references over HTTPS/JWT/SQL",
     "  HOST PASS INV03 create/edit/search/status/detail/audit and rejection of global conversion over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
@@ -252,8 +261,8 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 161,
-  "total": 161,
+  "passed": 167,
+  "total": 167,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T18:12:18.969514+00:00"
+  "finishedAtUtc": "2026-10-21T18:44:05.595960+00:00"
 }
