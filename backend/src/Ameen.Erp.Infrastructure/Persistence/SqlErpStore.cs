@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ameen.Erp.Infrastructure;
 
-public sealed class SqlErpStore : IErpStore
+public sealed partial class SqlErpStore : IErpStore
 {
     private readonly ErpDbContext db;
     public SqlErpStore(ErpDbContext db) { this.db = db; }

@@ -34,9 +34,12 @@ def generate():
     evidence = json.loads((DOCS / 'verification-results.json').read_text())
     assert len(screens) == 150 and len(fields) == 2759 and len(diagrams) == 28 and len(rules) == 20
     counts = Counter(r['status'] for r in screens)
+    field_counts = Counter(r['status'] for r in fields)
+    covered = sum(field_counts[x] for x in ('implemented', 'audit', 'derived'))
     sections = ['## ملخص آلي من الأدلة المسجلة',
                 f"الشاشات: {len(screens)}؛ منفذة جزئيًا: {counts['partial']}؛ لم تبدأ: {counts['not-started']}؛ مكتملة: {counts['complete']}. الحقول: {len(fields)}؛ المخططات: {len(diagrams)}؛ القواعد: {len(rules)}. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.",
                 f"آخر تقرير محفوظ: `{evidence['finishedAtUtc']}`؛ النتيجة `{evidence['result']}`؛ {evidence['passed']}/{evidence['total']}، فشل {evidence['failed']}؛ SQL حي مطلوب: `{evidence['liveSqlRequested']}`. بصمة المصادر: `{evidence['sourceSha256']}`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.",
+                f"تغطية الحقول المنفذة/المشتقة/التدقيق: **{covered / len(fields) * 100:.1f}%** ({covered}/{len(fields)})؛ الحقول الجزئية: {field_counts['partial']}. نسبة الشاشات التي بدأ تنفيذها: **{counts['partial'] / len(screens) * 100:.1f}%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.",
                 '### حصيلة الأقسام']
     modules = list(dict.fromkeys(r['module'] for r in screens))
     sections.append(table(['القسم', 'الشاشات', 'جزئي', 'لم يبدأ'], [

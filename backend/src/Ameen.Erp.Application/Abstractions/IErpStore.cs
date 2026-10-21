@@ -12,6 +12,7 @@ public interface IErpStore
     Task<IReadOnlyList<T>> Find<T>(Guid companyId, Expression<Func<T, bool>> predicate, CancellationToken ct) where T : CompanyEntity;
     Task<Page<T>> ReadPage<T>(Guid companyId, Expression<Func<T, bool>> predicate,
         Func<IQueryable<T>, IOrderedQueryable<T>> order, int offset, int limit, CancellationToken ct) where T : CompanyEntity;
+    Task<Page<AuditEvent>> ReadAuditPage(Guid companyId, AuditReadFilter filter, int offset, int limit, CancellationToken ct);
     void Add(Entity entity);
     void RemoveLines(IEnumerable<JournalLine> lines);
     void RemoveWarehouseLocations(IEnumerable<WarehouseLocation> locations);

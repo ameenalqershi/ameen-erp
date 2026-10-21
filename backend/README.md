@@ -96,3 +96,5 @@ dotnet run --project src/Ameen.Erp.Api
 [تنظيم الملفات حسب الوحدات والمسؤوليات](../docs/backend/code-organization.md): مسارات API منفصلة، ملف لكل كيان وعقد، Features لخدمات التطبيق وPersistence/Configurations لتهيئة EF.
 
 تسجل `ApplicationServiceRegistration.AddErpApplication` خدمات الميزات المستقلة بنطاق Scoped؛ لا يوجد ErpService جامع في الإنتاج. تعمل الخدمات المتعاونة على مخزن ومعاملة وDbContext الطلب نفسه.
+
+البحث في سجل التدقيق SYS14 ومرشحات UTC والمستخدم والحدث والمرجع وتفاصيل الحدث موثق في [سجل التدقيق](../docs/backend/audit-log.md).

@@ -184,3 +184,5 @@
 امتداد INV02: `GET /api/v1/companies/{companyId}/item-groups/{id}/usage` لملخص مراجع المجموعة وموانعها، و`GET /api/v1/companies/{companyId}/item-groups/{id}/items` لصفحات الأصناف المباشرة أو الشجرة. كلاهما يتطلب `ledger.read` على جميع الفروع؛ تفاصيل المعاملات والحدود في [عقد المجموعة](item-groups.md).
 
 واجهات INV01 تحت `/api/v1/companies/{companyId}/warehouses` لإنشاء وتعديل وقراءة وبحث وتعطيل المخازن ومواقعها وتدقيقها، ومراجع الحساب عبر `/accounts/{id}/warehouses`. [العقد والصلاحيات وحدود التنفيذ](warehouses.md).
+
+مرشحات SYS14 على `GET /api/v1/companies/{companyId}/audit-events`: from/to بتواريخ UTC، actorId، action، resourceId، offset/limit؛ وتفاصيل الحدث عبر `/{id}`. كلاهما يتطلب audit.read على جميع الفروع. [العقد وحدود البحث](audit-log.md).

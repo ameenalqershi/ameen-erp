@@ -73,9 +73,13 @@ screen("SYS09", "internal: Company.RequireSeparateApprover; /journals/{id}/appro
 screen("SYS10", "internal: NumberSequence; POST /companies/{companyId}/journals",
        "تسلسل JV لكل شركة وسنة داخل معاملة؛ لا إعادة استخدام للملغى", "واجهة إعداد البوادئ والتسلسلات لكل أنواع المستندات والفروع",
        {1: "CompanyId"})
-screen("SYS14", "GET /companies/{companyId}/audit-events",
-       "قراءة سجل أحداث غير قابل للتعديل عبر التطبيق مع هوية ووقت وبيانات التغيير", "مرشحات التاريخ والمستخدم ونوع الحدث والشاشة؛ تصدير؛ تدقيق عمليات القراءة",
-       {1: "CompanyId", 9: "Action", 10: "ActorId"})
+screen("SYS14", "GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}",
+       "قراءة سجل أحداث غير قابل للتعديل وتفاصيل الحدث؛ مرشحات UTC والمستخدم التاريخي ونوع الحدث والمرجع وصفحات؛ مقارنة هوية وحدث حساسة للحالة",
+       "مرشح الشاشة ورقم المستند ونطاق الفروع المستقل والتصدير وتدقيق القراءة غير منفذة؛ التاريخ اختياري للتوافق؛ المستخدم هو OIDC sub التاريخي ونوع الحدث مفتاح محفوظ دون كتالوج شاشة معتمد",
+       {1: "CompanyId", 3: "from: inclusive UTC date", 4: "to: inclusive UTC date", 9: "action: stored action key", 10: "actorId: historical OIDC sub"})
+for n in (3, 4, 9, 10):
+    MAP["SYS14"]["fields"][f"SYS14-F{n:02}"]["status"] = "partial"
+MAP["SYS14"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["AuditTests.cs", "AuditSqlIntegration.cs", "HostedApiIntegration.cs"])
 screen("GL01", "GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events",
        "بطاقة ثنائية اللغة وملاحظات وطبيعة مدينة/دائنة صريحة؛ تعديل وشجرة بلا دورات وقفل بنية المستخدم وسجل استخدام وتغييرات",
        "مسار تحويل معتمد لتغيير بنية الحساب المستخدم؛ سجل الاستخدام الحالي للأستاذ والقوالب فقط حتى تنفيذ الدفاتر المساعدة",

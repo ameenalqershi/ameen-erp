@@ -1,0 +1,66 @@
+using Ameen.Erp.Application;
+using Ameen.Erp.Domain;
+namespace Ameen.Erp.Tests;
+public static class AuditTests
+{
+    private static AuditEvent Add(Fixture f, string actor, string action, DateTimeOffset at, Guid resource, Guid? company = null)
+    { var e = new AuditEvent(company ?? f.CompanyId, actor, action, resource, at, "{}"); f.Store.Add(e); return e; }
+    public static void Register(Action<string, Func<Fixture, Task>> test)
+    {
+        test("SYS14: UTC day filters include exact boundaries and combine actor action and reference", async f =>
+        {
+            var resource = Guid.NewGuid(); var day = new DateTimeOffset(2025, 1, 2, 0, 0, 0, TimeSpan.Zero);
+            Add(f, "User", "test.created", day.AddTicks(-1), resource);
+            var first = Add(f, "User", "test.created", day, resource);
+            var last = Add(f, "User", "test.created", day.AddDays(1).AddTicks(-1), resource);
+            Add(f, "User", "test.created", day.AddDays(1), resource);
+            Add(f, "user", "test.created", day, resource); Add(f, "User", "test.CREATED", day, resource);
+            Add(f, "User", "test.created", day, Guid.NewGuid());
+            var result = await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, new(2025, 1, 2), new(2025, 1, 2), "User", "test.created", resource);
+            Ensure(result.TotalCount == 2 && result.Items[0].Id == last.Id && result.Items[1].Id == first.Id);
+        });
+        test("SYS14: UTC conversion respects timestamp offsets and maximum calendar date", async f =>
+        {
+            var id = Guid.NewGuid(); var e = Add(f, "u", "test", new DateTimeOffset(2025, 1, 2, 1, 0, 0, TimeSpan.FromHours(3)), id);
+            Ensure((await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, new(2025, 1, 1), new(2025, 1, 1), resourceId: id)).Items.Single().Id == e.Id);
+            var max = Add(f, "u", "test", DateTimeOffset.MaxValue, id);
+            Ensure((await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, DateOnly.MaxValue, DateOnly.MaxValue, resourceId: id)).Items.Single().Id == max.Id);
+        });
+        test("SYS14: historical actors remain searchable without active memberships", async f =>
+        {
+            var id = Guid.NewGuid(); Add(f, "removed-user", "old.action", DateTimeOffset.UtcNow, id);
+            Ensure((await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, actorId: "removed-user", action: "old.action")).TotalCount == 1);
+            Ensure((await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, action: "unknown.action")).TotalCount == 0);
+        });
+        test("SYS14: filtered pages maintain total counts and reads do not create audit events", async f =>
+        {
+            var id = Guid.NewGuid(); for (var i = 0; i < 3; i++) Add(f, "u", "test.page", DateTimeOffset.UtcNow.AddMinutes(i), id);
+            var before = f.Store.Count<AuditEvent>(); var receipts = f.Store.Count<IdempotencyRecord>();
+            var page = await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 1, 1, default, resourceId: id);
+            Ensure(page.TotalCount == 3 && page.Items.Count == 1);
+            Ensure((await f.Service.Audit.GetAuditEvent(f.CompanyId, page.Items.Single().Id, f.Owner, default)).ResourceId == id);
+            Ensure((await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 4, 1, default, resourceId: id)).Items.Count == 0);
+            Ensure(f.Store.Count<AuditEvent>() == before && f.Store.Count<IdempotencyRecord>() == receipts);
+        });
+        test("SYS14: audit permission and global scope protect lists and event details across companies", async f =>
+        {
+            var e = Add(f, "u", "test", DateTimeOffset.UtcNow, Guid.NewGuid());
+            await Error("permission_denied", () => f.Service.Audit.GetAuditEvent(f.CompanyId, e.Id, f.Clerk, default));
+            await Error("permission_denied", () => f.Service.Audit.ListAudit(f.CompanyId, f.Clerk, 0, 10, default));
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(), new("scoped-auditor", new[] { Permissions.Audit }, false, new[] { f.BranchId }, null), default);
+            await Error("all_branches_required", () => f.Service.Audit.GetAuditEvent(f.CompanyId, e.Id, new("scoped-auditor"), default));
+            await Error("all_branches_required", () => f.Service.Audit.ListAudit(f.CompanyId, new("scoped-auditor"), 0, 10, default));
+            var foreign = Add(f, "u", "foreign", DateTimeOffset.UtcNow, Guid.NewGuid(), Guid.NewGuid());
+            await Error("reference_not_found", () => f.Service.Audit.GetAuditEvent(f.CompanyId, foreign.Id, f.Owner, default));
+            Ensure((await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, action: "foreign")).TotalCount == 0);
+        });
+        test("SYS14: reversed dates invalid pages and empty resource identifiers are rejected", async f =>
+        {
+            await Error("invalid_date_range", () => f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, new(2025, 2, 1), new(2025, 1, 1)));
+            await Error("invalid_pagination", () => f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 201, default));
+            await Error("invalid_audit_resource", () => f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, resourceId: Guid.Empty));
+        });
+    }
+    private static void Ensure(bool condition) { if (!condition) throw new Exception("Audit assertion failed"); }
+    private static async Task Error(string code, Func<Task> action) { try { await action(); } catch (BusinessException e) when (e.Code == code) { return; } throw new Exception("Expected " + code); }
+}

@@ -175,6 +175,7 @@ public static class SqlIntegration
             await FiscalCalendarSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await BranchSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await CompanySqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
+            await AuditSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await HostedApiIntegration.Run(options.ConnectionString, f.CompanyId, f.Request());
         }
         finally

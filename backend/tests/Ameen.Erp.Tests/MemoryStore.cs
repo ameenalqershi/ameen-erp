@@ -30,6 +30,12 @@ public sealed class MemoryStore : IErpStore, ITransactionRunner
         var query = entities.OfType<T>().Where(x => x.CompanyId == companyId).AsQueryable().Where(predicate);
         return Task.FromResult(new Page<T>(order(query).Skip(offset).Take(limit).ToArray(), query.Count(), offset, limit));
     }
+    public Task<Page<AuditEvent>> ReadAuditPage(Guid cid, AuditReadFilter filter, int offset, int limit, CancellationToken ct) =>
+        ReadPage<AuditEvent>(cid, x => (filter.FromInclusive == null || x.OccurredAt >= filter.FromInclusive) &&
+            (filter.BeforeExclusive == null || x.OccurredAt < filter.BeforeExclusive) &&
+            (filter.ActorId == null || x.ActorId == filter.ActorId) && (filter.Action == null || x.Action == filter.Action) &&
+            (filter.ResourceId == null || x.ResourceId == filter.ResourceId),
+            q => q.OrderByDescending(x => x.OccurredAt).ThenBy(x => x.Id), offset, limit, ct);
     public void RemoveLines(IEnumerable<JournalLine> lines) { /* Lines are owned by the test aggregate. */ }
     public void RemoveWarehouseLocations(IEnumerable<WarehouseLocation> locations) { /* Owned by warehouse aggregate. */ }
     public void RemoveItemUnits(IEnumerable<ItemUnit> units) { /* Owned by the item aggregate. */ }

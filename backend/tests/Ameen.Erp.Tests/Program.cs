@@ -413,6 +413,7 @@ tests.Add(("API: every ERP endpoint requires authentication and carries screen t
     Assert(ApiSupport.Actor(h).IsPlatformAdministrator);
 }));
 
+AuditTests.Register(Test);
 ServiceCompositionTests.Register(Test);
 CompanyTests.Register(Test);
 BranchTests.Register(Test);

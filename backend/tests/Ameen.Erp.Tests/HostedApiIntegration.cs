@@ -288,6 +288,26 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "HTTP warehouse audit failed");
                 Console.WriteLine("  HOST PASS INV01 create/edit/locations/search/status/audit over HTTPS/JWT/SQL");
+                var auditPath = $"/api/v1/companies/{companyId}/audit-events";
+                Guid eventId;
+                using (var response = await client.GetAsync(auditPath + $"?from=2026-01-01&to=2026-12-31&actorId=sql-owner&action=warehouse.created&resourceId={wh.ResourceId}&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP audit filters failed");
+                    eventId = json.RootElement.GetProperty("items")[0].GetProperty("id").GetGuid();
+                }
+                using (var response = await client.GetAsync(auditPath + $"/{eventId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("resourceId").GetGuid() == wh.ResourceId, "HTTP audit event detail failed");
+                using (var response = await client.GetAsync(auditPath + "?from=2026-12-31&to=2026-01-01"))
+                    Ensure(response.StatusCode == HttpStatusCode.UnprocessableEntity, "HTTP reversed audit dates accepted");
+                using (var response = await client.GetAsync(auditPath + "?from=bad-date"))
+                    Ensure(response.StatusCode == HttpStatusCode.UnprocessableEntity, "HTTP malformed audit date accepted");
+                Authenticate(Token("audit-no-membership"));
+                using (var response = await client.GetAsync(auditPath + $"/{eventId}"))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden, "HTTP audit detail exposed without permission");
+                Authenticate(Token("sql-owner"));
+                Console.WriteLine("  HOST PASS SYS14 audit filters, event detail, invalid dates and authorization over HTTPS/JWT/SQL");
                 var ratesPath = $"/api/v1/companies/{companyId}/exchange-rates";
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));
                 var rate = await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date, 1.25m, "HTTP source"));

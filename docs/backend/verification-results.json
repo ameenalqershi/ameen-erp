@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T21:49:09.925083+00:00",
+  "startedAtUtc": "2026-10-21T21:56:23.993807+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "35e9b6bf12d61514b0c707dccce35fa924872fae38ed61dfa310d932312a88f4",
+  "sourceSha256": "abe7f5f748722793ed0e6044ddbc86c93ccfb6f66ca49f9bdcd4ec8896e59aae",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -95,6 +95,12 @@
     "PASS Wire contract: excessive decimal precision and exponents are rejected without rounding",
     "PASS SQL model: composite company foreign keys and unique idempotency/number indexes",
     "PASS API: every ERP endpoint requires authentication and carries screen trace tags",
+    "PASS SYS14: UTC day filters include exact boundaries and combine actor action and reference",
+    "PASS SYS14: UTC conversion respects timestamp offsets and maximum calendar date",
+    "PASS SYS14: historical actors remain searchable without active memberships",
+    "PASS SYS14: filtered pages maintain total counts and reads do not create audit events",
+    "PASS SYS14: audit permission and global scope protect lists and event details across companies",
+    "PASS SYS14: reversed dates invalid pages and empty resource identifiers are rejected",
     "PASS DI: feature services share transactional state within scope and remain isolated across scopes",
     "PASS SYS01: legal profile, Unicode address and leading zero registrations roundtrip",
     "PASS SYS01: required legal fields and profile reject null/empty without creating tenant",
@@ -281,12 +287,14 @@
     "  SQL PASS SYS01 profile, nullable date, leading zeros and concurrent edit replay",
     "  SQL PASS SYS01 audit failure rolls back company revision, fields and receipt; exact retry succeeds",
     "  SQL PASS SYS01 incomplete-profile guard, correction, inactive-company replay denial and reactivation",
+    "  SQL PASS SYS14 exact actor/action filters including case and trailing spaces, leap-day boundaries, pagination and event detail",
     "  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL",
     "  HOST PASS INV02 create/edit/search/status/detail/audit and account references over HTTPS/JWT/SQL",
     "  HOST PASS INV03 create/edit/search/status/detail/audit and rejection of global conversion over HTTPS/JWT/SQL",
     "  HOST PASS INV02 usage and disabled item references with paging over HTTPS/JWT/SQL",
     "  HOST PASS INV04 item lifecycle, barcode search, exact conversion, unit usage and audit over HTTPS/JWT/SQL",
     "  HOST PASS INV01 create/edit/locations/search/status/audit over HTTPS/JWT/SQL",
+    "  HOST PASS SYS14 audit filters, event detail, invalid dates and authorization over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
     "  HOST PASS GL01 create/detail/PUT edit/replay, explicit nature, usage and audit over production HTTPS/JWT/SQL",
@@ -296,8 +304,8 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 194,
-  "total": 194,
+  "passed": 200,
+  "total": 200,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T21:49:41.653246+00:00"
+  "finishedAtUtc": "2026-10-21T21:56:54.123321+00:00"
 }

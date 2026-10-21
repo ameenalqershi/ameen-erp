@@ -6,11 +6,11 @@
   "partially_implemented_screens": 26,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 229,
+    "implemented": 227,
     "audit": 50,
     "derived": 4,
-    "partial": 25,
-    "pending": 2451
+    "partial": 29,
+    "pending": 2449
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -474,23 +474,32 @@
       }
     },
     "SYS14": {
-      "api": "GET /companies/{companyId}/audit-events",
-      "implemented": "قراءة سجل أحداث غير قابل للتعديل عبر التطبيق مع هوية ووقت وبيانات التغيير",
-      "remaining": "مرشحات التاريخ والمستخدم ونوع الحدث والشاشة؛ تصدير؛ تدقيق عمليات القراءة",
+      "api": "GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}",
+      "implemented": "قراءة سجل أحداث غير قابل للتعديل وتفاصيل الحدث؛ مرشحات UTC والمستخدم التاريخي ونوع الحدث والمرجع وصفحات؛ مقارنة هوية وحدث حساسة للحالة",
+      "remaining": "مرشح الشاشة ورقم المستند ونطاق الفروع المستقل والتصدير وتدقيق القراءة غير منفذة؛ التاريخ اختياري للتوافق؛ المستخدم هو OIDC sub التاريخي ونوع الحدث مفتاح محفوظ دون كتالوج شاشة معتمد",
       "fields": {
         "SYS14-F01": {
           "status": "implemented",
           "binding": "CompanyId"
         },
+        "SYS14-F03": {
+          "status": "partial",
+          "binding": "from: inclusive UTC date"
+        },
+        "SYS14-F04": {
+          "status": "partial",
+          "binding": "to: inclusive UTC date"
+        },
         "SYS14-F09": {
-          "status": "implemented",
-          "binding": "Action"
+          "status": "partial",
+          "binding": "action: stored action key"
         },
         "SYS14-F10": {
-          "status": "implemented",
-          "binding": "ActorId"
+          "status": "partial",
+          "binding": "actorId: historical OIDC sub"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/AuditTests.cs; backend/tests/Ameen.Erp.Tests/AuditSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "GL01": {
       "api": "GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events",

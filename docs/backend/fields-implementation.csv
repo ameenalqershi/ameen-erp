@@ -195,16 +195,16 @@ SYS13,SYS13-F11,أنشأه,system,pending,,
 SYS13,SYS13-F12,وقت الإنشاء,system,pending,,
 SYS13,SYS13-F13,رقم إصدار التعديل,system,pending,,
 SYS13,SYS13-F14,آخر تعديل,system,pending,,
-SYS14,SYS14-F01,الشركة,system,implemented,CompanyId,GET /companies/{companyId}/audit-events
+SYS14,SYS14-F01,الشركة,system,implemented,CompanyId,GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}
 SYS14,SYS14-F02,الفروع المصرح بها,required,pending,,
-SYS14,SYS14-F03,من تاريخ,required,pending,,
-SYS14,SYS14-F04,إلى تاريخ,required,pending,,
+SYS14,SYS14-F03,من تاريخ,required,partial,from: inclusive UTC date,GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}
+SYS14,SYS14-F04,إلى تاريخ,required,partial,to: inclusive UTC date,GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}
 SYS14,SYS14-F05,عملة العرض,required,pending,,
 SYS14,SYS14-F06,طريقة عرض العملات,required,pending,,
 SYS14,SYS14-F07,حالة المستندات,required,pending,,
 SYS14,SYS14-F08,مستوى التفصيل,required,pending,,
-SYS14,SYS14-F09,نوع الحدث,optional,implemented,Action,GET /companies/{companyId}/audit-events
-SYS14,SYS14-F10,المستخدم,optional,implemented,ActorId,GET /companies/{companyId}/audit-events
+SYS14,SYS14-F09,نوع الحدث,optional,partial,action: stored action key,GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}
+SYS14,SYS14-F10,المستخدم,optional,partial,actorId: historical OIDC sub,GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}
 SYS14,SYS14-F11,الشاشة,optional,pending,,
 SYS14,SYS14-F12,رقم المستند,optional,pending,,
 SYS15,SYS15-F01,الشركة,system,pending,,
