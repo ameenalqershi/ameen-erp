@@ -417,6 +417,7 @@ CompanyTests.Register(Test);
 BranchTests.Register(Test);
 FiscalCalendarTests.Register(Test);
 RateAndCloseTests.Register(Test);
+UnitTests.Register(Test);
 CostCenterTests.Register(Test);
 CurrencyTests.Register(Test);
 AccountTests.Register(Test);

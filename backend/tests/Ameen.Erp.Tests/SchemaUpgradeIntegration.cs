@@ -137,6 +137,16 @@ public static class SchemaUpgradeIntegration
             upgradedBranch.Revision == 1 && !upgradedBranch.IsProfileComplete && upgradedBranch.ParentId is null && upgradedBranch.DefaultCostCenterId is null,
             "Branch upgrade changed legacy identity or invented address");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 006→007 preserves branch identity without invented address");
+        var unitScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "008_units_of_measure.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Branches] ADD CONSTRAINT [CK_Unit_Revision] CHECK ([Revision] > 0)");
+        try { await db.Database.ExecuteSqlRawAsync(unitScript); throw new Exception("Conflicting unit upgrade unexpectedly succeeded"); }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=8").AnyAsync(), "Failed upgrade saved version 8");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='UnitsOfMeasure'").SingleAsync() == 0, "Failed unit upgrade left partial table");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Branches] DROP CONSTRAINT [CK_Unit_Revision]");
+        await db.Database.ExecuteSqlRawAsync(unitScript); await db.Database.ExecuteSqlRawAsync(unitScript);
+        Ensure(!await db.Set<UnitOfMeasure>().AnyAsync(), "Migration invented unit catalog");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 007→008 adds empty unit catalog and preserves prior data");
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

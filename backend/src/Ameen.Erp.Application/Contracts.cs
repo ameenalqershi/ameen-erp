@@ -118,3 +118,7 @@ public sealed record LedgerRow(Guid JournalId, string Number, DateOnly Accountin
 public sealed record AccountLedgerResult(Guid AccountId, string Currency, DateOnly From, DateOnly To,
     decimal OpeningBalance, decimal ClosingBalance, decimal PeriodDebit, decimal PeriodCredit, Page<LedgerRow> Entries,
     Guid CompanyId, IReadOnlyList<Guid> BranchIds, Guid? CostCenterId, string? ExternalReference);
+
+public sealed record CreateUnitRequest(string Code, string Name, string StandardCode, int QuantityScale, string Description, string? EnglishName = null, string? Notes = null);
+public sealed record EditUnitRequest(Guid ExpectedVersion, string Code, string Name, string StandardCode, int QuantityScale, string Description, string? EnglishName, string? Notes, string Reason);
+public sealed record SetUnitStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);

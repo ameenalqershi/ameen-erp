@@ -120,6 +120,12 @@ screen("COST01", "GET/POST /companies/{companyId}/cost-centers; GET /search; GET
        [(12, "AuditEvent.ActorId: cost-center.created"), (13, "AuditEvent.OccurredAt: cost-center.created"), (15, "AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed")])
 MAP["COST01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CostCenterTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+screen("INV03", "GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",
+       "دليل وحدات بأسماء ورمز قياسي ووصف ودقة كمية وإصدار عددي؛ بحث وتعديل وحالة وتدقيق؛ لا معامل تحويل عام",
+       "عرض الاستخدام وقفل البنية عند ربط ITEM_UNIT ينفذان مع INV04؛ لا باركود أو تحويل أو حركة مخزون بعد؛ الرمز القياسي تحقق شكلي بلا سجل خارجي؛ دقة كمية 0..6 حد تقني معلن",
+       {1: "UnitOfMeasure.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "StandardCode", 9: "QuantityScale", 10: "Description", 13: "Revision"},
+       [(11, "AuditEvent.ActorId: unit.created"), (12, "AuditEvent.OccurredAt: unit.created"), (14, "AuditEvent.OccurredAt: unit.edited / unit.status-changed")])
+MAP["INV03"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["UnitTests.cs", "UnitSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("RPT01", "GET /companies/{companyId}/reports/trial-balance",
        "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج", "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
        {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 9: "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)", 10: "query.costCenterId", 11: "query.showZero"})

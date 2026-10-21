@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T15:20:35.376338+00:00",
+  "startedAtUtc": "2026-10-21T18:11:53.514222+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "b4d0c9d99c4f8f520d5e323925d58d78305b785f64fff9ad64b9391185344379",
+  "sourceSha256": "bea60c9c1a88d8cadbb17c552d84dd456663b362b98b6ccd482e2fc2f403a9ed",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -140,6 +140,14 @@
     "PASS GL11: preview does not reserve period and close rechecks newly created drafts",
     "PASS GL11: preview requires close permission and all-branch read scope",
     "PASS GL11: inactive company fails preview operational checks without hiding financial history",
+    "PASS INV03: bilingual unit with standard code and integer revision roundtrips",
+    "PASS INV03: quantity precision is explicit and validated without a global conversion",
+    "PASS INV03: required description and standard code reject invalid input",
+    "PASS INV03: unit code is unique per company and cannot collide during edit",
+    "PASS INV03: edit and status preserve audit snapshots and explicit optional nulls",
+    "PASS INV03: create and edit replay cannot double-advance revision",
+    "PASS INV03: failed persistence rolls back unit revision audit and receipt",
+    "PASS INV03: writes and audit enforce permissions and foreign unit isolation",
     "PASS COST01: bilingual hierarchy and responsible member roundtrip with scoped search",
     "PASS COST01: direct and indirect cycles are rejected atomically",
     "PASS COST01: branch parent cannot own a global or another-branch child",
@@ -205,6 +213,7 @@
     "  SQL PASS atomic/idempotent schema 004→005 upgrade preserves legacy center and existing journal dimensions",
     "  SQL PASS atomic/idempotent schema 005→006 upgrade preserves company and derives calendar without invented legal data",
     "  SQL PASS atomic/idempotent schema 006→007 preserves branch identity without invented address",
+    "  SQL PASS atomic/idempotent schema 007→008 adds empty unit catalog and preserves prior data",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
     "  SQL PASS concurrent idempotency across independent connections",
@@ -226,12 +235,14 @@
     "  SQL PASS COST01 hierarchy, responsibility FK, concurrent replay, scoped search and subtree usage lock",
     "  SQL PASS SYS04/COST01 audit failures roll back cards and receipts; exact retries succeed",
     "  SQL PASS COST01 tenant FKs and SYS04/COST01 status writes under runtime role",
+    "  SQL PASS INV03 concurrent creation/edit replay, SQL search, audit rollback/retry, runtime role and precision constraint",
     "  SQL PASS SYS03 custom periods, concurrent replay/overlap protection, SQL reads, atomic rollback and runtime-role retry",
     "  SQL PASS SYS02 concurrent replay, SQL search, rollback/retry, runtime role, tenant FKs and legacy address completion",
     "  SQL PASS SYS01 profile, nullable date, leading zeros and concurrent edit replay",
     "  SQL PASS SYS01 audit failure rolls back company revision, fields and receipt; exact retry succeeds",
     "  SQL PASS SYS01 incomplete-profile guard, correction, inactive-company replay denial and reactivation",
     "  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL",
+    "  HOST PASS INV03 create/edit/search/status/detail/audit and rejection of global conversion over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
     "  HOST PASS GL01 create/detail/PUT edit/replay, explicit nature, usage and audit over production HTTPS/JWT/SQL",
@@ -241,8 +252,8 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 153,
-  "total": 153,
+  "passed": 161,
+  "total": 161,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T15:21:00.618892+00:00"
+  "finishedAtUtc": "2026-10-21T18:12:18.969514+00:00"
 }

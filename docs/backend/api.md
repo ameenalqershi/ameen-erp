@@ -24,6 +24,10 @@
 | POST | `/branches/{id}/status` | SetBranchStatusRequest | company.configure لكل الفروع |
 | GET | `/branches/{id}/usage` | BranchUsage | ledger.read لكل الفروع |
 | GET | `/branches/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read لكل الفروع |
+| GET / POST | `/units` | Page&lt;UnitOfMeasure&gt; / CreateUnitRequest | ledger.read / company.configure لكل الفروع |
+| GET / PUT | `/units/{id}` | UnitOfMeasure / EditUnitRequest | ledger.read / company.configure لكل الفروع |
+| POST | `/units/{id}/status` | SetUnitStatusRequest | company.configure لكل الفروع |
+| GET | `/units/{id}/audit-events` | Page&lt;AuditEvent&gt; | ledger.read + audit.read لكل الفروع |
 | GET / POST | `/currencies` | قائمة / CreateCurrencyRequest | read / company.configure |
 | GET | `/currencies/search` | Page&lt;Currency&gt;؛ search/isActive | ledger.read |
 | GET / PUT | `/currencies/{id}` | Currency / EditCurrencyRequest | read / company.configure |
@@ -159,3 +163,5 @@
 إنشاء السنة يقبل `periods` اختيارية لفترات صريحة؛ الضوابط وحدود حالة الإقفال في [التقويم المالي SYS03](fiscal-calendar.md).
 
 تفاصيل استعلام السعر النافذ وموانع إقفال الأستاذ وحدودهما في [SYS05 وGL11](rates-and-close-preview.md).
+
+دليل الوحدات العام وحدود الدقة والتحويل في [INV03](units.md).

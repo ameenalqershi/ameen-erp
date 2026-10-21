@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 22,
+  "partially_implemented_screens": 23,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 178,
-    "audit": 38,
+    "implemented": 189,
+    "audit": 41,
     "derived": 4,
     "partial": 20,
-    "pending": 2519
+    "pending": 2505
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -1050,6 +1050,70 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CostCenterTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "INV03": {
+      "api": "GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",
+      "implemented": "دليل وحدات بأسماء ورمز قياسي ووصف ودقة كمية وإصدار عددي؛ بحث وتعديل وحالة وتدقيق؛ لا معامل تحويل عام",
+      "remaining": "عرض الاستخدام وقفل البنية عند ربط ITEM_UNIT ينفذان مع INV04؛ لا باركود أو تحويل أو حركة مخزون بعد؛ الرمز القياسي تحقق شكلي بلا سجل خارجي؛ دقة كمية 0..6 حد تقني معلن",
+      "fields": {
+        "INV03-F01": {
+          "status": "implemented",
+          "binding": "UnitOfMeasure.Id"
+        },
+        "INV03-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "INV03-F03": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "INV03-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "INV03-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
+        "INV03-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "INV03-F07": {
+          "status": "implemented",
+          "binding": "Notes"
+        },
+        "INV03-F08": {
+          "status": "implemented",
+          "binding": "StandardCode"
+        },
+        "INV03-F09": {
+          "status": "implemented",
+          "binding": "QuantityScale"
+        },
+        "INV03-F10": {
+          "status": "implemented",
+          "binding": "Description"
+        },
+        "INV03-F13": {
+          "status": "implemented",
+          "binding": "Revision"
+        },
+        "INV03-F11": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: unit.created"
+        },
+        "INV03-F12": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: unit.created"
+        },
+        "INV03-F14": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: unit.edited / unit.status-changed"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/UnitTests.cs; backend/tests/Ameen.Erp.Tests/UnitSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "RPT01": {
       "api": "GET /companies/{companyId}/reports/trial-balance",

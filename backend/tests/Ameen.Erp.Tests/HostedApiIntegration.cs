@@ -188,6 +188,28 @@ public static class HostedApiIntegration
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Recurring HTTP usage differs");
                 Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
                 Authenticate(Token("sql-owner"));
+                var unitsPath = $"/api/v1/companies/{companyId}/units";
+                var unitCard = await Command(client, unitsPath, UnitTests.Request() with { Code = "HTTP-UNIT" });
+                unitCard = await Command(client, unitsPath + $"/{unitCard.ResourceId}",
+                    new EditUnitRequest(unitCard.Version, "HTTP-UNIT", "كيلوغرام", "KGM", 3, "وحدة كتلة", "HTTP kilogram", null, "تحديث"), method: HttpMethod.Put);
+                using (var response = await client.GetAsync(unitsPath + "?search=kilogram&isActive=true"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items")[0].GetProperty("quantityScale").GetInt32() == 3, "HTTP unit search differs");
+                await Command(client, unitsPath + $"/{unitCard.ResourceId}/status", new SetUnitStatusRequest(unitCard.Version, false, "إيقاف"));
+                using (var response = await client.GetAsync(unitsPath + $"/{unitCard.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(!json.RootElement.GetProperty("isActive").GetBoolean() && json.RootElement.GetProperty("revision").GetInt32() == 3, "HTTP unit status differs");
+                using (var response = await client.GetAsync(unitsPath + $"/{unitCard.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "HTTP unit audit differs");
+                using (var invalid = new HttpRequestMessage(HttpMethod.Post, unitsPath))
+                {
+                    invalid.Headers.Add("Idempotency-Key", Fixture.Key());
+                    invalid.Content = new StringContent(JsonSerializer.Serialize(UnitTests.Request() with { Code = "FORBIDDEN-FACTOR" }, JsonDefaults.Options).TrimEnd('}') + ",\"conversionFactor\":12}", Encoding.UTF8, "application/json");
+                    using var response = await client.SendAsync(invalid); Ensure(response.StatusCode == HttpStatusCode.BadRequest, "Global unit conversion accepted over HTTP");
+                }
+                Console.WriteLine("  HOST PASS INV03 create/edit/search/status/detail/audit and rejection of global conversion over HTTPS/JWT/SQL");
                 var ratesPath = $"/api/v1/companies/{companyId}/exchange-rates";
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));
                 var rate = await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date, 1.25m, "HTTP source"));
