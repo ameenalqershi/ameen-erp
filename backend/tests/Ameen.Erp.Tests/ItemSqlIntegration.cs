@@ -46,6 +46,17 @@ public static class ItemSqlIntegration
         }
         var race = await Task.WhenAll(Compete("RACE-A"), Compete("RACE-B"));
         Ensure(race.Count(x => x == "ok") == 1 && race.Count(x => x == "duplicate_barcode") == 1, "Barcode race duplicated items");
+        var child = await Call(s => s.CreateItemGroup(cid, owner, Fixture.Key(), new("ITEMSQL-CHILD", "فرعي", sales.ResourceId, group.ResourceId), default));
+        var leaf = await Call(s => s.CreateItem(cid, owner, Fixture.Key(), request with { Code = "ITEMSQL-LEAF", GroupId = child.ResourceId,
+            Units = new[] { request.Units[0] with { Barcode = null } } }, default));
+        await Call(s => s.SetItemStatus(cid, leaf.ResourceId, owner, Fixture.Key(), new(leaf.Version, false, "إيقاف"), default));
+        var usage = await Call(s => s.GetItemGroupUsage(cid, group.ResourceId, owner, default));
+        Ensure(usage.DirectItems == 2 && usage.SubtreeItems == 3 && usage.ActiveSubtreeItems == 2 && usage.DescendantGroups == 1 && usage.StructureLocked, "SQL group subtree counts differ");
+        var disabled = await Call(s => s.ListItemGroupItems(cid, group.ResourceId, owner, true, false, 0, 1, default));
+        Ensure(disabled.TotalCount == 1 && disabled.Items.Single().Id == leaf.ResourceId && disabled.Items.Single().Units.Count == 1, "SQL descendant item filtering differs");
+        var direct = await Call(s => s.ListItemGroupItems(cid, group.ResourceId, owner, false, null, 1, 1, default));
+        Ensure(direct.TotalCount == 2 && direct.Items.Count == 1 && direct.Items.Single().GroupId == group.ResourceId, "SQL direct item pagination differs");
+        Console.WriteLine("  SQL PASS INV02 usage subtree counts, inactive references, direct filters and paged item units");
         var other = Guid.NewGuid(); await Call(s => s.CreateCompany(owner, Fixture.Key(), new(other, "ITEMSQL-OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default));
         var foreign = await Call(s => s.CreateUnit(other, owner, Fixture.Key(), new("U", "وحدة", "EA", 0, "وحدة"), default));
         await using (var db = Context())

@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Check handoff inventory
+        run: python3 backend/scripts/progress.py --check
       - name: Start isolated SQL Server
         shell: bash
         run: |

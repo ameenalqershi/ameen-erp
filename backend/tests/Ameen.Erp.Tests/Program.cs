@@ -420,6 +420,7 @@ RateAndCloseTests.Register(Test);
 UnitTests.Register(Test);
 ItemGroupTests.Register(Test);
 ItemTests.Register(Test);
+ItemGroupUsageTests.Register(Test);
 CostCenterTests.Register(Test);
 CurrencyTests.Register(Test);
 AccountTests.Register(Test);

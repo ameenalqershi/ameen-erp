@@ -137,3 +137,7 @@ public sealed record EditItemRequest(Guid ExpectedVersion, string Code, string N
     ItemUnitRequest[] Units, int? ShelfLifeDays, decimal? ReorderLevel, string? EnglishName, string? Notes, string Reason);
 public sealed record SetItemStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
 public sealed record ItemQuantityConversion(Guid ItemId, Guid ItemVersion, Guid UnitId, Guid BaseUnitId, decimal Quantity, decimal FactorToBase, decimal BaseQuantity);
+
+public sealed record ItemGroupUsage(Guid GroupId, Guid GroupVersion, int DirectChildGroups, int ActiveDirectChildGroups,
+    int DescendantGroups, int DirectItems, int ActiveDirectItems, int SubtreeItems, int ActiveSubtreeItems,
+    bool StructureLocked, bool HasDeactivationBlockers);

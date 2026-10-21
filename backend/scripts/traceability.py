@@ -120,12 +120,12 @@ screen("COST01", "GET/POST /companies/{companyId}/cost-centers; GET /search; GET
        [(12, "AuditEvent.ActorId: cost-center.created"), (13, "AuditEvent.OccurredAt: cost-center.created"), (15, "AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed")])
 MAP["COST01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CostCenterTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
-screen("INV02", "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups",
-       "شجرة مجموعات بلا دورات وربط حسابات المبيعات والمخزون والتكلفة؛ بحث وتعديل وحالة وتدقيق؛ حماية بنية الحساب المرتبط ومنع تعطيله مع مجموعة فعالة",
+screen("INV02", "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups",
+       "شجرة مجموعات بلا دورات وربط حسابات المبيعات والمخزون والتكلفة؛ بحث وتعديل وحالة وتدقيق؛ ملخص الاستخدام المباشر والفرعي وأصنافه بصفحات مع أسباب القفل؛ حماية بنية الحساب المرتبط ومنع تعطيله مع مجموعة فعالة",
        "مرجع الضريبة الافتراضي وسياسة تجاوز إعدادات المجموعة غير منفذين؛ استخدام الأصناف يقفل البنية وحسابا المخزون والتكلفة مطلوبان لغير الخدمة؛ لا ترحيل مخزون",
        {1: "ItemGroup.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "ParentId", 9: "InventoryAccountId", 10: "SalesAccountId", 11: "CostAccountId", 15: "Revision"},
        [(13, "AuditEvent.ActorId: item-group.created"), (14, "AuditEvent.OccurredAt: item-group.created"), (16, "AuditEvent.OccurredAt: item-group.edited / item-group.status-changed")])
-MAP["INV02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["ItemGroupTests.cs", "ItemGroupSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+MAP["INV02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["ItemGroupTests.cs", "ItemGroupUsageTests.cs", "ItemGroupSqlIntegration.cs", "ItemSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("INV03", "GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items",
        "دليل وحدات بأسماء ورمز قياسي ووصف ودقة كمية وإصدار عددي؛ بحث وتعديل وحالة وتدقيق؛ لا معامل تحويل عام",
        "عرض أصناف الوحدة وقفل البنية بعد ربط ITEM_UNIT منفذان؛ تحويل الوحدة والباركود في INV04؛ لا حركة مخزون بعد؛ الرمز القياسي تحقق شكلي بلا سجل خارجي؛ دقة كمية 0..6 حد تقني معلن",
@@ -179,7 +179,7 @@ for code, n, binding, status in [
 
 RULES = {
     "BR01": ("manual-journal", "Decimal واتزان دقيق؛ رفض فقدان الدقة؛ فروق التقريب تحتاج سطرًا صريحًا", "Program.cs: BR01 / Wire contract"),
-    "BR02": ("partial", "شركة وفرع وحساب ومركز وعملة وسعر؛ لا مخازن أو أطراف أو ضرائب بعد", "Program.cs: BR02; SqlIntegration.cs: company isolation"),
+    "BR02": ("partial", "شركة وفرع وحساب ومركز وعملة وسعر ووحدة ومجموعة وصنف؛ لا مخازن أو أطراف أو ضرائب بعد", "Program.cs: BR02; SqlIntegration.cs: company isolation"),
     "BR03": ("manual-journal", "تاريخ الوثيقة والأثر ووقت الترحيل مستقلة؛ فترة مفتوحة", "Program.cs: BR03"),
     "BR04": ("partial", "حساب فعال فرعي وعملة ومركز صحيح؛ المشروع والطرف لاحقًا", "Program.cs: BR04"),
     "BR05": ("partial", "ذرية القيد والتدقيق وOutbox والنتيجة وسجل التوليد الدوري؛ الدفاتر المساعدة والعامل الخارجي لم تنفذ", "Program.cs: BR05; SqlIntegration.cs / RecurringSqlIntegration.cs: constraint rollback"),
@@ -223,10 +223,11 @@ def generate():
     diagram_notes = {
         "module-SYS": "تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات",
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
+        "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ المخازن والحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
         "module-RPT": "ميزان وأستاذ جزئيان",
-        "system-map": "أساس SYS وGL وبعض COST وRPT؛ بقية الأقسام لم تبدأ",
-        "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد؛ DOCUMENT والدفاتر المساعدة لاحقًا",
+        "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
+        "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT؛ DOCUMENT والدفاتر المساعدة لاحقًا",
         "document-lifecycle": "الدورة منفذة للقيد اليدوي؛ الرفض يعيد Draft مع سبب وتاريخ في التدقيق؛ محاولة الترحيل ليست حالة دائمة",
         "posting-sequence": "ذرية القيد وOutbox والتدقيق؛ لا دفاتر مساعدة أو عامل إرسال خارجي بعد",
         "period-close": "فحص القيود المعلقة واتزانها فقط؛ باقي مسار المطابقة والإقفال السنوي غير منفذ",

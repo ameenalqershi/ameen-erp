@@ -717,22 +717,22 @@ INV01,INV01-F15,أنشأه,system,pending,,
 INV01,INV01-F16,وقت الإنشاء,system,pending,,
 INV01,INV01-F17,رقم إصدار التعديل,system,pending,,
 INV01,INV01-F18,آخر تعديل,system,pending,,
-INV02,INV02-F01,المعرف الداخلي,system,implemented,ItemGroup.Id,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F08,المجموعة الأب,optional,implemented,ParentId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F09,حساب المخزون,conditional,implemented,InventoryAccountId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F10,حساب المبيعات,required,implemented,SalesAccountId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F11,حساب التكلفة,conditional,implemented,CostAccountId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
+INV02,INV02-F01,المعرف الداخلي,system,implemented,ItemGroup.Id,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F08,المجموعة الأب,optional,implemented,ParentId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F09,حساب المخزون,conditional,implemented,InventoryAccountId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F10,حساب المبيعات,required,implemented,SalesAccountId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F11,حساب التكلفة,conditional,implemented,CostAccountId,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
 INV02,INV02-F12,رمز الضريبة الافتراضي,optional,pending,,
-INV02,INV02-F13,أنشأه,system,audit,AuditEvent.ActorId: item-group.created,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F14,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: item-group.created,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F15,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV02,INV02-F16,آخر تعديل,system,audit,AuditEvent.OccurredAt: item-group.edited / item-group.status-changed,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
+INV02,INV02-F13,أنشأه,system,audit,AuditEvent.ActorId: item-group.created,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F14,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: item-group.created,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F15,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
+INV02,INV02-F16,آخر تعديل,system,audit,AuditEvent.OccurredAt: item-group.edited / item-group.status-changed,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups
 INV03,INV03-F01,المعرف الداخلي,system,implemented,UnitOfMeasure.Id,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
 INV03,INV03-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
 INV03,INV03-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items

@@ -252,6 +252,18 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(itemsPath + $"/{itemCard.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "HTTP item audit failed");
+                using (var response = await client.GetAsync(groupsPath + $"/{itemGroup.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("structureLocked").GetBoolean()
+                        && !json.RootElement.GetProperty("hasDeactivationBlockers").GetBoolean()
+                        && json.RootElement.GetProperty("subtreeItems").GetInt32() == 1, "HTTP group usage failed");
+                using (var response = await client.GetAsync(groupsPath + $"/{itemGroup.ResourceId}/items?includeDescendants=false&isActive=false&offset=0&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1
+                        && json.RootElement.GetProperty("items")[0].GetProperty("id").GetGuid() == itemCard.ResourceId, "HTTP group items failed");
+                using (var response = await client.GetAsync(groupsPath + $"/{itemGroup.ResourceId}/items?limit=201"))
+                    Ensure(response.StatusCode == HttpStatusCode.UnprocessableEntity, "HTTP invalid group page accepted");
+                Console.WriteLine("  HOST PASS INV02 usage and disabled item references with paging over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS INV04 item lifecycle, barcode search, exact conversion, unit usage and audit over HTTPS/JWT/SQL");
                 var ratesPath = $"/api/v1/companies/{companyId}/exchange-rates";
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));

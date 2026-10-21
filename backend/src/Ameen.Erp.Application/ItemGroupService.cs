@@ -6,6 +6,40 @@ public sealed partial class ErpService
 {
     private static object GroupSnapshot(ItemGroup x) => new
     { x.Version, x.Revision, x.Code, x.Name, x.EnglishName, x.Notes, x.ParentId, x.SalesAccountId, x.InventoryAccountId, x.CostAccountId, x.IsActive };
+    private static Guid[] ItemGroupSubtree(Guid id, IReadOnlyList<ItemGroup> groups)
+    {
+        var children = groups.Where(x => x.ParentId is not null).ToLookup(x => x.ParentId!.Value);
+        var seen = new HashSet<Guid>(); var pending = new Stack<Guid>(); pending.Push(id);
+        while (pending.TryPop(out var current))
+        {
+            Check.That(seen.Add(current), "item_group_cycle", "دورة في المجموعات.");
+            foreach (var child in children[current]) pending.Push(child.Id);
+        }
+        return seen.ToArray();
+    }
+    public async Task<ItemGroupUsage> GetItemGroupUsage(Guid cid, Guid id, Actor actor, CancellationToken ct)
+    {
+        await AuthorizeGlobal(cid, actor, Permissions.Read, ct);
+        var group = await Required<ItemGroup>(cid, id, ct);
+        var groups = await store.Find<ItemGroup>(cid, x => true, ct);
+        var ids = ItemGroupSubtree(id, groups);
+        var items = await store.Find<Item>(cid, x => ids.Contains(x.GroupId), ct);
+        var directItems = items.Count(x => x.GroupId == id);
+        var activeDirectItems = items.Count(x => x.GroupId == id && x.IsActive);
+        var activeChildren = groups.Count(x => x.ParentId == id && x.IsActive);
+        return new(id, group.Version, groups.Count(x => x.ParentId == id), activeChildren, ids.Length - 1,
+            directItems, activeDirectItems, items.Count, items.Count(x => x.IsActive),
+            items.Count > 0, activeDirectItems > 0 || activeChildren > 0);
+    }
+    public async Task<Page<Item>> ListItemGroupItems(Guid cid, Guid id, Actor actor, bool includeDescendants,
+        bool? isActive, int offset, int limit, CancellationToken ct)
+    {
+        Paging(offset, limit); await AuthorizeGlobal(cid, actor, Permissions.Read, ct);
+        await Required<ItemGroup>(cid, id, ct);
+        var ids = includeDescendants ? ItemGroupSubtree(id, await store.Find<ItemGroup>(cid, x => true, ct)) : new[] { id };
+        return await store.ReadPage<Item>(cid, x => ids.Contains(x.GroupId) && (isActive == null || x.IsActive == isActive),
+            q => q.OrderBy(x => x.Code).ThenBy(x => x.Id), offset, limit, ct);
+    }
     private async Task ValidateGroupTree(Guid cid, Guid id, Guid? parentId, CancellationToken ct)
     {
         var seen = new HashSet<Guid> { id };
@@ -48,10 +82,8 @@ public sealed partial class ErpService
             if (candidate.ParentId != group.ParentId) await ValidateGroupTree(cid, id, candidate.ParentId, token);
             if (group.Code != candidate.Code || group.ParentId != candidate.ParentId || group.SalesAccountId != candidate.SalesAccountId || group.InventoryAccountId != candidate.InventoryAccountId || group.CostAccountId != candidate.CostAccountId)
             {
-                var groups = await store.Find<ItemGroup>(cid, x => true, token); var ids = new HashSet<Guid> { id }; var pending = new Stack<Guid>(); pending.Push(id);
-                while (pending.TryPop(out var parent)) foreach (var child in groups.Where(x => x.ParentId == parent))
-                { Check.That(ids.Add(child.Id), "item_group_cycle", "دورة في المجموعات."); pending.Push(child.Id); }
-                var usedIds = ids.ToArray();
+                var groups = await store.Find<ItemGroup>(cid, x => true, token);
+                var usedIds = ItemGroupSubtree(id, groups);
                 Check.That(!(await store.Find<Item>(cid, x => usedIds.Contains(x.GroupId), token)).Any(), "item_group_in_use", "المجموعة أو أحد فروعها مرتبط بصنف؛ لا يمكن تغيير البنية.", ErrorKind.Conflict);
             }
             if (group.IsActive || candidate.SalesAccountId != group.SalesAccountId || candidate.InventoryAccountId != group.InventoryAccountId || candidate.CostAccountId != group.CostAccountId)

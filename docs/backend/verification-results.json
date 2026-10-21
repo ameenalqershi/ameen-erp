@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T20:35:44.585489+00:00",
+  "startedAtUtc": "2026-10-21T20:45:13.268185+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "1ead74117bc2ea7b7b01b35c0ff23d67ed2c22d631d15e898420d68c62df5651",
+  "sourceSha256": "f8852b9e5b42dd23854e260b76d3162d6a321e82d873b829da9d13ccbdfe5488",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -164,6 +164,12 @@
     "PASS INV04: item prices freeze functional currency before journals",
     "PASS INV04: failed line replacement is atomic and exact retry replays",
     "PASS INV04: company scope and write permissions are mandatory",
+    "PASS INV02 usage: direct and descendant counts exclude unrelated groups without double counting",
+    "PASS INV02 usage: disabled descendant item still locks ancestor structure and agrees with edit guard",
+    "PASS INV02 usage: stable pages and direct active filters include disabled references by default",
+    "PASS INV02 usage: full-company read permission is required before disclosing group usage",
+    "PASS INV02 usage: foreign-company group is rejected and reads leave no audit or financial effects",
+    "PASS INV02 usage: empty group has no locks; active child alone blocks deactivation",
     "PASS COST01: bilingual hierarchy and responsible member roundtrip with scoped search",
     "PASS COST01: direct and indirect cycles are rejected atomically",
     "PASS COST01: branch parent cannot own a global or another-branch child",
@@ -253,6 +259,7 @@
     "  SQL PASS COST01 hierarchy, responsibility FK, concurrent replay, scoped search and subtree usage lock",
     "  SQL PASS SYS04/COST01 audit failures roll back cards and receipts; exact retries succeed",
     "  SQL PASS COST01 tenant FKs and SYS04/COST01 status writes under runtime role",
+    "  SQL PASS INV02 usage subtree counts, inactive references, direct filters and paged item units",
     "  SQL PASS INV04 concurrent replay, line replacement, barcode race, audit rollback, runtime role and cross-company unit FK",
     "  SQL PASS INV02 replay, concurrent cycle prevention, rollback/retry under runtime role, SQL search/account usage and tenant FK",
     "  SQL PASS INV03 concurrent creation/edit replay, SQL search, audit rollback/retry, runtime role and precision constraint",
@@ -264,6 +271,7 @@
     "  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL",
     "  HOST PASS INV02 create/edit/search/status/detail/audit and account references over HTTPS/JWT/SQL",
     "  HOST PASS INV03 create/edit/search/status/detail/audit and rejection of global conversion over HTTPS/JWT/SQL",
+    "  HOST PASS INV02 usage and disabled item references with paging over HTTPS/JWT/SQL",
     "  HOST PASS INV04 item lifecycle, barcode search, exact conversion, unit usage and audit over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
@@ -274,8 +282,8 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 177,
-  "total": 177,
+  "passed": 183,
+  "total": 183,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T20:36:22.488691+00:00"
+  "finishedAtUtc": "2026-10-21T20:45:41.724865+00:00"
 }

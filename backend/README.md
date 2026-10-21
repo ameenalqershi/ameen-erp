@@ -88,3 +88,5 @@ dotnet run --project src/Ameen.Erp.Api
 شجرة مجموعات الأصناف وربط الحسابات وترقية 009 في [INV02](../docs/backend/item-groups.md).
 
 بطاقة الصنف ووحداته وباركوده والتحويل الدقيق وترقية 010 في [INV04](../docs/backend/items.md).
+
+ابدأ استئناف العمل من [سجل التقدم والتسليم](../docs/backend/PROGRESS.md). بعد تحديث المصفوفات ونتائج التحقق، شغّل `python3 scripts/progress.py` ثم `python3 scripts/progress.py --check` من مجلد backend؛ CI يفحص تطابق الجداول مع الأدلة المسجلة.

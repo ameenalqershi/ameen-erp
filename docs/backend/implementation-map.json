@@ -1052,8 +1052,8 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/CostCenterTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "INV02": {
-      "api": "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups",
-      "implemented": "شجرة مجموعات بلا دورات وربط حسابات المبيعات والمخزون والتكلفة؛ بحث وتعديل وحالة وتدقيق؛ حماية بنية الحساب المرتبط ومنع تعطيله مع مجموعة فعالة",
+      "api": "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups",
+      "implemented": "شجرة مجموعات بلا دورات وربط حسابات المبيعات والمخزون والتكلفة؛ بحث وتعديل وحالة وتدقيق؛ ملخص الاستخدام المباشر والفرعي وأصنافه بصفحات مع أسباب القفل؛ حماية بنية الحساب المرتبط ومنع تعطيله مع مجموعة فعالة",
       "remaining": "مرجع الضريبة الافتراضي وسياسة تجاوز إعدادات المجموعة غير منفذين؛ استخدام الأصناف يقفل البنية وحسابا المخزون والتكلفة مطلوبان لغير الخدمة؛ لا ترحيل مخزون",
       "fields": {
         "INV02-F01": {
@@ -1117,7 +1117,7 @@
           "binding": "AuditEvent.OccurredAt: item-group.edited / item-group.status-changed"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/ItemGroupTests.cs; backend/tests/Ameen.Erp.Tests/ItemGroupSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/ItemGroupTests.cs; backend/tests/Ameen.Erp.Tests/ItemGroupUsageTests.cs; backend/tests/Ameen.Erp.Tests/ItemGroupSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ItemSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "INV03": {
       "api": "GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items",
