@@ -52,10 +52,12 @@ screen("SYS04", "GET/POST /companies/{companyId}/currencies; GET /search; GET/PU
        [(12, "AuditEvent.ActorId: currency.created"), (13, "AuditEvent.OccurredAt: currency.created"), (15, "AuditEvent.OccurredAt: currency.edited / currency.status-changed")])
 MAP["SYS04"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CurrencyTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
-screen("SYS05", "GET/POST /companies/{companyId}/exchange-rates",
-       "سعر موجب مؤرخ محفوظ بلا تعديل؛ اختيار أحدث سعر نافذ عند إعداد السطر", "أنواع شراء/بيع/محاسبي متعددة وإعدادات نطاقات الأسعار",
-       {1: "CompanyId", 4: "CurrencyCode", 6: "EffectiveDate", 8: "Source", 9: "RateToFunctional", 12: "Version"},
-       [(10, "AuditEvent.ActorId"), (11, "AuditEvent.OccurredAt")])
+screen("SYS05", "GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events",
+       "سعر موجب مؤرخ غير قابل للتعديل؛ بحث بالتاريخ والعملة والمصدر وصفحات؛ سعر نافذ باتجاه صريح؛ استخدام وتدقيق؛ اختيار مشترك مع التوليد الدوري",
+       "نوع السعر وقيمه ونطاق الفرع وحالة تعطيل السعر وإصداره العددي غير منفذة؛ لا تحويل تاريخي ولا إعادة تقييم أرصدة؛ المعاينة ليست حجزًا للسعر",
+       {1: "CompanyId", 4: "CurrencyCode", 5: "ExchangeRateDetail.FunctionalCurrency / ExchangeRateQuote.FunctionalCurrency", 6: "EffectiveDate", 8: "Source", 9: "RateToFunctional"},
+       [(10, "AuditEvent.ActorId: exchange-rate.created"), (11, "AuditEvent.OccurredAt: exchange-rate.created")])
+MAP["SYS05"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
 screen("SYS06", "POST /companies/{companyId}/memberships/{id}/status",
        "تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC", "شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا",
        {1: "Membership.Id", 2: "CompanyId", 16: "Version"})
@@ -104,9 +106,10 @@ screen("GL06", "POST /companies/{companyId}/journals/{id}/post",
 screen("GL07", "POST /companies/{companyId}/journals/{id}/reverse",
        "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا", "عكس مستندات الدفاتر المساعدة وفحص التبعيات والضريبة؛ عكس تلقائي مجدول",
        {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 13: "ReversesJournalId", 14: "ReversalReason", 15: "AccountingDate", 16: "CreatedBy", 17: "CreatedAt", 18: "Version"})
-screen("GL11", "POST /companies/{companyId}/periods/{id}/close",
-       "إقفال فترة الأستاذ بعد رفض القيود المعلقة وفحص اتزان المرحل", "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة",
-       {1: "route.companyId", 4: "route.id (period only)", 12: "Version"}, [(9, "AuditEvent.ActorId: period.closed"), (10, "AuditEvent.ActorId"), (11, "AuditEvent.OccurredAt")])
+screen("GL11", "POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview",
+       "معاينة إقفال الأستاذ بشروط مفصلة وموانع مقسمة؛ تنفيذ يعيد فحص القيود المعلقة واتزان المرحل داخل المعاملة", "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة وإصدار عددي للإجراء",
+       {1: "route.companyId", 4: "route.id (period only)", 7: "PeriodClosePreview.Checks.Code (GL only)", 8: "PeriodClosePreview.Checks.Passed (GL only)"}, [(9, "AuditEvent.ActorId: period.closed"), (10, "AuditEvent.ActorId"), (11, "AuditEvent.OccurredAt")])
+MAP["GL11"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
 screen("GL12", "POST /companies/{companyId}/periods/{id}/reopen",
        "فتح فترة بصلاحية مستقلة وسبب مسجل", "مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي",
        {1: "route.companyId", 4: "route.id", 5: "ChangePeriodRequest.Reason", 10: "Version"}, [(8, "AuditEvent.ActorId"), (9, "AuditEvent.OccurredAt")])
@@ -143,6 +146,8 @@ for code, n, binding, status in [
     ("GL07", 8, "Lines[].CurrencyCode copied from original", "partial"),
     ("GL07", 9, "Lines[].ExchangeRate copied from original", "partial"),
     ("GL11", 3, "FiscalPeriod.IsClosed: general ledger only", "partial"),
+    ("GL11", 7, "PeriodClosePreview.Checks.Code: general ledger checks only", "partial"),
+    ("GL11", 8, "PeriodClosePreview.Checks.Passed: general ledger checks only", "partial"),
     ("RPT01", 5, "Currency: functional currency only; no selection", "partial"),
     ("RPT01", 7, "Posted and Reversed originals only; no selection", "partial"),
     ("RPT02", 5, "Currency: functional currency; original line amounts retained", "partial"),

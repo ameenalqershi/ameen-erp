@@ -188,6 +188,36 @@ public static class HostedApiIntegration
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Recurring HTTP usage differs");
                 Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
                 Authenticate(Token("sql-owner"));
+                var ratesPath = $"/api/v1/companies/{companyId}/exchange-rates";
+                await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));
+                var rate = await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date, 1.25m, "HTTP source"));
+                await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date.AddDays(1), 1.5m, "HTTP future"));
+                using (var response = await client.GetAsync(ratesPath + $"/quote?currencyCode=NZD&date={Fixture.Date:yyyy-MM-dd}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("exchangeRateId").GetGuid() == rate.ResourceId &&
+                        json.RootElement.GetProperty("rateToFunctional").GetString() == "1.25", "SQL/HTTP effective quote differs");
+                using (var response = await client.GetAsync(ratesPath + $"/search?currencyCode=NZD&to={Fixture.Date:yyyy-MM-dd}&source=HTTP&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "SQL/HTTP historical rate filter differs");
+                using (var response = await client.GetAsync(ratesPath + $"/{rate.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("functionalCurrency").GetString() == "SAR", "SQL/HTTP rate direction differs");
+                using (var response = await client.GetAsync(ratesPath + $"/{rate.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "SQL/HTTP rate audit differs");
+                Authenticate(Token("sql-clerk"));
+                await Command(client, path, journalRequest with { Lines = journalRequest.Lines.Select(x => x with { CurrencyCode = "NZD", ExchangeRateId = rate.ResourceId }).ToArray() });
+                using (var response = await client.GetAsync(ratesPath + $"/{rate.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "SQL/HTTP rate usage should count journal once");
+                Authenticate(Token("sql-approver"));
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/periods/{periodId}/close-preview?limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && !json.RootElement.GetProperty("canCloseGeneralLedger").GetBoolean() &&
+                        json.RootElement.GetProperty("generalLedgerOnly").GetBoolean() && json.RootElement.GetProperty("issues").GetProperty("items").GetArrayLength() == 1,
+                        "SQL/HTTP close preview did not expose pending blockers");
+                Console.WriteLine("  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL");
+                Authenticate(Token("sql-owner"));
                 var accountPath = $"/api/v1/companies/{companyId}/accounts";
                 var card = await Command(client, accountPath, new CreateAccountRequest("HTTP-GL01", "حساب HTTP", AccountType.Asset,
                     null, true, false, false, null, NormalBalance.Credit, "HTTP contra asset", "ملاحظة"));

@@ -31,12 +31,18 @@
 | GET | `/currencies/{id}/usage` | CurrencyUsage | ledger.read، كل الفروع |
 | GET | `/currencies/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read، كل الفروع |
 | GET / POST | `/exchange-rates` | قائمة / CreateExchangeRateRequest | read / company.configure |
+| GET | `/exchange-rates/search` | Page&lt;ExchangeRate&gt;؛ currencyCode/from/to/source/offset/limit | ledger.read |
+| GET | `/exchange-rates/quote` | ExchangeRateQuote؛ currencyCode وdate إلزاميان | ledger.read |
+| GET | `/exchange-rates/{id}` | ExchangeRateDetail؛ السعر والعملة الوظيفية | ledger.read |
+| GET | `/exchange-rates/{id}/usage` | Page&lt;AccountUsageReference&gt; | ledger.read لكل الفروع |
+| GET | `/exchange-rates/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read لكل الفروع |
 | GET / POST | `/fiscal-years` | قائمة / CreateFiscalYearRequest | read / company.configure |
 | GET | `/fiscal-years/search` | Page&lt;FiscalYear&gt;؛ search/offset/limit | ledger.read |
 | GET | `/fiscal-years/{id}` | FiscalCalendar؛ السنة والفترات وحالة إقفال الأستاذ | ledger.read |
 | GET | `/fiscal-years/{id}/usage` | FiscalYearUsage | ledger.read لكل الفروع |
 | GET | `/fiscal-years/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read لكل الفروع |
 | GET | `/periods` | قائمة الفترات | ledger.read |
+| GET | `/periods/{id}/close-preview` | PeriodClosePreview؛ checks وissues بصفحات | period.close + ledger.read لكل الفروع |
 | POST | `/periods/{id}/close` | ChangePeriodRequest | period.close |
 | POST | `/periods/{id}/reopen` | ChangePeriodRequest | period.reopen |
 | GET / POST | `/cost-centers` | قائمة / CreateCostCenterRequest | read / company.configure |
@@ -151,3 +157,5 @@
 تفاصيل البحث والتعديل والحالة والاستخدام والتدقيق للفروع في [عقد SYS02](branches.md).
 
 إنشاء السنة يقبل `periods` اختيارية لفترات صريحة؛ الضوابط وحدود حالة الإقفال في [التقويم المالي SYS03](fiscal-calendar.md).
+
+تفاصيل استعلام السعر النافذ وموانع إقفال الأستاذ وحدودهما في [SYS05 وGL11](rates-and-close-preview.md).

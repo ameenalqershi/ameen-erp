@@ -6,10 +6,10 @@
   "partially_implemented_screens": 22,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 180,
+    "implemented": 178,
     "audit": 38,
     "derived": 4,
-    "partial": 18,
+    "partial": 20,
     "pending": 2519
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -311,9 +311,9 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/CurrencyTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS05": {
-      "api": "GET/POST /companies/{companyId}/exchange-rates",
-      "implemented": "سعر موجب مؤرخ محفوظ بلا تعديل؛ اختيار أحدث سعر نافذ عند إعداد السطر",
-      "remaining": "أنواع شراء/بيع/محاسبي متعددة وإعدادات نطاقات الأسعار",
+      "api": "GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events",
+      "implemented": "سعر موجب مؤرخ غير قابل للتعديل؛ بحث بالتاريخ والعملة والمصدر وصفحات؛ سعر نافذ باتجاه صريح؛ استخدام وتدقيق؛ اختيار مشترك مع التوليد الدوري",
+      "remaining": "نوع السعر وقيمه ونطاق الفرع وحالة تعطيل السعر وإصداره العددي غير منفذة؛ لا تحويل تاريخي ولا إعادة تقييم أرصدة؛ المعاينة ليست حجزًا للسعر",
       "fields": {
         "SYS05-F01": {
           "status": "implemented",
@@ -322,6 +322,10 @@
         "SYS05-F04": {
           "status": "implemented",
           "binding": "CurrencyCode"
+        },
+        "SYS05-F05": {
+          "status": "derived",
+          "binding": "Company.FunctionalCurrency"
         },
         "SYS05-F06": {
           "status": "implemented",
@@ -335,23 +339,16 @@
           "status": "implemented",
           "binding": "RateToFunctional"
         },
-        "SYS05-F12": {
-          "status": "implemented",
-          "binding": "Version"
-        },
         "SYS05-F10": {
           "status": "audit",
-          "binding": "AuditEvent.ActorId"
+          "binding": "AuditEvent.ActorId: exchange-rate.created"
         },
         "SYS05-F11": {
           "status": "audit",
-          "binding": "AuditEvent.OccurredAt"
-        },
-        "SYS05-F05": {
-          "status": "derived",
-          "binding": "Company.FunctionalCurrency"
+          "binding": "AuditEvent.OccurredAt: exchange-rate.created"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS06": {
       "api": "POST /companies/{companyId}/memberships/{id}/status",
@@ -920,9 +917,9 @@
       }
     },
     "GL11": {
-      "api": "POST /companies/{companyId}/periods/{id}/close",
-      "implemented": "إقفال فترة الأستاذ بعد رفض القيود المعلقة وفحص اتزان المرحل",
-      "remaining": "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة",
+      "api": "POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview",
+      "implemented": "معاينة إقفال الأستاذ بشروط مفصلة وموانع مقسمة؛ تنفيذ يعيد فحص القيود المعلقة واتزان المرحل داخل المعاملة",
+      "remaining": "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة وإصدار عددي للإجراء",
       "fields": {
         "GL11-F01": {
           "status": "implemented",
@@ -932,9 +929,13 @@
           "status": "implemented",
           "binding": "route.id (period only)"
         },
-        "GL11-F12": {
-          "status": "implemented",
-          "binding": "Version"
+        "GL11-F07": {
+          "status": "partial",
+          "binding": "PeriodClosePreview.Checks.Code: general ledger checks only"
+        },
+        "GL11-F08": {
+          "status": "partial",
+          "binding": "PeriodClosePreview.Checks.Passed: general ledger checks only"
         },
         "GL11-F09": {
           "status": "audit",
@@ -952,7 +953,8 @@
           "status": "partial",
           "binding": "FiscalPeriod.IsClosed: general ledger only"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "GL12": {
       "api": "POST /companies/{companyId}/periods/{id}/reopen",

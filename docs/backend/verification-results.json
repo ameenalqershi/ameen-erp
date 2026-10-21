@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T14:38:49.898039+00:00",
+  "startedAtUtc": "2026-10-21T15:20:35.376338+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "494ce5894f9ba3bc36c400b9842f42432104d9b26d11a98c90f97c58ac30c76b",
+  "sourceSha256": "b4d0c9d99c4f8f520d5e323925d58d78305b785f64fff9ad64b9391185344379",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -128,6 +128,18 @@
     "PASS SYS03: usage and audit protect global scope and foreign company calendar",
     "PASS SYS03: failed calendar saves no periods audit or receipt and exact retry replays",
     "PASS SYS03 GL04: custom period with multiple recurring dates is explicitly rejected",
+    "PASS SYS05: quote selects latest effective date, fixes direction and preserves exact rate",
+    "PASS SYS05: functional quote is one without fabricated rate and missing historical quote fails",
+    "PASS SYS05: historical search and detail remain readable for disabled currency while quote rejects it",
+    "PASS SYS05: history filters pagination and creation audit retain source",
+    "PASS SYS05: usage includes cancelled and reversal journals once per document",
+    "PASS SYS05: quote is advisory and newer rate requires refreshed draft choice",
+    "PASS SYS05: detail and quote cannot read another company",
+    "PASS GL11: preview lists pending journals with accurate paginated blockers without writes",
+    "PASS GL11: posted/cancelled documents pass preview and close then closed preview blocks",
+    "PASS GL11: preview does not reserve period and close rechecks newly created drafts",
+    "PASS GL11: preview requires close permission and all-branch read scope",
+    "PASS GL11: inactive company fails preview operational checks without hiding financial history",
     "PASS COST01: bilingual hierarchy and responsible member roundtrip with scoped search",
     "PASS COST01: direct and indirect cycles are rejected atomically",
     "PASS COST01: branch parent cannot own a global or another-branch child",
@@ -220,6 +232,7 @@
     "  SQL PASS SYS01 audit failure rolls back company revision, fields and receipt; exact retry succeeds",
     "  SQL PASS SYS01 incomplete-profile guard, correction, inactive-company replay denial and reactivation",
     "  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL",
+    "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
     "  HOST PASS GL01 create/detail/PUT edit/replay, explicit nature, usage and audit over production HTTPS/JWT/SQL",
     "  HOST PASS SYS01 required profile, PUT edit, integer revision, inactive-company write guard and reactivation",
@@ -228,8 +241,8 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 141,
-  "total": 141,
+  "passed": 153,
+  "total": 153,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T14:39:14.642321+00:00"
+  "finishedAtUtc": "2026-10-21T15:21:00.618892+00:00"
 }

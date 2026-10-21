@@ -92,8 +92,7 @@ public sealed partial class ErpService
             foreach (var code in template.Lines.Select(x => x.CurrencyCode).Distinct())
             {
                 if (code == company.FunctionalCurrency) { rates[code] = null; continue; }
-                var rate = (await store.Find<ExchangeRate>(cid, x => x.CurrencyCode == code && x.EffectiveDate <= due.Value, token))
-                    .OrderByDescending(x => x.EffectiveDate).FirstOrDefault();
+                var rate = await EffectiveExchangeRate(cid, code, due.Value, token);
                 Check.That(rate is not null, "exchange_rate_required", "لا يوجد سعر صرف نافذ لعملة القالب في تاريخ الموعد.");
                 rates[code] = rate!.Id;
             }

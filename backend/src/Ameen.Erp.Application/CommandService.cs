@@ -117,7 +117,7 @@ public sealed partial class ErpService
             Check.That(!(await store.Find<ExchangeRate>(cid, x => x.CurrencyCode == currency && x.EffectiveDate == request.EffectiveDate, token)).Any(),
                 "duplicate_exchange_rate", "يوجد سعر لهذه العملة في التاريخ نفسه.", ErrorKind.Conflict);
             var rate = new ExchangeRate(cid, currency, request.EffectiveDate, request.RateToFunctional, request.Source);
-            store.Add(rate); Audit(cid, actor, "exchange-rate.created", rate, new { rate.CurrencyCode, rate.EffectiveDate, rate.RateToFunctional });
+            store.Add(rate); Audit(cid, actor, "exchange-rate.created", rate, new { rate.CurrencyCode, company.FunctionalCurrency, rate.EffectiveDate, rate.RateToFunctional, rate.Source });
             return Receipt(rate, "Created");
         }, ct);
 
@@ -245,12 +245,9 @@ public sealed partial class ErpService
             var reason = Check.Text(request.Reason, "سبب الإقفال أو الفتح", 500);
             if (close)
             {
-                var pending = await store.Find<JournalEntry>(cid, x => x.FiscalPeriodId == id &&
-                    (x.State == JournalState.Draft || x.State == JournalState.Submitted || x.State == JournalState.Approved), token);
-                Check.That(pending.Count == 0, "unposted_journals", "الفترة تحتوي قيودًا غير مرحلة؛ عالجها قبل الإقفال.", ErrorKind.Conflict);
-                var posted = await store.Find<JournalEntry>(cid, x => x.FiscalPeriodId == id &&
-                    (x.State == JournalState.Posted || x.State == JournalState.Reversed), token);
-                foreach (var journal in posted) journal.ValidateBalance();
+                var journals = await PeriodJournals(cid, id, token);
+                Check.That(!journals.Any(PendingJournal), "unposted_journals", "الفترة تحتوي قيودًا غير مرحلة؛ عالجها قبل الإقفال.", ErrorKind.Conflict);
+                foreach (var journal in journals.Where(PostedJournal)) journal.ValidateBalance();
             }
             period.SetClosed(close);
             Audit(cid, actor, close ? "period.closed" : "period.reopened", period, new { reason, GeneralLedgerOnly = true });

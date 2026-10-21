@@ -80,3 +80,5 @@ dotnet run --project src/Ameen.Erp.Api
 حقول الفرع الإلزامية الجديدة وشجرة SYS02 وترقية 007 في [الفروع والإدارات](../docs/backend/branches.md).
 
 يدعم SYS03 فترات مالية صريحة عند إنشاء السنة؛ تفاصيل [التقويم المالي](../docs/backend/fiscal-calendar.md). لا تتطلب هذه الإضافة ترقية بعد الإصدار 007.
+
+استعلامات أسعار الصرف ومعاينة موانع إقفال الأستاذ في [SYS05 وGL11](../docs/backend/rates-and-close-preview.md)، دون ترقية SQL جديدة.

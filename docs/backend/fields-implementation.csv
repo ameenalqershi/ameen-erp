@@ -69,18 +69,18 @@ SYS04,SYS04-F12,أنشأه,system,audit,AuditEvent.ActorId: currency.created,GET
 SYS04,SYS04-F13,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: currency.created,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS04,SYS04-F14,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS04,SYS04-F15,آخر تعديل,system,audit,AuditEvent.OccurredAt: currency.edited / currency.status-changed,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
-SYS05,SYS05-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/exchange-rates
+SYS05,SYS05-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
 SYS05,SYS05-F02,الفرع,conditional,pending,,
 SYS05,SYS05-F03,الحالة,system,pending,,
-SYS05,SYS05-F04,عملة المصدر,required,implemented,CurrencyCode,GET/POST /companies/{companyId}/exchange-rates
-SYS05,SYS05-F05,العملة الوظيفية,required,derived,Company.FunctionalCurrency,GET/POST /companies/{companyId}/exchange-rates
-SYS05,SYS05-F06,تاريخ السريان,required,implemented,EffectiveDate,GET/POST /companies/{companyId}/exchange-rates
+SYS05,SYS05-F04,عملة المصدر,required,implemented,CurrencyCode,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
+SYS05,SYS05-F05,العملة الوظيفية,required,derived,Company.FunctionalCurrency,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
+SYS05,SYS05-F06,تاريخ السريان,required,implemented,EffectiveDate,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
 SYS05,SYS05-F07,نوع السعر,required,pending,,
-SYS05,SYS05-F08,مصدر السعر,required,implemented,Source,GET/POST /companies/{companyId}/exchange-rates
-SYS05,SYS05-F09,السعر,required,implemented,RateToFunctional,GET/POST /companies/{companyId}/exchange-rates
-SYS05,SYS05-F10,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{companyId}/exchange-rates
-SYS05,SYS05-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/exchange-rates
-SYS05,SYS05-F12,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/exchange-rates
+SYS05,SYS05-F08,مصدر السعر,required,implemented,Source,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
+SYS05,SYS05-F09,السعر,required,implemented,RateToFunctional,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
+SYS05,SYS05-F10,أنشأه,system,audit,AuditEvent.ActorId: exchange-rate.created,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
+SYS05,SYS05-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: exchange-rate.created,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
+SYS05,SYS05-F12,رقم إصدار التعديل,system,pending,,
 SYS05,SYS05-F13,آخر تعديل,system,pending,,
 SYS06,SYS06-F01,المعرف الداخلي,system,implemented,Membership.Id,POST /companies/{companyId}/memberships/{id}/status
 SYS06,SYS06-F02,الشركة,system,implemented,CompanyId,POST /companies/{companyId}/memberships/{id}/status
@@ -432,18 +432,18 @@ GL10,GL10-F11,أنشأه,system,pending,,
 GL10,GL10-F12,وقت الإنشاء,system,pending,,
 GL10,GL10-F13,رقم إصدار التعديل,system,pending,,
 GL10,GL10-F14,آخر تعديل,system,pending,,
-GL11,GL11-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/close
+GL11,GL11-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
 GL11,GL11-F02,الفرع,conditional,pending,,
-GL11,GL11-F03,الحالة,system,partial,FiscalPeriod.IsClosed: general ledger only,POST /companies/{companyId}/periods/{id}/close
-GL11,GL11-F04,الفترة أو السنة,required,implemented,route.id (period only),POST /companies/{companyId}/periods/{id}/close
+GL11,GL11-F03,الحالة,system,partial,FiscalPeriod.IsClosed: general ledger only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F04,الفترة أو السنة,required,implemented,route.id (period only),POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
 GL11,GL11-F05,نوع الإقفال,required,pending,,
 GL11,GL11-F06,حساب الأرباح المرحلة,conditional,pending,,
-GL11,GL11-F07,فحص المطابقة,system,pending,,
-GL11,GL11-F08,النتيجة,system,pending,,
-GL11,GL11-F09,المعتمد,system,audit,AuditEvent.ActorId: period.closed,POST /companies/{companyId}/periods/{id}/close
-GL11,GL11-F10,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/periods/{id}/close
-GL11,GL11-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/close
-GL11,GL11-F12,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/periods/{id}/close
+GL11,GL11-F07,فحص المطابقة,system,partial,PeriodClosePreview.Checks.Code: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F08,النتيجة,system,partial,PeriodClosePreview.Checks.Passed: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F09,المعتمد,system,audit,AuditEvent.ActorId: period.closed,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F10,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F12,رقم إصدار التعديل,system,pending,,
 GL11,GL11-F13,آخر تعديل,system,pending,,
 GL12,GL12-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/reopen
 GL12,GL12-F02,الفرع,conditional,pending,,

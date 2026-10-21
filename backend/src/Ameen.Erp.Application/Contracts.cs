@@ -50,6 +50,13 @@ public sealed record EditCurrencyRequest(Guid ExpectedVersion, int Scale, string
 public sealed record SetCurrencyStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
 public sealed record CurrencyUsage(Guid CurrencyId, bool IsFunctionalCurrency, int AccountCount, int ExchangeRateCount,
     int JournalCount, int RecurringTemplateCount);
+public sealed record ExchangeRateDetail(ExchangeRate Rate, string FunctionalCurrency);
+public sealed record ExchangeRateQuote(Guid CompanyId, string CurrencyCode, string FunctionalCurrency, DateOnly AccountingDate,
+    Guid? ExchangeRateId, DateOnly? EffectiveDate, decimal RateToFunctional, string? Source, bool IsFunctionalCurrency);
+public sealed record PeriodCloseCheck(string Code, bool Passed);
+public sealed record PeriodCloseIssue(Guid JournalId, Guid BranchId, string Number, JournalState State, string Code);
+public sealed record PeriodClosePreview(Guid PeriodId, Guid ExpectedVersion, DateTimeOffset CheckedAt, bool GeneralLedgerOnly,
+    bool CanCloseGeneralLedger, IReadOnlyList<PeriodCloseCheck> Checks, int PostedJournalCount, int UnpostedJournalCount, Page<PeriodCloseIssue> Issues);
 public sealed record CreateExchangeRateRequest(string CurrencyCode, DateOnly EffectiveDate, decimal RateToFunctional, string Source);
 public sealed record FiscalPeriodRequest(string Code, DateOnly StartsOn, DateOnly EndsOn);
 public sealed record CreateFiscalYearRequest(string Code, DateOnly StartsOn, DateOnly EndsOn, FiscalPeriodRequest[]? Periods = null);

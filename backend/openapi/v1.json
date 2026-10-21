@@ -1348,6 +1348,393 @@
         ]
       }
     },
+    "/api/v1/companies/{companyId}/exchange-rates/search": {
+      "get": {
+        "tags": [
+          "SYS05 Exchange rates"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "currencyCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "format": "date"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "schema": {
+              "format": "date"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfExchangeRate"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/exchange-rates/quote": {
+      "get": {
+        "tags": [
+          "SYS05 Exchange rates"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "currencyCode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeRateQuote"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/exchange-rates/{id}": {
+      "get": {
+        "tags": [
+          "SYS05 Exchange rates"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeRateDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/exchange-rates/{id}/usage": {
+      "get": {
+        "tags": [
+          "SYS05 Exchange rates"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAccountUsageReference"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/exchange-rates/{id}/audit-events": {
+      "get": {
+        "tags": [
+          "SYS05 Exchange rates"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAuditEvent"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/periods/{id}/close-preview": {
+      "get": {
+        "tags": [
+          "GL11 Period close"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeriodClosePreview"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/companies/{companyId}/fiscal-years": {
       "get": {
         "tags": [
@@ -6204,6 +6591,78 @@
         },
         "additionalProperties": false
       },
+      "ExchangeRateDetail": {
+        "required": [
+          "rate",
+          "functionalCurrency"
+        ],
+        "type": "object",
+        "properties": {
+          "rate": {
+            "$ref": "#/components/schemas/ExchangeRate"
+          },
+          "functionalCurrency": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExchangeRateQuote": {
+        "required": [
+          "companyId",
+          "currencyCode",
+          "functionalCurrency",
+          "accountingDate",
+          "exchangeRateId",
+          "effectiveDate",
+          "rateToFunctional",
+          "source",
+          "isFunctionalCurrency"
+        ],
+        "type": "object",
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "functionalCurrency": {
+            "type": "string"
+          },
+          "accountingDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "exchangeRateId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "effectiveDate": {
+            "format": "date"
+          },
+          "rateToFunctional": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "isFunctionalCurrency": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "FiscalCalendar": {
         "required": [
           "year",
@@ -7177,6 +7636,48 @@
         },
         "additionalProperties": false
       },
+      "PageOfExchangeRate": {
+        "required": [
+          "items",
+          "totalCount",
+          "offset",
+          "limit"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExchangeRate"
+            }
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "PageOfFiscalYear": {
         "required": [
           "items",
@@ -7345,6 +7846,48 @@
         },
         "additionalProperties": false
       },
+      "PageOfPeriodCloseIssue": {
+        "required": [
+          "items",
+          "totalCount",
+          "offset",
+          "limit"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodCloseIssue"
+            }
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "PageOfRecurringJournalGeneration": {
         "required": [
           "items",
@@ -7425,6 +7968,112 @@
               "string"
             ],
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PeriodCloseCheck": {
+        "required": [
+          "code",
+          "passed"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "passed": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PeriodCloseIssue": {
+        "required": [
+          "journalId",
+          "branchId",
+          "number",
+          "state",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "journalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/JournalState"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PeriodClosePreview": {
+        "required": [
+          "periodId",
+          "expectedVersion",
+          "checkedAt",
+          "generalLedgerOnly",
+          "canCloseGeneralLedger",
+          "checks",
+          "postedJournalCount",
+          "unpostedJournalCount",
+          "issues"
+        ],
+        "type": "object",
+        "properties": {
+          "periodId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "generalLedgerOnly": {
+            "type": "boolean"
+          },
+          "canCloseGeneralLedger": {
+            "type": "boolean"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodCloseCheck"
+            }
+          },
+          "postedJournalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "unpostedJournalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "issues": {
+            "$ref": "#/components/schemas/PageOfPeriodCloseIssue"
           }
         },
         "additionalProperties": false
@@ -8174,10 +8823,10 @@
       "name": "SYS05 Exchange rates"
     },
     {
-      "name": "SYS03 Fiscal calendar"
+      "name": "GL11 Period close"
     },
     {
-      "name": "GL11 Period close"
+      "name": "SYS03 Fiscal calendar"
     },
     {
       "name": "GL12 Period reopen"
