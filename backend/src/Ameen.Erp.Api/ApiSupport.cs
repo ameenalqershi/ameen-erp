@@ -11,6 +11,11 @@ namespace Ameen.Erp.Api;
 
 public static class ApiSupport
 {
+    public static decimal ExactQuantity(string value)
+    {
+        try { return JsonSerializer.Deserialize<decimal>(JsonSerializer.Serialize(value), JsonDefaults.Options); }
+        catch (JsonException) { throw new BadHttpRequestException("Quantity must be an exactly representable decimal."); }
+    }
     public static Actor Actor(HttpContext context)
     {
         var subject = context.User.FindFirstValue("sub");

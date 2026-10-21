@@ -9,7 +9,7 @@ namespace Ameen.Erp.Infrastructure;
 
 public sealed partial class ErpDbContext : DbContext
 {
-    public const int SchemaVersion = 9;
+    public const int SchemaVersion = 10;
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options) { }
 
     private static EntityTypeBuilder<T> Tenant<T>(ModelBuilder model, string table) where T : CompanyEntity
@@ -52,6 +52,25 @@ public sealed partial class ErpDbContext : DbContext
         Constraint(currency, "CK_Currency_Revision", "[Revision] > 0");
         currency.HasAlternateKey(x => new { x.CompanyId, x.Code });
         Constraint(currency, "CK_Currency_Scale", "[Scale] BETWEEN 0 AND 6");
+
+        var item = Tenant<Item>(model, "Items");
+        item.Property(x => x.Code).HasMaxLength(32); item.Property(x => x.Name).HasMaxLength(200);
+        item.Property(x => x.EnglishName).HasMaxLength(200); item.Property(x => x.Notes).HasMaxLength(2000); item.Property(x => x.ReorderLevel).HasPrecision(20, 6);
+        item.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
+        item.HasOne<ItemGroup>().WithMany().HasForeignKey(x => new { x.CompanyId, x.GroupId }).OnDelete(DeleteBehavior.NoAction);
+        item.HasOne<UnitOfMeasure>().WithMany().HasForeignKey(x => new { x.CompanyId, x.BaseUnitId }).OnDelete(DeleteBehavior.NoAction);
+        item.HasMany(x => x.Units).WithOne().HasForeignKey(x => new { x.CompanyId, x.ItemId }).OnDelete(DeleteBehavior.Cascade); item.Navigation(x => x.Units).AutoInclude();
+        Constraint(item, "CK_Item_Revision", "[Revision] > 0"); Constraint(item, "CK_Item_Type", "[Type] BETWEEN 0 AND 3"); Constraint(item, "CK_Item_Tracking", "[Tracking] BETWEEN 0 AND 2");
+        Constraint(item, "CK_Item_Reorder", "[ReorderLevel] IS NULL OR [ReorderLevel] >= 0");
+        Constraint(item, "CK_Item_Expiry", "[ShelfLifeDays] IS NULL OR ([ShelfLifeDays] > 0 AND [Tracking] <> 0)");
+        Constraint(item, "CK_Item_Service", "[Type] <> 1 OR ([Tracking] = 0 AND [ShelfLifeDays] IS NULL AND [ReorderLevel] IS NULL)");
+        var itemUnit = Tenant<ItemUnit>(model, "ItemUnits");
+        itemUnit.Property(x => x.FactorToBase).HasPrecision(20, 6); itemUnit.Property(x => x.SalePrice).HasPrecision(20, 6);
+        itemUnit.Property(x => x.Barcode).HasMaxLength(128).UseCollation("Latin1_General_100_BIN2");
+        itemUnit.HasIndex(x => new { x.CompanyId, x.ItemId, x.UnitId }).IsUnique();
+        itemUnit.HasIndex(x => new { x.CompanyId, x.Barcode }).IsUnique().HasFilter("[Barcode] IS NOT NULL");
+        itemUnit.HasOne<UnitOfMeasure>().WithMany().HasForeignKey(x => new { x.CompanyId, x.UnitId }).OnDelete(DeleteBehavior.NoAction);
+        Constraint(itemUnit, "CK_ItemUnit_Factor", "[FactorToBase] > 0"); Constraint(itemUnit, "CK_ItemUnit_Price", "[SalePrice] IS NULL OR [SalePrice] >= 0");
 
         var itemGroup = Tenant<ItemGroup>(model, "ItemGroups");
         itemGroup.Property(x => x.Code).HasMaxLength(32); itemGroup.Property(x => x.Name).HasMaxLength(200);
@@ -203,6 +222,10 @@ public sealed partial class ErpDbContext : DbContext
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "receipt_immutable", "نتيجة الطلب المحفوظة غير قابلة للتعديل.");
         foreach (var entry in ChangeTracker.Entries<RecurringJournalGeneration>())
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "recurring_generation_immutable", "سجل توليد القيد غير قابل للتعديل أو الحذف.");
+        foreach (var entry in ChangeTracker.Entries<ItemUnit>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            Check.That(ChangeTracker.Entries<Item>().Any(t => t.Entity.CompanyId == entry.Entity.CompanyId && t.Entity.Id == entry.Entity.ItemId &&
+                (t.State == EntityState.Added || (t.State == EntityState.Modified && t.Property(x => x.Version).IsModified))),
+                "item_units_owner_required", "تعديل وحدات الصنف يتطلب تحميل البطاقة وتغيير إصدارها.");
         foreach (var entry in ChangeTracker.Entries<RecurringJournalLine>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
             Check.That(ChangeTracker.Entries<RecurringJournalTemplate>().Any(t => t.Entity.CompanyId == entry.Entity.CompanyId && t.Entity.Id == entry.Entity.TemplateId &&
                 (t.State == EntityState.Added || (t.State == EntityState.Modified && t.Property(x => x.Version).IsModified))),

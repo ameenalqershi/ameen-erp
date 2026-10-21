@@ -228,6 +228,31 @@ public static class HostedApiIntegration
                     using var response = await client.SendAsync(invalid); Ensure(response.StatusCode == HttpStatusCode.BadRequest, "Global unit conversion accepted over HTTP");
                 }
                 Console.WriteLine("  HOST PASS INV03 create/edit/search/status/detail/audit and rejection of global conversion over HTTPS/JWT/SQL");
+                // A dedicated active group/unit; earlier card lifecycle checks intentionally disabled their cards.
+                var itemGroup = await Command(client, groupsPath, new CreateItemGroupRequest("HTTP-ITEM-G", "خدمات", groupSales.ResourceId));
+                var itemUnit = await Command(client, unitsPath, new CreateUnitRequest("HTTP-ITEM-U", "وحدة", "EA", 0, "وحدة"));
+                var itemsPath = $"/api/v1/companies/{companyId}/items";
+                var itemRequest = new CreateItemRequest("HTTP-ITEM", "خدمة", ItemType.Service, ItemTracking.None, itemGroup.ResourceId, itemUnit.ResourceId,
+                    new[] { new ItemUnitRequest(itemUnit.ResourceId, 1m, "000-HTTP-ITEM", 10m) });
+                var itemCard = await Command(client, itemsPath, itemRequest);
+                itemCard = await Command(client, itemsPath + $"/{itemCard.ResourceId}", new EditItemRequest(itemCard.Version, itemRequest.Code, "خدمة معدلة", itemRequest.Type, itemRequest.Tracking,
+                    itemRequest.GroupId, itemRequest.BaseUnitId, itemRequest.Units, null, null, "HTTP service", null, "تعديل"), method: HttpMethod.Put);
+                using (var response = await client.GetAsync(itemsPath + "?search=000-HTTP-ITEM"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("items")[0].GetProperty("units")[0].GetProperty("barcode").GetString() == "000-HTTP-ITEM", "HTTP item barcode failed");
+                using (var response = await client.GetAsync(itemsPath + $"/{itemCard.ResourceId}/convert-quantity?unitId={itemUnit.ResourceId}&quantity=2"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("baseQuantity").GetString() == "2", "HTTP conversion failed");
+                using (var response = await client.GetAsync(itemsPath + $"/{itemCard.ResourceId}/convert-quantity?unitId={itemUnit.ResourceId}&quantity=1.00000000000000000000000000001"))
+                    Ensure(response.StatusCode == HttpStatusCode.BadRequest, "HTTP quantity silently rounded");
+                using (var response = await client.GetAsync(unitsPath + $"/{itemUnit.ResourceId}/items"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP unit items failed");
+                await Command(client, itemsPath + $"/{itemCard.ResourceId}/status", new SetItemStatusRequest(itemCard.Version, false, "تعطيل"));
+                using (var response = await client.GetAsync(itemsPath + $"/{itemCard.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "HTTP item audit failed");
+                Console.WriteLine("  HOST PASS INV04 item lifecycle, barcode search, exact conversion, unit usage and audit over HTTPS/JWT/SQL");
                 var ratesPath = $"/api/v1/companies/{companyId}/exchange-rates";
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));
                 var rate = await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date, 1.25m, "HTTP source"));

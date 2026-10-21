@@ -733,42 +733,42 @@ INV02,INV02-F13,أنشأه,system,audit,AuditEvent.ActorId: item-group.created,G
 INV02,INV02-F14,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: item-group.created,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
 INV02,INV02-F15,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
 INV02,INV02-F16,آخر تعديل,system,audit,AuditEvent.OccurredAt: item-group.edited / item-group.status-changed,GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups
-INV03,INV03-F01,المعرف الداخلي,system,implemented,UnitOfMeasure.Id,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F08,رمز الوحدة القياسي,required,implemented,StandardCode,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F09,عدد الكسور المسموح,required,implemented,QuantityScale,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F10,وصف الوحدة,required,implemented,Description,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F11,أنشأه,system,audit,AuditEvent.ActorId: unit.created,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: unit.created,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F13,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV03,INV03-F14,آخر تعديل,system,audit,AuditEvent.OccurredAt: unit.edited / unit.status-changed,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV04,INV04-F01,المعرف الداخلي,system,pending,,
-INV04,INV04-F02,الشركة,system,pending,,
-INV04,INV04-F03,الرمز,required,pending,,
-INV04,INV04-F04,الاسم العربي,required,pending,,
-INV04,INV04-F05,الاسم الإنجليزي,optional,pending,,
-INV04,INV04-F06,فعال,required,pending,,
-INV04,INV04-F07,ملاحظات,optional,pending,,
-INV04,INV04-F08,نوع الصنف,required,pending,,
-INV04,INV04-F09,المجموعة,required,pending,,
-INV04,INV04-F10,الوحدة الأساسية,required,pending,,
-INV04,INV04-F11,طريقة التتبع,required,pending,,
-INV04,INV04-F12,مدة الصلاحية,conditional,pending,,
-INV04,INV04-F13,حد إعادة الطلب,optional,pending,,
+INV03,INV03-F01,المعرف الداخلي,system,implemented,UnitOfMeasure.Id,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F08,رمز الوحدة القياسي,required,implemented,StandardCode,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F09,عدد الكسور المسموح,required,implemented,QuantityScale,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F10,وصف الوحدة,required,implemented,Description,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F11,أنشأه,system,audit,AuditEvent.ActorId: unit.created,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: unit.created,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F13,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV03,INV03-F14,آخر تعديل,system,audit,AuditEvent.OccurredAt: unit.edited / unit.status-changed,GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items
+INV04,INV04-F01,المعرف الداخلي,system,implemented,Item.Id,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F08,نوع الصنف,required,partial,Item.Type: Goods/Service/Material/Product initial inferred scope,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F09,المجموعة,required,implemented,GroupId,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F10,الوحدة الأساسية,required,implemented,BaseUnitId,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F11,طريقة التتبع,required,partial,Item.Tracking: None/Lot/Serial initial inferred scope,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F12,مدة الصلاحية,conditional,implemented,ShelfLifeDays,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F13,حد إعادة الطلب,optional,implemented,ReorderLevel,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
 INV04,INV04-F14,رمز الضريبة,conditional,pending,,
-INV04,INV04-F15,الوحدة البديلة,optional,pending,,
-INV04,INV04-F16,معامل التحويل,conditional,pending,,
-INV04,INV04-F17,الباركود,optional,pending,,
-INV04,INV04-F18,سعر البيع,optional,pending,,
-INV04,INV04-F19,أنشأه,system,pending,,
-INV04,INV04-F20,وقت الإنشاء,system,pending,,
-INV04,INV04-F21,رقم إصدار التعديل,system,pending,,
-INV04,INV04-F22,آخر تعديل,system,pending,,
+INV04,INV04-F15,الوحدة البديلة,optional,implemented,Units[].UnitId,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F16,معامل التحويل,conditional,implemented,Units[].FactorToBase,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F17,الباركود,optional,implemented,Units[].Barcode,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F18,سعر البيع,optional,partial,Item.Units[].SalePrice: functional currency only,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F19,أنشأه,system,audit,AuditEvent.ActorId: item.created,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F20,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: item.created,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F21,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
+INV04,INV04-F22,آخر تعديل,system,audit,AuditEvent.OccurredAt: item.edited / item.status-changed,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
 INV05,INV05-F01,المعرف الداخلي,system,pending,,
 INV05,INV05-F02,الشركة,system,pending,,
 INV05,INV05-F03,الرمز,required,pending,,

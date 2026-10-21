@@ -7,6 +7,7 @@ GRANT SELECT, INSERT, UPDATE ON SCHEMA::dbo TO [ameen_runtime];
 -- Draft replacement removes old lines; other entities are cancelled/disabled, never deleted.
 GRANT DELETE ON OBJECT::dbo.JournalLines TO [ameen_runtime];
 GRANT DELETE ON OBJECT::dbo.RecurringJournalLines TO [ameen_runtime];
+GRANT DELETE ON OBJECT::dbo.ItemUnits TO [ameen_runtime];
 DENY UPDATE, DELETE ON OBJECT::dbo.AuditEvents TO [ameen_runtime];
 DENY UPDATE, DELETE ON OBJECT::dbo.IdempotencyRecords TO [ameen_runtime];
 DENY UPDATE, DELETE ON OBJECT::dbo.ExchangeRates TO [ameen_runtime];

@@ -122,16 +122,22 @@ MAP["COST01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name f
     ["CostCenterTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("INV02", "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/item-groups",
        "شجرة مجموعات بلا دورات وربط حسابات المبيعات والمخزون والتكلفة؛ بحث وتعديل وحالة وتدقيق؛ حماية بنية الحساب المرتبط ومنع تعطيله مع مجموعة فعالة",
-       "مرجع الضريبة الافتراضي واستخدام الأصناف وسياسة تجاوز إعدادات المجموعة غير منفذة؛ شروط إلزام حساب المخزون والتكلفة حسب نوع الصنف تحسم مع INV04؛ لا ترحيل مخزون",
+       "مرجع الضريبة الافتراضي وسياسة تجاوز إعدادات المجموعة غير منفذين؛ استخدام الأصناف يقفل البنية وحسابا المخزون والتكلفة مطلوبان لغير الخدمة؛ لا ترحيل مخزون",
        {1: "ItemGroup.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "ParentId", 9: "InventoryAccountId", 10: "SalesAccountId", 11: "CostAccountId", 15: "Revision"},
        [(13, "AuditEvent.ActorId: item-group.created"), (14, "AuditEvent.OccurredAt: item-group.created"), (16, "AuditEvent.OccurredAt: item-group.edited / item-group.status-changed")])
 MAP["INV02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["ItemGroupTests.cs", "ItemGroupSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
-screen("INV03", "GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",
+screen("INV03", "GET/POST /companies/{companyId}/units; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|items",
        "دليل وحدات بأسماء ورمز قياسي ووصف ودقة كمية وإصدار عددي؛ بحث وتعديل وحالة وتدقيق؛ لا معامل تحويل عام",
-       "عرض الاستخدام وقفل البنية عند ربط ITEM_UNIT ينفذان مع INV04؛ لا باركود أو تحويل أو حركة مخزون بعد؛ الرمز القياسي تحقق شكلي بلا سجل خارجي؛ دقة كمية 0..6 حد تقني معلن",
+       "عرض أصناف الوحدة وقفل البنية بعد ربط ITEM_UNIT منفذان؛ تحويل الوحدة والباركود في INV04؛ لا حركة مخزون بعد؛ الرمز القياسي تحقق شكلي بلا سجل خارجي؛ دقة كمية 0..6 حد تقني معلن",
        {1: "UnitOfMeasure.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "StandardCode", 9: "QuantityScale", 10: "Description", 13: "Revision"},
        [(11, "AuditEvent.ActorId: unit.created"), (12, "AuditEvent.OccurredAt: unit.created"), (14, "AuditEvent.OccurredAt: unit.edited / unit.status-changed")])
 MAP["INV03"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["UnitTests.cs", "UnitSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+screen("INV04", "GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items",
+       "بطاقة صنف ووحدات خاصة به ومعامل أساسي واحد وباركود فريد وسعر بالعملة الوظيفية؛ تحويل دقيق؛ حماية المجموعات والوحدات المستخدمة؛ بحث وحالة وتدقيق",
+       "قوائم نوع الصنف والتتبع نطاق أولي مستنتج من الغرض وINV05 وليست قائمة سياسة نهائية؛ الضريبة وحركة المخزون والدفعات والتسلسل التشغيلي والاستخدام المستندي غير منفذة؛ قفل الصنف بعد الحركة يجب إضافته مع دفتر المخزون",
+       {1: "Item.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "Type", 9: "GroupId", 10: "BaseUnitId", 11: "Tracking", 12: "ShelfLifeDays", 13: "ReorderLevel", 15: "Units[].UnitId", 16: "Units[].FactorToBase", 17: "Units[].Barcode", 18: "Units[].SalePrice (functional currency)", 21: "Revision"},
+       [(19, "AuditEvent.ActorId: item.created"), (20, "AuditEvent.OccurredAt: item.created"), (22, "AuditEvent.OccurredAt: item.edited / item.status-changed")])
+MAP["INV04"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["ItemTests.cs", "ItemSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("RPT01", "GET /companies/{companyId}/reports/trial-balance",
        "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج", "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
        {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 9: "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)", 10: "query.costCenterId", 11: "query.showZero"})
@@ -157,6 +163,9 @@ for code, n, binding, status in [
     ("GL07", 4, "FiscalPeriod.FiscalYearId", "derived"),
     ("GL07", 8, "Lines[].CurrencyCode copied from original", "partial"),
     ("GL07", 9, "Lines[].ExchangeRate copied from original", "partial"),
+    ("INV04", 8, "Item.Type: Goods/Service/Material/Product initial inferred scope", "partial"),
+    ("INV04", 11, "Item.Tracking: None/Lot/Serial initial inferred scope", "partial"),
+    ("INV04", 18, "Item.Units[].SalePrice: functional currency only", "partial"),
     ("GL11", 3, "FiscalPeriod.IsClosed: general ledger only", "partial"),
     ("GL11", 7, "PeriodClosePreview.Checks.Code: general ledger checks only", "partial"),
     ("GL11", 8, "PeriodClosePreview.Checks.Passed: general ledger checks only", "partial"),

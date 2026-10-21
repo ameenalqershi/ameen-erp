@@ -24,6 +24,12 @@
 | POST | `/branches/{id}/status` | SetBranchStatusRequest | company.configure لكل الفروع |
 | GET | `/branches/{id}/usage` | BranchUsage | ledger.read لكل الفروع |
 | GET | `/branches/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read لكل الفروع |
+| GET / POST | `/items` | Page&lt;Item&gt; / CreateItemRequest | ledger.read / company.configure لكل الفروع |
+| GET / PUT | `/items/{id}` | Item / EditItemRequest | ledger.read / company.configure لكل الفروع |
+| POST | `/items/{id}/status` | SetItemStatusRequest | company.configure لكل الفروع |
+| GET | `/items/{id}/audit-events` | Page&lt;AuditEvent&gt; | ledger.read + audit.read لكل الفروع |
+| GET | `/items/{id}/convert-quantity` | ItemQuantityConversion؛ unitId وquantity إلزاميان | ledger.read |
+| GET | `/units/{id}/items` | Page&lt;Item&gt; | ledger.read لكل الفروع |
 | GET / POST | `/item-groups` | Page&lt;ItemGroup&gt; / CreateItemGroupRequest | ledger.read / company.configure لكل الفروع |
 | GET / PUT | `/item-groups/{id}` | ItemGroup / EditItemGroupRequest | ledger.read / company.configure لكل الفروع |
 | POST | `/item-groups/{id}/status` | SetItemGroupStatusRequest | company.configure لكل الفروع |
@@ -172,3 +178,5 @@
 دليل الوحدات العام وحدود الدقة والتحويل في [INV03](units.md).
 
 شجرة المجموعات وروابط الحسابات وحدود الضريبة والاستخدام في [INV02](item-groups.md).
+
+بطاقة الصنف وقيم القوائم الأولية والمعامل والباركود والسعر والتحويل في [INV04](items.md).

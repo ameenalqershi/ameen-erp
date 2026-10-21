@@ -46,7 +46,14 @@ public sealed partial class ErpService
             var candidate = new ItemGroup(cid, request.Code, request.Name, request.SalesAccountId, request.ParentId, request.InventoryAccountId, request.CostAccountId, request.EnglishName, request.Notes);
             await UniqueGroupCode(cid, id, candidate.Code, token);
             if (candidate.ParentId != group.ParentId) await ValidateGroupTree(cid, id, candidate.ParentId, token);
-            // INV04 must introduce usage locks before enabling items or stock documents.
+            if (group.Code != candidate.Code || group.ParentId != candidate.ParentId || group.SalesAccountId != candidate.SalesAccountId || group.InventoryAccountId != candidate.InventoryAccountId || group.CostAccountId != candidate.CostAccountId)
+            {
+                var groups = await store.Find<ItemGroup>(cid, x => true, token); var ids = new HashSet<Guid> { id }; var pending = new Stack<Guid>(); pending.Push(id);
+                while (pending.TryPop(out var parent)) foreach (var child in groups.Where(x => x.ParentId == parent))
+                { Check.That(ids.Add(child.Id), "item_group_cycle", "دورة في المجموعات."); pending.Push(child.Id); }
+                var usedIds = ids.ToArray();
+                Check.That(!(await store.Find<Item>(cid, x => usedIds.Contains(x.GroupId), token)).Any(), "item_group_in_use", "المجموعة أو أحد فروعها مرتبط بصنف؛ لا يمكن تغيير البنية.", ErrorKind.Conflict);
+            }
             if (group.IsActive || candidate.SalesAccountId != group.SalesAccountId || candidate.InventoryAccountId != group.InventoryAccountId || candidate.CostAccountId != group.CostAccountId)
                 await ValidateGroupAccounts(cid, candidate, token);
             var before = GroupSnapshot(group);
@@ -58,7 +65,11 @@ public sealed partial class ErpService
         {
             var group = await Required<ItemGroup>(cid, id, token); Check.Version(group, request.ExpectedVersion); var reason = Check.Text(request.Reason, "السبب", 500);
             if (request.IsActive) { await ValidateGroupTree(cid, id, group.ParentId, token); await ValidateGroupAccounts(cid, group, token); }
-            else Check.That(!(await store.Find<ItemGroup>(cid, x => x.ParentId == id && x.IsActive, token)).Any(), "active_child_groups", "عطل المجموعات التابعة أولًا.", ErrorKind.Conflict);
+            else
+            {
+                Check.That(!(await store.Find<Item>(cid, x => x.GroupId == id && x.IsActive, token)).Any(), "group_used_by_active_item", "المجموعة مرتبطة بصنف فعال.", ErrorKind.Conflict);
+                Check.That(!(await store.Find<ItemGroup>(cid, x => x.ParentId == id && x.IsActive, token)).Any(), "active_child_groups", "عطل المجموعات التابعة أولًا.", ErrorKind.Conflict);
+            }
             var before = GroupSnapshot(group); group.SetActive(request.IsActive);
             Audit(cid, actor, "item-group.status-changed", group, new { before, after = GroupSnapshot(group), reason }); return Receipt(group, group.IsActive ? "Active" : "Inactive");
         }, ct);

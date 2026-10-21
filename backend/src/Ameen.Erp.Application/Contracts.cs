@@ -19,6 +19,7 @@ public interface IErpStore
         Func<IQueryable<T>, IOrderedQueryable<T>> order, int offset, int limit, CancellationToken ct) where T : CompanyEntity;
     void Add(Entity entity);
     void RemoveLines(IEnumerable<JournalLine> lines);
+    void RemoveItemUnits(IEnumerable<ItemUnit> units);
     void RemoveRecurringLines(IEnumerable<RecurringJournalLine> lines);
     Task Save(CancellationToken ct);
 }
@@ -128,3 +129,11 @@ public sealed record CreateItemGroupRequest(string Code, string Name, Guid Sales
 public sealed record EditItemGroupRequest(Guid ExpectedVersion, string Code, string Name, Guid SalesAccountId, Guid? ParentId,
     Guid? InventoryAccountId, Guid? CostAccountId, string? EnglishName, string? Notes, string Reason);
 public sealed record SetItemGroupStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+
+public sealed record ItemUnitRequest(Guid UnitId, decimal FactorToBase, string? Barcode = null, decimal? SalePrice = null);
+public sealed record CreateItemRequest(string Code, string Name, ItemType Type, ItemTracking Tracking, Guid GroupId, Guid BaseUnitId,
+    ItemUnitRequest[] Units, int? ShelfLifeDays = null, decimal? ReorderLevel = null, string? EnglishName = null, string? Notes = null);
+public sealed record EditItemRequest(Guid ExpectedVersion, string Code, string Name, ItemType Type, ItemTracking Tracking, Guid GroupId, Guid BaseUnitId,
+    ItemUnitRequest[] Units, int? ShelfLifeDays, decimal? ReorderLevel, string? EnglishName, string? Notes, string Reason);
+public sealed record SetItemStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+public sealed record ItemQuantityConversion(Guid ItemId, Guid ItemVersion, Guid UnitId, Guid BaseUnitId, decimal Quantity, decimal FactorToBase, decimal BaseQuantity);

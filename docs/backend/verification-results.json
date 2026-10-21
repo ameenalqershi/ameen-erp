@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T18:43:39.337800+00:00",
+  "startedAtUtc": "2026-10-21T20:35:44.585489+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "b2f59322bd5939da21fe4f09cd6242b1244328d4145fe2ae37a192dc3602c666",
+  "sourceSha256": "1ead74117bc2ea7b7b01b35c0ff23d67ed2c22d631d15e898420d68c62df5651",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -154,6 +154,16 @@
     "PASS INV02 GL01: group reference locks account structure and blocks disabling active dependency",
     "PASS INV02: edit replay stale version and rollback preserve card and audit",
     "PASS INV02: company references and permission boundaries enforced",
+    "PASS INV04: item units barcode and price roundtrip without stock movement",
+    "PASS INV04: per-item conversion is exact and rejects fractional base quantities",
+    "PASS INV04: services cannot carry stock policy and serial base units cannot allow fractions",
+    "PASS INV04: missing base unit repeated units invalid factors and price precision rejected",
+    "PASS INV04: company barcode uniqueness includes disabled items",
+    "PASS INV04 INV03: used unit structure locks and active item prevents disabling",
+    "PASS INV04 INV02: used group structural edits and disabling are protected",
+    "PASS INV04: item prices freeze functional currency before journals",
+    "PASS INV04: failed line replacement is atomic and exact retry replays",
+    "PASS INV04: company scope and write permissions are mandatory",
     "PASS COST01: bilingual hierarchy and responsible member roundtrip with scoped search",
     "PASS COST01: direct and indirect cycles are rejected atomically",
     "PASS COST01: branch parent cannot own a global or another-branch child",
@@ -221,6 +231,7 @@
     "  SQL PASS atomic/idempotent schema 006→007 preserves branch identity without invented address",
     "  SQL PASS atomic/idempotent schema 007→008 adds empty unit catalog and preserves prior data",
     "  SQL PASS atomic/idempotent schema 008→009 preserves prior data and adds empty item groups",
+    "  SQL PASS atomic/idempotent schema 009→010 preserves prior data and adds item/unit tables",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
     "  SQL PASS concurrent idempotency across independent connections",
@@ -242,6 +253,7 @@
     "  SQL PASS COST01 hierarchy, responsibility FK, concurrent replay, scoped search and subtree usage lock",
     "  SQL PASS SYS04/COST01 audit failures roll back cards and receipts; exact retries succeed",
     "  SQL PASS COST01 tenant FKs and SYS04/COST01 status writes under runtime role",
+    "  SQL PASS INV04 concurrent replay, line replacement, barcode race, audit rollback, runtime role and cross-company unit FK",
     "  SQL PASS INV02 replay, concurrent cycle prevention, rollback/retry under runtime role, SQL search/account usage and tenant FK",
     "  SQL PASS INV03 concurrent creation/edit replay, SQL search, audit rollback/retry, runtime role and precision constraint",
     "  SQL PASS SYS03 custom periods, concurrent replay/overlap protection, SQL reads, atomic rollback and runtime-role retry",
@@ -252,6 +264,7 @@
     "  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL",
     "  HOST PASS INV02 create/edit/search/status/detail/audit and account references over HTTPS/JWT/SQL",
     "  HOST PASS INV03 create/edit/search/status/detail/audit and rejection of global conversion over HTTPS/JWT/SQL",
+    "  HOST PASS INV04 item lifecycle, barcode search, exact conversion, unit usage and audit over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
     "  HOST PASS GL01 create/detail/PUT edit/replay, explicit nature, usage and audit over production HTTPS/JWT/SQL",
@@ -261,8 +274,8 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 167,
-  "total": 167,
+  "passed": 177,
+  "total": 177,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T18:44:05.595960+00:00"
+  "finishedAtUtc": "2026-10-21T20:36:22.488691+00:00"
 }

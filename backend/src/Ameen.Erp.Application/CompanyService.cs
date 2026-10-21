@@ -20,7 +20,7 @@ public sealed partial class ErpService
             if (candidate.Code != company.Code)
                 Check.That(!await store.CompanyCodeExists(candidate.Code, token), "company_exists", "رمز الشركة مستخدم بالفعل.", ErrorKind.Conflict);
             if (candidate.FunctionalCurrency != company.FunctionalCurrency || candidate.CurrencyScale != company.CurrencyScale)
-                Check.That(await CanChangeFunctionalCurrency(cid, token), "functional_currency_in_use", "تغيير العملة الوظيفية بعد وجود قيود أو أسعار أو قوالب يتطلب مشروع تحويل معتمد.", ErrorKind.Conflict);
+                Check.That(await CanChangeFunctionalCurrency(cid, token), "functional_currency_in_use", "تغيير العملة الوظيفية بعد وجود قيود أو أسعار أو قوالب أو أسعار أصناف يتطلب مشروع تحويل معتمد.", ErrorKind.Conflict);
             var years = await store.Find<FiscalYear>(cid, x => true, token);
             Check.That(years.Count == 0 || candidate.FiscalYearStartsOn == years.Min(x => x.StartsOn),
                 "company_calendar_in_use", "بداية الشركة يجب أن تطابق أقدم سنة مالية معرفة.", ErrorKind.Conflict);
@@ -33,7 +33,8 @@ public sealed partial class ErpService
     private async Task<bool> CanChangeFunctionalCurrency(Guid cid, CancellationToken ct) =>
         (await store.Find<JournalEntry>(cid, x => true, ct)).Count == 0 &&
         (await store.Find<ExchangeRate>(cid, x => true, ct)).Count == 0 &&
-        (await store.Find<RecurringJournalTemplate>(cid, x => true, ct)).Count == 0;
+        (await store.Find<RecurringJournalTemplate>(cid, x => true, ct)).Count == 0 &&
+        !(await store.Find<Item>(cid, x => x.Units.Any(u => u.SalePrice != null), ct)).Any();
 
     public Task<CommandReceipt> SetCompanyStatus(Guid cid, Actor actor, string key, SetCompanyStatusRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "company.status:" + cid, request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
@@ -52,7 +53,7 @@ public sealed partial class ErpService
         var rates = (await store.Find<ExchangeRate>(cid, x => true, ct)).Count;
         return new(cid, (await store.Find<Branch>(cid, x => true, ct)).Count, (await store.Find<Account>(cid, x => true, ct)).Count,
             (await store.Find<Currency>(cid, x => true, ct)).Count, (await store.Find<FiscalYear>(cid, x => true, ct)).Count,
-            journals, templates, rates, journals == 0 && templates == 0 && rates == 0);
+            journals, templates, rates, await CanChangeFunctionalCurrency(cid, ct));
     }
     public async Task<Page<AuditEvent>> ListCompanyAudit(Guid cid, Actor actor, int offset, int limit, CancellationToken ct)
     {

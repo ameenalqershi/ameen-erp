@@ -25,7 +25,9 @@ public sealed partial class ErpService
             var reason = Check.Text(request.Reason, "سبب التعديل", 500);
             var candidate = new UnitOfMeasure(cid, request.Code, request.Name, request.StandardCode, request.QuantityScale, request.Description, request.EnglishName, request.Notes);
             await UniqueUnitCode(cid, id, candidate.Code, token);
-            // No ITEM_UNIT or stock documents exist yet. Adding those requires a usage lock here before enabling them.
+            if (unit.Code != candidate.Code || unit.StandardCode != candidate.StandardCode || unit.QuantityScale != candidate.QuantityScale)
+                Check.That(!(await store.Find<Item>(cid, x => x.BaseUnitId == id || x.Units.Any(u => u.UnitId == id), token)).Any(),
+                    "unit_structure_in_use", "الوحدة مرتبطة بصنف؛ لا يمكن تغيير رمزها أو دقتها.", ErrorKind.Conflict);
             var before = UnitSnapshot(unit);
             unit.Configure(candidate.Code, candidate.Name, candidate.StandardCode, candidate.QuantityScale, candidate.Description, candidate.EnglishName, candidate.Notes);
             Audit(cid, actor, "unit.edited", unit, new { before, after = UnitSnapshot(unit), reason });
@@ -36,6 +38,9 @@ public sealed partial class ErpService
         {
             var unit = await Required<UnitOfMeasure>(cid, id, token); Check.Version(unit, request.ExpectedVersion);
             var reason = Check.Text(request.Reason, "سبب تغيير الحالة", 500); var before = UnitSnapshot(unit);
+            if (!request.IsActive)
+                Check.That(!(await store.Find<Item>(cid, x => x.IsActive && (x.BaseUnitId == id || x.Units.Any(u => u.UnitId == id)), token)).Any(),
+                    "unit_used_by_active_item", "الوحدة مرتبطة بصنف فعال.", ErrorKind.Conflict);
             unit.SetActive(request.IsActive); Audit(cid, actor, "unit.status-changed", unit, new { before, after = UnitSnapshot(unit), reason });
             return Receipt(unit, unit.IsActive ? "Active" : "Inactive");
         }, ct);
@@ -56,5 +61,10 @@ public sealed partial class ErpService
         Paging(offset, limit); await AuthorizeGlobal(cid, actor, Permissions.Audit, ct); await GetUnit(cid, id, actor, ct);
         return await store.ReadPage<AuditEvent>(cid, x => x.ResourceId == id && (x.Action == "unit.created" || x.Action == "unit.edited" || x.Action == "unit.status-changed"),
             q => q.OrderByDescending(x => x.OccurredAt).ThenBy(x => x.Id), offset, limit, ct);
+    }
+    public async Task<Page<Item>> ListUnitItems(Guid cid, Guid id, Actor actor, int offset, int limit, CancellationToken ct)
+    {
+        Paging(offset, limit); await AuthorizeGlobal(cid, actor, Permissions.Read, ct); await Required<UnitOfMeasure>(cid, id, ct);
+        return await store.ReadPage<Item>(cid, x => x.BaseUnitId == id || x.Units.Any(u => u.UnitId == id), q => q.OrderBy(x => x.Code).ThenBy(x => x.Id), offset, limit, ct);
     }
 }
