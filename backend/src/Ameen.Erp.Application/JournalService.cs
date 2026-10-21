@@ -62,6 +62,7 @@ public sealed partial class ErpService
 
     private async Task ValidateDimensions(Guid cid, Guid branchId, Guid accountId, Guid? costCenterId, string currency, CancellationToken ct)
     {
+        await RequireCurrency(cid, currency, ct);
         var account = await Required<Account>(cid, accountId, ct);
         Check.That(account.IsActive && account.IsPosting, "account_not_postable", "الحساب غير فعال أو رئيسي ولا يقبل الحركة.");
         Check.That(!account.IsControl, "control_account_protected", "الحساب الرقابي يقبل أثر دفتره المساعد فقط.");

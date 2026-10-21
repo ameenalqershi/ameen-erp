@@ -35,9 +35,13 @@ screen("SYS03", "GET/POST /companies/{companyId}/fiscal-years; GET /companies/{c
        "سنة وفترات شهرية متصلة بلا تداخل؛ حالة إقفال الأستاذ", "تعديل تقويم معتمد وفترات مخصصة وإقفال السنة؛ لا يوجد تقويم مختلف لكل فرع",
        {1: "CompanyId", 4: "FiscalYear.Code", 5: "FiscalYear.StartsOn", 6: "FiscalYear.EndsOn", 7: "FiscalPeriod.Code", 8: "FiscalPeriod.StartsOn", 9: "FiscalPeriod.EndsOn", 13: "Version"},
        [(11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
-screen("SYS04", "GET/POST /companies/{companyId}/currencies",
-       "رمز ISO ودقة مستقلة لكل عملة", "الأسماء ورمز العرض واسم الجزء وتعديل البطاقة وحالتها",
-       {1: "Currency.Id", 2: "CompanyId", 3: "Code", 8: "Code", 9: "Scale", 14: "Version"}, [(12, "AuditEvent.ActorId"), (13, "AuditEvent.OccurredAt")])
+screen("SYS04", "GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
+       "بطاقة عملة بأسماء ورمز عرض واسم جزء وإصدار عددي؛ تحرير وحالة وبحث وتدقيق؛ قفل الدقة بعد الاستخدام وفحص التعطيل عند الترحيل",
+       "الرمز الداخلي موحد مع رمز العملة ولا يربط بقائمة ISO خارجية وغير قابل لإعادة التسمية؛ أسماء العملة الوظيفية والبطاقات القديمة تبدأ برمز ISO وتحتاج تحريرًا؛ تحويل الدقة التاريخية غير متاح",
+       {1: "Currency.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "Code", 9: "Scale", 10: "DisplaySymbol", 11: "FractionName", 14: "Revision"},
+       [(12, "AuditEvent.ActorId: currency.created"), (13, "AuditEvent.OccurredAt: currency.created"), (15, "AuditEvent.OccurredAt: currency.edited / currency.status-changed")])
+MAP["SYS04"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["CurrencyTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("SYS05", "GET/POST /companies/{companyId}/exchange-rates",
        "سعر موجب مؤرخ محفوظ بلا تعديل؛ اختيار أحدث سعر نافذ عند إعداد السطر", "أنواع شراء/بيع/محاسبي متعددة وإعدادات نطاقات الأسعار",
        {1: "CompanyId", 4: "CurrencyCode", 6: "EffectiveDate", 8: "Source", 9: "RateToFunctional", 12: "Version"},
@@ -96,9 +100,13 @@ screen("GL11", "POST /companies/{companyId}/periods/{id}/close",
 screen("GL12", "POST /companies/{companyId}/periods/{id}/reopen",
        "فتح فترة بصلاحية مستقلة وسبب مسجل", "مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي",
        {1: "route.companyId", 4: "route.id", 5: "ChangePeriodRequest.Reason", 10: "Version"}, [(8, "AuditEvent.ActorId"), (9, "AuditEvent.OccurredAt")])
-screen("COST01", "GET/POST /companies/{companyId}/cost-centers",
-       "تعريف مركز مرتبط اختياريًا بفرع وإلزامه على الحساب", "شجرة مراكز وأنواع ومسؤول وتعديل وتعطيل البطاقة",
-       {1: "CostCenter.Id", 2: "CompanyId", 3: "Code", 4: "Name", 9: "BranchId", 14: "Version"}, [(12, "AuditEvent.ActorId"), (13, "AuditEvent.OccurredAt")])
+screen("COST01", "GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
+       "شجرة مراكز بلا دورات وبنطاق فرع متسق؛ أسماء وملاحظات ومسؤول فعال وإصدار عددي؛ تعديل وتعطيل وبحث واستخدام وتدقيق",
+       "قائمة نوع المركز غير محددة في التحليل وتنتظر توضيح المستخدم؛ الموازنات والتوزيعات وتقارير تجميع الشجرة لم تنفذ",
+       {1: "CostCenter.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "ParentId", 9: "BranchId", 10: "ResponsibleMembershipId -> active company Membership with center branch scope", 14: "Revision"},
+       [(12, "AuditEvent.ActorId: cost-center.created"), (13, "AuditEvent.OccurredAt: cost-center.created"), (15, "AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed")])
+MAP["COST01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["CostCenterTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("RPT01", "GET /companies/{companyId}/reports/trial-balance",
        "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج", "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
        {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 9: "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)", 10: "query.costCenterId", 11: "query.showZero"})
@@ -179,7 +187,7 @@ def generate():
     diagram_notes = {
         "module-SYS": "تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات",
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
-        "module-COST": "مراكز مستقلة فقط بلا هرمية أو موازنات",
+        "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد؛ DOCUMENT والدفاتر المساعدة لاحقًا",

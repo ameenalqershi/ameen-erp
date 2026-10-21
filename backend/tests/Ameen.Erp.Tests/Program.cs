@@ -201,7 +201,7 @@ Test("BR09: configuration administrator has no implicit financial rights", async
 });
 Test("BR10: missing, negative and future exchange rates fail", async f =>
 {
-    await f.Service.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2), default);
+    await f.Service.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2, "دولار أمريكي"), default);
     await Error("invalid_exchange_rate", () => f.Service.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date, -1, "اختبار"), default));
     var req = f.Request(); req.Lines[0] = req.Lines[0] with { CurrencyCode = "USD" };
     await Error("exchange_rate_required", () => f.Draft(req));
@@ -211,7 +211,7 @@ Test("BR10: missing, negative and future exchange rates fail", async f =>
 });
 Test("BR10: mixed currencies balance functionally and preserve historical reversal rate", async f =>
 {
-    await f.Service.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2), default);
+    await f.Service.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2, "دولار أمريكي"), default);
     var rate = await f.Service.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date, 3.75m, "اختبار"), default);
     var req = f.Request(100, 375); req.Lines[0] = req.Lines[0] with { CurrencyCode = "USD", ExchangeRateId = rate.ResourceId };
     var original = await f.Post(await f.Draft(req));
@@ -413,6 +413,8 @@ tests.Add(("API: every ERP endpoint requires authentication and carries screen t
     Assert(ApiSupport.Actor(h).IsPlatformAdministrator);
 }));
 
+CostCenterTests.Register(Test);
+CurrencyTests.Register(Test);
 AccountTests.Register(Test);
 RecurringTests.Register(Test);
 tests.Add(("HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON", HttpIntegration.Run));

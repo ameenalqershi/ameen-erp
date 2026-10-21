@@ -54,21 +54,21 @@ SYS03,SYS03-F11,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{
 SYS03,SYS03-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
 SYS03,SYS03-F13,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/fiscal-years; GET /companies/{companyId}/periods
 SYS03,SYS03-F14,آخر تعديل,system,pending,,
-SYS04,SYS04-F01,المعرف الداخلي,system,implemented,Currency.Id,GET/POST /companies/{companyId}/currencies
-SYS04,SYS04-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/currencies
-SYS04,SYS04-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/currencies
-SYS04,SYS04-F04,الاسم العربي,required,pending,,
-SYS04,SYS04-F05,الاسم الإنجليزي,optional,pending,,
-SYS04,SYS04-F06,فعال,required,pending,,
-SYS04,SYS04-F07,ملاحظات,optional,pending,,
-SYS04,SYS04-F08,رمز ISO,required,implemented,Code,GET/POST /companies/{companyId}/currencies
-SYS04,SYS04-F09,عدد المنازل,required,implemented,Scale,GET/POST /companies/{companyId}/currencies
-SYS04,SYS04-F10,رمز العرض,optional,pending,,
-SYS04,SYS04-F11,اسم الجزء,optional,pending,,
-SYS04,SYS04-F12,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{companyId}/currencies
-SYS04,SYS04-F13,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/currencies
-SYS04,SYS04-F14,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/currencies
-SYS04,SYS04-F15,آخر تعديل,system,pending,,
+SYS04,SYS04-F01,المعرف الداخلي,system,implemented,Currency.Id,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F08,رمز ISO,required,implemented,Code,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F09,عدد المنازل,required,implemented,Scale,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F10,رمز العرض,optional,implemented,DisplaySymbol,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F11,اسم الجزء,optional,implemented,FractionName,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F12,أنشأه,system,audit,AuditEvent.ActorId: currency.created,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F13,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: currency.created,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F14,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+SYS04,SYS04-F15,آخر تعديل,system,audit,AuditEvent.OccurredAt: currency.edited / currency.status-changed,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS05,SYS05-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/exchange-rates
 SYS05,SYS05-F02,الفرع,conditional,pending,,
 SYS05,SYS05-F03,الحالة,system,pending,,
@@ -2002,21 +2002,21 @@ FA06,FA06-F18,أنشأه,system,pending,,
 FA06,FA06-F19,وقت الإنشاء,system,pending,,
 FA06,FA06-F20,رقم إصدار التعديل,system,pending,,
 FA06,FA06-F21,آخر تعديل,system,pending,,
-COST01,COST01-F01,المعرف الداخلي,system,implemented,CostCenter.Id,GET/POST /companies/{companyId}/cost-centers
-COST01,COST01-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/cost-centers
-COST01,COST01-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/cost-centers
-COST01,COST01-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/cost-centers
-COST01,COST01-F05,الاسم الإنجليزي,optional,pending,,
-COST01,COST01-F06,فعال,required,pending,,
-COST01,COST01-F07,ملاحظات,optional,pending,,
-COST01,COST01-F08,المركز الأب,optional,pending,,
-COST01,COST01-F09,الفرع,optional,implemented,BranchId,GET/POST /companies/{companyId}/cost-centers
-COST01,COST01-F10,مسؤول المركز,optional,pending,,
+COST01,COST01-F01,المعرف الداخلي,system,implemented,CostCenter.Id,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F08,المركز الأب,optional,implemented,ParentId,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F09,الفرع,optional,implemented,BranchId,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F10,مسؤول المركز,optional,implemented,ResponsibleMembershipId -> active company Membership with center branch scope,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 COST01,COST01-F11,نوع المركز,required,pending,,
-COST01,COST01-F12,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{companyId}/cost-centers
-COST01,COST01-F13,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/cost-centers
-COST01,COST01-F14,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/cost-centers
-COST01,COST01-F15,آخر تعديل,system,pending,,
+COST01,COST01-F12,أنشأه,system,audit,AuditEvent.ActorId: cost-center.created,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F13,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: cost-center.created,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F14,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
+COST01,COST01-F15,آخر تعديل,system,audit,AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed,GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 COST02,COST02-F01,المعرف الداخلي,system,pending,,
 COST02,COST02-F02,الشركة,system,pending,,
 COST02,COST02-F03,الفرع,required,pending,,

@@ -9,7 +9,7 @@ namespace Ameen.Erp.Infrastructure;
 
 public sealed partial class ErpDbContext : DbContext
 {
-    public const int SchemaVersion = 3;
+    public const int SchemaVersion = 5;
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options) { }
 
     private static EntityTypeBuilder<T> Tenant<T>(ModelBuilder model, string table) where T : CompanyEntity
@@ -37,6 +37,10 @@ public sealed partial class ErpDbContext : DbContext
 
         var currency = Tenant<Currency>(model, "Currencies");
         currency.Property(x => x.Code).HasMaxLength(3);
+        currency.Property(x => x.Name).HasMaxLength(200); currency.Property(x => x.EnglishName).HasMaxLength(200);
+        currency.Property(x => x.Notes).HasMaxLength(2000); currency.Property(x => x.DisplaySymbol).HasMaxLength(20);
+        currency.Property(x => x.FractionName).HasMaxLength(100);
+        Constraint(currency, "CK_Currency_Revision", "[Revision] > 0");
         currency.HasAlternateKey(x => new { x.CompanyId, x.Code });
         Constraint(currency, "CK_Currency_Scale", "[Scale] BETWEEN 0 AND 6");
 
@@ -77,6 +81,11 @@ public sealed partial class ErpDbContext : DbContext
 
         var center = Tenant<CostCenter>(model, "CostCenters");
         center.Property(x => x.Code).HasMaxLength(32); center.Property(x => x.Name).HasMaxLength(200);
+        center.Property(x => x.EnglishName).HasMaxLength(200); center.Property(x => x.Notes).HasMaxLength(2000);
+        center.HasOne<CostCenter>().WithMany().HasForeignKey(x => new { x.CompanyId, x.ParentId }).OnDelete(DeleteBehavior.NoAction);
+        center.HasOne<Membership>().WithMany().HasForeignKey(x => new { x.CompanyId, x.ResponsibleMembershipId }).OnDelete(DeleteBehavior.NoAction);
+        Constraint(center, "CK_CostCenter_Parent", "[ParentId] IS NULL OR [ParentId] <> [Id]");
+        Constraint(center, "CK_CostCenter_Revision", "[Revision] > 0");
         center.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
         center.HasOne<Branch>().WithMany().HasForeignKey(x => new { x.CompanyId, x.BranchId }).OnDelete(DeleteBehavior.NoAction);
 

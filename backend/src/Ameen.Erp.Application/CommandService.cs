@@ -68,7 +68,9 @@ public sealed partial class ErpService
             Check.That(await store.GetCompany(company.Id, token) is null && !await store.CompanyCodeExists(company.Code, token),
                 "company_exists", "معرف الشركة أو رمزها مستخدم بالفعل.", ErrorKind.Conflict);
             store.Add(company);
-            store.Add(new Currency(company.Id, company.FunctionalCurrency, company.CurrencyScale));
+            var functional = new Currency(company.Id, company.FunctionalCurrency, company.CurrencyScale, company.FunctionalCurrency);
+            store.Add(functional);
+            Audit(company.Id, actor, "currency.created", functional, new { after = CurrencySnapshot(functional), Bootstrap = true });
             // Bootstrap does not grant financial approval or posting implicitly.
             store.Add(new Membership(company.Id, actor.Subject,
                 new[] { Permissions.Read, Permissions.Configure, Permissions.Members, Permissions.Audit }, true, Array.Empty<Guid>()));
@@ -88,9 +90,9 @@ public sealed partial class ErpService
     public Task<CommandReceipt> CreateCurrency(Guid cid, Actor actor, string key, CreateCurrencyRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "currency.create", request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
         {
-            var currency = new Currency(cid, request.Code, request.Scale);
+            var currency = new Currency(cid, request.Code, request.Scale, request.Name, request.EnglishName, request.Notes, request.DisplaySymbol, request.FractionName);
             Check.That(!(await store.Find<Currency>(cid, x => x.Code == currency.Code, token)).Any(), "duplicate_currency", "العملة معرفة مسبقًا.", ErrorKind.Conflict);
-            store.Add(currency); Audit(cid, actor, "currency.created", currency, new { currency.Code, currency.Scale });
+            store.Add(currency); Audit(cid, actor, "currency.created", currency, new { after = CurrencySnapshot(currency) });
             return Receipt(currency, "Created");
         }, ct);
 
@@ -108,9 +110,13 @@ public sealed partial class ErpService
             return Receipt(rate, "Created");
         }, ct);
 
-    private async Task<Currency> RequireCurrency(Guid cid, string code, CancellationToken ct) =>
-        (await store.Find<Currency>(cid, x => x.Code == code, ct)).SingleOrDefault()
-        ?? throw new BusinessException("currency_not_found", "العملة غير معرفة في الشركة.");
+    private async Task<Currency> RequireCurrency(Guid cid, string code, CancellationToken ct)
+    {
+        var currency = (await store.Find<Currency>(cid, x => x.Code == code, ct)).SingleOrDefault()
+            ?? throw new BusinessException("currency_not_found", "العملة غير معرفة في الشركة.");
+        Check.That(currency.IsActive, "currency_inactive", "العملة معطلة.", ErrorKind.Conflict);
+        return currency;
+    }
 
     public Task<CommandReceipt> CreateFiscalYear(Guid cid, Actor actor, string key, CreateFiscalYearRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "fiscal-year.create", request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
@@ -136,9 +142,12 @@ public sealed partial class ErpService
         Command(cid, actor, key, "cost-center.create", request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
         {
             if (request.BranchId is Guid branchId) await ActiveBranch(cid, branchId, token);
-            var center = new CostCenter(cid, request.Code, request.Name, request.BranchId);
+            var center = new CostCenter(cid, request.Code, request.Name, request.BranchId, request.ParentId,
+                request.ResponsibleMembershipId, request.EnglishName, request.Notes);
+            await ValidateCenterTree(cid, center.Id, center.ParentId, center.BranchId, token);
+            await ValidateCenterResponsible(cid, center.ResponsibleMembershipId, center.BranchId, token);
             Check.That(!(await store.Find<CostCenter>(cid, x => x.Code == center.Code, token)).Any(), "duplicate_code", "رمز المركز مكرر.", ErrorKind.Conflict);
-            store.Add(center); Audit(cid, actor, "cost-center.created", center, new { center.Code, center.BranchId });
+            store.Add(center); Audit(cid, actor, "cost-center.created", center, new { after = CenterSnapshot(center) });
             return Receipt(center, "Created");
         }, ct);
 

@@ -26,6 +26,18 @@ public static class Endpoints
             Results.Ok(await s.ListSetup<Currency>(companyId, Actor(h), ct))).Produces<IReadOnlyList<Currency>>().RequireAuthorization().WithTags("SYS04 Currencies");
         app.MapPost(p + "/currencies", async (Guid companyId, CreateCurrencyRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.CreateCurrency(companyId, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("SYS04 Currencies");
+        app.MapGet(p + "/currencies/search", async (Guid companyId, string? search, bool? isActive, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.SearchCurrencies(companyId, Actor(h), search, isActive, offset ?? 0, limit ?? 50, ct))).Produces<Page<Currency>>().RequireAuthorization().WithTags("SYS04 Currencies");
+        app.MapGet(p + "/currencies/{id:guid}", async (Guid companyId, Guid id, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetCurrency(companyId, id, Actor(h), ct))).Produces<Currency>().RequireAuthorization().WithTags("SYS04 Currencies");
+        app.MapPut(p + "/currencies/{id:guid}", async (Guid companyId, Guid id, EditCurrencyRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.EditCurrency(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("SYS04 Currencies");
+        app.MapPost(p + "/currencies/{id:guid}/status", async (Guid companyId, Guid id, SetCurrencyStatusRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.SetCurrencyStatus(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("SYS04 Currencies");
+        app.MapGet(p + "/currencies/{id:guid}/usage", async (Guid companyId, Guid id, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetCurrencyUsage(companyId, id, Actor(h), ct))).Produces<CurrencyUsage>().RequireAuthorization().WithTags("SYS04 Currencies");
+        app.MapGet(p + "/currencies/{id:guid}/audit-events", async (Guid companyId, Guid id, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListCurrencyAudit(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("SYS04 Currencies");
         app.MapGet(p + "/exchange-rates", async (Guid companyId, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ListSetup<ExchangeRate>(companyId, Actor(h), ct))).Produces<IReadOnlyList<ExchangeRate>>().RequireAuthorization().WithTags("SYS05 Exchange rates");
         app.MapPost(p + "/exchange-rates", async (Guid companyId, CreateExchangeRateRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
@@ -44,6 +56,18 @@ public static class Endpoints
             Results.Ok(await s.ListSetup<CostCenter>(companyId, Actor(h), ct))).Produces<IReadOnlyList<CostCenter>>().RequireAuthorization().WithTags("COST01 Cost centers");
         app.MapPost(p + "/cost-centers", async (Guid companyId, CreateCostCenterRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.CreateCostCenter(companyId, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("COST01 Cost centers");
+        app.MapGet(p + "/cost-centers/search", async (Guid companyId, string? search, Guid? branchId, Guid? parentId, bool? isActive, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.SearchCostCenters(companyId, Actor(h), search, branchId, parentId, isActive, offset ?? 0, limit ?? 50, ct))).Produces<Page<CostCenter>>().RequireAuthorization().WithTags("COST01 Cost centers");
+        app.MapGet(p + "/cost-centers/{id:guid}", async (Guid companyId, Guid id, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetCostCenter(companyId, id, Actor(h), ct))).Produces<CostCenter>().RequireAuthorization().WithTags("COST01 Cost centers");
+        app.MapPut(p + "/cost-centers/{id:guid}", async (Guid companyId, Guid id, EditCostCenterRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.EditCostCenter(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("COST01 Cost centers");
+        app.MapPost(p + "/cost-centers/{id:guid}/status", async (Guid companyId, Guid id, SetCostCenterStatusRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.SetCostCenterStatus(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("COST01 Cost centers");
+        app.MapGet(p + "/cost-centers/{id:guid}/usage", async (Guid companyId, Guid id, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetCostCenterUsage(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<CostCenterUsage>().RequireAuthorization().WithTags("COST01 Cost centers");
+        app.MapGet(p + "/cost-centers/{id:guid}/audit-events", async (Guid companyId, Guid id, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListCostCenterAudit(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("COST01 Cost centers");
         app.MapGet(p + "/memberships", async (Guid companyId, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ListMembers(companyId, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<Membership>>().RequireAuthorization().WithTags("SYS07 SYS08 Memberships");
         app.MapPost(p + "/memberships", async (Guid companyId, GrantMembershipRequest r, ErpService s, HttpContext h, CancellationToken ct) =>

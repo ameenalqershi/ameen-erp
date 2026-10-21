@@ -33,10 +33,22 @@ public interface ITransactionRunner
 
 public sealed record CreateCompanyRequest(Guid Id, string Code, string Name, string CountryCode, string FunctionalCurrency, int CurrencyScale);
 public sealed record CreateBranchRequest(string Code, string Name);
-public sealed record CreateCurrencyRequest(string Code, int Scale);
+public sealed record CreateCurrencyRequest(string Code, int Scale, string Name, string? EnglishName = null,
+    string? Notes = null, string? DisplaySymbol = null, string? FractionName = null);
+public sealed record EditCurrencyRequest(Guid ExpectedVersion, int Scale, string Name, string? EnglishName,
+    string? Notes, string? DisplaySymbol, string? FractionName, string Reason);
+public sealed record SetCurrencyStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+public sealed record CurrencyUsage(Guid CurrencyId, bool IsFunctionalCurrency, int AccountCount, int ExchangeRateCount,
+    int JournalCount, int RecurringTemplateCount);
 public sealed record CreateExchangeRateRequest(string CurrencyCode, DateOnly EffectiveDate, decimal RateToFunctional, string Source);
 public sealed record CreateFiscalYearRequest(string Code, DateOnly StartsOn, DateOnly EndsOn);
-public sealed record CreateCostCenterRequest(string Code, string Name, Guid? BranchId);
+public sealed record CreateCostCenterRequest(string Code, string Name, Guid? BranchId, Guid? ParentId = null,
+    Guid? ResponsibleMembershipId = null, string? EnglishName = null, string? Notes = null);
+public sealed record EditCostCenterRequest(Guid ExpectedVersion, string Code, string Name, Guid? BranchId,
+    Guid? ParentId, Guid? ResponsibleMembershipId, string? EnglishName, string? Notes, string Reason);
+public sealed record SetCostCenterStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+public sealed record CostCenterUsage(Guid CostCenterId, int ChildCenterCount, int JournalCount, int RecurringTemplateCount,
+    bool HasUsageInSubtree, Page<AccountUsageReference> References);
 public sealed record GrantMembershipRequest(string Subject, string[] Permissions, bool AllBranches, Guid[] BranchIds, Guid? ExpectedVersion);
 public sealed record SetMembershipStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
 public sealed record CreateAccountRequest(string Code, string Name, AccountType Type, Guid? ParentId,

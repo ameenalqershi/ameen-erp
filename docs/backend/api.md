@@ -17,12 +17,22 @@
 | GET | C | Company | ledger.read |
 | GET / POST | `/branches` | قائمة / CreateBranchRequest | read / company.configure |
 | GET / POST | `/currencies` | قائمة / CreateCurrencyRequest | read / company.configure |
+| GET | `/currencies/search` | Page&lt;Currency&gt;؛ search/isActive | ledger.read |
+| GET / PUT | `/currencies/{id}` | Currency / EditCurrencyRequest | read / company.configure |
+| POST | `/currencies/{id}/status` | SetCurrencyStatusRequest | company.configure |
+| GET | `/currencies/{id}/usage` | CurrencyUsage | ledger.read، كل الفروع |
+| GET | `/currencies/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read، كل الفروع |
 | GET / POST | `/exchange-rates` | قائمة / CreateExchangeRateRequest | read / company.configure |
 | GET / POST | `/fiscal-years` | قائمة / CreateFiscalYearRequest | read / company.configure |
 | GET | `/periods` | قائمة الفترات | ledger.read |
 | POST | `/periods/{id}/close` | ChangePeriodRequest | period.close |
 | POST | `/periods/{id}/reopen` | ChangePeriodRequest | period.reopen |
 | GET / POST | `/cost-centers` | قائمة / CreateCostCenterRequest | read / company.configure |
+| GET | `/cost-centers/search` | Page&lt;CostCenter&gt;؛ search/branchId/parentId/isActive | ledger.read بنطاق الفروع |
+| GET / PUT | `/cost-centers/{id}` | CostCenter / EditCostCenterRequest | read / company.configure |
+| POST | `/cost-centers/{id}/status` | SetCostCenterStatusRequest | company.configure |
+| GET | `/cost-centers/{id}/usage` | CostCenterUsage | ledger.read، كل الفروع |
+| GET | `/cost-centers/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read، كل الفروع |
 | GET / POST | `/memberships` | Page / GrantMembershipRequest | members.manage |
 | POST | `/memberships/{id}/status` | SetMembershipStatusRequest | members.manage |
 | GET / POST | `/accounts` | Page / CreateAccountRequest | read / company.configure |
@@ -121,3 +131,5 @@
 المراجع النهائية لأسماء وحقول الأوامر [Contracts.cs](../../backend/src/Ameen.Erp.Application/Contracts.cs) ولمساراتها [Endpoints.cs](../../backend/src/Ameen.Erp.Api/Endpoints.cs). الطلبات في .NET 10 ترفض الخصائص غير المعروفة والمعاملات الإلزامية المحذوفة؛ الحقول القابلة للقيمة null تُرسل صراحة عندما لا تكون اختيارية في عقد constructor.
 
 تفاصيل GL01 وحقول `normalBalance` و`englishName` و`notes` وقواعد تعديل البنية وسجل الاستخدام في [عقد الحسابات](accounts.md).
+
+حقول العملات والمراكز وقواعدها وحدودها في [عقد SYS04 وCOST01](currencies-and-cost-centers.md).

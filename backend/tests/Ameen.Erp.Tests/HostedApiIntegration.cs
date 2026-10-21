@@ -218,6 +218,29 @@ public static class HostedApiIntegration
                     invalid.Headers.Add("Idempotency-Key", Fixture.Key()); invalid.Content = new StringContent(invalidBody, Encoding.UTF8, "application/json");
                     using var result = await client.SendAsync(invalid); Ensure(result.StatusCode == HttpStatusCode.BadRequest, "Missing/invalid normal balance accepted");
                 }
+                var currenciesPath = $"/api/v1/companies/{companyId}/currencies";
+                var currencyCard = await Command(client, currenciesPath, new CreateCurrencyRequest("GBP", 2, "جنيه إسترليني", "Pound", null, "£", "بنس"));
+                var currencyEdit = new EditCurrencyRequest(currencyCard.Version, 3, "جنيه إسترليني", "Pound sterling", "اختبار", "£", "بنس", "تحديث");
+                currencyCard = await Command(client, currenciesPath + $"/{currencyCard.ResourceId}", currencyEdit, method: HttpMethod.Put);
+                currencyCard = await Command(client, currenciesPath + $"/{currencyCard.ResourceId}/status", new SetCurrencyStatusRequest(currencyCard.Version, false, "إيقاف"));
+                using (var search = await client.GetAsync(currenciesPath + "/search?search=Pound&isActive=false"))
+                using (var json = JsonDocument.Parse(await search.Content.ReadAsStringAsync()))
+                    Ensure(search.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("items")[0].GetProperty("revision").GetInt32() == 3, "Currency HTTP search/metadata failed");
+                using (var log = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await log.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Currency HTTP audit failed");
+                var centersPath = $"/api/v1/companies/{companyId}/cost-centers";
+                var rootCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-ROOT", "مركز عام", null));
+                var childCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-CHILD", "مركز فرعي", journalRequest.BranchId, rootCenter.ResourceId, EnglishName: "HTTP center"));
+                childCenter = await Command(client, centersPath + $"/{childCenter.ResourceId}",
+                    new EditCostCenterRequest(childCenter.Version, "HTTP-CHILD", "مركز معدل", journalRequest.BranchId, rootCenter.ResourceId, null, "HTTP edited center", "ملاحظة", "تعديل"), method: HttpMethod.Put);
+                using (var search = await client.GetAsync(centersPath + $"/search?parentId={rootCenter.ResourceId}&search=edited"))
+                using (var json = JsonDocument.Parse(await search.Content.ReadAsStringAsync()))
+                    Ensure(search.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("items")[0].GetProperty("revision").GetInt32() == 2, "Center HTTP search/metadata failed");
+                using (var usage = await client.GetAsync(centersPath + $"/{rootCenter.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await usage.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("childCenterCount").GetInt32() == 1, "Center HTTP usage failed");
+                Console.WriteLine("  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL");
                 Authenticate(Token("sql-clerk"));
                 Console.WriteLine("  HOST PASS GL01 create/detail/PUT edit/replay, explicit nature, usage and audit over production HTTPS/JWT/SQL");
                 var company = new CreateCompanyRequest(Guid.NewGuid(), "HTTPTEST", "شركة HTTP", "YE", "YER", 2);

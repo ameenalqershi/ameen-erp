@@ -8,7 +8,7 @@ module-PUR,muhaseb-erp-analysis/diagrams/source/module-PUR.mmd,not-started,لم 
 module-POS,muhaseb-erp-analysis/diagrams/source/module-POS.mmd,not-started,لم يبدأ التنفيذ
 module-IMP,muhaseb-erp-analysis/diagrams/source/module-IMP.mmd,not-started,لم يبدأ التنفيذ
 module-FA,muhaseb-erp-analysis/diagrams/source/module-FA.mmd,not-started,لم يبدأ التنفيذ
-module-COST,muhaseb-erp-analysis/diagrams/source/module-COST.mmd,partial,مراكز مستقلة فقط بلا هرمية أو موازنات
+module-COST,muhaseb-erp-analysis/diagrams/source/module-COST.mmd,partial,شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل
 module-HR,muhaseb-erp-analysis/diagrams/source/module-HR.mmd,not-started,لم يبدأ التنفيذ
 module-MFG,muhaseb-erp-analysis/diagrams/source/module-MFG.mmd,not-started,لم يبدأ التنفيذ
 module-PRJ,muhaseb-erp-analysis/diagrams/source/module-PRJ.mmd,not-started,لم يبدأ التنفيذ

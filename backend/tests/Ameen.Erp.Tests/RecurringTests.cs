@@ -98,7 +98,7 @@ public static class RecurringTests
         });
         test("GL04 BR10: foreign rate is selected at each due date and original snapshot stays fixed", async f =>
         {
-            await f.Service.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2), default);
+            await f.Service.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2, "دولار أمريكي"), default);
             var request = Request(f); request.Lines[0] = request.Lines[0] with { CurrencyCode = "USD" };
             request.Lines[1] = request.Lines[1] with { Credit = 375 };
             var template = await Create(f, request);

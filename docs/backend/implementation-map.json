@@ -6,11 +6,11 @@
   "partially_implemented_screens": 22,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 148,
-    "audit": 33,
+    "implemented": 159,
+    "audit": 35,
     "derived": 4,
     "partial": 18,
-    "pending": 2556
+    "pending": 2543
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -144,9 +144,9 @@
       }
     },
     "SYS04": {
-      "api": "GET/POST /companies/{companyId}/currencies",
-      "implemented": "رمز ISO ودقة مستقلة لكل عملة",
-      "remaining": "الأسماء ورمز العرض واسم الجزء وتعديل البطاقة وحالتها",
+      "api": "GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
+      "implemented": "بطاقة عملة بأسماء ورمز عرض واسم جزء وإصدار عددي؛ تحرير وحالة وبحث وتدقيق؛ قفل الدقة بعد الاستخدام وفحص التعطيل عند الترحيل",
+      "remaining": "الرمز الداخلي موحد مع رمز العملة ولا يربط بقائمة ISO خارجية وغير قابل لإعادة التسمية؛ أسماء العملة الوظيفية والبطاقات القديمة تبدأ برمز ISO وتحتاج تحريرًا؛ تحويل الدقة التاريخية غير متاح",
       "fields": {
         "SYS04-F01": {
           "status": "implemented",
@@ -160,6 +160,22 @@
           "status": "implemented",
           "binding": "Code"
         },
+        "SYS04-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "SYS04-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
+        "SYS04-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "SYS04-F07": {
+          "status": "implemented",
+          "binding": "Notes"
+        },
         "SYS04-F08": {
           "status": "implemented",
           "binding": "Code"
@@ -168,19 +184,32 @@
           "status": "implemented",
           "binding": "Scale"
         },
+        "SYS04-F10": {
+          "status": "implemented",
+          "binding": "DisplaySymbol"
+        },
+        "SYS04-F11": {
+          "status": "implemented",
+          "binding": "FractionName"
+        },
         "SYS04-F14": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "Revision"
         },
         "SYS04-F12": {
           "status": "audit",
-          "binding": "AuditEvent.ActorId"
+          "binding": "AuditEvent.ActorId: currency.created"
         },
         "SYS04-F13": {
           "status": "audit",
-          "binding": "AuditEvent.OccurredAt"
+          "binding": "AuditEvent.OccurredAt: currency.created"
+        },
+        "SYS04-F15": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: currency.edited / currency.status-changed"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/CurrencyTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS05": {
       "api": "GET/POST /companies/{companyId}/exchange-rates",
@@ -858,9 +887,9 @@
       }
     },
     "COST01": {
-      "api": "GET/POST /companies/{companyId}/cost-centers",
-      "implemented": "تعريف مركز مرتبط اختياريًا بفرع وإلزامه على الحساب",
-      "remaining": "شجرة مراكز وأنواع ومسؤول وتعديل وتعطيل البطاقة",
+      "api": "GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
+      "implemented": "شجرة مراكز بلا دورات وبنطاق فرع متسق؛ أسماء وملاحظات ومسؤول فعال وإصدار عددي؛ تعديل وتعطيل وبحث واستخدام وتدقيق",
+      "remaining": "قائمة نوع المركز غير محددة في التحليل وتنتظر توضيح المستخدم؛ الموازنات والتوزيعات وتقارير تجميع الشجرة لم تنفذ",
       "fields": {
         "COST01-F01": {
           "status": "implemented",
@@ -878,23 +907,48 @@
           "status": "implemented",
           "binding": "Name"
         },
+        "COST01-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
+        "COST01-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "COST01-F07": {
+          "status": "implemented",
+          "binding": "Notes"
+        },
+        "COST01-F08": {
+          "status": "implemented",
+          "binding": "ParentId"
+        },
         "COST01-F09": {
           "status": "implemented",
           "binding": "BranchId"
         },
+        "COST01-F10": {
+          "status": "implemented",
+          "binding": "ResponsibleMembershipId -> active company Membership with center branch scope"
+        },
         "COST01-F14": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "Revision"
         },
         "COST01-F12": {
           "status": "audit",
-          "binding": "AuditEvent.ActorId"
+          "binding": "AuditEvent.ActorId: cost-center.created"
         },
         "COST01-F13": {
           "status": "audit",
-          "binding": "AuditEvent.OccurredAt"
+          "binding": "AuditEvent.OccurredAt: cost-center.created"
+        },
+        "COST01-F15": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/CostCenterTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "RPT01": {
       "api": "GET /companies/{companyId}/reports/trial-balance",
