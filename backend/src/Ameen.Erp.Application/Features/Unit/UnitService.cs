@@ -2,8 +2,13 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class UnitService : ApplicationService
 {
+    public UnitService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
+    {
+    }
+
+
     private static object UnitSnapshot(UnitOfMeasure x) => new
     { x.Version, x.Revision, x.Code, x.Name, x.StandardCode, x.QuantityScale, x.Description, x.EnglishName, x.Notes, x.IsActive };
     private async Task UniqueUnitCode(Guid cid, Guid id, string code, CancellationToken ct) =>

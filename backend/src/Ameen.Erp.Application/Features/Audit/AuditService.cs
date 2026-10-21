@@ -2,8 +2,13 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class AuditService : ApplicationService
 {
+    public AuditService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
+    {
+    }
+
+
     public async Task<Page<AuditEvent>> ListAudit(Guid cid, Actor actor, int offset, int limit, CancellationToken ct)
     {
         Paging(offset, limit); await AuthorizeGlobal(cid, actor, Permissions.Audit, ct);

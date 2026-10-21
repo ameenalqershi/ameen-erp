@@ -2,15 +2,22 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class ItemService : ApplicationService
 {
+    private readonly ItemGroupService itemGroupService;
+    public ItemService(IErpStore store, ITransactionRunner transactions, IClock clock, ItemGroupService itemGroupService) : base(store, transactions, clock)
+    {
+        this.itemGroupService = itemGroupService;
+    }
+
+
     private static object ItemSnapshot(Item x) => new { x.Version, x.Revision, x.Code, x.Name, x.EnglishName, x.Notes, x.Type, x.Tracking,
         x.GroupId, x.BaseUnitId, x.ShelfLifeDays, x.ReorderLevel, x.IsActive, x.Units };
     private async Task ValidateItemReferences(Item item, CancellationToken ct)
     {
         var group = await Required<ItemGroup>(item.CompanyId, item.GroupId, ct);
         Check.That(group.IsActive, "inactive_item_group", "مجموعة الصنف معطلة.");
-        await ValidateGroupTree(item.CompanyId, group.Id, group.ParentId, ct); await ValidateGroupAccounts(item.CompanyId, group, ct);
+        await itemGroupService.ValidateGroupTree(item.CompanyId, group.Id, group.ParentId, ct); await itemGroupService.ValidateGroupAccounts(item.CompanyId, group, ct);
         Check.That(item.Type == ItemType.Service || (group.InventoryAccountId is not null && group.CostAccountId is not null),
             "stock_accounts_required", "الصنف المخزني يتطلب حسابي المخزون والتكلفة في المجموعة.");
         var unit = await Required<UnitOfMeasure>(item.CompanyId, item.BaseUnitId, ct);

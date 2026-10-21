@@ -2,8 +2,13 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class ItemGroupService : ApplicationService
 {
+    public ItemGroupService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
+    {
+    }
+
+
     private static object GroupSnapshot(ItemGroup x) => new
     { x.Version, x.Revision, x.Code, x.Name, x.EnglishName, x.Notes, x.ParentId, x.SalesAccountId, x.InventoryAccountId, x.CostAccountId, x.IsActive };
     private static Guid[] ItemGroupSubtree(Guid id, IReadOnlyList<ItemGroup> groups)
@@ -40,7 +45,7 @@ public sealed partial class ErpService
         return await store.ReadPage<Item>(cid, x => ids.Contains(x.GroupId) && (isActive == null || x.IsActive == isActive),
             q => q.OrderBy(x => x.Code).ThenBy(x => x.Id), offset, limit, ct);
     }
-    private async Task ValidateGroupTree(Guid cid, Guid id, Guid? parentId, CancellationToken ct)
+    internal async Task ValidateGroupTree(Guid cid, Guid id, Guid? parentId, CancellationToken ct)
     {
         var seen = new HashSet<Guid> { id };
         while (parentId is Guid parent)
@@ -50,7 +55,7 @@ public sealed partial class ErpService
             Check.That(group.IsActive, "inactive_parent_group", "المجموعة الأب معطلة."); parentId = group.ParentId;
         }
     }
-    private async Task ValidateGroupAccounts(Guid cid, ItemGroup group, CancellationToken ct)
+    internal async Task ValidateGroupAccounts(Guid cid, ItemGroup group, CancellationToken ct)
     {
         async Task Validate(Guid id, AccountType type, bool control)
         {

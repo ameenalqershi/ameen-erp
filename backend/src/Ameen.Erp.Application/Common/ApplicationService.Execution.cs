@@ -5,21 +5,21 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public abstract partial class ApplicationService
 {
-    private readonly IErpStore store;
-    private readonly ITransactionRunner transactions;
-    private readonly IClock clock;
-    public ErpService(IErpStore store, ITransactionRunner transactions, IClock clock)
+    protected readonly IErpStore store;
+    protected readonly ITransactionRunner transactions;
+    protected readonly IClock clock;
+    protected ApplicationService(IErpStore store, ITransactionRunner transactions, IClock clock)
     { this.store = store; this.transactions = transactions; this.clock = clock; }
 
-    private async Task<Company> Company(Guid id, CancellationToken ct) =>
+    protected async Task<Company> Company(Guid id, CancellationToken ct) =>
         await store.GetCompany(id, ct) ?? throw new BusinessException("company_not_found", "الشركة غير موجودة.", ErrorKind.NotFound);
 
-    private async Task<T> Required<T>(Guid companyId, Guid id, CancellationToken ct) where T : CompanyEntity =>
+    protected async Task<T> Required<T>(Guid companyId, Guid id, CancellationToken ct) where T : CompanyEntity =>
         await store.Get<T>(companyId, id, ct) ?? throw new BusinessException("reference_not_found", "السجل غير موجود ضمن الشركة المحددة.", ErrorKind.NotFound);
 
-    private Task<CommandReceipt> Command(Guid companyId, Actor actor, string key, string operation, object body,
+    protected Task<CommandReceipt> Command(Guid companyId, Actor actor, string key, string operation, object body,
         Func<CancellationToken, Task> authorize, Func<CancellationToken, Task<CommandReceipt>> work, CancellationToken ct)
     {
         Check.That(!string.IsNullOrWhiteSpace(actor.Subject), "actor_required", "هوية المستخدم مطلوبة.", ErrorKind.Forbidden);
@@ -41,8 +41,8 @@ public sealed partial class ErpService
         }, work, ct);
     }
 
-    private CommandReceipt Receipt(Entity entity, string status, string? number = null) => new(entity.Id, entity.Version, status, number);
-    private void Audit(Guid companyId, Actor actor, string action, Entity entity, object details)
+    protected CommandReceipt Receipt(Entity entity, string status, string? number = null) => new(entity.Id, entity.Version, status, number);
+    protected void Audit(Guid companyId, Actor actor, string action, Entity entity, object details)
         => store.Add(new AuditEvent(companyId, actor.Subject, action, entity.Id, clock.UtcNow, JsonSerializer.Serialize(details, JsonDefaults.Options)));
 
 }

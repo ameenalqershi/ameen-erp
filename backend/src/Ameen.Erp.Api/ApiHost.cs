@@ -23,7 +23,7 @@ public static class ApiHost
         builder.Services.AddDbContext<ErpDbContext>(options => options.UseSqlServer(connection, sql => sql.CommandTimeout(30)));
         builder.Services.AddScoped<IErpStore, SqlErpStore>();
         builder.Services.AddScoped<ITransactionRunner, SqlTransactionRunner>();
-        builder.Services.AddScoped<ErpService>();
+        builder.Services.AddErpApplication();
         builder.Services.AddSingleton<IClock, SystemClock>();
         builder.Services.ConfigureHttpJsonOptions(options => JsonDefaults.Configure(options.SerializerOptions));
         builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);

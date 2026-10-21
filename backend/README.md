@@ -94,3 +94,5 @@ dotnet run --project src/Ameen.Erp.Api
 بطاقة المخزن ومواقعه وحماية مراجع الحساب والفرع وترقية 011 موثقة في [INV01](../docs/backend/warehouses.md).
 
 [تنظيم الملفات حسب الوحدات والمسؤوليات](../docs/backend/code-organization.md): مسارات API منفصلة، ملف لكل كيان وعقد، Features لخدمات التطبيق وPersistence/Configurations لتهيئة EF.
+
+تسجل `ApplicationServiceRegistration.AddErpApplication` خدمات الميزات المستقلة بنطاق Scoped؛ لا يوجد ErpService جامع في الإنتاج. تعمل الخدمات المتعاونة على مخزن ومعاملة وDbContext الطلب نفسه.

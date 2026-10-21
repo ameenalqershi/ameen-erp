@@ -39,7 +39,10 @@ public static class HttpIntegration
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
-        builder.Services.AddSingleton(f.Service);
+        builder.Services.AddSingleton<IErpStore>(f.Store);
+        builder.Services.AddSingleton<ITransactionRunner>(f.Store);
+        builder.Services.AddSingleton<IClock, FixedClock>();
+        builder.Services.AddErpApplication();
         builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(o => JsonDefaults.Configure(o.SerializerOptions));
         builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteHandlerOptions>(o => o.ThrowOnBadRequest = true);
         builder.Services.AddAuthentication("Test").AddScheme<AuthenticationSchemeOptions, TestAuthentication>("Test", _ => { });

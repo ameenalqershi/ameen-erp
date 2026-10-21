@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T21:21:14.664680+00:00",
+  "startedAtUtc": "2026-10-21T21:49:09.925083+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "d5fa3ee5e41d4b39dbebe33da3250a584b486ad12efb611347b3b0766f62d6b1",
+  "sourceSha256": "35e9b6bf12d61514b0c707dccce35fa924872fae38ed61dfa310d932312a88f4",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -95,6 +95,7 @@
     "PASS Wire contract: excessive decimal precision and exponents are rejected without rounding",
     "PASS SQL model: composite company foreign keys and unique idempotency/number indexes",
     "PASS API: every ERP endpoint requires authentication and carries screen trace tags",
+    "PASS DI: feature services share transactional state within scope and remain isolated across scopes",
     "PASS SYS01: legal profile, Unicode address and leading zero registrations roundtrip",
     "PASS SYS01: required legal fields and profile reject null/empty without creating tenant",
     "PASS SYS01: unused functional currency changes atomically with matching currency precision",
@@ -295,8 +296,8 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 193,
-  "total": 193,
+  "passed": 194,
+  "total": 194,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T21:21:49.274974+00:00"
+  "finishedAtUtc": "2026-10-21T21:49:41.653246+00:00"
 }

@@ -2,8 +2,15 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class CompanyService : ApplicationService
 {
+    private readonly CurrencyService currencyService;
+    public CompanyService(IErpStore store, ITransactionRunner transactions, IClock clock, CurrencyService currencyService) : base(store, transactions, clock)
+    {
+        this.currencyService = currencyService;
+    }
+
+
     private static object CompanySnapshot(Company x) => new
     {
         x.Version, x.Revision, x.Code, x.Name, x.CountryCode, x.FunctionalCurrency, x.CurrencyScale, x.IsActive,
@@ -15,7 +22,7 @@ public sealed partial class ErpService
         {
             var company = await Company(cid, token); Check.Version(company, request.ExpectedVersion);
             var reason = Check.Text(request.Reason, "سبب التعديل", 500);
-            var currency = await RequireCurrency(cid, Check.Currency(request.FunctionalCurrency), token);
+            var currency = await currencyService.RequireCurrency(cid, Check.Currency(request.FunctionalCurrency), token);
             var candidate = new Company(cid, request.Code, request.Name, request.CountryCode, currency.Code, currency.Scale, request.Profile);
             if (candidate.Code != company.Code)
                 Check.That(!await store.CompanyCodeExists(candidate.Code, token), "company_exists", "رمز الشركة مستخدم بالفعل.", ErrorKind.Conflict);
@@ -75,7 +82,7 @@ public sealed partial class ErpService
             store.Add(company);
             var functional = new Currency(company.Id, company.FunctionalCurrency, company.CurrencyScale, company.FunctionalCurrency);
             store.Add(functional);
-            Audit(company.Id, actor, "currency.created", functional, new { after = CurrencySnapshot(functional), Bootstrap = true });
+            Audit(company.Id, actor, "currency.created", functional, new { after = CurrencyService.CurrencySnapshot(functional), Bootstrap = true });
             // Bootstrap does not grant financial approval or posting implicitly.
             store.Add(new Membership(company.Id, actor.Subject,
                 new[] { Permissions.Read, Permissions.Configure, Permissions.Members, Permissions.Audit }, true, Array.Empty<Guid>()));

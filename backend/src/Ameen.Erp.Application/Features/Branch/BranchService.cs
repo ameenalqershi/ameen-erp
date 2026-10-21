@@ -2,8 +2,13 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class BranchService : ApplicationService
 {
+    public BranchService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
+    {
+    }
+
+
     private static object BranchSnapshot(Branch x) => new
     { x.Version, x.Revision, x.Code, x.Name, x.EnglishName, x.Notes, x.City, x.Address, x.ParentId, x.DefaultCostCenterId, x.IsActive };
 
@@ -130,7 +135,7 @@ public sealed partial class ErpService
             return Receipt(branch, "Created");
         }, ct);
 
-    private async Task<Branch> ActiveBranch(Guid cid, Guid id, CancellationToken ct)
+    internal async Task<Branch> ActiveBranch(Guid cid, Guid id, CancellationToken ct)
     {
         var branch = await Required<Branch>(cid, id, ct);
         Check.That(branch.IsActive, "inactive_branch", "الفرع غير فعال.");

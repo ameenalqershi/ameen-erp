@@ -35,13 +35,13 @@ public static class SqlIntegration
 
             var key = Fixture.Key(); var request = f.Request();
             var drafts = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>
-                f.Call(s => s.CreateJournal(f.CompanyId, f.Clerk, key, request, default))));
+                f.Call(s => s.Journal.CreateJournal(f.CompanyId, f.Clerk, key, request, default))));
             Ensure(drafts.Select(x => x.ResourceId).Distinct().Count() == 1, "Concurrent replay created multiple journals");
             await using (var db = f.Context())
                 Ensure(await db.Set<JournalEntry>().CountAsync() == 1, "Expected one SQL journal");
             Console.WriteLine("  SQL PASS concurrent idempotency across independent connections");
 
-            var edited = await f.Call(s => s.EditJournal(f.CompanyId, drafts[0].ResourceId, f.Clerk, Fixture.Key(),
+            var edited = await f.Call(s => s.Journal.EditJournal(f.CompanyId, drafts[0].ResourceId, f.Clerk, Fixture.Key(),
                 new(drafts[0].Version, "تعديل محفوظ", f.Request(125).Lines), default));
             var submitted = await f.Action(edited, "submit");
             var approved = await f.Action(submitted, "approve", f.Approver);
@@ -56,7 +56,7 @@ public static class SqlIntegration
             }
             Console.WriteLine("  SQL PASS draft replacement, materialization, posting replay and one outbox");
 
-            var second = await f.Call(s => s.CreateJournal(f.CompanyId, f.Clerk, Fixture.Key(), f.Request(), default));
+            var second = await f.Call(s => s.Journal.CreateJournal(f.CompanyId, f.Clerk, Fixture.Key(), f.Request(), default));
             second = await f.Action(await f.Action(second, "submit"), "approve", f.Approver);
             int auditCount;
             await using (var db = f.Context())
@@ -78,31 +78,31 @@ public static class SqlIntegration
             Console.WriteLine("  SQL PASS real constraint failure rolls back journal, audit, outbox and receipt; retry succeeds");
 
             var source = posts[0];
-            var reverse = await f.Call(s => s.ReverseJournal(f.CompanyId, source.ResourceId, f.Clerk, Fixture.Key(),
+            var reverse = await f.Call(s => s.Journal.ReverseJournal(f.CompanyId, source.ResourceId, f.Clerk, Fixture.Key(),
                 new(source.Version, Fixture.Date.AddDays(1), "عكس تكاملي"), default));
             reverse = await f.Action(await f.Action(reverse, "submit"), "approve", f.Approver);
             await f.Action(reverse, "post");
-            var report = await f.Call(s => s.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default));
+            var report = await f.Call(s => s.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default));
             Ensure(report.TotalClosingDebit == 100 && report.TotalClosingCredit == 100, "SQL reversal totals differ");
-            var page = await f.Call(s => s.ListJournals(f.CompanyId, f.Clerk, null, null, 1, 1, default));
+            var page = await f.Call(s => s.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 1, 1, default));
             Ensure(page.TotalCount == 3 && page.Items.Count == 1, "SQL pagination differs");
             Console.WriteLine("  SQL PASS linked reversal, reports, SQL translation and pagination");
 
-            var center = await f.Call(s => s.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("FILTER", "مركز اختبار التقارير", f.BranchId), default));
+            var center = await f.Call(s => s.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("FILTER", "مركز اختبار التقارير", f.BranchId), default));
             var filteredRequest = f.Request(75) with { ExternalReference = "Ref-Case" };
             filteredRequest = filteredRequest with { Lines = filteredRequest.Lines.Select(x => x with { CostCenterId = center.ResourceId }).ToArray() };
-            var filtered = await f.Call(s => s.CreateJournal(f.CompanyId, f.Clerk, Fixture.Key(), filteredRequest, default));
+            var filtered = await f.Call(s => s.Journal.CreateJournal(f.CompanyId, f.Clerk, Fixture.Key(), filteredRequest, default));
             filtered = await f.Action(await f.Action(filtered, "submit"), "approve", f.Approver);
             await f.Action(filtered, "post");
-            var centerTrial = await f.Call(s => s.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, null, default, center.ResourceId, 1, false));
+            var centerTrial = await f.Call(s => s.Report.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, null, default, center.ResourceId, 1, false));
             Ensure(centerTrial.Rows.Count == 2 && centerTrial.TotalPeriodDebit == 75, "SQL center/hierarchy filter differs");
-            var filteredLedger = await f.Call(s => s.AccountLedger(f.CompanyId, f.CashId, f.Clerk, Fixture.Date, Fixture.Date, null, 0, 10, default, center.ResourceId, "Ref-Case"));
+            var filteredLedger = await f.Call(s => s.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, Fixture.Date, Fixture.Date, null, 0, 10, default, center.ResourceId, "Ref-Case"));
             Ensure(filteredLedger.Entries.TotalCount == 1 && filteredLedger.ClosingBalance == 75, "SQL reference filter differs");
-            var differentCase = await f.Call(s => s.AccountLedger(f.CompanyId, f.CashId, f.Clerk, Fixture.Date, Fixture.Date, null, 0, 10, default, center.ResourceId, "ref-case"));
+            var differentCase = await f.Call(s => s.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, Fixture.Date, Fixture.Date, null, 0, 10, default, center.ResourceId, "ref-case"));
             Ensure(differentCase.Entries.TotalCount == 0, "SQL exact reference comparison is case insensitive");
             Console.WriteLine("  SQL PASS report center, hierarchy and exact reference filters");
 
-            var november = await f.Call(s => s.CreateJournal(f.CompanyId, f.Clerk, Fixture.Key(), f.Request(date: new(2026, 11, 1)), default));
+            var november = await f.Call(s => s.Journal.CreateJournal(f.CompanyId, f.Clerk, Fixture.Key(), f.Request(date: new(2026, 11, 1)), default));
             november = await f.Action(await f.Action(november, "submit"), "approve", f.Approver);
             FiscalPeriod period;
             await using (var db = f.Context())
@@ -111,7 +111,7 @@ public static class SqlIntegration
             {
                 try
                 {
-                    await f.Call(s => s.ChangePeriod(f.CompanyId, period.Id, f.Approver, Fixture.Key(), new(period.Version, "إقفال"), true, default));
+                    await f.Call(s => s.PeriodClose.ChangePeriod(f.CompanyId, period.Id, f.Approver, Fixture.Key(), new(period.Version, "إقفال"), true, default));
                     return true;
                 }
                 catch (BusinessException ex) when (ex.Code == "unposted_journals") { return false; }
@@ -128,8 +128,8 @@ public static class SqlIntegration
 
             // Bypass the application on purpose to prove the composite FK rejects a foreign account.
             var other = Guid.NewGuid();
-            await f.Call(s => s.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default));
-            var otherAccount = await f.Call(s => s.CreateAccount(other, f.Owner, Fixture.Key(),
+            await f.Call(s => s.Company.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default));
+            var otherAccount = await f.Call(s => s.Account.CreateAccount(other, f.Owner, Fixture.Key(),
                 new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default));
             await using (var db = f.Context())
             {
@@ -153,8 +153,8 @@ public static class SqlIntegration
                 try
                 {
                     await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(restrictedConnection).Options);
-                    var service = new ErpService(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock());
-                    await service.CreateBranch(f.CompanyId, f.Owner, Fixture.Key(), new("RUNTIME", "اختبار صلاحية التشغيل", "مدينة الاختبار", "عنوان الاختبار"), default);
+                    var service = new TestServices(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock());
+                    await service.Branch.CreateBranch(f.CompanyId, f.Owner, Fixture.Key(), new("RUNTIME", "اختبار صلاحية التشغيل", "مدينة الاختبار", "عنوان الاختبار"), default);
                     try
                     {
                         await Execute(restrictedConnection, "UPDATE [AuditEvents] SET [ActorId]=[ActorId] WHERE 1=0");
@@ -209,24 +209,24 @@ public static class SqlIntegration
         public Guid EquityId { get; private set; }
         public SqlFixture(string connection) { this.connection = connection; }
         public ErpDbContext Context() => new(new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options);
-        public async Task<T> Call<T>(Func<ErpService, Task<T>> work)
+        public async Task<T> Call<T>(Func<TestServices, Task<T>> work)
         {
             await using var db = Context();
-            return await work(new ErpService(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock()));
+            return await work(new TestServices(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock()));
         }
         public async Task Initialize()
         {
-            await Call(s => s.CreateCompany(Owner, Fixture.Key(), new(CompanyId, "SQLTEST", "اختبار SQL", "YE", "SAR", 2, Fixture.Profile()), default));
-            BranchId = (await Call(s => s.CreateBranch(CompanyId, Owner, Fixture.Key(), new("MAIN", "الرئيسي", "مدينة الاختبار", "عنوان الاختبار"), default))).ResourceId;
-            await Call(s => s.CreateFiscalYear(CompanyId, Owner, Fixture.Key(), new("2026", new(2026, 1, 1), new(2026, 12, 31)), default));
+            await Call(s => s.Company.CreateCompany(Owner, Fixture.Key(), new(CompanyId, "SQLTEST", "اختبار SQL", "YE", "SAR", 2, Fixture.Profile()), default));
+            BranchId = (await Call(s => s.Branch.CreateBranch(CompanyId, Owner, Fixture.Key(), new("MAIN", "الرئيسي", "مدينة الاختبار", "عنوان الاختبار"), default))).ResourceId;
+            await Call(s => s.FiscalCalendar.CreateFiscalYear(CompanyId, Owner, Fixture.Key(), new("2026", new(2026, 1, 1), new(2026, 12, 31)), default));
             foreach (var actor in new[] { Clerk, Approver })
-                await Call(s => s.GrantMembership(CompanyId, Owner, Fixture.Key(), new(actor.Subject, Permissions.All, true, Array.Empty<Guid>(), null), default));
-            CashId = (await Call(s => s.CreateAccount(CompanyId, Owner, Fixture.Key(), new("1", "نقدية", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default))).ResourceId;
-            EquityId = (await Call(s => s.CreateAccount(CompanyId, Owner, Fixture.Key(), new("3", "رأس المال", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit), default))).ResourceId;
+                await Call(s => s.Membership.GrantMembership(CompanyId, Owner, Fixture.Key(), new(actor.Subject, Permissions.All, true, Array.Empty<Guid>(), null), default));
+            CashId = (await Call(s => s.Account.CreateAccount(CompanyId, Owner, Fixture.Key(), new("1", "نقدية", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default))).ResourceId;
+            EquityId = (await Call(s => s.Account.CreateAccount(CompanyId, Owner, Fixture.Key(), new("3", "رأس المال", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit), default))).ResourceId;
         }
         public CreateJournalRequest Request(decimal amount = 100, DateOnly? date = null) => new(BranchId, date ?? Fixture.Date, date ?? Fixture.Date, "قيد SQL", null,
             new[] { new JournalLineRequest(CashId, null, "مدين", "SAR", null, amount, 0), new JournalLineRequest(EquityId, null, "دائن", "SAR", null, 0, amount) });
         public Task<CommandReceipt> Action(CommandReceipt receipt, string action, Actor? actor = null, string? key = null) =>
-            Call(s => s.TransitionJournal(CompanyId, receipt.ResourceId, actor ?? Clerk, key ?? Fixture.Key(), new(receipt.Version), action, default));
+            Call(s => s.Journal.TransitionJournal(CompanyId, receipt.ResourceId, actor ?? Clerk, key ?? Fixture.Key(), new(receipt.Version), action, default));
     }
 }

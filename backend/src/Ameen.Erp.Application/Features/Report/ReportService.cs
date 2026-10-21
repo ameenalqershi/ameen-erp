@@ -2,8 +2,13 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class ReportService : ApplicationService
 {
+    public ReportService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
+    {
+    }
+
+
     private async Task ValidateReportCenter(Guid cid, Membership member, Guid? branchId, Guid? centerId, CancellationToken ct)
     {
         if (centerId is not Guid id) return;

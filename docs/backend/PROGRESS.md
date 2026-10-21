@@ -4,9 +4,14 @@
 
 ## نقطة الاستئناف
 
+**آخر دفعة مكتملة: فصل خدمات التطبيق في DI.** أزيل ErpService من الإنتاج لصالح 18 خدمة مستقلة Scoped، وApplicationService قاعدة مجردة للمعاملة والتفويض والتدقيق والصفحات فقط. كل Endpoint يستقبل خدمته مباشرة، والاعتماديات بين الميزات معلنة في constructors بلا Service Locator. نجحت **194/194** على SQL/HTTPS/JWT، بما فيها ServiceCompositionTests لمشاركة الحالة والتراجع ونطاقات DI. OpenAPI مطابق تمامًا، وSQL المولد مطابق بايتًا ببايت؛ الإصدار 11 والتغطية الوظيفية ثابتان.
+
+ابحث عن commit بعنوان `Replace application facade with scoped feature services and explicit dependencies`. اختبار TestServices يجمع خصائص الخدمات الحقيقية داخل مشروع الاختبار فقط، ولا يعود facade إنتاجيًا. استكمل وظائف النظام وفق المخطط بعد هذه الدفعة، مستخدمًا خدمات Features المستقلة والتسجيل في ApplicationServiceRegistration. لا توجد مهمة فصل DI غير مكتملة. هذه الدفعة محفوظة محليًا؛ لا يوجد إثبات رفعها إلى GitHub في هذه الجلسة.
+
+
 **أولوية المستخدم الحالية: إعادة تنظيم المعمارية قبل إضافة وظائف — مكتملة.** فصلت مسارات API إلى 17 مجموعة وملف تسجيل قصير، وكل نوع Domain وعقد إلى ملف مستقل، وخدمات التطبيق إلى Features مع Common وAbstractions، وتهيئة EF وحراسة الحفظ إلى Persistence. نجحت **193/193** على SQL/HTTPS/JWT. مخطط SQL المولد مطابق قبل/بعد النقل، وOpenAPI مطابق عدا ترتيب قائمة tags العامة. بقي مخطط البيانات 11 والتغطية الوظيفية دون تغيير.
 
-آخر دفعة كود: ابحث عن commit بعنوان `Organize backend by feature and separate domain contracts endpoints and persistence`. لم تعد ملفات Domain الجامعة ولا Contracts.cs ولا CommandService.cs/QueryService.cs موجودة؛ لا تعِد إنشاءها. اقرأ [خريطة التنظيم](code-organization.md) قبل الاستكمال. بقي ErpService واجهة partial واحدة ولم يُفصل إلى خدمات DI مستقلة. نتيجة هذه الدفعة محلية؛ لا يُستنتج رفعها من نجاح رفع الدفعة السابقة.
+آخر دفعة كود: ابحث عن commit بعنوان `Organize backend by feature and separate domain contracts endpoints and persistence`. لم تعد ملفات Domain الجامعة ولا Contracts.cs ولا CommandService.cs/QueryService.cs موجودة؛ لا تعِد إنشاءها. اقرأ [خريطة التنظيم](code-organization.md) قبل الاستكمال. كانت تلك الدفعة تبقي ErpService واجهة partial؛ الدفعة الأحدث أزالتها لصالح الخدمات المستقلة. نتيجة هذه الدفعة محلية؛ لا يُستنتج رفعها من نجاح رفع الدفعة السابقة.
 
 
 **توجيه المستخدم الأحدث:** رفع المشروع إلى GitHub أولًا ثم استئناف الباك إند. تحقق الاتصال بحساب `ameenalqershi` وأنشئ المستودع [ameen-erp](https://github.com/ameenalqershi/ameen-erp) بخصوصية Private. نجح رفع دفعة INV01 وتحقق تطابق main عند `30de848` مع النسخة المحلية وبقاء المستودع Private؛ لا تحفظ رمز الوصول في Git. أولوية الاستكمال بعد نجاح الرفع هي INV01 وفق العقد والفجوات أدناه.
@@ -33,7 +38,7 @@
 | المسار | المسؤولية ونقطة التوسعة |
 |---|---|
 | `backend/src/Ameen.Erp.Domain/` | ملف لكل كيان/نوع في Common وOrganization وAccounting/Recurring وInventory وOperations |
-| `backend/src/Ameen.Erp.Application/` | `Features/<Feature>` لخدمات ErpService الجزئية؛ Common للتنفيذ والتفويض؛ Abstractions للمنافذ؛ Contracts/<Feature> ملف لكل عقد |
+| `backend/src/Ameen.Erp.Application/` | `Features/<Feature>` لخدمات مستقلة Scoped؛ Common/ApplicationService قاعدة مجردة للتنفيذ والتفويض؛ Abstractions للمنافذ؛ Contracts/<Feature> ملف لكل عقد |
 | `backend/src/Ameen.Erp.Infrastructure/` | Persistence/Configurations لتهيئة الكيانات، ErpDbContext.Validation للحراسة، SqlErpStore وSqlTransactionRunner؛ الإصدار يطابق آخر ترقية |
 | `backend/src/Ameen.Erp.Api/` | Endpoints/<Feature>Endpoints.cs للمسارات وEndpoints.cs للتسجيل فقط؛ ApiSupport والمضيف وOpenAPI منفصلة |
 | `backend/database/` | ترقيات SQL مرتبة ذرية وقابلة للإعادة و`runtime-role.sql`؛ 011 أضيف للمخازن؛ التالي 012 إذا تطلب التغيير مخططًا جديدًا |
@@ -145,7 +150,7 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 
 الشاشات: 150؛ منفذة جزئيًا: 26؛ لم تبدأ: 124؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
 
-آخر تقرير محفوظ: `2026-10-21T21:21:49.274974+00:00`؛ النتيجة `passed`؛ 193/193، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `d5fa3ee5e41d4b39dbebe33da3250a584b486ad12efb611347b3b0766f62d6b1`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
+آخر تقرير محفوظ: `2026-10-21T21:49:41.653246+00:00`؛ النتيجة `passed`؛ 194/194، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `35e9b6bf12d61514b0c707dccce35fa924872fae38ed61dfa310d932312a88f4`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
 ### حصيلة الأقسام
 

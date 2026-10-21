@@ -2,8 +2,15 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class CostCenterService : ApplicationService
 {
+    private readonly BranchService branchService;
+    public CostCenterService(IErpStore store, ITransactionRunner transactions, IClock clock, BranchService branchService) : base(store, transactions, clock)
+    {
+        this.branchService = branchService;
+    }
+
+
     private static object CenterSnapshot(CostCenter x) => new
     { x.Version, x.Revision, x.Code, x.Name, x.EnglishName, x.Notes, x.ParentId, x.BranchId, x.ResponsibleMembershipId, x.IsActive };
 
@@ -55,7 +62,7 @@ public sealed partial class ErpService
             var structureChanged = center.Code != candidate.Code || center.ParentId != candidate.ParentId || center.BranchId != candidate.BranchId;
             if (structureChanged)
             {
-                if (candidate.BranchId is Guid branch) await ActiveBranch(cid, branch, token);
+                if (candidate.BranchId is Guid branch) await branchService.ActiveBranch(cid, branch, token);
                 await ValidateCenterTree(cid, id, candidate.ParentId, candidate.BranchId, token);
                 var centers = await store.Find<CostCenter>(cid, x => true, token);
                 Check.That(!centers.Any(x => x.Id != id && x.Code == candidate.Code), "duplicate_code", "رمز المركز مكرر.", ErrorKind.Conflict);
@@ -86,7 +93,7 @@ public sealed partial class ErpService
             }
             else
             {
-                if (center.BranchId is Guid branch) await ActiveBranch(cid, branch, token);
+                if (center.BranchId is Guid branch) await branchService.ActiveBranch(cid, branch, token);
                 await ValidateCenterTree(cid, id, center.ParentId, center.BranchId, token);
             }
             var before = CenterSnapshot(center); center.SetActive(request.IsActive);
@@ -135,7 +142,7 @@ public sealed partial class ErpService
     public Task<CommandReceipt> CreateCostCenter(Guid cid, Actor actor, string key, CreateCostCenterRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "cost-center.create", request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
         {
-            if (request.BranchId is Guid branchId) await ActiveBranch(cid, branchId, token);
+            if (request.BranchId is Guid branchId) await branchService.ActiveBranch(cid, branchId, token);
             var center = new CostCenter(cid, request.Code, request.Name, request.BranchId, request.ParentId,
                 request.ResponsibleMembershipId, request.EnglishName, request.Notes);
             await ValidateCenterTree(cid, center.Id, center.ParentId, center.BranchId, token);

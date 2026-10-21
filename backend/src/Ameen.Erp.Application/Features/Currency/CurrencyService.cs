@@ -2,9 +2,14 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class CurrencyService : ApplicationService
 {
-    private static object CurrencySnapshot(Currency x) => new
+    public CurrencyService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
+    {
+    }
+
+
+    internal static object CurrencySnapshot(Currency x) => new
     { x.Version, x.Revision, x.Code, x.Scale, x.Name, x.EnglishName, x.Notes, x.DisplaySymbol, x.FractionName, x.IsActive };
 
     private async Task<CurrencyUsage> CurrencyReferences(Guid cid, Currency currency, CancellationToken ct) => new(currency.Id,
@@ -78,7 +83,7 @@ public sealed partial class ErpService
             return Receipt(currency, "Created");
         }, ct);
 
-    private async Task<Currency> RequireCurrency(Guid cid, string code, CancellationToken ct)
+    internal async Task<Currency> RequireCurrency(Guid cid, string code, CancellationToken ct)
     {
         var currency = (await store.Find<Currency>(cid, x => x.Code == code, ct)).SingleOrDefault()
             ?? throw new BusinessException("currency_not_found", "العملة غير معرفة في الشركة.");

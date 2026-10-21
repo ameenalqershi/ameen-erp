@@ -2,15 +2,22 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class MembershipService : ApplicationService
 {
+    private readonly BranchService branchService;
+    public MembershipService(IErpStore store, ITransactionRunner transactions, IClock clock, BranchService branchService) : base(store, transactions, clock)
+    {
+        this.branchService = branchService;
+    }
+
+
     public Task<CommandReceipt> GrantMembership(Guid cid, Actor actor, string key, GrantMembershipRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "membership.grant", request, token => AuthorizeGlobal(cid, actor, Permissions.Members, token), async token =>
         {
             Check.That(request.Permissions is not null && request.BranchIds is not null, "invalid_membership", "الصلاحيات والفروع مطلوبة.");
             var subject = Check.Text(request.Subject, "معرف المستخدم");
             Check.That(subject != actor.Subject, "self_grant_forbidden", "لا يمكنك تغيير صلاحياتك بنفسك.", ErrorKind.Forbidden);
-            foreach (var branchId in request.BranchIds!) await ActiveBranch(cid, branchId, token);
+            foreach (var branchId in request.BranchIds!) await branchService.ActiveBranch(cid, branchId, token);
             var member = (await store.Find<Membership>(cid, x => x.Subject == subject, token)).SingleOrDefault();
             var before = member is null ? null : new { member.GrantedPermissions, member.AllBranches, member.BranchIds, member.Version };
             if (member is null)

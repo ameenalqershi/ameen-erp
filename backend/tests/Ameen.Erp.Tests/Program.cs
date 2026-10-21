@@ -43,21 +43,21 @@ Test("BR01: disallow negative or excessive precision amounts", async f =>
 Test("BR03 AT02: closed period rejects journal", async f =>
 {
     var period = f.Store.All<FiscalPeriod>().Single(x => x.StartsOn.Month == 10);
-    await f.Service.ChangePeriod(f.CompanyId, period.Id, f.Approver, Fixture.Key(), new(period.Version, "إقفال اختباري"), true, default);
+    await f.Service.PeriodClose.ChangePeriod(f.CompanyId, period.Id, f.Approver, Fixture.Key(), new(period.Version, "إقفال اختباري"), true, default);
     await Error("period_closed", () => f.Draft());
 });
 Test("BR03: period closure rejects outstanding drafts", async f =>
 {
     await f.Draft(); var period = f.Store.All<FiscalPeriod>().Single(x => x.StartsOn.Month == 10);
-    await Error("unposted_journals", () => f.Service.ChangePeriod(f.CompanyId, period.Id, f.Approver, Fixture.Key(), new(period.Version, "إقفال"), true, default));
+    await Error("unposted_journals", () => f.Service.PeriodClose.ChangePeriod(f.CompanyId, period.Id, f.Approver, Fixture.Key(), new(period.Version, "إقفال"), true, default));
     Assert(!f.Store.All<FiscalPeriod>().Single(x => x.Id == period.Id).IsClosed);
 });
 Test("BR03: reopening requires separate privilege and reason", async f =>
 {
     var p = f.Store.All<FiscalPeriod>().Single(x => x.StartsOn.Month == 10);
-    var closed = await f.Service.ChangePeriod(f.CompanyId, p.Id, f.Approver, Fixture.Key(), new(p.Version, "إقفال"), true, default);
-    await Error("permission_denied", () => f.Service.ChangePeriod(f.CompanyId, p.Id, f.Clerk, Fixture.Key(), new(closed.Version, "فتح"), false, default));
-    await f.Service.ChangePeriod(f.CompanyId, p.Id, f.Approver, Fixture.Key(), new(closed.Version, "تصحيح معتمد"), false, default);
+    var closed = await f.Service.PeriodClose.ChangePeriod(f.CompanyId, p.Id, f.Approver, Fixture.Key(), new(p.Version, "إقفال"), true, default);
+    await Error("permission_denied", () => f.Service.PeriodClose.ChangePeriod(f.CompanyId, p.Id, f.Clerk, Fixture.Key(), new(closed.Version, "فتح"), false, default));
+    await f.Service.PeriodClose.ChangePeriod(f.CompanyId, p.Id, f.Approver, Fixture.Key(), new(closed.Version, "تصحيح معتمد"), false, default);
     await f.Draft();
 });
 Test("BR09: journal creator cannot approve own journal", async f =>
@@ -109,52 +109,52 @@ Test("BR06: revoked permission is checked before idempotent replay", async f =>
 {
     var key = Fixture.Key(); await f.Draft(key: key);
     var membership = f.Store.All<Membership>().Single(x => x.Subject == f.Clerk.Subject);
-    await f.Service.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+    await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
         new(f.Clerk.Subject, new[] { Permissions.Read }, true, Array.Empty<Guid>(), membership.Version), default);
     await Error("permission_denied", () => f.Draft(key: key));
 });
 Test("BR07: stale update cannot overwrite a draft", async f =>
 {
     var r = await f.Draft();
-    await f.Service.EditJournal(f.CompanyId, r.ResourceId, f.Clerk, Fixture.Key(), new(r.Version, "تعديل", f.Request(200, 200).Lines), default);
-    await Error("version_conflict", () => f.Service.EditJournal(f.CompanyId, r.ResourceId, f.Clerk, Fixture.Key(), new(r.Version, "تعديل قديم", f.Request().Lines), default));
+    await f.Service.Journal.EditJournal(f.CompanyId, r.ResourceId, f.Clerk, Fixture.Key(), new(r.Version, "تعديل", f.Request(200, 200).Lines), default);
+    await Error("version_conflict", () => f.Service.Journal.EditJournal(f.CompanyId, r.ResourceId, f.Clerk, Fixture.Key(), new(r.Version, "تعديل قديم", f.Request().Lines), default));
 });
 Test("BR07: posted document rejects editing and cancellation", async f =>
 {
     var r = await f.Post();
-    await Error("journal_state_conflict", () => f.Service.EditJournal(f.CompanyId, r.ResourceId, f.Clerk, Fixture.Key(), new(r.Version, "تعديل", f.Request().Lines), default));
+    await Error("journal_state_conflict", () => f.Service.Journal.EditJournal(f.CompanyId, r.ResourceId, f.Clerk, Fixture.Key(), new(r.Version, "تعديل", f.Request().Lines), default));
     await Error("journal_state_conflict", () => f.Action(r, "cancel", reason: "إلغاء"));
 });
 Test("BR07: reversal remains draft until separately approved and posted", async f =>
 {
     var original = await f.Post();
-    var reversal = await f.Service.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date.AddDays(1), "تصحيح"), default);
+    var reversal = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date.AddDays(1), "تصحيح"), default);
     Assert((await f.Journal(original.ResourceId)).State == JournalState.Posted);
     Assert((await f.Journal(reversal.ResourceId)).State == JournalState.Draft);
     await f.Post(reversal);
     Assert((await f.Journal(original.ResourceId)).State == JournalState.Reversed);
-    var balance = await f.Service.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default);
+    var balance = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default);
     Assert(balance.TotalClosingDebit == 0 && balance.TotalClosingCredit == 0 && balance.TotalPeriodDebit == 200);
 });
 Test("BR07: reserve one reversal and release it on cancellation", async f =>
 {
     var original = await f.Post();
-    var reversal = await f.Service.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date, "تصحيح"), default);
+    var reversal = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date, "تصحيح"), default);
     var fresh = await f.Journal(original.ResourceId);
-    await Error("already_reversed", () => f.Service.ReverseJournal(f.CompanyId, fresh.Id, f.Clerk, Fixture.Key(), new(fresh.Version, Fixture.Date, "ثان"), default));
+    await Error("already_reversed", () => f.Service.Journal.ReverseJournal(f.CompanyId, fresh.Id, f.Clerk, Fixture.Key(), new(fresh.Version, Fixture.Date, "ثان"), default));
     await f.Action(reversal, "cancel", reason: "سحب طلب العكس");
     fresh = await f.Journal(original.ResourceId);
-    await f.Service.ReverseJournal(f.CompanyId, fresh.Id, f.Clerk, Fixture.Key(), new(fresh.Version, Fixture.Date, "تصحيح آخر"), default);
+    await f.Service.Journal.ReverseJournal(f.CompanyId, fresh.Id, f.Clerk, Fixture.Key(), new(fresh.Version, Fixture.Date, "تصحيح آخر"), default);
 });
 Test("BR07: reversal draft cannot replace source amounts", async f =>
 {
     var original = await f.Post();
-    var reversal = await f.Service.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date, "تصحيح"), default);
-    await Error("reversal_immutable", () => f.Service.EditJournal(f.CompanyId, reversal.ResourceId, f.Clerk, Fixture.Key(), new(reversal.Version, "تغيير", f.Request(50, 50).Lines), default));
+    var reversal = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date, "تصحيح"), default);
+    await Error("reversal_immutable", () => f.Service.Journal.EditJournal(f.CompanyId, reversal.ResourceId, f.Clerk, Fixture.Key(), new(reversal.Version, "تغيير", f.Request(50, 50).Lines), default));
 });
 Test("BR08: control accounts reject manual journals", async f =>
 {
-    var control = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "رقابة العملاء", AccountType.Asset, f.GroupId, true, true, false, null, NormalBalance.Debit), default);
+    var control = await f.Service.Account.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "رقابة العملاء", AccountType.Asset, f.GroupId, true, true, false, null, NormalBalance.Debit), default);
     var request = f.Request(); request.Lines[0] = request.Lines[0] with { AccountId = control.ResourceId };
     await Error("control_account_protected", () => f.Draft(request));
 });
@@ -164,59 +164,59 @@ Test("BR04: parent and inactive accounts reject posting", async f =>
     await Error("account_not_postable", () => f.Draft(request));
     var r = await f.Action(await f.Draft(), "submit"); r = await f.Action(r, "approve", f.Approver);
     var account = f.Store.All<Account>().Single(x => x.Id == f.CashId);
-    await f.Service.SetAccountStatus(f.CompanyId, account.Id, f.Owner, Fixture.Key(), new(account.Version, false, "تعطيل"), default);
+    await f.Service.Account.SetAccountStatus(f.CompanyId, account.Id, f.Owner, Fixture.Key(), new(account.Version, false, "تعطيل"), default);
     await Error("account_not_postable", () => f.Action(r, "post"));
 });
 Test("BR04: required cost center and center branch are validated", async f =>
 {
-    var expense = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("5001", "مصروف", AccountType.Expense, null, true, false, true, null, NormalBalance.Debit), default);
+    var expense = await f.Service.Account.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("5001", "مصروف", AccountType.Expense, null, true, false, true, null, NormalBalance.Debit), default);
     var request = f.Request(); request.Lines[0] = request.Lines[0] with { AccountId = expense.ResourceId };
     await Error("cost_center_required", () => f.Draft(request));
-    var center = await f.Service.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("C", "مركز", f.OtherBranchId), default);
+    var center = await f.Service.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("C", "مركز", f.OtherBranchId), default);
     request.Lines[0] = request.Lines[0] with { CostCenterId = center.ResourceId };
     await Error("cost_center_mismatch", () => f.Draft(request));
 });
 Test("BR02 AT25: another company account cannot be referenced", async f =>
 {
     var other = Guid.NewGuid();
-    await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "SA", "SAR", 2, Fixture.Profile()), default);
-    var account = await f.Service.CreateAccount(other, f.Owner, Fixture.Key(), new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default);
+    await f.Service.Company.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "SA", "SAR", 2, Fixture.Profile()), default);
+    var account = await f.Service.Account.CreateAccount(other, f.Owner, Fixture.Key(), new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default);
     var request = f.Request(); request.Lines[0] = request.Lines[0] with { AccountId = account.ResourceId };
     await Error("reference_not_found", () => f.Draft(request));
-    await Error("permission_denied", () => f.Service.GetCompany(other, f.Clerk, default));
+    await Error("permission_denied", () => f.Service.Company.GetCompany(other, f.Clerk, default));
 });
 Test("BR18: branch scope applies to create, detail and reports", async f =>
 {
     var posted = await f.Post(await f.Draft(f.Request(branch: f.OtherBranchId)));
     await Error("branch_access_denied", () => f.Draft(f.Request(branch: f.OtherBranchId), actor: f.Limited));
-    await Error("branch_access_denied", () => f.Service.GetJournal(f.CompanyId, posted.ResourceId, f.Limited, default));
-    var report = await f.Service.TrialBalance(f.CompanyId, f.Limited, new(2026, 1, 1), new(2026, 12, 31), null, default);
+    await Error("branch_access_denied", () => f.Service.Journal.GetJournal(f.CompanyId, posted.ResourceId, f.Limited, default));
+    var report = await f.Service.Report.TrialBalance(f.CompanyId, f.Limited, new(2026, 1, 1), new(2026, 12, 31), null, default);
     Assert(report.TotalPeriodDebit == 0 && report.BranchIds.SequenceEqual(new[] { f.BranchId }));
 });
 Test("BR09: configuration administrator has no implicit financial rights", async f =>
 {
     await Error("permission_denied", () => f.Draft(actor: f.Owner));
     var member = f.Store.All<Membership>().Single(x => x.Subject == f.Owner.Subject);
-    await Error("self_grant_forbidden", () => f.Service.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(), new(f.Owner.Subject, Permissions.All, true, Array.Empty<Guid>(), member.Version), default));
+    await Error("self_grant_forbidden", () => f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(), new(f.Owner.Subject, Permissions.All, true, Array.Empty<Guid>(), member.Version), default));
 });
 Test("BR10: missing, negative and future exchange rates fail", async f =>
 {
-    await f.Service.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2, "دولار أمريكي"), default);
-    await Error("invalid_exchange_rate", () => f.Service.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date, -1, "اختبار"), default));
+    await f.Service.Currency.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2, "دولار أمريكي"), default);
+    await Error("invalid_exchange_rate", () => f.Service.ExchangeRate.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date, -1, "اختبار"), default));
     var req = f.Request(); req.Lines[0] = req.Lines[0] with { CurrencyCode = "USD" };
     await Error("exchange_rate_required", () => f.Draft(req));
-    var rate = await f.Service.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date.AddDays(1), 3.75m, "اختبار"), default);
+    var rate = await f.Service.ExchangeRate.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date.AddDays(1), 3.75m, "اختبار"), default);
     req.Lines[0] = req.Lines[0] with { ExchangeRateId = rate.ResourceId };
     await Error("exchange_rate_mismatch", () => f.Draft(req));
 });
 Test("BR10: mixed currencies balance functionally and preserve historical reversal rate", async f =>
 {
-    await f.Service.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2, "دولار أمريكي"), default);
-    var rate = await f.Service.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date, 3.75m, "اختبار"), default);
+    await f.Service.Currency.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2, "دولار أمريكي"), default);
+    var rate = await f.Service.ExchangeRate.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date, 3.75m, "اختبار"), default);
     var req = f.Request(100, 375); req.Lines[0] = req.Lines[0] with { CurrencyCode = "USD", ExchangeRateId = rate.ResourceId };
     var original = await f.Post(await f.Draft(req));
-    await f.Service.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date.AddDays(1), 4, "سعر جديد"), default);
-    var reversal = await f.Service.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date.AddDays(2), "تصحيح"), default);
+    await f.Service.ExchangeRate.CreateExchangeRate(f.CompanyId, f.Owner, Fixture.Key(), new("USD", Fixture.Date.AddDays(1), 4, "سعر جديد"), default);
+    var reversal = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date.AddDays(2), "تصحيح"), default);
     var line = (await f.Journal(reversal.ResourceId)).Lines.Single(x => x.CurrencyCode == "USD");
     Assert(line.ExchangeRate == 3.75m && line.FunctionalCredit == 375 && line.Credit == 100);
 });
@@ -226,50 +226,50 @@ Test("RPT01 RPT02: opening, movement, closing and running page balances reconcil
     await f.Post(await f.Draft(f.Request(50, 50, date: new(2026, 10, 1))));
     await f.Post(await f.Draft(f.Request(25, 25, date: new(2026, 10, 2))));
     await f.Draft(f.Request(999, 999));
-    var report = await f.Service.TrialBalance(f.CompanyId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, default);
+    var report = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, default);
     Assert(report.TotalOpeningDebit == 100 && report.TotalPeriodDebit == 75 && report.TotalClosingCredit == 175);
-    var ledger = await f.Service.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, 1, 1, default);
+    var ledger = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, 1, 1, default);
     Assert(ledger.OpeningBalance == 100 && ledger.ClosingBalance == 175 && ledger.Entries.Items.Single().RunningBalance == 175 && ledger.Entries.TotalCount == 2);
 });
 Test("RPT01: historical report excludes later reversal", async f =>
 {
     var original = await f.Post();
-    var reverse = await f.Service.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date.AddDays(1), "تصحيح"), default);
+    var reverse = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date.AddDays(1), "تصحيح"), default);
     await f.Post(reverse);
-    var historical = await f.Service.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), Fixture.Date, null, default);
+    var historical = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), Fixture.Date, null, default);
     Assert(historical.TotalClosingDebit == 100 && historical.TotalClosingCredit == 100);
 });
 Test("RPT01: account level replaces descendants without double counting", async f =>
 {
     await f.Post();
-    var group = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "أصول أخرى", AccountType.Asset, f.GroupId, false, false, false, null, NormalBalance.Debit), default);
-    var leaf = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1201", "حساب أصول", AccountType.Asset, group.ResourceId, true, false, false, null, NormalBalance.Debit), default);
+    var group = await f.Service.Account.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "أصول أخرى", AccountType.Asset, f.GroupId, false, false, false, null, NormalBalance.Debit), default);
+    var leaf = await f.Service.Account.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1201", "حساب أصول", AccountType.Asset, group.ResourceId, true, false, false, null, NormalBalance.Debit), default);
     var request = f.Request(25, 25); request.Lines[0] = request.Lines[0] with { AccountId = leaf.ResourceId };
     await f.Post(await f.Draft(request));
-    var root = await f.Service.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, accountLevel: 1);
+    var root = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, accountLevel: 1);
     Assert(root.Rows.Count == 2 && root.TotalPeriodDebit == 125 && root.TotalClosingCredit == 125);
     Assert(root.Rows.Single(x => x.AccountId == f.GroupId).ClosingDebit == 125);
-    var second = await f.Service.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, accountLevel: 2);
+    var second = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, accountLevel: 2);
     Assert(second.Rows.Count == 3 && second.TotalPeriodDebit == 125);
     Assert(second.Rows.Single(x => x.AccountId == group.ResourceId) is { Level: 2, IsPosting: false, ClosingDebit: 25 });
-    var leaves = await f.Service.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default);
+    var leaves = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default);
     Assert(leaves.Rows.All(x => x.IsPosting) && leaves.Rows.Any(x => x.AccountId == leaf.ResourceId && x.Level == 3));
 });
 Test("RPT01: hide zero retains accounts with offsetting posted movement", async f =>
 {
-    var empty = await f.Service.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, showZero: false);
+    var empty = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, showZero: false);
     Assert(empty.Rows.Count == 0);
     var original = await f.Post();
-    var reverse = await f.Service.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date, "عكس"), default);
+    var reverse = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date, "عكس"), default);
     await f.Post(reverse);
-    var result = await f.Service.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, showZero: false);
+    var result = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, showZero: false);
     Assert(result.Rows.Count == 2 && result.Rows.All(x => x.ClosingDebit == 0 && x.ClosingCredit == 0));
     Assert(result.TotalPeriodDebit == 200 && result.TotalPeriodCredit == 200);
 });
 Test("RPT01 RPT02: cost-center filter applies to opening, movement and running balance", async f =>
 {
-    var center = await f.Service.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("C1", "مركز أول", f.BranchId), default);
-    var other = await f.Service.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("C2", "مركز آخر", f.BranchId), default);
+    var center = await f.Service.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("C1", "مركز أول", f.BranchId), default);
+    var other = await f.Service.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("C2", "مركز آخر", f.BranchId), default);
     async Task Entry(decimal amount, Guid centerId, DateOnly date)
     {
         var r = f.Request(amount, amount, date: date);
@@ -279,42 +279,42 @@ Test("RPT01 RPT02: cost-center filter applies to opening, movement and running b
     await Entry(100, center.ResourceId, new(2026, 1, 1));
     await Entry(50, center.ResourceId, Fixture.Date);
     await Entry(999, other.ResourceId, Fixture.Date);
-    var trial = await f.Service.TrialBalance(f.CompanyId, f.Limited, new(2026, 10, 1), new(2026, 10, 31), null, default, center.ResourceId);
+    var trial = await f.Service.Report.TrialBalance(f.CompanyId, f.Limited, new(2026, 10, 1), new(2026, 10, 31), null, default, center.ResourceId);
     Assert(trial.TotalOpeningDebit == 100 && trial.TotalPeriodDebit == 50 && trial.TotalClosingCredit == 150);
-    var ledger = await f.Service.AccountLedger(f.CompanyId, f.CashId, f.Limited, new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default, center.ResourceId);
+    var ledger = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Limited, new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default, center.ResourceId);
     Assert(ledger.OpeningBalance == 100 && ledger.ClosingBalance == 150 && ledger.Entries.Items.Single().RunningBalance == 150);
     Assert(ledger.CompanyId == f.CompanyId && ledger.BranchIds!.SequenceEqual(new[] { f.BranchId }));
 });
 Test("RPT01 RPT02: cost-center scope cannot bypass company or branch permissions", async f =>
 {
-    var other = await f.Service.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("OTHER", "غير مصرح", f.OtherBranchId), default);
-    await Error("branch_access_denied", () => f.Service.TrialBalance(f.CompanyId, f.Limited, Fixture.Date, Fixture.Date, null, default, other.ResourceId));
-    await Error("branch_access_denied", () => f.Service.AccountLedger(f.CompanyId, f.CashId, f.Limited, Fixture.Date, Fixture.Date, null, 0, 10, default, other.ResourceId));
-    await Error("cost_center_mismatch", () => f.Service.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, f.BranchId, default, other.ResourceId));
-    await Error("reference_not_found", () => f.Service.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, null, default, Guid.NewGuid()));
+    var other = await f.Service.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("OTHER", "غير مصرح", f.OtherBranchId), default);
+    await Error("branch_access_denied", () => f.Service.Report.TrialBalance(f.CompanyId, f.Limited, Fixture.Date, Fixture.Date, null, default, other.ResourceId));
+    await Error("branch_access_denied", () => f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Limited, Fixture.Date, Fixture.Date, null, 0, 10, default, other.ResourceId));
+    await Error("cost_center_mismatch", () => f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, f.BranchId, default, other.ResourceId));
+    await Error("reference_not_found", () => f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, null, default, Guid.NewGuid()));
 });
 Test("RPT02: external reference filters opening and movement with exact matching", async f =>
 {
     await f.Post(await f.Draft(f.Request(100, 100, date: new(2026, 1, 1)) with { ExternalReference = "REF-A" }));
     await f.Post(await f.Draft(f.Request(50, 50) with { ExternalReference = "REF-A" }));
     await f.Post(await f.Draft(f.Request(999, 999) with { ExternalReference = "REF-B" }));
-    var ledger = await f.Service.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default, externalReference: "REF-A");
+    var ledger = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default, externalReference: "REF-A");
     Assert(ledger.OpeningBalance == 100 && ledger.ClosingBalance == 150 && ledger.Entries.TotalCount == 1);
-    var missing = await f.Service.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default, externalReference: "ref-a");
+    var missing = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default, externalReference: "ref-a");
     Assert(missing.OpeningBalance == 0 && missing.Entries.TotalCount == 0);
 });
 Test("RPT01: invalid hierarchy level fails validation", async f =>
 {
     foreach (var level in new[] { 0, 21 })
-        await Error("invalid_account_level", () => f.Service.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, null, default, accountLevel: level));
+        await Error("invalid_account_level", () => f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, null, default, accountLevel: level));
 });
 Test("SYS03: fiscal calendar has no gaps including leap February", async f =>
 {
-    await f.Service.CreateFiscalYear(f.CompanyId, f.Owner, Fixture.Key(), new("2028", new(2028, 1, 15), new(2028, 12, 31)), default);
+    await f.Service.FiscalCalendar.CreateFiscalYear(f.CompanyId, f.Owner, Fixture.Key(), new("2028", new(2028, 1, 15), new(2028, 12, 31)), default);
     var periods = f.Store.All<FiscalPeriod>().Where(x => x.StartsOn.Year == 2028).OrderBy(x => x.StartsOn).ToArray();
     Assert(periods.Length == 12 && periods[1].EndsOn == new DateOnly(2028, 2, 29));
     for (var i = 1; i < periods.Length; i++) Assert(periods[i - 1].EndsOn.AddDays(1) == periods[i].StartsOn);
-    await Error("fiscal_year_overlap", () => f.Service.CreateFiscalYear(f.CompanyId, f.Owner, Fixture.Key(), new("BAD", new(2028, 12, 1), new(2029, 1, 1)), default));
+    await Error("fiscal_year_overlap", () => f.Service.FiscalCalendar.CreateFiscalYear(f.CompanyId, f.Owner, Fixture.Key(), new("BAD", new(2028, 12, 1), new(2029, 1, 1)), default));
 });
 Test("SYS10: cancelled document numbers are never reused", async f =>
 {
@@ -325,9 +325,9 @@ Test("SYS06: disabled membership immediately loses read and replay access", asyn
 {
     var key = Fixture.Key(); await f.Draft(key: key);
     var member = f.Store.All<Membership>().Single(x => x.Subject == f.Clerk.Subject);
-    await f.Service.SetMembershipStatus(f.CompanyId, member.Id, f.Owner, Fixture.Key(), new(member.Version, false, "تعطيل"), default);
+    await f.Service.Membership.SetMembershipStatus(f.CompanyId, member.Id, f.Owner, Fixture.Key(), new(member.Version, false, "تعطيل"), default);
     await Error("permission_denied", () => f.Draft(key: key));
-    await Error("permission_denied", () => f.Service.ListAccounts(f.CompanyId, f.Clerk, null, 0, 10, default));
+    await Error("permission_denied", () => f.Service.Account.ListAccounts(f.CompanyId, f.Clerk, null, 0, 10, default));
 });
 Test("BR07: EF persistence rejects posted line changes through both save paths", async f =>
 {
@@ -361,7 +361,7 @@ Test("Workflow: return requires reason and restores editable draft", async f =>
     await Error("invalid_text", () => f.Action(submitted, "return", f.Approver));
     var returned = await f.Action(submitted, "return", f.Approver, reason: "تصحيح البيان");
     Assert(returned.Status == "Draft");
-    await f.Service.EditJournal(f.CompanyId, returned.ResourceId, f.Clerk, Fixture.Key(), new(returned.Version, "تصحيح", f.Request().Lines), default);
+    await f.Service.Journal.EditJournal(f.CompanyId, returned.ResourceId, f.Clerk, Fixture.Key(), new(returned.Version, "تصحيح", f.Request().Lines), default);
 });
 tests.Add(("Wire contract: exact decimal strings and date-only JSON roundtrip", () =>
 {
@@ -400,7 +400,7 @@ tests.Add(("API: every ERP endpoint requires authentication and carries screen t
     var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
     builder.Services.AddSingleton<IErpStore, MemoryStore>();
     builder.Services.AddSingleton<ITransactionRunner>(sp => (MemoryStore)sp.GetRequiredService<IErpStore>());
-    builder.Services.AddSingleton<IClock, FixedClock>(); builder.Services.AddSingleton<ErpService>();
+    builder.Services.AddSingleton<IClock, FixedClock>(); builder.Services.AddErpApplication();
     await using var app = builder.Build(); app.MapErp();
     var endpoints = ((IEndpointRouteBuilder)app).DataSources.SelectMany(x => x.Endpoints).ToArray();
     Assert(endpoints.Length >= 30);
@@ -413,6 +413,7 @@ tests.Add(("API: every ERP endpoint requires authentication and carries screen t
     Assert(ApiSupport.Actor(h).IsPlatformAdministrator);
 }));
 
+ServiceCompositionTests.Register(Test);
 CompanyTests.Register(Test);
 BranchTests.Register(Test);
 FiscalCalendarTests.Register(Test);

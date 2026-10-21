@@ -11,19 +11,19 @@ public static class RecurringSqlIntegration
     public static async Task Run(string connection, Guid cid, Actor clerk, Actor approver, CreateJournalRequest example)
     {
         ErpDbContext Context() => new(new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options);
-        async Task<T> Call<T>(Func<ErpService, Task<T>> work)
+        async Task<T> Call<T>(Func<TestServices, Task<T>> work)
         {
             await using var db = Context();
-            return await work(new ErpService(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock()));
+            return await work(new TestServices(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock()));
         }
         var lines = example.Lines.Select(x => new RecurringLineRequest(x.AccountId, x.CostCenterId, x.Description, x.CurrencyCode, x.Debit, x.Credit)).ToArray();
         var request = new CreateRecurringJournalRequest(example.BranchId, "SQL recurring", RecurringFrequency.Monthly,
             RecurringGenerationMode.Manual, new(2026, 1, 31), new(2026, 12, 31), lines);
-        var template = await Call(s => s.CreateRecurringJournal(cid, clerk, Fixture.Key(), request, default));
+        var template = await Call(s => s.RecurringJournal.CreateRecurringJournal(cid, clerk, Fixture.Key(), request, default));
         Dictionary<int, Guid> periods;
         await using (var db = Context())
             periods = await db.Set<FiscalPeriod>().Where(x => x.CompanyId == cid).ToDictionaryAsync(x => x.StartsOn.Month, x => x.Id);
-        Task<CommandReceipt> Generate(CommandReceipt t, int month, string key) => Call(s => s.GenerateRecurringJournal(cid, t.ResourceId,
+        Task<CommandReceipt> Generate(CommandReceipt t, int month, string key) => Call(s => s.RecurringJournal.GenerateRecurringJournal(cid, t.ResourceId,
             clerk, key, new(t.Version, periods[month]), default));
         var sameKey = Fixture.Key();
         var simultaneous = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ => Generate(template, 10, sameKey)));
@@ -41,7 +41,7 @@ public static class RecurringSqlIntegration
         Console.WriteLine("  SQL PASS recurring generation is unique per template/period across identical and distinct concurrent keys");
 
         var changed = lines.Select(x => x with { Debit = x.Debit * 2, Credit = x.Credit * 2 }).ToArray();
-        var edited = await Call(s => s.EditRecurringJournal(cid, template.ResourceId, clerk, Fixture.Key(),
+        var edited = await Call(s => s.RecurringJournal.EditRecurringJournal(cid, template.ResourceId, clerk, Fixture.Key(),
             new(template.Version, request.Name, request.Frequency, request.GenerationMode, request.StartsOn, request.EndsOn, changed), default));
         var december = await Generate(edited, 12, Fixture.Key());
         await using (var db = Context())
@@ -102,8 +102,8 @@ FROM [RecurringJournalGenerations] WHERE [CompanyId]={cid} AND [TemplateId]={tem
             try
             {
                 await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(sql).Options);
-                var service = new ErpService(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock());
-                await service.EditRecurringJournal(cid, template.ResourceId, clerk, Fixture.Key(),
+                var service = new TestServices(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock());
+                await service.RecurringJournal.EditRecurringJournal(cid, template.ResourceId, clerk, Fixture.Key(),
                     new(edited.Version, "Runtime template", request.Frequency, request.GenerationMode, request.StartsOn, request.EndsOn, lines), default);
                 try
                 {
@@ -115,11 +115,11 @@ FROM [RecurringJournalGenerations] WHERE [CompanyId]={cid} AND [TemplateId]={tem
             finally { await Execute(sql, "REVERT"); }
         }
         var first = simultaneous[0];
-        first = await Call(s => s.TransitionJournal(cid, first.ResourceId, clerk, Fixture.Key(), new(first.Version), "submit", default));
-        first = await Call(s => s.TransitionJournal(cid, first.ResourceId, approver, Fixture.Key(), new(first.Version), "approve", default));
-        first = await Call(s => s.TransitionJournal(cid, first.ResourceId, clerk, Fixture.Key(), new(first.Version), "post", default));
+        first = await Call(s => s.Journal.TransitionJournal(cid, first.ResourceId, clerk, Fixture.Key(), new(first.Version), "submit", default));
+        first = await Call(s => s.Journal.TransitionJournal(cid, first.ResourceId, approver, Fixture.Key(), new(first.Version), "approve", default));
+        first = await Call(s => s.Journal.TransitionJournal(cid, first.ResourceId, clerk, Fixture.Key(), new(first.Version), "post", default));
         Ensure(first.Status == "Posted", "Recurring draft could not complete independent workflow");
-        var sourcePage = await Call(s => s.ListJournals(cid, clerk, null, null, 0, 10, default, JournalSource.Recurring));
+        var sourcePage = await Call(s => s.Journal.ListJournals(cid, clerk, null, null, 0, 10, default, JournalSource.Recurring));
         Ensure(sourcePage.TotalCount == 4 && sourcePage.Items.All(x => x.RecurringTemplateId == template.ResourceId), "SQL source filter differs");
         Console.WriteLine("  SQL PASS recurring source FK/uniqueness, immutable history, runtime-role template edit and independent posting");
     }

@@ -2,10 +2,17 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class ExchangeRateService : ApplicationService
 {
+    private readonly CurrencyService currencyService;
+    public ExchangeRateService(IErpStore store, ITransactionRunner transactions, IClock clock, CurrencyService currencyService) : base(store, transactions, clock)
+    {
+        this.currencyService = currencyService;
+    }
+
+
     // Shared by quotations and recurring generation: never select a rate from the future.
-    private async Task<ExchangeRate?> EffectiveExchangeRate(Guid cid, string currency, DateOnly date, CancellationToken ct) =>
+    internal async Task<ExchangeRate?> EffectiveExchangeRate(Guid cid, string currency, DateOnly date, CancellationToken ct) =>
         (await store.ReadPage<ExchangeRate>(cid, x => x.CurrencyCode == currency && x.EffectiveDate <= date,
             q => q.OrderByDescending(x => x.EffectiveDate).ThenBy(x => x.Id), 0, 1, ct)).Items.FirstOrDefault();
 
@@ -13,7 +20,7 @@ public sealed partial class ErpService
     {
         await Authorize(cid, actor, Permissions.Read, null, ct);
         var company = await Company(cid, ct); var code = Check.Currency(currencyCode);
-        await RequireCurrency(cid, code, ct);
+        await currencyService.RequireCurrency(cid, code, ct);
         if (code == company.FunctionalCurrency) return new(cid, code, company.FunctionalCurrency, date, null, null, 1m, null, true);
         var rate = await EffectiveExchangeRate(cid, code, date, ct);
         Check.That(rate is not null, "exchange_rate_required", "لا يوجد سعر صرف نافذ للعملة في التاريخ المطلوب.");
@@ -55,7 +62,7 @@ public sealed partial class ErpService
             var company = await Company(cid, token);
             var currency = Check.Currency(request.CurrencyCode);
             Check.That(currency != company.FunctionalCurrency, "functional_rate_fixed", "سعر العملة الوظيفية ثابت ويساوي واحدًا.");
-            await RequireCurrency(cid, currency, token);
+            await currencyService.RequireCurrency(cid, currency, token);
             Check.That(!(await store.Find<ExchangeRate>(cid, x => x.CurrencyCode == currency && x.EffectiveDate == request.EffectiveDate, token)).Any(),
                 "duplicate_exchange_rate", "يوجد سعر لهذه العملة في التاريخ نفسه.", ErrorKind.Conflict);
             var rate = new ExchangeRate(cid, currency, request.EffectiveDate, request.RateToFunctional, request.Source);

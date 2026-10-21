@@ -20,7 +20,7 @@ backend/src/
 │   └── OpenApiConfiguration.cs
 ├── Ameen.Erp.Application/
 │   ├── Abstractions/                  # IErpStore / ITransactionRunner / IClock
-│   ├── Common/                        # تنفيذ الأوامر والتفويض والصفحات والساعة
+│   ├── Common/                        # ApplicationService للتنفيذ والتفويض والصفحات والساعة
 │   ├── Features/
 │   │   ├── Company/CompanyService.cs
 │   │   ├── Account/AccountService.cs
@@ -53,8 +53,8 @@ backend/src/
 - ملف عقد واحد لكل نوع عام. `Contracts/Common` يحتوي فقط هوية المستخدم ونتائج التنفيذ والصفحات؛ عقود انتقال القيد وإقفال الفترة ونتائج الأستاذ توضع في وحداتها.
 - كل مجموعة Endpoints تسجل مسارات وظيفتها مع التفويض والعقود نفسها. `Endpoints.cs` نقطة تركيب فقط؛ أضف استدعاء التسجيل فيه عند إضافة وحدة. بعض المسارات العابرة للمراجع، مثل أصناف الوحدة، تبقى ضمن الوحدة المالكة للوظيفة بحسب tag الحالي.
 - أزيل الملفان الجامعان `CommandService.cs` و`QueryService.cs`: إنشاء وتعديل وقراءة الشركة في Company، الحساب في Account، العضويات في Membership، التقارير في Report، إلخ.
-- يبقى `ErpService` واجهة التطبيق الحالية وموزعًا بملفات partial؛ لم يتحول إلى خدمات DI مستقلة في هذه الدفعة. هذا فصل للملفات والمسؤوليات داخل التطبيق الحالي، وليس ادعاء عزل تجميعي لكل وحدة أو إنشاء microservices. لا تنقل سياسات المعاملة أو التفويض إلى كل Endpoint.
-- `Common/ExecutionService.cs` يجمع اعتماديات الخدمة وبصمة الأمر وغلاف المعاملة والتدقيق؛ `AuthorizationService.cs` يتحقق من العضوية والنطاق؛ `QuerySupportService.cs` يدير الصفحة والقراءة العامة المحدودة. هذه شيفرة مشتركة فقط وليست مكانًا لإضافة أوامر وحدات جديدة.
+- أزيل `ErpService` من الإنتاج. توجد 18 خدمة مستقلة (CompanyService، AccountService، JournalService، وغيرها) تسجل Scoped بواسطة `Api/ApplicationServiceRegistration.cs`. كل Endpoint يستقبل الخدمة المختصة، بما فيها المسارات العابرة للوحدات. لا Service Locator ولا واجهة تعيد توجيه جميع الوظائف داخل الإنتاج. تبقى الوحدات ضمن التطبيق وقاعدة البيانات نفسيهما.
+- `Common/ApplicationService.Execution.cs` قاعدة مجردة تحوي Store/TransactionRunner/Clock وبصمة الأمر وغلاف المعاملة والتدقيق؛ `ApplicationService.Authorization.cs` للتحقق من العضوية والنطاق؛ `ApplicationService.QuerySupport.cs` لضبط الصفحة. كل هذه الدوال protected ولا تعرض عمليات أعمال عامة. القراءة العامة المحدودة ListSetup انتقلت إلى SetupQueryService مستقلة. هذه الشيفرة المشتركة ليست مكانًا لإضافة أوامر وحدات جديدة.
 - `Configurations` يفصل إعدادات الكيانات عن DbContext. تظل الدوال partial ضمن السياق لإعادة استعمال Tenant وConstraint دون تغيير ترتيب إعداد EF. تحفظ مجموعتا Warehouse وRecurring تهيئة العلاقات المترابطة في ملف لكل مجموعة. حراسة SaveChanges منفصلة عن التهيئة.
 
 ## كيف تضيف وظيفة لاحقة
@@ -70,3 +70,30 @@ backend/src/
 تشغل حزمة التحقق كاملة على SQL وHTTPS/JWT. تقارن كذلك OpenAPI المولد مع العقد المحفوظ قبل النقل، ومخطط SQL المولد من نسخة API المنشورة قبل النقل مع النسخة الجديدة؛ المقارنة تثبت عدم تغيير واجهة البيانات أو DDL بسبب فصل الملفات. لا توجد ترقية 012 لهذه الدفعة.
 
 النتيجة: 193/193 ناجحة، SQL مطابق بايتًا ببايت، وOpenAPI مطابق عدا ترتيب tags العامة (جمع الإقفال والفتح غيّر ترتيب عرض الوسم فقط). كل تعريفات Domain مطابقة قبل/بعد الفصل مع تجاهل الفراغات والتعليقات.
+
+## اعتماديات الخدمات المستقلة
+
+```mermaid
+flowchart TD
+    API[Endpoints حسب الوظيفة] --> Features[18 خدمة Scoped]
+    Features --> Shared[ApplicationService: المعاملة والتفويض والتدقيق]
+    Shared --> Store[IErpStore Scoped]
+    Shared --> Tx[ITransactionRunner Scoped]
+    Store --> DB[ErpDbContext Scoped]
+    Tx --> DB
+    RecurringJournalService --> JournalService
+    RecurringJournalService --> ExchangeRateService
+    RecurringJournalService --> BranchService
+    RecurringJournalService --> CurrencyService
+    JournalService --> BranchService
+    JournalService --> CurrencyService
+    ItemService --> ItemGroupService
+```
+
+الاعتماديات العابرة للميزات صريحة في constructors. المساعدات المشتركة مثل RequireCurrency وActiveBranch وValidateGroupAccounts وإعداد سطور القيد أصبحت internal عند استعمالها من خدمة أخرى، وتعمل داخل معاملة الأمر المستدعي؛ لا تبدأ أمرًا عامًا متداخلًا أو تحفظ بمفردها. CurrencySnapshot مساعد static للتدقيق عند إنشاء عملة الشركة. بقية الوظائف تبقى private داخل خدمتها.
+
+جميع الخدمات وStore وTransactionRunner وDbContext مسجلة Scoped في المضيف، لذلك تتشارك المعاملة وسياق التتبع داخل الطلب. لا تستدعِ خدمة Scoped من singleton. لا تنشئ DbContext جديدًا داخل خدمة لتحقيق عمل تابع للترحيل الحالي.
+
+الاختبارات تستخدم `TestServices` داخل مشروع الاختبار فقط، وهو مجموعة خصائص لخدمات فعلية تشترك في مخزن ومعاملة الاختبار؛ لا يحتوي نسخًا لمنطق الأعمال أو دوال إعادة توجيه. اختبارات HTTP تستخدم تسجيل الخدمات نفسه المستخدم في المضيف. اختبار ServiceCompositionTests يتحقق من ثبات النسخة داخل scope واختلافها خارجه، ومن اشتراك الخدمات في الحالة وتراجع الإيصال والتدقيق عند الفشل، ومن صلاحية تركيب كل الاعتماديات.
+
+هذه إضافة تنظيمية ولا تزيد نسبة التغطية الوظيفية، ولا تتطلب ترقية SQL أو تعديل عقود HTTP. التحقق النهائي يسجل في validation.md وPROGRESS.md.

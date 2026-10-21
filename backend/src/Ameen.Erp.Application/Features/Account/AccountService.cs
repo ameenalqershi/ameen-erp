@@ -2,8 +2,15 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class AccountService : ApplicationService
 {
+    private readonly CurrencyService currencyService;
+    public AccountService(IErpStore store, ITransactionRunner transactions, IClock clock, CurrencyService currencyService) : base(store, transactions, clock)
+    {
+        this.currencyService = currencyService;
+    }
+
+
     private static object AccountSnapshot(Account x) => new
     {
         x.Version, x.Revision, x.Code, x.Name, x.EnglishName, x.Notes, x.Type, x.ParentId, x.NormalBalance,
@@ -60,7 +67,7 @@ public sealed partial class ErpService
                 var children = accounts.Where(x => x.ParentId == id).ToArray();
                 Check.That(!candidate.IsPosting || children.Length == 0, "account_has_children", "الحساب الذي له فروع يبقى رئيسيًا.", ErrorKind.Conflict);
                 Check.That(children.All(x => x.Type == candidate.Type), "child_account_type_mismatch", "تصنيف الحساب لا يطابق حساباته الفرعية.", ErrorKind.Conflict);
-                if (candidate.CurrencyCode is not null) await RequireCurrency(cid, candidate.CurrencyCode, token);
+                if (candidate.CurrencyCode is not null) await currencyService.RequireCurrency(cid, candidate.CurrencyCode, token);
                 // Preserve historical report grouping and the meaning of pending/cancelled documents and templates.
                 Check.That(!await HasAccountUsage(cid, AccountSubtree(id, accounts), token),
                     "account_structure_in_use", "الحساب أو أحد فروعه مستخدم في قيود أو قوالب أو مجموعات أصناف؛ يلزم مسار تحويل معتمد لتغيير بنيته.", ErrorKind.Conflict);
@@ -114,7 +121,7 @@ public sealed partial class ErpService
                 Check.That(parent.IsActive && !parent.IsPosting && parent.Type == account.Type,
                     "invalid_parent_account", "الحساب الأب يجب أن يكون رئيسيًا فعالًا ومن التصنيف نفسه.");
             }
-            if (account.CurrencyCode is not null) await RequireCurrency(cid, account.CurrencyCode, token);
+            if (account.CurrencyCode is not null) await currencyService.RequireCurrency(cid, account.CurrencyCode, token);
             store.Add(account); Audit(cid, actor, "account.created", account, new { after = AccountSnapshot(account) });
             return Receipt(account, "Created");
         }, ct);

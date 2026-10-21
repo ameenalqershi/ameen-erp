@@ -12,10 +12,10 @@ public static class SchemaUpgradeIntegration
     {
         // Seed old-schema rows, including a posted reversal, without using the new journal columns.
         var f = new Fixture(); await f.Initialize();
-        var legacyCenterReceipt = await f.Service.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("LEGACY-C", "مركز سابق", f.BranchId), default);
+        var legacyCenterReceipt = await f.Service.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("LEGACY-C", "مركز سابق", f.BranchId), default);
         var legacyCenter = f.Store.All<CostCenter>().Single();
         var original = await f.Post(await f.Draft(CostCenterTests.Request(f, legacyCenterReceipt.ResourceId)));
-        var reversal = await f.Service.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(),
+        var reversal = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(),
             new(original.Version, Fixture.Date, "عكس قبل الترقية"), default);
         await f.Post(reversal);
         foreach (var type in new[] { AccountType.Liability, AccountType.Revenue, AccountType.Expense })

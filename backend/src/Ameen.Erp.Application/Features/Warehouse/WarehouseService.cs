@@ -1,7 +1,12 @@
 using Ameen.Erp.Domain;
 namespace Ameen.Erp.Application;
-public sealed partial class ErpService
+public sealed class WarehouseService : ApplicationService
 {
+    public WarehouseService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
+    {
+    }
+
+
     private static object WarehouseSnapshot(Warehouse w) => new { w.Version, w.Revision, w.Code, w.Name, w.EnglishName, w.Notes,
         w.BranchId, w.KeeperMembershipId, w.InventoryAccountId, w.Type, w.TrackLocations, w.IsActive, w.Locations };
     private async Task ValidateWarehouseReferences(Warehouse w, CancellationToken ct)

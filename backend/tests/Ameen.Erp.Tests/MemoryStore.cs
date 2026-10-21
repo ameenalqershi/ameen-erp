@@ -92,7 +92,7 @@ public sealed class FixedClock : IClock
 public sealed class Fixture
 {
     public MemoryStore Store { get; } = new();
-    public ErpService Service { get; }
+    public TestServices Service { get; }
     public Guid CompanyId { get; } = Guid.NewGuid();
     public Actor Owner { get; } = new("owner", true);
     public Actor Clerk { get; } = new("clerk");
@@ -106,32 +106,32 @@ public sealed class Fixture
     public static readonly DateOnly Date = new(2026, 10, 20);
     public static CompanyProfile Profile() => new("شركة الاختبار القانونية", "منطقة الاختبار", new(2026, 1, 1), "مدينة الاختبار", "شارع الاختبار");
     public static string Key() => Guid.NewGuid().ToString("N");
-    public Fixture() { Service = new ErpService(Store, Store, new FixedClock()); }
+    public Fixture() { Service = new TestServices(Store, Store, new FixedClock()); }
     public async Task Initialize()
     {
-        await Service.CreateCompany(Owner, Key(), new(CompanyId, "TEST", "شركة الاختبار", "YE", "SAR", 2, Fixture.Profile()), default);
-        BranchId = (await Service.CreateBranch(CompanyId, Owner, Key(), new("MAIN", "الرئيسي", "مدينة الاختبار", "عنوان الاختبار"), default)).ResourceId;
-        OtherBranchId = (await Service.CreateBranch(CompanyId, Owner, Key(), new("OTHER", "الآخر", "مدينة الاختبار", "عنوان الاختبار"), default)).ResourceId;
-        await Service.CreateFiscalYear(CompanyId, Owner, Key(), new("2026", new(2026, 1, 1), new(2026, 12, 31)), default);
-        await Service.GrantMembership(CompanyId, Owner, Key(), new(Clerk.Subject,
+        await Service.Company.CreateCompany(Owner, Key(), new(CompanyId, "TEST", "شركة الاختبار", "YE", "SAR", 2, Fixture.Profile()), default);
+        BranchId = (await Service.Branch.CreateBranch(CompanyId, Owner, Key(), new("MAIN", "الرئيسي", "مدينة الاختبار", "عنوان الاختبار"), default)).ResourceId;
+        OtherBranchId = (await Service.Branch.CreateBranch(CompanyId, Owner, Key(), new("OTHER", "الآخر", "مدينة الاختبار", "عنوان الاختبار"), default)).ResourceId;
+        await Service.FiscalCalendar.CreateFiscalYear(CompanyId, Owner, Key(), new("2026", new(2026, 1, 1), new(2026, 12, 31)), default);
+        await Service.Membership.GrantMembership(CompanyId, Owner, Key(), new(Clerk.Subject,
             new[] { Permissions.Read, Permissions.Draft, Permissions.Approve, Permissions.Post, Permissions.Reverse }, true, Array.Empty<Guid>(), null), default);
-        await Service.GrantMembership(CompanyId, Owner, Key(), new(Approver.Subject,
+        await Service.Membership.GrantMembership(CompanyId, Owner, Key(), new(Approver.Subject,
             new[] { Permissions.Read, Permissions.Approve, Permissions.Post, Permissions.PeriodClose, Permissions.PeriodReopen, Permissions.Audit }, true, Array.Empty<Guid>(), null), default);
-        await Service.GrantMembership(CompanyId, Owner, Key(), new(Limited.Subject,
+        await Service.Membership.GrantMembership(CompanyId, Owner, Key(), new(Limited.Subject,
             new[] { Permissions.Read, Permissions.Draft, Permissions.Post }, false, new[] { BranchId }, null), default);
-        GroupId = (await Service.CreateAccount(CompanyId, Owner, Key(), new("1000", "الأصول", AccountType.Asset, null, false, false, false, null, NormalBalance.Debit), default)).ResourceId;
-        CashId = (await Service.CreateAccount(CompanyId, Owner, Key(), new("1101", "نقدية", AccountType.Asset, GroupId, true, false, false, null, NormalBalance.Debit), default)).ResourceId;
-        EquityId = (await Service.CreateAccount(CompanyId, Owner, Key(), new("3001", "رأس المال", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit), default)).ResourceId;
+        GroupId = (await Service.Account.CreateAccount(CompanyId, Owner, Key(), new("1000", "الأصول", AccountType.Asset, null, false, false, false, null, NormalBalance.Debit), default)).ResourceId;
+        CashId = (await Service.Account.CreateAccount(CompanyId, Owner, Key(), new("1101", "نقدية", AccountType.Asset, GroupId, true, false, false, null, NormalBalance.Debit), default)).ResourceId;
+        EquityId = (await Service.Account.CreateAccount(CompanyId, Owner, Key(), new("3001", "رأس المال", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit), default)).ResourceId;
     }
     public CreateJournalRequest Request(decimal debit = 100, decimal credit = 100, Guid? branch = null, DateOnly? date = null) =>
         new(branch ?? BranchId, date ?? Date, date ?? Date, "قيد اختبار", null,
             new[] { new JournalLineRequest(CashId, null, "الطرف المدين", "SAR", null, debit, 0),
                 new JournalLineRequest(EquityId, null, "الطرف الدائن", "SAR", null, 0, credit) });
     public Task<CommandReceipt> Draft(CreateJournalRequest? request = null, string? key = null, Actor? actor = null) =>
-        Service.CreateJournal(CompanyId, actor ?? Clerk, key ?? Key(), request ?? Request(), default);
-    public Task<JournalEntry> Journal(Guid id) => Service.GetJournal(CompanyId, id, Clerk, default);
+        Service.Journal.CreateJournal(CompanyId, actor ?? Clerk, key ?? Key(), request ?? Request(), default);
+    public Task<JournalEntry> Journal(Guid id) => Service.Journal.GetJournal(CompanyId, id, Clerk, default);
     public Task<CommandReceipt> Action(CommandReceipt r, string action, Actor? actor = null, string? key = null, string? reason = null) =>
-        Service.TransitionJournal(CompanyId, r.ResourceId, actor ?? Clerk, key ?? Key(), new(r.Version, reason), action, default);
+        Service.Journal.TransitionJournal(CompanyId, r.ResourceId, actor ?? Clerk, key ?? Key(), new(r.Version, reason), action, default);
     public async Task<CommandReceipt> Post(CommandReceipt? draft = null)
     {
         var r = await Action(draft ?? await Draft(), "submit");

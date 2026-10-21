@@ -2,8 +2,21 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class RecurringJournalService : ApplicationService
 {
+    private readonly BranchService branchService;
+    private readonly CurrencyService currencyService;
+    private readonly ExchangeRateService exchangeRateService;
+    private readonly JournalService journalService;
+    public RecurringJournalService(IErpStore store, ITransactionRunner transactions, IClock clock, BranchService branchService, CurrencyService currencyService, ExchangeRateService exchangeRateService, JournalService journalService) : base(store, transactions, clock)
+    {
+        this.branchService = branchService;
+        this.currencyService = currencyService;
+        this.exchangeRateService = exchangeRateService;
+        this.journalService = journalService;
+    }
+
+
     private async Task<RecurringJournalTemplate> AuthorizeRecurring(Guid cid, Guid id, Actor actor, string permission, CancellationToken ct)
     {
         await Authorize(cid, actor, permission, null, ct);
@@ -20,8 +33,8 @@ public sealed partial class ErpService
         {
             Check.That(request is not null, "invalid_line", "سطر القالب لا يمكن أن يكون فارغًا.");
             var code = Check.Currency(request!.CurrencyCode);
-            var currency = await RequireCurrency(template.CompanyId, code, ct);
-            await ValidateDimensions(template.CompanyId, template.BranchId, request.AccountId, request.CostCenterId, code, ct);
+            var currency = await currencyService.RequireCurrency(template.CompanyId, code, ct);
+            await journalService.ValidateDimensions(template.CompanyId, template.BranchId, request.AccountId, request.CostCenterId, code, ct);
             lines.Add(new RecurringJournalLine(template.CompanyId, template.Id, lines.Count + 1, request.AccountId,
                 request.CostCenterId, request.Description, code, request.Debit, request.Credit, currency.Scale));
         }
@@ -32,7 +45,7 @@ public sealed partial class ErpService
         Command(cid, actor, key, "recurring.create", request,
             async token => { await Authorize(cid, actor, Permissions.RecurringManage, request.BranchId, token); }, async token =>
         {
-            await ActiveBranch(cid, request.BranchId, token);
+            await branchService.ActiveBranch(cid, request.BranchId, token);
             var template = new RecurringJournalTemplate(cid, request.BranchId, request.Name, request.Frequency,
                 request.GenerationMode, request.StartsOn, request.EndsOn, actor.Subject, clock.UtcNow);
             Check.That(!(await store.Find<RecurringJournalTemplate>(cid, x => x.BranchId == template.BranchId && x.Name == template.Name, token)).Any(),
@@ -48,7 +61,7 @@ public sealed partial class ErpService
         Command(cid, actor, key, "recurring.edit:" + id, request, token => AuthorizeRecurring(cid, id, actor, Permissions.RecurringManage, token), async token =>
         {
             var template = await Required<RecurringJournalTemplate>(cid, id, token); Check.Version(template, request.ExpectedVersion);
-            await ActiveBranch(cid, template.BranchId, token);
+            await branchService.ActiveBranch(cid, template.BranchId, token);
             var before = new { template.Version, template.Name, template.Frequency, template.GenerationMode, template.StartsOn, template.EndsOn, Lines = template.Lines.ToArray() };
             template.Configure(request.Name, request.Frequency, request.GenerationMode, request.StartsOn, request.EndsOn);
             Check.That(!(await store.Find<RecurringJournalTemplate>(cid, x => x.Id != id && x.BranchId == template.BranchId && x.Name == template.Name, token)).Any(),
@@ -79,30 +92,30 @@ public sealed partial class ErpService
         {
             var template = await Required<RecurringJournalTemplate>(cid, id, token); Check.Version(template, request.ExpectedVersion);
             Check.That(template.IsActive, "recurring_inactive", "القالب معطل؛ لا يمكن توليد مسودات جديدة منه.", ErrorKind.Conflict);
-            await ActiveBranch(cid, template.BranchId, token);
+            await branchService.ActiveBranch(cid, template.BranchId, token);
             var period = await Required<FiscalPeriod>(cid, request.FiscalPeriodId, token);
             var due = template.DueDateFor(period.StartsOn, period.EndsOn);
             Check.That(due is not null, "recurring_not_due", "لا يوجد موعد لهذا القالب ضمن الفترة ومدة السريان.");
             Check.That(!(await store.Find<RecurringJournalGeneration>(cid, x => x.TemplateId == id && x.FiscalPeriodId == period.Id, token)).Any(),
                 "recurring_already_generated", "سبق توليد قيد لهذا القالب والفترة، حتى لو أُلغيت مسودته.", ErrorKind.Conflict);
-            var open = await OpenPeriod(cid, due!.Value, token);
+            var open = await journalService.OpenPeriod(cid, due!.Value, token);
             Check.That(open.Id == period.Id, "period_mismatch", "فترة الموعد لا تطابق الفترة المطلوبة.");
             var company = await Company(cid, token);
             var rates = new Dictionary<string, Guid?>();
             foreach (var code in template.Lines.Select(x => x.CurrencyCode).Distinct())
             {
                 if (code == company.FunctionalCurrency) { rates[code] = null; continue; }
-                var rate = await EffectiveExchangeRate(cid, code, due.Value, token);
+                var rate = await exchangeRateService.EffectiveExchangeRate(cid, code, due.Value, token);
                 Check.That(rate is not null, "exchange_rate_required", "لا يوجد سعر صرف نافذ لعملة القالب في تاريخ الموعد.");
                 rates[code] = rate!.Id;
             }
-            var number = await NextNumber(cid, period.Id, token);
+            var number = await journalService.NextNumber(cid, period.Id, token);
             var journal = new JournalEntry(cid, template.BranchId, period.Id, number.Number, number.Sequence, due.Value, due.Value,
                 template.Name + " - " + period.Code, null, actor.Subject, clock.UtcNow);
             journal.SetRecurringSource(template.Id, template.Version);
             var lines = template.Lines.OrderBy(x => x.Position).Select(x => new JournalLineRequest(x.AccountId, x.CostCenterId,
                 x.Description, x.CurrencyCode, rates[x.CurrencyCode], x.Debit, x.Credit)).ToArray();
-            journal.SetLines(await PrepareLines(company, journal, lines, token));
+            journal.SetLines(await journalService.PrepareLines(company, journal, lines, token));
             var generation = new RecurringJournalGeneration(cid, template.Id, template.Version, period.Id, journal.Id, due.Value, actor.Subject, clock.UtcNow);
             store.Add(journal); store.Add(generation);
             Audit(cid, actor, "recurring.generated", journal, new { TemplateId = template.Id, TemplateVersion = template.Version, GenerationId = generation.Id,

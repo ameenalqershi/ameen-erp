@@ -2,8 +2,13 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class PeriodCloseService : ApplicationService
 {
+    public PeriodCloseService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
+    {
+    }
+
+
     private async Task<IReadOnlyList<JournalEntry>> PeriodJournals(Guid cid, Guid id, CancellationToken ct) =>
         await store.Find<JournalEntry>(cid, x => x.FiscalPeriodId == id, ct);
     private static bool PendingJournal(JournalEntry x) => x.State is JournalState.Draft or JournalState.Submitted or JournalState.Approved;

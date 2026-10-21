@@ -2,8 +2,13 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class FiscalCalendarService : ApplicationService
 {
+    public FiscalCalendarService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
+    {
+    }
+
+
     private static IReadOnlyList<FiscalPeriod> PrepareFiscalPeriods(FiscalYear year, FiscalPeriodRequest[]? requests)
     {
         var periods = new List<FiscalPeriod>();

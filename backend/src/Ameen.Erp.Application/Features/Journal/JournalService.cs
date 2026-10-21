@@ -3,9 +3,18 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed partial class ErpService
+public sealed class JournalService : ApplicationService
 {
-    private async Task<FiscalPeriod> OpenPeriod(Guid cid, DateOnly date, CancellationToken ct)
+    private readonly BranchService branchService;
+    private readonly CurrencyService currencyService;
+    public JournalService(IErpStore store, ITransactionRunner transactions, IClock clock, BranchService branchService, CurrencyService currencyService) : base(store, transactions, clock)
+    {
+        this.branchService = branchService;
+        this.currencyService = currencyService;
+    }
+
+
+    internal async Task<FiscalPeriod> OpenPeriod(Guid cid, DateOnly date, CancellationToken ct)
     {
         var periods = await store.Find<FiscalPeriod>(cid, x => x.StartsOn <= date && x.EndsOn >= date, ct);
         Check.That(periods.Count == 1, "period_not_found", "لا توجد فترة مالية وحيدة تغطي تاريخ الأثر.");
@@ -14,7 +23,7 @@ public sealed partial class ErpService
         return period;
     }
 
-    private async Task<(long Sequence, string Number)> NextNumber(Guid cid, Guid periodId, CancellationToken ct)
+    internal async Task<(long Sequence, string Number)> NextNumber(Guid cid, Guid periodId, CancellationToken ct)
     {
         var period = await Required<FiscalPeriod>(cid, periodId, ct);
         var year = await Required<FiscalYear>(cid, period.FiscalYearId, ct);
@@ -25,7 +34,7 @@ public sealed partial class ErpService
         return (number, $"JV-{year.Code}-{number:000000}");
     }
 
-    private async Task<List<JournalLine>> PrepareLines(Company company, JournalEntry journal, JournalLineRequest[]? requests, CancellationToken ct)
+    internal async Task<List<JournalLine>> PrepareLines(Company company, JournalEntry journal, JournalLineRequest[]? requests, CancellationToken ct)
     {
         Check.That(requests is not null && requests.Length is >= 2 and <= 200, "invalid_line_count", "القيد يتكون من 2 إلى 200 سطر.");
         var result = new List<JournalLine>();
@@ -33,7 +42,7 @@ public sealed partial class ErpService
         {
             Check.That(request is not null, "invalid_line", "سطر القيد لا يمكن أن يكون فارغًا.");
             var currencyCode = Check.Currency(request!.CurrencyCode);
-            var currency = await RequireCurrency(company.Id, currencyCode, ct);
+            var currency = await currencyService.RequireCurrency(company.Id, currencyCode, ct);
             decimal rate = 1;
             if (currencyCode == company.FunctionalCurrency)
                 Check.That(request.ExchangeRateId is null, "functional_rate_fixed", "لا يحدد سعر خارجي للعملة الوظيفية.");
@@ -60,9 +69,9 @@ public sealed partial class ErpService
     private Task ValidateLine(JournalEntry journal, JournalLine line, CancellationToken ct) =>
         ValidateDimensions(journal.CompanyId, journal.BranchId, line.AccountId, line.CostCenterId, line.CurrencyCode, ct);
 
-    private async Task ValidateDimensions(Guid cid, Guid branchId, Guid accountId, Guid? costCenterId, string currency, CancellationToken ct)
+    internal async Task ValidateDimensions(Guid cid, Guid branchId, Guid accountId, Guid? costCenterId, string currency, CancellationToken ct)
     {
-        await RequireCurrency(cid, currency, ct);
+        await currencyService.RequireCurrency(cid, currency, ct);
         var account = await Required<Account>(cid, accountId, ct);
         Check.That(account.IsActive && account.IsPosting, "account_not_postable", "الحساب غير فعال أو رئيسي ولا يقبل الحركة.");
         Check.That(!account.IsControl, "control_account_protected", "الحساب الرقابي يقبل أثر دفتره المساعد فقط.");
@@ -80,7 +89,7 @@ public sealed partial class ErpService
 
     private async Task ValidateForPosting(JournalEntry journal, CancellationToken ct)
     {
-        await ActiveBranch(journal.CompanyId, journal.BranchId, ct);
+        await branchService.ActiveBranch(journal.CompanyId, journal.BranchId, ct);
         var period = await OpenPeriod(journal.CompanyId, journal.AccountingDate, ct);
         Check.That(period.Id == journal.FiscalPeriodId, "period_mismatch", "الفترة لا تطابق تاريخ القيد.");
         foreach (var line in journal.Lines) await ValidateLine(journal, line, ct);
@@ -91,7 +100,7 @@ public sealed partial class ErpService
         Command(cid, actor, key, "journal.create", request,
             async token => { await Authorize(cid, actor, Permissions.Draft, request.BranchId, token); }, async token =>
         {
-            var company = await Company(cid, token); await ActiveBranch(cid, request.BranchId, token);
+            var company = await Company(cid, token); await branchService.ActiveBranch(cid, request.BranchId, token);
             var period = await OpenPeriod(cid, request.AccountingDate, token);
             var number = await NextNumber(cid, period.Id, token);
             var journal = new JournalEntry(cid, request.BranchId, period.Id, number.Number, number.Sequence,
