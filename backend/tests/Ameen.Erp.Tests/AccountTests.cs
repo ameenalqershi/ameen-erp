@@ -61,7 +61,7 @@ public static class AccountTests
             var a = await Account(f, f.CashId);
             await Error("duplicate_account", () => f.Service.EditAccount(f.CompanyId, a.Id, f.Owner, Fixture.Key(), Edit(a) with { Code = "3001" }, default));
             var cid = Guid.NewGuid();
-            await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(cid, "OTHER", "أخرى", "YE", "USD", 2), default);
+            await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(cid, "OTHER", "أخرى", "YE", "USD", 2, Fixture.Profile()), default);
             var p = await f.Service.CreateAccount(cid, f.Owner, Fixture.Key(), new("P", "أب أجنبي", AccountType.Asset, null, false, false, false, null, NormalBalance.Debit), default);
             await Error("reference_not_found", () => f.Service.EditAccount(f.CompanyId, a.Id, f.Owner, Fixture.Key(), Edit(a) with { ParentId = p.ResourceId }, default));
             await Error("currency_not_found", () => f.Service.EditAccount(f.CompanyId, a.Id, f.Owner, Fixture.Key(), Edit(a) with { CurrencyCode = "USD" }, default));

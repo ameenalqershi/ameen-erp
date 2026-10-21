@@ -31,7 +31,11 @@ public interface ITransactionRunner
         Func<CancellationToken, Task<CommandReceipt>> work, CancellationToken ct);
 }
 
-public sealed record CreateCompanyRequest(Guid Id, string Code, string Name, string CountryCode, string FunctionalCurrency, int CurrencyScale);
+public sealed record CreateCompanyRequest(Guid Id, string Code, string Name, string CountryCode, string FunctionalCurrency, int CurrencyScale, CompanyProfile Profile);
+public sealed record EditCompanyRequest(Guid ExpectedVersion, string Code, string Name, string CountryCode, string FunctionalCurrency, CompanyProfile Profile, string Reason);
+public sealed record SetCompanyStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+public sealed record CompanyUsage(Guid CompanyId, int BranchCount, int AccountCount, int CurrencyCount, int FiscalYearCount,
+    int JournalCount, int RecurringTemplateCount, int ExchangeRateCount, bool CanChangeFunctionalCurrency);
 public sealed record CreateBranchRequest(string Code, string Name);
 public sealed record CreateCurrencyRequest(string Code, int Scale, string Name, string? EnglishName = null,
     string? Notes = null, string? DisplaySymbol = null, string? FractionName = null);

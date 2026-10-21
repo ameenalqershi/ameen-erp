@@ -1,28 +1,28 @@
 screen_id,field_id,name,requirement,status,binding,api
-SYS01,SYS01-F01,المعرف الداخلي,system,implemented,Company.Id / CreateCompanyRequest.Id (client-generated UUID),GET/POST /companies; GET /companies/{companyId}
-SYS01,SYS01-F02,الشركة,system,implemented,route.companyId,GET/POST /companies; GET /companies/{companyId}
-SYS01,SYS01-F03,الرمز,required,implemented,Code,GET/POST /companies; GET /companies/{companyId}
-SYS01,SYS01-F04,الاسم العربي,required,implemented,Name,GET/POST /companies; GET /companies/{companyId}
-SYS01,SYS01-F05,الاسم الإنجليزي,optional,pending,,
-SYS01,SYS01-F06,فعال,required,pending,,
-SYS01,SYS01-F07,ملاحظات,optional,pending,,
-SYS01,SYS01-F08,الاسم القانوني,required,pending,,
-SYS01,SYS01-F09,الدولة,required,implemented,CountryCode,GET/POST /companies; GET /companies/{companyId}
-SYS01,SYS01-F10,منطقة الاختصاص,required,pending,,
-SYS01,SYS01-F11,العملة الوظيفية,required,implemented,FunctionalCurrency,GET/POST /companies; GET /companies/{companyId}
-SYS01,SYS01-F12,السجل التجاري,conditional,pending,,
-SYS01,SYS01-F13,التسجيل الضريبي,conditional,pending,,
-SYS01,SYS01-F14,بداية السنة المالية,required,pending,,
-SYS01,SYS01-F15,أنشأه,system,audit,AuditEvent.ActorId: company.created,GET/POST /companies; GET /companies/{companyId}
-SYS01,SYS01-F16,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: company.created,GET/POST /companies; GET /companies/{companyId}
-SYS01,SYS01-F17,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies; GET /companies/{companyId}
-SYS01,SYS01-F18,آخر تعديل,system,pending,,
-SYS01,SYS01-F19,المدينة,required,pending,,
-SYS01,SYS01-F20,الحي,optional,pending,,
-SYS01,SYS01-F21,الشارع,required,pending,,
-SYS01,SYS01-F22,رقم المبنى,conditional,pending,,
-SYS01,SYS01-F23,الرمز البريدي,conditional,pending,,
-SYS01,SYS01-F24,الرقم الإضافي,conditional,pending,,
+SYS01,SYS01-F01,المعرف الداخلي,system,implemented,Company.Id / CreateCompanyRequest.Id,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F02,الشركة,system,implemented,route.companyId,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F03,الرمز,required,implemented,Code,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F04,الاسم العربي,required,implemented,Name,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F06,فعال,required,implemented,IsActive,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F08,الاسم القانوني,required,implemented,LegalName,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F09,الدولة,required,implemented,CountryCode,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F10,منطقة الاختصاص,required,implemented,Jurisdiction,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F11,العملة الوظيفية,required,implemented,FunctionalCurrency,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F12,السجل التجاري,conditional,implemented,CommercialRegistration,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F13,التسجيل الضريبي,conditional,implemented,TaxRegistration,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F14,بداية السنة المالية,required,implemented,FiscalYearStartsOn,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F15,أنشأه,system,audit,AuditEvent.ActorId: company.created,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F16,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: company.created,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F17,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F18,آخر تعديل,system,audit,AuditEvent.OccurredAt: company.edited / company.status-changed,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F19,المدينة,required,implemented,City,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F20,الحي,optional,implemented,District,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F21,الشارع,required,implemented,Street,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F22,رقم المبنى,conditional,implemented,BuildingNumber,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F23,الرمز البريدي,conditional,implemented,PostalCode,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F24,الرقم الإضافي,conditional,implemented,AdditionalNumber,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
 SYS02,SYS02-F01,المعرف الداخلي,system,implemented,Branch.Id,GET/POST /companies/{companyId}/branches
 SYS02,SYS02-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/branches
 SYS02,SYS02-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/branches

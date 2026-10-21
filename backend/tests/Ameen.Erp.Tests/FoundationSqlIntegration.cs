@@ -68,7 +68,7 @@ public static class FoundationSqlIntegration
         await Call(s => s.EditCostCenter(cid, child.Id, owner, centerFailureKey, centerChange, default));
         Console.WriteLine("  SQL PASS SYS04/COST01 audit failures roll back cards and receipts; exact retries succeed");
 
-        var otherId = Guid.NewGuid(); await Call(s => s.CreateCompany(owner, Fixture.Key(), new(otherId, "FOUNDATION-OTHER", "أخرى", "YE", "SAR", 2), default));
+        var otherId = Guid.NewGuid(); await Call(s => s.CreateCompany(owner, Fixture.Key(), new(otherId, "FOUNDATION-OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default));
         var otherCenter = await Call(s => s.CreateCostCenter(otherId, owner, Fixture.Key(), new("C", "آخر", null), default));
         Guid otherMember;
         await using (var db = Context()) otherMember = (await db.Set<Membership>().SingleAsync(x => x.CompanyId == otherId)).Id;

@@ -14,7 +14,10 @@
 |---|---|---|---|
 | GET | `/api/v1/companies` | قائمة الشركات ذات العضوية المفعلة | توثيق الهوية |
 | POST | `/api/v1/companies` | CreateCompanyRequest → CommandReceipt | erp.platform-admin |
-| GET | C | Company | ledger.read |
+| GET / PUT | C | Company / EditCompanyRequest | ledger.read / company.configure لكل الفروع |
+| POST | `/status` | SetCompanyStatusRequest | company.configure لكل الفروع |
+| GET | `/usage` | CompanyUsage | ledger.read لكل الفروع |
+| GET | `/profile-audit-events` | Page&lt;AuditEvent&gt; | read + audit.read لكل الفروع |
 | GET / POST | `/branches` | قائمة / CreateBranchRequest | read / company.configure |
 | GET / POST | `/currencies` | قائمة / CreateCurrencyRequest | read / company.configure |
 | GET | `/currencies/search` | Page&lt;Currency&gt;؛ search/isActive | ledger.read |
@@ -75,7 +78,7 @@
 بهوية مسؤول المنصة، أرسل إنشاء الشركة:
 
 ```json
-{"id":"11111111-1111-1111-1111-111111111111","code":"DEMO","name":"شركة تجريبية","countryCode":"YE","functionalCurrency":"YER","currencyScale":2}
+{"id":"11111111-1111-1111-1111-111111111111","code":"DEMO","name":"شركة تجريبية","countryCode":"YE","functionalCurrency":"YER","currencyScale":2,"profile":{"legalName":"شركة تجريبية","jurisdiction":"منطقة الاختصاص التجريبية","fiscalYearStartsOn":"2026-01-01","city":"صنعاء","street":"شارع تجريبي"}}
 ```
 
 أنشئ الفرع والسنة، ثم امنح مستخدم إدخال ومستخدم اعتماد مستقلين عضويتين عبر `/memberships`. تستعمل قيمة `sub` الحقيقية لكل مستخدم من جهة الهوية، وليست البريد أو اسم الدخول إلا إذا كان ذلك هو sub الفعلي.
@@ -91,7 +94,7 @@
 إنشاء حساب نقدية فرعي ثم حساب مقابل مناسب يتم بواسطة مسؤول الإعداد. مثال بنية حساب، مع استخدام رمز فريد لكل حساب:
 
 ```json
-{"code":"1101","name":"النقدية","type":"Asset","parentId":null,"isPosting":true,"isControl":false,"requiresCostCenter":false,"currencyCode":"YER"}
+{"code":"1101","name":"النقدية","type":"Asset","parentId":null,"isPosting":true,"isControl":false,"requiresCostCenter":false,"currencyCode":"YER","normalBalance":"Debit"}
 ```
 
 تعريف الفرع `{"code":"MAIN","name":"الرئيسي"}` والسنة `{"code":"2026","startsOn":"2026-01-01","endsOn":"2026-12-31"}` يولد الفترات الشهرية آليًا.
@@ -133,3 +136,5 @@
 تفاصيل GL01 وحقول `normalBalance` و`englishName` و`notes` وقواعد تعديل البنية وسجل الاستخدام في [عقد الحسابات](accounts.md).
 
 حقول العملات والمراكز وقواعدها وحدودها في [عقد SYS04 وCOST01](currencies-and-cost-centers.md).
+
+عقد SYS01 الإلزامي الجديد، وضوابط تعطيل الشركة وترقية الشركات القديمة في [بطاقة الشركة](companies.md).

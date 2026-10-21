@@ -128,7 +128,7 @@ public static class SqlIntegration
 
             // Bypass the application on purpose to prove the composite FK rejects a foreign account.
             var other = Guid.NewGuid();
-            await f.Call(s => s.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2), default));
+            await f.Call(s => s.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default));
             var otherAccount = await f.Call(s => s.CreateAccount(other, f.Owner, Fixture.Key(),
                 new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default));
             await using (var db = f.Context())
@@ -168,6 +168,7 @@ public static class SqlIntegration
             await RecurringSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await AccountSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
             await FoundationSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
+            await CompanySqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await HostedApiIntegration.Run(options.ConnectionString, f.CompanyId, f.Request());
         }
         finally
@@ -209,7 +210,7 @@ public static class SqlIntegration
         }
         public async Task Initialize()
         {
-            await Call(s => s.CreateCompany(Owner, Fixture.Key(), new(CompanyId, "SQLTEST", "اختبار SQL", "YE", "SAR", 2), default));
+            await Call(s => s.CreateCompany(Owner, Fixture.Key(), new(CompanyId, "SQLTEST", "اختبار SQL", "YE", "SAR", 2, Fixture.Profile()), default));
             BranchId = (await Call(s => s.CreateBranch(CompanyId, Owner, Fixture.Key(), new("MAIN", "الرئيسي"), default))).ResourceId;
             await Call(s => s.CreateFiscalYear(CompanyId, Owner, Fixture.Key(), new("2026", new(2026, 1, 1), new(2026, 12, 31)), default));
             foreach (var actor in new[] { Clerk, Approver })

@@ -9,7 +9,7 @@ namespace Ameen.Erp.Infrastructure;
 
 public sealed partial class ErpDbContext : DbContext
 {
-    public const int SchemaVersion = 5;
+    public const int SchemaVersion = 6;
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options) { }
 
     private static EntityTypeBuilder<T> Tenant<T>(ModelBuilder model, string table) where T : CompanyEntity
@@ -34,6 +34,15 @@ public sealed partial class ErpDbContext : DbContext
         company.Property(x => x.Code).HasMaxLength(32); company.Property(x => x.Name).HasMaxLength(200);
         company.Property(x => x.CountryCode).HasMaxLength(2); company.Property(x => x.FunctionalCurrency).HasMaxLength(3);
         Constraint(company, "CK_Company_Scale", "[CurrencyScale] BETWEEN 0 AND 6");
+        company.Ignore(x => x.IsProfileComplete);
+        company.Property(x => x.EnglishName).HasMaxLength(200); company.Property(x => x.Notes).HasMaxLength(2000);
+        company.Property(x => x.LegalName).HasMaxLength(200); company.Property(x => x.Jurisdiction).HasMaxLength(200);
+        company.Property(x => x.FiscalYearStartsOn).HasColumnType("date");
+        company.Property(x => x.CommercialRegistration).HasMaxLength(64); company.Property(x => x.TaxRegistration).HasMaxLength(64);
+        company.Property(x => x.City).HasMaxLength(200); company.Property(x => x.District).HasMaxLength(200);
+        company.Property(x => x.Street).HasMaxLength(300); company.Property(x => x.BuildingNumber).HasMaxLength(32);
+        company.Property(x => x.PostalCode).HasMaxLength(32); company.Property(x => x.AdditionalNumber).HasMaxLength(32);
+        Constraint(company, "CK_Company_Revision", "[Revision] > 0");
 
         var currency = Tenant<Currency>(model, "Currencies");
         currency.Property(x => x.Code).HasMaxLength(3);

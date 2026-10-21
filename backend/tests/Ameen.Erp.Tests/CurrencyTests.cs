@@ -92,7 +92,7 @@ public static class CurrencyTests
             var r = await Create(f); var c = await Currency(f, r);
             await Error("all_branches_required", () => f.Service.GetCurrencyUsage(f.CompanyId, c.Id, f.Limited, default));
             await Error("permission_denied", () => f.Service.EditCurrency(f.CompanyId, c.Id, f.Clerk, Fixture.Key(), Edit(c), default));
-            var other = Guid.NewGuid(); await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "YER", 2), default);
+            var other = Guid.NewGuid(); await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "YER", 2, Fixture.Profile()), default);
             await Error("reference_not_found", () => f.Service.GetCurrency(other, c.Id, f.Owner, default));
         });
         test("SYS04: failed metadata edit rolls back card, revision, audit and receipt", async f =>

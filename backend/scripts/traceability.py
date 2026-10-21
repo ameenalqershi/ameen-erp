@@ -24,10 +24,13 @@ def screen(code, api, implemented, remaining, fields, audit=()):
         MAP[code]["fields"][f"{code}-F{n:02}"] = dict(status="audit", binding=b)
 
 
-screen("SYS01", "GET/POST /companies; GET /companies/{companyId}",
-       "إنشاء الشركة وعملتها الوظيفية وعضوية مالك الإعداد", "الاسم الإنجليزي والقانوني والعناوين والبيانات التجارية والضريبية وتعديل البطاقة وتعطيلها",
-       {1: "Company.Id / CreateCompanyRequest.Id (client-generated UUID)", 2: "route.companyId", 3: "Code", 4: "Name", 9: "CountryCode", 11: "FunctionalCurrency", 17: "Version"},
-       [(15, "AuditEvent.ActorId: company.created"), (16, "AuditEvent.OccurredAt: company.created")])
+screen("SYS01", "GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events",
+       "بطاقة قانونية وعنوانية وإصدار عددي؛ تحرير وحالة واستخدام وتدقيق؛ قفل العملة بعد الأثر وربط بداية أول سنة؛ منع كتابة الشركة المعطلة أو ناقصة البيانات",
+       "ملفات الدولة وشروط إلزام التسجيل الضريبي والتجاري والعنوان الوطني حسب الاختصاص؛ مرجع دول معتمد بدل تحقق شكل الرمز؛ مشروع تحويل العملة الوظيفية التاريخي",
+       {1: "Company.Id / CreateCompanyRequest.Id", 2: "route.companyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "LegalName", 9: "CountryCode", 10: "Jurisdiction", 11: "FunctionalCurrency", 12: "CommercialRegistration", 13: "TaxRegistration", 14: "FiscalYearStartsOn", 17: "Revision", 19: "City", 20: "District", 21: "Street", 22: "BuildingNumber", 23: "PostalCode", 24: "AdditionalNumber"},
+       [(15, "AuditEvent.ActorId: company.created"), (16, "AuditEvent.OccurredAt: company.created"), (18, "AuditEvent.OccurredAt: company.edited / company.status-changed")])
+MAP["SYS01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["CompanyTests.cs", "CompanySqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("SYS02", "GET/POST /companies/{companyId}/branches",
        "فروع مستقلة داخل الشركة وفحص نطاق المستخدم", "هرمية الإدارات والعناوين والمسؤول ومركز افتراضي وتعديل وتعطيل الفرع",
        {1: "Branch.Id", 2: "CompanyId", 3: "Code", 4: "Name", 16: "Version"}, [(14, "AuditEvent.ActorId"), (15, "AuditEvent.OccurredAt")])

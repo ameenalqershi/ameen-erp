@@ -108,7 +108,7 @@ public static class CostCenterTests
         });
         test("COST01: foreign-company parent and responsible member cannot be referenced", async f =>
         {
-            var cid = Guid.NewGuid(); await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(cid, "OTHER", "أخرى", "YE", "SAR", 2), default);
+            var cid = Guid.NewGuid(); await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(cid, "OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default);
             var parent = await f.Service.CreateCostCenter(cid, f.Owner, Fixture.Key(), new("C", "آخر", null), default);
             var member = f.Store.All<Membership>().Single(x => x.CompanyId == cid);
             await Error("reference_not_found", () => Create(f, "BAD", null, parent.ResourceId));

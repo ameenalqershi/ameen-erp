@@ -71,7 +71,7 @@ public static class RecurringTests
         {
             var template = await Create(f);
             var other = Guid.NewGuid();
-            await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2), default);
+            await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default);
             await f.Service.CreateFiscalYear(other, f.Owner, Fixture.Key(), new("2026", new(2026, 1, 1), new(2026, 12, 31)), default);
             var foreignPeriod = f.Store.All<FiscalPeriod>().First(x => x.CompanyId == other);
             await Error("reference_not_found", () => f.Service.GenerateRecurringJournal(f.CompanyId, template.ResourceId, f.Clerk, Fixture.Key(), new(template.Version, foreignPeriod.Id), default));

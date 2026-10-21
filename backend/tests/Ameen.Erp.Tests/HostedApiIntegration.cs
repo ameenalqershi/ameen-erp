@@ -243,13 +243,34 @@ public static class HostedApiIntegration
                 Console.WriteLine("  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL");
                 Authenticate(Token("sql-clerk"));
                 Console.WriteLine("  HOST PASS GL01 create/detail/PUT edit/replay, explicit nature, usage and audit over production HTTPS/JWT/SQL");
-                var company = new CreateCompanyRequest(Guid.NewGuid(), "HTTPTEST", "شركة HTTP", "YE", "YER", 2);
+                var company = new CreateCompanyRequest(Guid.NewGuid(), "HTTPTEST", "شركة HTTP", "YE", "YER", 2, Fixture.Profile());
                 using var denied = new HttpRequestMessage(HttpMethod.Post, "/api/v1/companies");
                 denied.Headers.Add("Idempotency-Key", Fixture.Key()); denied.Headers.Add("X-Role", "erp.platform-admin");
                 denied.Content = new StringContent(JsonSerializer.Serialize(company, JsonDefaults.Options), Encoding.UTF8, "application/json");
                 using var deniedResult = await client.SendAsync(denied); Ensure(deniedResult.StatusCode == HttpStatusCode.Forbidden, "Header spoofed a role");
                 Authenticate(Token("runtime-admin", "erp.platform-admin"));
-                await Command(client, "/api/v1/companies", company);
+                var companyReceipt = await Command(client, "/api/v1/companies", company);
+                var companyPath = $"/api/v1/companies/{company.Id}";
+                var companyProfile = company.Profile with { CommercialRegistration = "00042", City = "مدينة معدلة", PostalCode = "00123" };
+                companyReceipt = await Command(client, companyPath, new EditCompanyRequest(companyReceipt.Version, company.Code, company.Name,
+                    company.CountryCode, company.FunctionalCurrency, companyProfile, "استكمال البيانات"), method: HttpMethod.Put);
+                using (var companyDetail = await client.GetAsync(companyPath))
+                using (var json = JsonDocument.Parse(await companyDetail.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("commercialRegistration").GetString() == "00042" &&
+                        json.RootElement.GetProperty("revision").GetInt32() == 2 && json.RootElement.GetProperty("isProfileComplete").GetBoolean(), "Company HTTP profile differs");
+                companyReceipt = await Command(client, companyPath + "/status", new SetCompanyStatusRequest(companyReceipt.Version, false, "إيقاف"));
+                using (var blockedWrite = new HttpRequestMessage(HttpMethod.Post, companyPath + "/branches"))
+                {
+                    blockedWrite.Headers.Add("Idempotency-Key", Fixture.Key());
+                    blockedWrite.Content = new StringContent(JsonSerializer.Serialize(new CreateBranchRequest("BLOCKED", "موقوف"), JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var result = await client.SendAsync(blockedWrite);
+                    Ensure(result.StatusCode == HttpStatusCode.Conflict && (await result.Content.ReadAsStringAsync()).Contains("company_inactive", StringComparison.Ordinal), "Inactive company accepted HTTP write");
+                }
+                using (var log = await client.GetAsync(companyPath + "/profile-audit-events"))
+                using (var json = JsonDocument.Parse(await log.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Company HTTP audit differs");
+                await Command(client, companyPath + "/status", new SetCompanyStatusRequest(companyReceipt.Version, true, "تفعيل"));
+                Console.WriteLine("  HOST PASS SYS01 required profile, PUT edit, integer revision, inactive-company write guard and reactivation");
 
                 using var preflight = new HttpRequestMessage(HttpMethod.Options, path);
                 preflight.Headers.Add("Origin", "https://permitted.example");

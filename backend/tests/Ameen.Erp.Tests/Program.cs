@@ -179,7 +179,7 @@ Test("BR04: required cost center and center branch are validated", async f =>
 Test("BR02 AT25: another company account cannot be referenced", async f =>
 {
     var other = Guid.NewGuid();
-    await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "SA", "SAR", 2), default);
+    await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "SA", "SAR", 2, Fixture.Profile()), default);
     var account = await f.Service.CreateAccount(other, f.Owner, Fixture.Key(), new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default);
     var request = f.Request(); request.Lines[0] = request.Lines[0] with { AccountId = account.ResourceId };
     await Error("reference_not_found", () => f.Draft(request));
@@ -413,6 +413,7 @@ tests.Add(("API: every ERP endpoint requires authentication and carries screen t
     Assert(ApiSupport.Actor(h).IsPlatformAdministrator);
 }));
 
+CompanyTests.Register(Test);
 CostCenterTests.Register(Test);
 CurrencyTests.Register(Test);
 AccountTests.Register(Test);

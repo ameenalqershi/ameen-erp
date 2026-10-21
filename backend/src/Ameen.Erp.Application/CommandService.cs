@@ -50,7 +50,16 @@ public sealed partial class ErpService
         try { data = JsonSerializer.Serialize(body, JsonDefaults.Options); }
         catch (JsonException) { throw new BusinessException("invalid_command_payload", "الطلب يحتوي قيمًا غير قابلة للتمثيل ضمن العقد."); }
         var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(data)));
-        return transactions.Run(new CommandIdentity(companyId, key, operation, actor.Subject, fingerprint), authorize, work, ct);
+        return transactions.Run(new CommandIdentity(companyId, key, operation, actor.Subject, fingerprint), async token =>
+        {
+            await authorize(token);
+            if (operation != "company.create" && !operation.StartsWith("company.edit:", StringComparison.Ordinal) && !operation.StartsWith("company.status:", StringComparison.Ordinal))
+            {
+                var company = await Company(companyId, token);
+                Check.That(company.IsActive, "company_inactive", "الشركة معطلة؛ القراءة متاحة وإجراء العمليات يتطلب تفعيلها.", ErrorKind.Conflict);
+                Check.That(company.IsProfileComplete, "company_profile_incomplete", "استكمل البيانات القانونية والعنوانية للشركة قبل إجراء العمليات.", ErrorKind.Conflict);
+            }
+        }, work, ct);
     }
 
     private CommandReceipt Receipt(Entity entity, string status, string? number = null) => new(entity.Id, entity.Version, status, number);
@@ -64,7 +73,7 @@ public sealed partial class ErpService
             return Task.CompletedTask;
         }, async token =>
         {
-            var company = new Company(request.Id, request.Code, request.Name, request.CountryCode, request.FunctionalCurrency, request.CurrencyScale);
+            var company = new Company(request.Id, request.Code, request.Name, request.CountryCode, request.FunctionalCurrency, request.CurrencyScale, request.Profile);
             Check.That(await store.GetCompany(company.Id, token) is null && !await store.CompanyCodeExists(company.Code, token),
                 "company_exists", "معرف الشركة أو رمزها مستخدم بالفعل.", ErrorKind.Conflict);
             store.Add(company);
@@ -74,7 +83,7 @@ public sealed partial class ErpService
             // Bootstrap does not grant financial approval or posting implicitly.
             store.Add(new Membership(company.Id, actor.Subject,
                 new[] { Permissions.Read, Permissions.Configure, Permissions.Members, Permissions.Audit }, true, Array.Empty<Guid>()));
-            Audit(company.Id, actor, "company.created", company, new { company.Code, company.FunctionalCurrency });
+            Audit(company.Id, actor, "company.created", company, new { after = CompanySnapshot(company) });
             return Receipt(company, "Created");
         }, ct);
 
@@ -121,6 +130,9 @@ public sealed partial class ErpService
     public Task<CommandReceipt> CreateFiscalYear(Guid cid, Actor actor, string key, CreateFiscalYearRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "fiscal-year.create", request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
         {
+            var company = await Company(cid, token);
+            if (!(await store.Find<FiscalYear>(cid, x => true, token)).Any())
+                Check.That(company.FiscalYearStartsOn == request.StartsOn, "company_fiscal_start_mismatch", "بداية أول سنة يجب أن تطابق البداية المحددة في بطاقة الشركة.");
             var year = new FiscalYear(cid, request.Code, request.StartsOn, request.EndsOn);
             Check.That(!(await store.Find<FiscalYear>(cid, x => x.Code == year.Code || (x.StartsOn <= year.EndsOn && x.EndsOn >= year.StartsOn), token)).Any(),
                 "fiscal_year_overlap", "السنة تتداخل مع سنة قائمة أو تكرر رمزها.", ErrorKind.Conflict);

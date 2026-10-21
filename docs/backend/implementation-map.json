@@ -6,22 +6,22 @@
   "partially_implemented_screens": 22,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 159,
-    "audit": 35,
+    "implemented": 173,
+    "audit": 36,
     "derived": 4,
     "partial": 18,
-    "pending": 2543
+    "pending": 2528
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
     "SYS01": {
-      "api": "GET/POST /companies; GET /companies/{companyId}",
-      "implemented": "إنشاء الشركة وعملتها الوظيفية وعضوية مالك الإعداد",
-      "remaining": "الاسم الإنجليزي والقانوني والعناوين والبيانات التجارية والضريبية وتعديل البطاقة وتعطيلها",
+      "api": "GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events",
+      "implemented": "بطاقة قانونية وعنوانية وإصدار عددي؛ تحرير وحالة واستخدام وتدقيق؛ قفل العملة بعد الأثر وربط بداية أول سنة؛ منع كتابة الشركة المعطلة أو ناقصة البيانات",
+      "remaining": "ملفات الدولة وشروط إلزام التسجيل الضريبي والتجاري والعنوان الوطني حسب الاختصاص؛ مرجع دول معتمد بدل تحقق شكل الرمز؛ مشروع تحويل العملة الوظيفية التاريخي",
       "fields": {
         "SYS01-F01": {
           "status": "implemented",
-          "binding": "Company.Id / CreateCompanyRequest.Id (client-generated UUID)"
+          "binding": "Company.Id / CreateCompanyRequest.Id"
         },
         "SYS01-F02": {
           "status": "implemented",
@@ -35,17 +35,73 @@
           "status": "implemented",
           "binding": "Name"
         },
+        "SYS01-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
+        "SYS01-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "SYS01-F07": {
+          "status": "implemented",
+          "binding": "Notes"
+        },
+        "SYS01-F08": {
+          "status": "implemented",
+          "binding": "LegalName"
+        },
         "SYS01-F09": {
           "status": "implemented",
           "binding": "CountryCode"
+        },
+        "SYS01-F10": {
+          "status": "implemented",
+          "binding": "Jurisdiction"
         },
         "SYS01-F11": {
           "status": "implemented",
           "binding": "FunctionalCurrency"
         },
+        "SYS01-F12": {
+          "status": "implemented",
+          "binding": "CommercialRegistration"
+        },
+        "SYS01-F13": {
+          "status": "implemented",
+          "binding": "TaxRegistration"
+        },
+        "SYS01-F14": {
+          "status": "implemented",
+          "binding": "FiscalYearStartsOn"
+        },
         "SYS01-F17": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "Revision"
+        },
+        "SYS01-F19": {
+          "status": "implemented",
+          "binding": "City"
+        },
+        "SYS01-F20": {
+          "status": "implemented",
+          "binding": "District"
+        },
+        "SYS01-F21": {
+          "status": "implemented",
+          "binding": "Street"
+        },
+        "SYS01-F22": {
+          "status": "implemented",
+          "binding": "BuildingNumber"
+        },
+        "SYS01-F23": {
+          "status": "implemented",
+          "binding": "PostalCode"
+        },
+        "SYS01-F24": {
+          "status": "implemented",
+          "binding": "AdditionalNumber"
         },
         "SYS01-F15": {
           "status": "audit",
@@ -54,8 +110,13 @@
         "SYS01-F16": {
           "status": "audit",
           "binding": "AuditEvent.OccurredAt: company.created"
+        },
+        "SYS01-F18": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: company.edited / company.status-changed"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/CompanyTests.cs; backend/tests/Ameen.Erp.Tests/CompanySqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS02": {
       "api": "GET/POST /companies/{companyId}/branches",

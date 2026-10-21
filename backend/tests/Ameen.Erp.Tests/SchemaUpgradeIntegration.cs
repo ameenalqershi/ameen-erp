@@ -99,6 +99,26 @@ public static class SchemaUpgradeIntegration
             upgradedCenter.Code == legacyCenter.Code && upgradedCenter.Name == legacyCenter.Name && upgradedCenter.ParentId is null && upgradedCenter.ResponsibleMembershipId is null && upgradedCenter.Revision == 1,
             "Center upgrade changed legacy data");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 004→005 upgrade preserves legacy center and existing journal dimensions");
+        var companyScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "006_company_profiles.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Companies] ADD CONSTRAINT [CK_Company_Revision] CHECK ([CurrencyScale] >= 0)");
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(companyScript);
+            throw new Exception("Conflicting company upgrade unexpectedly succeeded");
+        }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=6").AnyAsync(), "Failed upgrade saved version 6");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('Companies') AND name='LegalName'").SingleAsync() == 0, "Failed company upgrade left partial DDL");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Companies] DROP CONSTRAINT [CK_Company_Revision]");
+        await db.Database.ExecuteSqlRawAsync(companyScript); await db.Database.ExecuteSqlRawAsync(companyScript);
+        var previousCompany = f.Store.All<Company>().Single();
+        var upgradedCompany = await db.Set<Company>().SingleAsync(x => x.Id == f.CompanyId);
+        Ensure(upgradedCompany.Version == previousCompany.Version && upgradedCompany.Code == previousCompany.Code &&
+            upgradedCompany.FunctionalCurrency == previousCompany.FunctionalCurrency && upgradedCompany.CurrencyScale == previousCompany.CurrencyScale &&
+            upgradedCompany.FiscalYearStartsOn == new DateOnly(2026, 1, 1) && upgradedCompany.IsActive && upgradedCompany.Revision == 1 &&
+            !upgradedCompany.IsProfileComplete && upgradedCompany.LegalName is null && upgradedCompany.City is null,
+            "Company upgrade changed financial identity or invented legal data");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 005→006 upgrade preserves company and derives calendar without invented legal data");
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {
