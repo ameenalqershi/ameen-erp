@@ -57,19 +57,22 @@ public sealed partial class ErpService
         return result;
     }
 
-    private async Task ValidateLine(JournalEntry journal, JournalLine line, CancellationToken ct)
+    private Task ValidateLine(JournalEntry journal, JournalLine line, CancellationToken ct) =>
+        ValidateDimensions(journal.CompanyId, journal.BranchId, line.AccountId, line.CostCenterId, line.CurrencyCode, ct);
+
+    private async Task ValidateDimensions(Guid cid, Guid branchId, Guid accountId, Guid? costCenterId, string currency, CancellationToken ct)
     {
-        var account = await Required<Account>(journal.CompanyId, line.AccountId, ct);
+        var account = await Required<Account>(cid, accountId, ct);
         Check.That(account.IsActive && account.IsPosting, "account_not_postable", "الحساب غير فعال أو رئيسي ولا يقبل الحركة.");
         Check.That(!account.IsControl, "control_account_protected", "الحساب الرقابي يقبل أثر دفتره المساعد فقط.");
-        Check.That(account.CurrencyCode is null || account.CurrencyCode == line.CurrencyCode,
+        Check.That(account.CurrencyCode is null || account.CurrencyCode == currency,
             "account_currency_mismatch", "عملة السطر غير مسموحة للحساب.");
-        Check.That(!account.RequiresCostCenter || line.CostCenterId is not null,
+        Check.That(!account.RequiresCostCenter || costCenterId is not null,
             "cost_center_required", "مركز التكلفة مطلوب لهذا الحساب.");
-        if (line.CostCenterId is Guid centerId)
+        if (costCenterId is Guid centerId)
         {
-            var center = await Required<CostCenter>(journal.CompanyId, centerId, ct);
-            Check.That(center.IsActive && (center.BranchId is null || center.BranchId == journal.BranchId),
+            var center = await Required<CostCenter>(cid, centerId, ct);
+            Check.That(center.IsActive && (center.BranchId is null || center.BranchId == branchId),
                 "cost_center_mismatch", "المركز غير فعال أو تابع لفرع آخر.");
         }
     }

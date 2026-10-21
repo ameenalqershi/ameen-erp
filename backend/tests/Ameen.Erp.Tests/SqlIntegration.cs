@@ -29,6 +29,7 @@ public static class SqlIntegration
                 var script = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "001_initial.sql"));
                 await db.Database.ExecuteSqlRawAsync(script);
                 await db.Database.ExecuteSqlRawAsync(script); // A second deployment is a no-op.
+                await SchemaUpgradeIntegration.Run(db);
             }
             await f.Initialize();
 
@@ -164,6 +165,7 @@ public static class SqlIntegration
                 finally { await Execute(restrictedConnection, "REVERT"); }
             }
             Console.WriteLine("  SQL PASS runtime role can save commands and cannot modify audit history");
+            await RecurringSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await HostedApiIntegration.Run(options.ConnectionString, f.CompanyId, f.Request());
         }
         finally

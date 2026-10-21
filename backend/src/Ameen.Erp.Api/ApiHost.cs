@@ -62,6 +62,8 @@ public static class ApiHost
             try
             {
                 if (!await db.Database.CanConnectAsync(ct)) return Results.StatusCode(503);
+                if (!await db.Database.SqlQuery<int>($"SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version] = {ErpDbContext.SchemaVersion}").AnyAsync(ct))
+                    return Results.StatusCode(503);
                 await db.Set<Ameen.Erp.Domain.Company>().AsNoTracking().Select(x => x.Id).Take(1).ToListAsync(ct);
                 return Results.Ok(new { status = "ready" });
             }

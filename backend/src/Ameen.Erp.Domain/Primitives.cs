@@ -87,5 +87,7 @@ public static class Permissions
     public const string PeriodClose = "period.close";
     public const string PeriodReopen = "period.reopen";
     public const string Audit = "audit.read";
-    public static readonly string[] All = { Read, Configure, Members, Draft, Approve, Post, Reverse, PeriodClose, PeriodReopen, Audit };
+    public const string RecurringManage = "journal.recurring.manage";
+    public const string RecurringGenerate = "journal.recurring.generate";
+    public static readonly string[] All = { Read, Configure, Members, Draft, Approve, Post, Reverse, PeriodClose, PeriodReopen, Audit, RecurringManage, RecurringGenerate };
 }

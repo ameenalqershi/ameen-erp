@@ -28,5 +28,6 @@ public sealed class SqlErpStore : IErpStore
         return new(items, count, offset, limit);
     }
     public void RemoveLines(IEnumerable<JournalLine> lines) => db.RemoveRange(lines);
+    public void RemoveRecurringLines(IEnumerable<RecurringJournalLine> lines) => db.RemoveRange(lines);
     public Task Save(CancellationToken ct) => db.SaveChangesAsync(ct);
 }

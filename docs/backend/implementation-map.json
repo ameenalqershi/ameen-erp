@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 21,
+  "partially_implemented_screens": 22,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 131,
-    "audit": 32,
+    "implemented": 145,
+    "audit": 33,
     "derived": 4,
-    "partial": 16,
-    "pending": 2576
+    "partial": 18,
+    "pending": 2559
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -530,8 +530,84 @@
         "GL03-F09": {
           "status": "partial",
           "binding": "rate is on each line; no single document rate"
+        },
+        "GL03-F13": {
+          "status": "partial",
+          "binding": "Source: Manual / Recurring / Reversal provenance; configurable journal-type catalog is pending"
         }
       }
+    },
+    "GL04": {
+      "api": "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events",
+      "implemented": "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي لمسودة واحدة لكل فترة؛ إصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
+      "remaining": "طرق توليد مجدولة غير طريقة Manual الحالية؛ تخصيص دوريات غير الشهرية وربع السنوية والسنوية إذا اعتمدت ضمن خيارات الشاشة",
+      "fields": {
+        "GL04-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "GL04-F02": {
+          "status": "implemented",
+          "binding": "BranchId"
+        },
+        "GL04-F03": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "GL04-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "GL04-F05": {
+          "status": "implemented",
+          "binding": "Frequency"
+        },
+        "GL04-F06": {
+          "status": "implemented",
+          "binding": "StartsOn"
+        },
+        "GL04-F07": {
+          "status": "implemented",
+          "binding": "EndsOn"
+        },
+        "GL04-F09": {
+          "status": "implemented",
+          "binding": "Lines[].AccountId"
+        },
+        "GL04-F10": {
+          "status": "implemented",
+          "binding": "Lines[].Debit"
+        },
+        "GL04-F11": {
+          "status": "implemented",
+          "binding": "Lines[].Credit"
+        },
+        "GL04-F12": {
+          "status": "implemented",
+          "binding": "Lines[].CostCenterId"
+        },
+        "GL04-F13": {
+          "status": "implemented",
+          "binding": "CreatedBy"
+        },
+        "GL04-F14": {
+          "status": "implemented",
+          "binding": "CreatedAt"
+        },
+        "GL04-F15": {
+          "status": "implemented",
+          "binding": "Version"
+        },
+        "GL04-F16": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: recurring.edited / recurring.status-changed; scoped /audit-events"
+        },
+        "GL04-F08": {
+          "status": "partial",
+          "binding": "GenerationMode: Manual only; produces Draft with independent approval/posting"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/RecurringTests.cs; backend/tests/Ameen.Erp.Tests/RecurringSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "GL05": {
       "api": "POST /companies/{companyId}/journals/{id}/submit|approve|return",

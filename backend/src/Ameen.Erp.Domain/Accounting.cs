@@ -2,6 +2,7 @@ namespace Ameen.Erp.Domain;
 
 public enum AccountType { Asset, Liability, Equity, Revenue, Expense }
 public enum JournalState { Draft, Submitted, Approved, Posted, Reversed, Cancelled }
+public enum JournalSource { Manual, Recurring, Reversal }
 
 public sealed class Account : CompanyEntity
 {
@@ -84,6 +85,9 @@ public sealed class JournalEntry : CompanyEntity
     public string Description { get; private set; } = "";
     public string? ExternalReference { get; private set; }
     public JournalState State { get; private set; } = JournalState.Draft;
+    public JournalSource Source { get; private set; } = JournalSource.Manual;
+    public Guid? RecurringTemplateId { get; private set; }
+    public Guid? SourceTemplateVersion { get; private set; }
     public string CreatedBy { get; private set; } = "";
     public string? ApprovedBy { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
@@ -169,7 +173,16 @@ public sealed class JournalEntry : CompanyEntity
     public void SetReversalSource(Guid originalId, string reason)
     {
         RequireState(JournalState.Draft);
-        ReversesJournalId = originalId; ReversalReason = Check.Text(reason, "سبب العكس", 500);
+        Check.That(Source == JournalSource.Manual && RecurringTemplateId is null, "journal_source_conflict", "مصدر القيد محدد مسبقًا.", ErrorKind.Conflict);
+        ReversesJournalId = originalId; Source = JournalSource.Reversal;
+        ReversalReason = Check.Text(reason, "سبب العكس", 500);
+    }
+    public void SetRecurringSource(Guid templateId, Guid templateVersion)
+    {
+        RequireState(JournalState.Draft);
+        Check.That(Source == JournalSource.Manual && ReversesJournalId is null && templateId != Guid.Empty && templateVersion != Guid.Empty,
+            "journal_source_conflict", "مصدر القيد غير صالح أو محدد مسبقًا.", ErrorKind.Conflict);
+        Source = JournalSource.Recurring; RecurringTemplateId = templateId; SourceTemplateVersion = templateVersion; Touch();
     }
     public void RequireState(JournalState state) =>
         Check.That(State == state, "journal_state_conflict", $"حالة القيد يجب أن تكون {state}.", ErrorKind.Conflict);

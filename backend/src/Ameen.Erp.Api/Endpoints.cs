@@ -56,8 +56,8 @@ public static class Endpoints
             Results.Ok(await s.CreateAccount(companyId, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("GL01 Accounts");
         app.MapPost(p + "/accounts/{id:guid}/status", async (Guid companyId, Guid id, SetAccountStatusRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.SetAccountStatus(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("GL01 Accounts");
-        app.MapGet(p + "/journals", async (Guid companyId, Guid? branchId, JournalState? state, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
-            Results.Ok(await s.ListJournals(companyId, Actor(h), branchId, state, offset ?? 0, limit ?? 50, ct))).Produces<Page<JournalSummary>>().RequireAuthorization().WithTags("GL03 Journals");
+        app.MapGet(p + "/journals", async (Guid companyId, Guid? branchId, JournalState? state, JournalSource? source, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListJournals(companyId, Actor(h), branchId, state, offset ?? 0, limit ?? 50, ct, source))).Produces<Page<JournalSummary>>().RequireAuthorization().WithTags("GL03 Journals");
         app.MapGet(p + "/journals/{id:guid}", async (Guid companyId, Guid id, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.GetJournal(companyId, id, Actor(h), ct))).Produces<JournalEntry>().RequireAuthorization().WithTags("GL03 Journals");
         app.MapPost(p + "/journals", async (Guid companyId, CreateJournalRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
@@ -85,5 +85,23 @@ public static class Endpoints
             .Produces<AccountLedgerResult>().RequireAuthorization().WithTags("RPT02 Account ledger");
         app.MapGet(p + "/audit-events", async (Guid companyId, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ListAudit(companyId, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("SYS14 Audit");
+        app.MapGet(p + "/recurring-journals", async (Guid companyId, Guid? branchId, bool? isActive, int? offset, int? limit, string? search, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListRecurringJournals(companyId, Actor(h), branchId, isActive, offset ?? 0, limit ?? 50, ct, search))).Produces<Page<RecurringJournalSummary>>().RequireAuthorization().WithTags("GL04 Recurring journals");
+        app.MapGet(p + "/recurring-journals/{id:guid}", async (Guid companyId, Guid id, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetRecurringJournal(companyId, id, Actor(h), ct))).Produces<RecurringJournalTemplate>().RequireAuthorization().WithTags("GL04 Recurring journals");
+        app.MapPost(p + "/recurring-journals", async (Guid companyId, CreateRecurringJournalRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.CreateRecurringJournal(companyId, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("GL04 Recurring journals");
+        app.MapPut(p + "/recurring-journals/{id:guid}", async (Guid companyId, Guid id, EditRecurringJournalRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.EditRecurringJournal(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("GL04 Recurring journals");
+        app.MapPost(p + "/recurring-journals/{id:guid}/status", async (Guid companyId, Guid id, SetRecurringStatusRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.SetRecurringStatus(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("GL04 Recurring journals");
+        app.MapPost(p + "/recurring-journals/{id:guid}/generate", async (Guid companyId, Guid id, GenerateRecurringJournalRequest r, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GenerateRecurringJournal(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("GL04 Recurring journals");
+        app.MapGet(p + "/recurring-journals/{id:guid}/generations", async (Guid companyId, Guid id, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListRecurringGenerations(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<RecurringJournalGeneration>>().RequireAuthorization().WithTags("GL04 Recurring journals");
+        app.MapGet(p + "/recurring-journals/{id:guid}/schedule", async (Guid companyId, Guid id, Guid fiscalYearId, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.RecurringSchedule(companyId, id, fiscalYearId, Actor(h), ct))).Produces<IReadOnlyList<RecurringScheduleRow>>().RequireAuthorization().WithTags("GL04 Recurring journals");
+        app.MapGet(p + "/recurring-journals/{id:guid}/audit-events", async (Guid companyId, Guid id, int? offset, int? limit, ErpService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListRecurringChanges(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("GL04 Recurring journals");
     }
 }

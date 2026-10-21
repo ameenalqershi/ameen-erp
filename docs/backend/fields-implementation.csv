@@ -301,7 +301,7 @@ GL03,GL03-F09,سعر الصرف,required,partial,rate is on each line; no single
 GL03,GL03-F10,البيان,required,implemented,Description,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL03,GL03-F11,المرجع الخارجي,optional,implemented,ExternalReference,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL03,GL03-F12,الحالة,system,implemented,State,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
-GL03,GL03-F13,نوع القيد,required,pending,,
+GL03,GL03-F13,نوع القيد,required,partial,Source: Manual / Recurring / Reversal provenance; configurable journal-type catalog is pending,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL03,GL03-F14,قيد عكسي تلقائي,required,pending,,
 GL03,GL03-F15,تاريخ العكس,conditional,pending,,
 GL03,GL03-F16,الحساب,required,implemented,Lines[].AccountId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
@@ -317,22 +317,22 @@ GL03,GL03-F25,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{compa
 GL03,GL03-F26,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL03,GL03-F27,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL03,GL03-F28,آخر تعديل,system,audit,AuditEvent.OccurredAt: journal.edited,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
-GL04,GL04-F01,الشركة,system,pending,,
-GL04,GL04-F02,الفرع,conditional,pending,,
-GL04,GL04-F03,الحالة,system,pending,,
-GL04,GL04-F04,اسم القالب,required,pending,,
-GL04,GL04-F05,الدورية,required,pending,,
-GL04,GL04-F06,تاريخ البداية,required,pending,,
-GL04,GL04-F07,تاريخ النهاية,optional,pending,,
-GL04,GL04-F08,طريقة التوليد,required,pending,,
-GL04,GL04-F09,الحساب,required,pending,,
-GL04,GL04-F10,مدين,required,pending,,
-GL04,GL04-F11,دائن,required,pending,,
-GL04,GL04-F12,مركز التكلفة,optional,pending,,
-GL04,GL04-F13,أنشأه,system,pending,,
-GL04,GL04-F14,وقت الإنشاء,system,pending,,
-GL04,GL04-F15,رقم إصدار التعديل,system,pending,,
-GL04,GL04-F16,آخر تعديل,system,pending,,
+GL04,GL04-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F02,الفرع,conditional,implemented,BranchId,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F03,الحالة,system,implemented,IsActive,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F04,اسم القالب,required,implemented,Name,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F05,الدورية,required,implemented,Frequency,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F06,تاريخ البداية,required,implemented,StartsOn,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F07,تاريخ النهاية,optional,implemented,EndsOn,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F08,طريقة التوليد,required,partial,GenerationMode: Manual only; produces Draft with independent approval/posting,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F09,الحساب,required,implemented,Lines[].AccountId,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F10,مدين,required,implemented,Lines[].Debit,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F11,دائن,required,implemented,Lines[].Credit,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F12,مركز التكلفة,optional,implemented,Lines[].CostCenterId,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F13,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F14,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F15,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
+GL04,GL04-F16,آخر تعديل,system,audit,AuditEvent.OccurredAt: recurring.edited / recurring.status-changed; scoped /audit-events,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
 GL05,GL05-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/journals/{id}/submit|approve|return
 GL05,GL05-F02,الفرع,conditional,implemented,JournalEntry.BranchId,POST /companies/{companyId}/journals/{id}/submit|approve|return
 GL05,GL05-F03,الحالة,system,implemented,JournalEntry.State,POST /companies/{companyId}/journals/{id}/submit|approve|return

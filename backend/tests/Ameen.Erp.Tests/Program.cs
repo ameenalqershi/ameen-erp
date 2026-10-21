@@ -413,6 +413,7 @@ tests.Add(("API: every ERP endpoint requires authentication and carries screen t
     Assert(ApiSupport.Actor(h).IsPlatformAdministrator);
 }));
 
+RecurringTests.Register(Test);
 tests.Add(("HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON", HttpIntegration.Run));
 if (args.Contains("--sql", StringComparer.Ordinal)) tests.Add(("SQL Server integration", SqlIntegration.Run));
 else Console.WriteLine("SKIP live SQL Server integration (run explicitly with --sql and AMEEN_TEST_SQL_CONNECTION).");

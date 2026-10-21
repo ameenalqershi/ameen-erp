@@ -19,6 +19,7 @@ public interface IErpStore
         Func<IQueryable<T>, IOrderedQueryable<T>> order, int offset, int limit, CancellationToken ct) where T : CompanyEntity;
     void Add(Entity entity);
     void RemoveLines(IEnumerable<JournalLine> lines);
+    void RemoveRecurringLines(IEnumerable<RecurringJournalLine> lines);
     Task Save(CancellationToken ct);
 }
 
@@ -49,10 +50,21 @@ public sealed record CreateJournalRequest(Guid BranchId, DateOnly DocumentDate, 
 public sealed record EditJournalRequest(Guid ExpectedVersion, string Description, JournalLineRequest[] Lines);
 public sealed record TransitionRequest(Guid ExpectedVersion, string? Reason = null);
 public sealed record ReverseJournalRequest(Guid ExpectedVersion, DateOnly AccountingDate, string Reason);
+public sealed record RecurringLineRequest(Guid AccountId, Guid? CostCenterId, string Description, string CurrencyCode, decimal Debit, decimal Credit);
+public sealed record CreateRecurringJournalRequest(Guid BranchId, string Name, RecurringFrequency Frequency,
+    RecurringGenerationMode GenerationMode, DateOnly StartsOn, DateOnly EndsOn, RecurringLineRequest[] Lines);
+public sealed record EditRecurringJournalRequest(Guid ExpectedVersion, string Name, RecurringFrequency Frequency,
+    RecurringGenerationMode GenerationMode, DateOnly StartsOn, DateOnly EndsOn, RecurringLineRequest[] Lines);
+public sealed record SetRecurringStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
+public sealed record GenerateRecurringJournalRequest(Guid ExpectedVersion, Guid FiscalPeriodId);
 
 public sealed record Page<T>(IReadOnlyList<T> Items, int TotalCount, int Offset, int Limit);
 public sealed record JournalSummary(Guid Id, Guid Version, string Number, Guid BranchId, DateOnly AccountingDate,
-    string Description, JournalState State, decimal Debit, decimal Credit);
+    string Description, JournalState State, decimal Debit, decimal Credit, JournalSource Source, Guid? RecurringTemplateId);
+public sealed record RecurringJournalSummary(Guid Id, Guid Version, Guid BranchId, string Name, RecurringFrequency Frequency,
+    RecurringGenerationMode GenerationMode, DateOnly StartsOn, DateOnly EndsOn, bool IsActive, int LineCount);
+public sealed record RecurringScheduleRow(Guid FiscalPeriodId, string PeriodCode, DateOnly DueDate, bool IsPeriodClosed,
+    Guid? GeneratedJournalId, JournalState? GeneratedState);
 public sealed record TrialBalanceRow(Guid AccountId, string Code, string Name, decimal OpeningDebit,
     decimal OpeningCredit, decimal PeriodDebit, decimal PeriodCredit, decimal ClosingDebit, decimal ClosingCredit,
     Guid? ParentId, int Level, bool IsPosting);

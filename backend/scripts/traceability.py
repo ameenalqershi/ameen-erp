@@ -68,6 +68,14 @@ screen("GL03", "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
        "قيد يدوي متعدد العملات والمراكز بدورة مستقلة وأرقام وسعر تاريخي", "المشروع والطرف والمرفقات وأنواع القيود والعكس المجدول وتعديل تواريخ المسودة",
        {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 16: "Lines[].AccountId", 17: "Lines[].Debit", 18: "Lines[].Credit", 19: "Lines[].CurrencyCode", 20: "Lines[].ExchangeRate (ExchangeRateId on input)", 21: "Lines[].CostCenterId", 24: "Lines[].Description", 25: "CreatedBy", 26: "CreatedAt", 27: "Version"},
        [(28, "AuditEvent.OccurredAt: journal.edited")])
+screen("GL04", "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events",
+       "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي لمسودة واحدة لكل فترة؛ إصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
+       "طرق توليد مجدولة غير طريقة Manual الحالية؛ تخصيص دوريات غير الشهرية وربع السنوية والسنوية إذا اعتمدت ضمن خيارات الشاشة",
+       {1: "CompanyId", 2: "BranchId", 3: "IsActive", 4: "Name", 5: "Frequency", 6: "StartsOn", 7: "EndsOn", 9: "Lines[].AccountId",
+        10: "Lines[].Debit", 11: "Lines[].Credit", 12: "Lines[].CostCenterId", 13: "CreatedBy", 14: "CreatedAt", 15: "Version"},
+       [(16, "AuditEvent.OccurredAt: recurring.edited / recurring.status-changed; scoped /audit-events")])
+MAP["GL04"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["RecurringTests.cs", "RecurringSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("GL05", "POST /companies/{companyId}/journals/{id}/submit|approve|return",
        "تقديم واعتماد مستقل وإعادة مسببّة للمسودة", "قائمة مراجعة بمرشح الفترة ومراجع منفصل عن المعتمد ومراحل اعتماد متعددة",
        {1: "route.companyId", 2: "JournalEntry.BranchId", 3: "JournalEntry.State", 7: "JournalEntry.Number", 13: "Version"},
@@ -108,6 +116,8 @@ for code, n, binding, status in [
     ("GL03", 4, "FiscalPeriod.FiscalYearId", "derived"),
     ("GL03", 8, "currency is on each line; no single document currency", "partial"),
     ("GL03", 9, "rate is on each line; no single document rate", "partial"),
+    ("GL03", 13, "Source: Manual / Recurring / Reversal provenance; configurable journal-type catalog is pending", "partial"),
+    ("GL04", 8, "GenerationMode: Manual only; produces Draft with independent approval/posting", "partial"),
     ("GL07", 4, "FiscalPeriod.FiscalYearId", "derived"),
     ("GL07", 8, "Lines[].CurrencyCode copied from original", "partial"),
     ("GL07", 9, "Lines[].ExchangeRate copied from original", "partial"),
@@ -125,8 +135,8 @@ RULES = {
     "BR02": ("partial", "شركة وفرع وحساب ومركز وعملة وسعر؛ لا مخازن أو أطراف أو ضرائب بعد", "Program.cs: BR02; SqlIntegration.cs: company isolation"),
     "BR03": ("manual-journal", "تاريخ الوثيقة والأثر ووقت الترحيل مستقلة؛ فترة مفتوحة", "Program.cs: BR03"),
     "BR04": ("partial", "حساب فعال فرعي وعملة ومركز صحيح؛ المشروع والطرف لاحقًا", "Program.cs: BR04"),
-    "BR05": ("partial", "ذرية القيد والتدقيق وOutbox والنتيجة؛ الدفاتر المساعدة والعامل الخارجي لم تنفذ", "Program.cs: BR05; SqlIntegration.cs: constraint rollback"),
-    "BR06": ("partial", "Idempotency per company/actor/operation/body؛ قيد يدوي واحد؛ مفتاح مصدر المستند المؤتمت لاحقًا", "Program.cs: BR06; SqlIntegration.cs: concurrency"),
+    "BR05": ("partial", "ذرية القيد والتدقيق وOutbox والنتيجة وسجل التوليد الدوري؛ الدفاتر المساعدة والعامل الخارجي لم تنفذ", "Program.cs: BR05; SqlIntegration.cs / RecurringSqlIntegration.cs: constraint rollback"),
+    "BR06": ("partial", "Idempotency per company/actor/operation/body؛ قيد دوري فريد لكل قالب وفترة؛ مصادر بقية المستندات لاحقًا", "Program.cs: BR06; RecurringTests.cs; SqlIntegration.cs / RecurringSqlIntegration.cs: concurrency"),
     "BR07": ("manual-journal", "حماية المرحل وعكس مرتبط بفترة مفتوحة وتثبيت سعر الأصل", "Program.cs: BR07"),
     "BR08": ("partial", "منع قيد يدوي للحساب الرقابي؛ مطابقة دفاتر مساعدة لاحقًا", "Program.cs: BR08"),
     "BR09": ("partial", "تدقيق الأوامر وفصل المنشئ والمعتمد؛ مسارات مراجعة متعددة لاحقًا", "Program.cs: BR09 / Workflow"),
@@ -158,18 +168,18 @@ def generate():
         assert set(known).issubset({f["id"] for f in s["fields"]}), s["id"]
         screen_rows.append([s["id"], s["module"], s["name"], "partial" if mapping else "not-started",
                             mapping.get("api", ""), mapping.get("implemented", ""), mapping.get("remaining", "الشاشة كاملة"),
-                            "backend/tests/Ameen.Erp.Tests/Program.cs" if mapping else ""])
+                            mapping.get("test_file", "backend/tests/Ameen.Erp.Tests/Program.cs") if mapping else ""])
         for f in s["fields"]:
             found = known.get(f["id"], {})
             field_rows.append([s["id"], f["id"], f["name"], f["requirement"], found.get("status", "pending"), found.get("binding", ""), mapping.get("api", "") if found else ""])
     assert len(field_rows) == 2759 and len({r[1] for r in field_rows}) == 2759
     diagram_notes = {
         "module-SYS": "تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات",
-        "module-GL": "الأستاذ اليدوي فقط؛ باقي وظائف GL غير مكتملة",
+        "module-GL": "أستاذ وقوالب قيود متكررة وتوليد مسودات فقط؛ باقي وظائف GL غير مكتملة",
         "module-COST": "مراكز مستقلة فقط بلا هرمية أو موازنات",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وRPT؛ بقية الأقسام لم تبدأ",
-        "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ DOCUMENT والدفاتر المساعدة لاحقًا",
+        "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد؛ DOCUMENT والدفاتر المساعدة لاحقًا",
         "document-lifecycle": "الدورة منفذة للقيد اليدوي؛ الرفض يعيد Draft مع سبب وتاريخ في التدقيق؛ محاولة الترحيل ليست حالة دائمة",
         "posting-sequence": "ذرية القيد وOutbox والتدقيق؛ لا دفاتر مساعدة أو عامل إرسال خارجي بعد",
         "period-close": "فحص القيود المعلقة واتزانها فقط؛ باقي مسار المطابقة والإقفال السنوي غير منفذ",
@@ -211,7 +221,7 @@ def main():
                 raise SystemExit("Traceability stale: " + str(path.relative_to(ROOT)))
         else:
             path.write_text(content)
-    print("PASS: analysis hashes; 150 screens; 2759 fields; 28 diagrams; 20 rules; 21 partial screens; no full-screen completion claim.")
+    print(f"PASS: analysis hashes; 150 screens; 2759 fields; 28 diagrams; 20 rules; {len(MAP)} partial screens; no full-screen completion claim.")
 
 
 if __name__ == "__main__":

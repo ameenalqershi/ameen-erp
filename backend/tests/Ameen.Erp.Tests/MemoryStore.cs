@@ -31,6 +31,7 @@ public sealed class MemoryStore : IErpStore, ITransactionRunner
         return Task.FromResult(new Page<T>(order(query).Skip(offset).Take(limit).ToArray(), query.Count(), offset, limit));
     }
     public void RemoveLines(IEnumerable<JournalLine> lines) { /* Lines are owned by the test aggregate. */ }
+    public void RemoveRecurringLines(IEnumerable<RecurringJournalLine> lines) { /* Lines are owned by the test aggregate. */ }
     public Task Save(CancellationToken ct) => Task.CompletedTask;
 
     public async Task<CommandReceipt> Run(CommandIdentity identity, Func<CancellationToken, Task> authorize,

@@ -7,8 +7,9 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Ameen.Erp.Infrastructure;
 
-public sealed class ErpDbContext : DbContext
+public sealed partial class ErpDbContext : DbContext
 {
+    public const int SchemaVersion = 2;
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options) { }
 
     private static EntityTypeBuilder<T> Tenant<T>(ModelBuilder model, string table) where T : CompanyEntity
@@ -137,7 +138,8 @@ public sealed class ErpDbContext : DbContext
         idem.Property(x => x.Fingerprint).HasMaxLength(64);
         idem.HasIndex(x => new { x.CompanyId, x.Key }).IsUnique();
 
-        // Explicit conversion keeps one date-only storage contract in both runtime validation paths.
+        ConfigureRecurring(model);
+        // Use one date-only storage contract for all accounting dates.
         foreach (var entityType in model.Model.GetEntityTypes().ToArray())
         foreach (var property in entityType.ClrType.GetProperties().Where(p => p.PropertyType == typeof(DateOnly)))
         {
@@ -155,6 +157,12 @@ public sealed class ErpDbContext : DbContext
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "exchange_rate_immutable", "سعر الصرف التاريخي غير قابل للتعديل أو الحذف.");
         foreach (var entry in ChangeTracker.Entries<IdempotencyRecord>())
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "receipt_immutable", "نتيجة الطلب المحفوظة غير قابلة للتعديل.");
+        foreach (var entry in ChangeTracker.Entries<RecurringJournalGeneration>())
+            Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "recurring_generation_immutable", "سجل توليد القيد غير قابل للتعديل أو الحذف.");
+        foreach (var entry in ChangeTracker.Entries<RecurringJournalLine>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            Check.That(ChangeTracker.Entries<RecurringJournalTemplate>().Any(t => t.Entity.CompanyId == entry.Entity.CompanyId && t.Entity.Id == entry.Entity.TemplateId &&
+                (t.State == EntityState.Added || (t.State == EntityState.Modified && t.Property(x => x.Version).IsModified))),
+                "recurring_lines_owner_required", "تعديل السطور يتطلب تحميل القالب ضمن المعاملة.");
         foreach (var entry in ChangeTracker.Entries<JournalLine>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
         {
             var owner = ChangeTracker.Entries<JournalEntry>().SingleOrDefault(e => e.Entity.CompanyId == entry.Entity.CompanyId && e.Entity.Id == entry.Entity.JournalId);
@@ -165,6 +173,9 @@ public sealed class ErpDbContext : DbContext
         foreach (var entry in ChangeTracker.Entries<JournalEntry>())
         {
             if (entry.State is not (EntityState.Modified or EntityState.Deleted)) continue;
+            var sourceFields = new[] { nameof(JournalEntry.Source), nameof(JournalEntry.RecurringTemplateId), nameof(JournalEntry.SourceTemplateVersion), nameof(JournalEntry.ReversesJournalId) };
+            Check.That(!entry.Properties.Any(p => p.IsModified && sourceFields.Contains(p.Metadata.Name)),
+                "journal_source_immutable", "لا يمكن تغيير مصدر قيد محفوظ.");
             var previous = entry.OriginalValues.GetValue<JournalState>(nameof(JournalEntry.State));
             if (previous is not (JournalState.Posted or JournalState.Reversed)) continue;
             Check.That(entry.State != EntityState.Deleted, "posted_journal_immutable", "لا يمكن حذف قيد مرحل.");

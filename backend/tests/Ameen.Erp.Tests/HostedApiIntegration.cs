@@ -132,6 +132,11 @@ public static class HostedApiIntegration
                 missingField.Headers.Add("Idempotency-Key", Fixture.Key());
                 missingField.Content = new StringContent("{}", Encoding.UTF8, "application/json");
                 using var missing = await client.SendAsync(missingField); Ensure(missing.StatusCode == HttpStatusCode.BadRequest, "Missing required fields accepted");
+                using var forgedSource = new HttpRequestMessage(HttpMethod.Post, path);
+                forgedSource.Headers.Add("Idempotency-Key", Fixture.Key());
+                forgedSource.Content = new StringContent(body[..^1] + ",\"source\":\"Recurring\"}", Encoding.UTF8, "application/json");
+                using var forgedSourceResult = await client.SendAsync(forgedSource);
+                Ensure(forgedSourceResult.StatusCode == HttpStatusCode.BadRequest, "Manual API accepted forged automated provenance");
 
                 var requestKey = Fixture.Key();
                 var receipt = await Command(client, path, journalRequest, requestKey);
@@ -150,6 +155,37 @@ public static class HostedApiIntegration
                 }
 
                 Authenticate(Token("sql-clerk"));
+                var recurringPath = $"/api/v1/companies/{companyId}/recurring-journals";
+                var recurringRequest = new CreateRecurringJournalRequest(journalRequest.BranchId, "HTTP recurring", Ameen.Erp.Domain.RecurringFrequency.Monthly,
+                    Ameen.Erp.Domain.RecurringGenerationMode.Manual, new(2026, 1, 31), new(2026, 12, 31),
+                    journalRequest.Lines.Select(x => new RecurringLineRequest(x.AccountId, x.CostCenterId, x.Description, x.CurrencyCode, x.Debit, x.Credit)).ToArray());
+                var recurring = await Command(client, recurringPath, recurringRequest);
+                Guid periodId, yearId;
+                using (var periods = await client.GetAsync($"/api/v1/companies/{companyId}/periods"))
+                using (var json = JsonDocument.Parse(await periods.Content.ReadAsStringAsync()))
+                {
+                    var period = json.RootElement.EnumerateArray().Single(x => x.GetProperty("startsOn").GetString() == "2026-10-01");
+                    periodId = period.GetProperty("id").GetGuid(); yearId = period.GetProperty("fiscalYearId").GetGuid();
+                }
+                var generateKey = Fixture.Key(); var generateBody = new GenerateRecurringJournalRequest(recurring.Version, periodId);
+                var generated = await Command(client, recurringPath + $"/{recurring.ResourceId}/generate", generateBody, generateKey);
+                Ensure(generated.Status == "Draft", "Recurring HTTP request automatically posted");
+                Ensure(await Command(client, recurringPath + $"/{recurring.ResourceId}/generate", generateBody, generateKey) == generated, "Recurring HTTP replay differs");
+                using (var detail = await client.GetAsync(path + $"/{generated.ResourceId}"))
+                using (var json = JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                {
+                    Ensure(json.RootElement.GetProperty("source").GetString() == "Recurring" &&
+                        json.RootElement.GetProperty("recurringTemplateId").GetGuid() == recurring.ResourceId &&
+                        json.RootElement.GetProperty("sourceTemplateVersion").GetGuid() == recurring.Version, "Recurring HTTP provenance differs");
+                }
+                using (var calendar = await client.GetAsync(recurringPath + $"/{recurring.ResourceId}/schedule?fiscalYearId={yearId}"))
+                using (var json = JsonDocument.Parse(await calendar.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.EnumerateArray().Single(x => x.GetProperty("fiscalPeriodId").GetGuid() == periodId)
+                        .GetProperty("generatedJournalId").GetGuid() == generated.ResourceId, "Recurring HTTP calendar differs");
+                using (var history = await client.GetAsync(recurringPath + $"/{recurring.ResourceId}/generations"))
+                using (var json = JsonDocument.Parse(await history.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Recurring HTTP usage differs");
+                Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
                 var company = new CreateCompanyRequest(Guid.NewGuid(), "HTTPTEST", "شركة HTTP", "YE", "YER", 2);
                 using var denied = new HttpRequestMessage(HttpMethod.Post, "/api/v1/companies");
                 denied.Headers.Add("Idempotency-Key", Fixture.Key()); denied.Headers.Add("X-Role", "erp.platform-admin");

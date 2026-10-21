@@ -46,7 +46,9 @@ public sealed partial class ErpService
         Check.That(!string.IsNullOrWhiteSpace(actor.Subject), "actor_required", "هوية المستخدم مطلوبة.", ErrorKind.Forbidden);
         Check.Text(actor.Subject, "هوية المستخدم", 200);
         key = Check.Text(key, "Idempotency-Key", 100);
-        var data = JsonSerializer.Serialize(body, JsonDefaults.Options);
+        string data;
+        try { data = JsonSerializer.Serialize(body, JsonDefaults.Options); }
+        catch (JsonException) { throw new BusinessException("invalid_command_payload", "الطلب يحتوي قيمًا غير قابلة للتمثيل ضمن العقد."); }
         var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(data)));
         return transactions.Run(new CommandIdentity(companyId, key, operation, actor.Subject, fingerprint), authorize, work, ct);
     }
