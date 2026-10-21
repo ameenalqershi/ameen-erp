@@ -60,10 +60,13 @@ screen("SYS10", "internal: NumberSequence; POST /companies/{companyId}/journals"
 screen("SYS14", "GET /companies/{companyId}/audit-events",
        "قراءة سجل أحداث غير قابل للتعديل عبر التطبيق مع هوية ووقت وبيانات التغيير", "مرشحات التاريخ والمستخدم ونوع الحدث والشاشة؛ تصدير؛ تدقيق عمليات القراءة",
        {1: "CompanyId", 9: "Action", 10: "ActorId"})
-screen("GL01", "GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status",
-       "شجرة حسابات وتصنيف ورقابة وإلزام مركز وعملة وتعطيل مضبوط", "الأسماء الإضافية والملاحظات والطبيعة الصريحة وتعديل بنية الدليل",
-       {1: "Account.Id", 2: "CompanyId", 3: "Code", 4: "Name", 6: "IsActive", 8: "ParentId", 9: "Type", 10: "IsPosting", 12: "CurrencyCode", 13: "IsControl", 14: "RequiresCostCenter", 17: "Version"},
-       [(15, "AuditEvent.ActorId: account.created"), (16, "AuditEvent.OccurredAt: account.created"), (18, "AuditEvent.OccurredAt: account.status-changed")])
+screen("GL01", "GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events",
+       "بطاقة ثنائية اللغة وملاحظات وطبيعة مدينة/دائنة صريحة؛ تعديل وشجرة بلا دورات وقفل بنية المستخدم وسجل استخدام وتغييرات",
+       "مسار تحويل معتمد لتغيير بنية الحساب المستخدم؛ سجل الاستخدام الحالي للأستاذ والقوالب فقط حتى تنفيذ الدفاتر المساعدة",
+       {1: "Account.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "ParentId", 9: "Type", 10: "IsPosting", 11: "NormalBalance: Debit / Credit (required on create/edit)", 12: "CurrencyCode", 13: "IsControl", 14: "RequiresCostCenter", 17: "Revision (server integer); Version is a separate UUID concurrency token"},
+       [(15, "AuditEvent.ActorId: account.created"), (16, "AuditEvent.OccurredAt: account.created"), (18, "AuditEvent.OccurredAt: account.edited / account.status-changed; /audit-events")])
+MAP["GL01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["AccountTests.cs", "AccountSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("GL03", "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}",
        "قيد يدوي متعدد العملات والمراكز بدورة مستقلة وأرقام وسعر تاريخي", "المشروع والطرف والمرفقات وأنواع القيود والعكس المجدول وتعديل تواريخ المسودة",
        {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 16: "Lines[].AccountId", 17: "Lines[].Debit", 18: "Lines[].Credit", 19: "Lines[].CurrencyCode", 20: "Lines[].ExchangeRate (ExchangeRateId on input)", 21: "Lines[].CostCenterId", 24: "Lines[].Description", 25: "CreatedBy", 26: "CreatedAt", 27: "Version"},
@@ -175,7 +178,7 @@ def generate():
     assert len(field_rows) == 2759 and len({r[1] for r in field_rows}) == 2759
     diagram_notes = {
         "module-SYS": "تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات",
-        "module-GL": "أستاذ وقوالب قيود متكررة وتوليد مسودات فقط؛ باقي وظائف GL غير مكتملة",
+        "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
         "module-COST": "مراكز مستقلة فقط بلا هرمية أو موازنات",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وRPT؛ بقية الأقسام لم تبدأ",

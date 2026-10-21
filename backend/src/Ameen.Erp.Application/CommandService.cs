@@ -170,7 +170,8 @@ public sealed partial class ErpService
         Command(cid, actor, key, "account.create", request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
         {
             var account = new Account(cid, request.Code, request.Name, request.Type, request.ParentId,
-                request.IsPosting, request.IsControl, request.RequiresCostCenter, request.CurrencyCode);
+                request.IsPosting, request.IsControl, request.RequiresCostCenter, request.CurrencyCode,
+                request.NormalBalance, request.EnglishName, request.Notes);
             Check.That(!(await store.Find<Account>(cid, x => x.Code == account.Code, token)).Any(), "duplicate_account", "رقم الحساب مكرر.", ErrorKind.Conflict);
             if (account.ParentId is Guid parentId)
             {
@@ -179,7 +180,7 @@ public sealed partial class ErpService
                     "invalid_parent_account", "الحساب الأب يجب أن يكون رئيسيًا فعالًا ومن التصنيف نفسه.");
             }
             if (account.CurrencyCode is not null) await RequireCurrency(cid, account.CurrencyCode, token);
-            store.Add(account); Audit(cid, actor, "account.created", account, new { account.Code, account.ParentId, account.Type, account.IsControl });
+            store.Add(account); Audit(cid, actor, "account.created", account, new { after = AccountSnapshot(account) });
             return Receipt(account, "Created");
         }, ct);
 
@@ -204,8 +205,8 @@ public sealed partial class ErpService
                     "active_child_accounts", "عطّل الحسابات الفرعية أولًا.", ErrorKind.Conflict);
             else if (account.ParentId is Guid parent)
                 Check.That((await Required<Account>(cid, parent, token)).IsActive, "inactive_parent", "الحساب الأب غير فعال.");
-            var before = account.IsActive; account.SetActive(request.IsActive);
-            Audit(cid, actor, "account.status-changed", account, new { before, after = account.IsActive, reason });
+            var before = AccountSnapshot(account); account.SetActive(request.IsActive);
+            Audit(cid, actor, "account.status-changed", account, new { before, after = AccountSnapshot(account), reason });
             return Receipt(account, request.IsActive ? "Active" : "Inactive");
         }, ct);
 

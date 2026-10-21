@@ -116,9 +116,9 @@ public sealed class Fixture
             new[] { Permissions.Read, Permissions.Approve, Permissions.Post, Permissions.PeriodClose, Permissions.PeriodReopen, Permissions.Audit }, true, Array.Empty<Guid>(), null), default);
         await Service.GrantMembership(CompanyId, Owner, Key(), new(Limited.Subject,
             new[] { Permissions.Read, Permissions.Draft, Permissions.Post }, false, new[] { BranchId }, null), default);
-        GroupId = (await Service.CreateAccount(CompanyId, Owner, Key(), new("1000", "الأصول", AccountType.Asset, null, false, false, false, null), default)).ResourceId;
-        CashId = (await Service.CreateAccount(CompanyId, Owner, Key(), new("1101", "نقدية", AccountType.Asset, GroupId, true, false, false, null), default)).ResourceId;
-        EquityId = (await Service.CreateAccount(CompanyId, Owner, Key(), new("3001", "رأس المال", AccountType.Equity, null, true, false, false, null), default)).ResourceId;
+        GroupId = (await Service.CreateAccount(CompanyId, Owner, Key(), new("1000", "الأصول", AccountType.Asset, null, false, false, false, null, NormalBalance.Debit), default)).ResourceId;
+        CashId = (await Service.CreateAccount(CompanyId, Owner, Key(), new("1101", "نقدية", AccountType.Asset, GroupId, true, false, false, null, NormalBalance.Debit), default)).ResourceId;
+        EquityId = (await Service.CreateAccount(CompanyId, Owner, Key(), new("3001", "رأس المال", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit), default)).ResourceId;
     }
     public CreateJournalRequest Request(decimal debit = 100, decimal credit = 100, Guid? branch = null, DateOnly? date = null) =>
         new(branch ?? BranchId, date ?? Date, date ?? Date, "قيد اختبار", null,

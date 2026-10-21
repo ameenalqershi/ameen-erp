@@ -32,7 +32,7 @@ python3 scripts/verify.py --sql
 ## إعداد قاعدة البيانات
 
 1. أنشئ قاعدة فارغة باسم `AmeenErp` باستخدام هوية إدارة منفصلة.
-2. طبّق [database/001_initial.sql](database/001_initial.sql)، ثم [database/002_recurring_journals.sql](database/002_recurring_journals.sql) بالترتيب. السكربتات ذرية وقابلة لإعادة التطبيق وتسجل الإصدار في `__AmeenSchemaVersions`. للترقية من قاعدة الإصدار 1 طبّق 002 فقط. لا يوجد `EnsureCreated` أو ترحيل تلقائي عند بدء API.
+2. طبّق [database/001_initial.sql](database/001_initial.sql)، ثم [database/002_recurring_journals.sql](database/002_recurring_journals.sql)، ثم [database/003_account_cards.sql](database/003_account_cards.sql) بالترتيب. السكربتات ذرية وقابلة لإعادة التطبيق وتسجل الإصدار في `__AmeenSchemaVersions`. للترقية من الإصدار 1 طبّق 002 ثم 003؛ ومن الإصدار 2 طبّق 003 فقط. لا يوجد `EnsureCreated` أو ترحيل تلقائي عند بدء API.
 3. طبّق أو أعد تطبيق [database/runtime-role.sql](database/runtime-role.sql)، وأنشئ مستخدم اتصال خاصًا بالتطبيق وألحقه بدور `ameen_runtime`. احتفظ بأسرار الاتصال خارج Git.
 4. استخدم نسخًا احتياطية واختبار استعادة قبل أية ترقية لاحقة. شاشة النسخ والاستعادة SYS15 لم تُنفّذ.
 
@@ -70,3 +70,5 @@ dotnet run --project src/Ameen.Erp.Api
 دورة القوالب الدورية وصلاحياتها وترقيتها موثقة في [GL04](../docs/backend/recurring-journals.md). لا تُولّد القوالب إلا مسودات، وتبقى الموافقة والترحيل مستقلين.
 
 يمكن استخراج تعريف النموذج دون اتصال بقاعدة عبر `dotnet <path-to-Ameen.Erp.Api.dll> --schema`. هذا أمر مراجعة فقط ولا يطبّق تغييرات على البيانات.
+
+بطاقة دليل الحسابات وطبيعة الرصيد وقواعد التعديل والاستخدام موثقة في [عقد GL01](../docs/backend/accounts.md). طلب إنشاء الحساب يتطلب `normalBalance` صراحة؛ لا يفرض تصنيف الحساب طبيعته، لدعم الحسابات المقابلة.

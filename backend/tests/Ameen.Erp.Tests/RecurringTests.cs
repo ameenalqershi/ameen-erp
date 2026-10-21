@@ -82,7 +82,7 @@ public static class RecurringTests
             await Grant(f, f.Clerk);
             var request = Request(f); request.Lines[0] = request.Lines[0] with { AccountId = f.GroupId };
             await Error("account_not_postable", () => f.Service.CreateRecurringJournal(f.CompanyId, f.Clerk, Fixture.Key(), request, default));
-            var control = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "رقابة", AccountType.Asset, f.GroupId, true, true, false, null), default);
+            var control = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "رقابة", AccountType.Asset, f.GroupId, true, true, false, null, NormalBalance.Debit), default);
             request = Request(f); request.Lines[0] = request.Lines[0] with { AccountId = control.ResourceId };
             await Error("control_account_protected", () => f.Service.CreateRecurringJournal(f.CompanyId, f.Clerk, Fixture.Key(), request, default));
             var center = await f.Service.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("OTHER", "مركز آخر", f.OtherBranchId), default);

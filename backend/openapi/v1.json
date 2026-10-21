@@ -1072,6 +1072,249 @@
         ]
       }
     },
+    "/api/v1/companies/{companyId}/accounts/{id}": {
+      "get": {
+        "tags": [
+          "GL01 Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "GL01 Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique logical command key. Replay with the same actor, operation and body.",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/accounts/{id}/usage": {
+      "get": {
+        "tags": [
+          "GL01 Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountUsage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/accounts/{id}/audit-events": {
+      "get": {
+        "tags": [
+          "GL01 Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAuditEvent"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/companies/{companyId}/accounts/{id}/status": {
       "post": {
         "tags": [
@@ -2592,6 +2835,7 @@
         "required": [
           "code",
           "name",
+          "normalBalance",
           "type",
           "parentId",
           "companyId"
@@ -2603,6 +2847,29 @@
           },
           "name": {
             "type": "string"
+          },
+          "englishName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "normalBalance": {
+            "$ref": "#/components/schemas/NormalBalance"
+          },
+          "revision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           },
           "type": {
             "$ref": "#/components/schemas/AccountType"
@@ -2742,6 +3009,93 @@
           "Revenue",
           "Expense"
         ]
+      },
+      "AccountUsage": {
+        "required": [
+          "accountId",
+          "childAccountCount",
+          "journalCount",
+          "journalLineCount",
+          "recurringTemplateCount",
+          "hasUsageInSubtree",
+          "references"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "childAccountCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "journalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "journalLineCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "recurringTemplateCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "hasUsageInSubtree": {
+            "type": "boolean"
+          },
+          "references": {
+            "$ref": "#/components/schemas/PageOfAccountUsageReference"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AccountUsageReference": {
+        "required": [
+          "kind",
+          "resourceId",
+          "branchId",
+          "numberOrName",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "numberOrName": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       },
       "AuditEvent": {
         "required": [
@@ -2952,7 +3306,8 @@
           "isPosting",
           "isControl",
           "requiresCostCenter",
-          "currencyCode"
+          "currencyCode",
+          "normalBalance"
         ],
         "type": "object",
         "properties": {
@@ -2982,6 +3337,21 @@
             "type": "boolean"
           },
           "currencyCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "normalBalance": {
+            "$ref": "#/components/schemas/NormalBalance"
+          },
+          "englishName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
             "type": [
               "null",
               "string"
@@ -3252,6 +3622,80 @@
           "version": {
             "type": "string",
             "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "EditAccountRequest": {
+        "required": [
+          "expectedVersion",
+          "code",
+          "name",
+          "type",
+          "parentId",
+          "isPosting",
+          "isControl",
+          "requiresCostCenter",
+          "currencyCode",
+          "normalBalance",
+          "englishName",
+          "notes",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "parentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "isPosting": {
+            "type": "boolean"
+          },
+          "isControl": {
+            "type": "boolean"
+          },
+          "requiresCostCenter": {
+            "type": "boolean"
+          },
+          "currencyCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "normalBalance": {
+            "$ref": "#/components/schemas/NormalBalance"
+          },
+          "englishName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -3979,6 +4423,12 @@
         },
         "additionalProperties": false
       },
+      "NormalBalance": {
+        "enum": [
+          "Debit",
+          "Credit"
+        ]
+      },
       "PageOfAccount": {
         "required": [
           "items",
@@ -3992,6 +4442,48 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Account"
+            }
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PageOfAccountUsageReference": {
+        "required": [
+          "items",
+          "totalCount",
+          "offset",
+          "limit"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountUsageReference"
             }
           },
           "totalCount": {

@@ -16,6 +16,10 @@ public static class SchemaUpgradeIntegration
         var reversal = await f.Service.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk, Fixture.Key(),
             new(original.Version, Fixture.Date, "عكس قبل الترقية"), default);
         await f.Post(reversal);
+        foreach (var type in new[] { AccountType.Liability, AccountType.Revenue, AccountType.Expense })
+            f.Store.Add(new Account(f.CompanyId, "LEGACY-" + type, "حساب سابق", type, null, true, false, false, null,
+                type == AccountType.Expense ? NormalBalance.Debit : NormalBalance.Credit));
+        var legacyAccounts = f.Store.All<Account>().ToArray();
         var legacyJournals = f.Store.All<JournalEntry>().ToArray();
         var rows = f.Store.All<Company>().Cast<Entity>().Concat(f.Store.All<Currency>()).Concat(f.Store.All<Branch>())
             .Concat(f.Store.All<FiscalYear>()).Concat(f.Store.All<FiscalPeriod>())
@@ -37,6 +41,27 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync("DROP TABLE [RecurringJournalLines]");
         await db.Database.ExecuteSqlRawAsync(script);
         await db.Database.ExecuteSqlRawAsync(script);
+        var accountScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "003_account_cards.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Accounts] ADD CONSTRAINT [CK_Account_NormalBalance] CHECK ([Type] >= 0)");
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(accountScript);
+            throw new Exception("Conflicting account migration unexpectedly succeeded");
+        }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=3").AnyAsync(), "Failed upgrade saved version 3");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('Accounts') AND name IN ('EnglishName','Notes','NormalBalance','Revision')").SingleAsync() == 0, "Failed account upgrade left partial columns");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Accounts] DROP CONSTRAINT [CK_Account_NormalBalance]");
+        await db.Database.ExecuteSqlRawAsync(accountScript);
+        await db.Database.ExecuteSqlRawAsync(accountScript);
+        foreach (var current in await db.Set<Account>().Where(x => x.CompanyId == f.CompanyId).ToListAsync())
+        {
+            var previous = legacyAccounts.Single(x => x.Id == current.Id);
+            Ensure(current.Version == previous.Version && current.Code == previous.Code && current.Type == previous.Type &&
+                current.ParentId == previous.ParentId && current.IsActive == previous.IsActive && current.Revision == 1 && current.EnglishName is null && current.Notes is null,
+                "Account upgrade changed legacy identity/classification");
+            Ensure(current.NormalBalance == (previous.Type is AccountType.Asset or AccountType.Expense ? NormalBalance.Debit : NormalBalance.Credit), "Legacy nature backfill differs");
+        }
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {
@@ -46,6 +71,7 @@ public static class SchemaUpgradeIntegration
             Ensure(current.Lines.Sum(x => x.FunctionalDebit) == previous.Lines.Sum(x => x.FunctionalDebit) &&
                 current.Lines.Sum(x => x.FunctionalCredit) == previous.Lines.Sum(x => x.FunctionalCredit), "Upgrade changed financial amounts");
         }
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications");
         db.ChangeTracker.Clear();
         foreach (var table in new[] { "JournalLines", "Journals", "Accounts", "FiscalPeriods", "FiscalYears", "Branches", "Currencies" })
         {

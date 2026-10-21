@@ -130,7 +130,7 @@ public static class SqlIntegration
             var other = Guid.NewGuid();
             await f.Call(s => s.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2), default));
             var otherAccount = await f.Call(s => s.CreateAccount(other, f.Owner, Fixture.Key(),
-                new("1", "حساب", AccountType.Asset, null, true, false, false, null), default));
+                new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default));
             await using (var db = f.Context())
             {
                 try
@@ -166,6 +166,7 @@ public static class SqlIntegration
             }
             Console.WriteLine("  SQL PASS runtime role can save commands and cannot modify audit history");
             await RecurringSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
+            await AccountSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
             await HostedApiIntegration.Run(options.ConnectionString, f.CompanyId, f.Request());
         }
         finally
@@ -212,8 +213,8 @@ public static class SqlIntegration
             await Call(s => s.CreateFiscalYear(CompanyId, Owner, Fixture.Key(), new("2026", new(2026, 1, 1), new(2026, 12, 31)), default));
             foreach (var actor in new[] { Clerk, Approver })
                 await Call(s => s.GrantMembership(CompanyId, Owner, Fixture.Key(), new(actor.Subject, Permissions.All, true, Array.Empty<Guid>(), null), default));
-            CashId = (await Call(s => s.CreateAccount(CompanyId, Owner, Fixture.Key(), new("1", "نقدية", AccountType.Asset, null, true, false, false, null), default))).ResourceId;
-            EquityId = (await Call(s => s.CreateAccount(CompanyId, Owner, Fixture.Key(), new("3", "رأس المال", AccountType.Equity, null, true, false, false, null), default))).ResourceId;
+            CashId = (await Call(s => s.CreateAccount(CompanyId, Owner, Fixture.Key(), new("1", "نقدية", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default))).ResourceId;
+            EquityId = (await Call(s => s.CreateAccount(CompanyId, Owner, Fixture.Key(), new("3", "رأس المال", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit), default))).ResourceId;
         }
         public CreateJournalRequest Request(decimal amount = 100, DateOnly? date = null) => new(BranchId, date ?? Fixture.Date, date ?? Fixture.Date, "قيد SQL", null,
             new[] { new JournalLineRequest(CashId, null, "مدين", "SAR", null, amount, 0), new JournalLineRequest(EquityId, null, "دائن", "SAR", null, 0, amount) });

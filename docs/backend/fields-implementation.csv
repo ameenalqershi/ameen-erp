@@ -249,24 +249,24 @@ SYS17,SYS17-F12,أنشأه,system,pending,,
 SYS17,SYS17-F13,وقت الإنشاء,system,pending,,
 SYS17,SYS17-F14,رقم إصدار التعديل,system,pending,,
 SYS17,SYS17-F15,آخر تعديل,system,pending,,
-GL01,GL01-F01,المعرف الداخلي,system,implemented,Account.Id,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F05,الاسم الإنجليزي,optional,pending,,
-GL01,GL01-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F07,ملاحظات,optional,pending,,
-GL01,GL01-F08,الحساب الأب,conditional,implemented,ParentId,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F09,تصنيف الحساب,required,implemented,Type,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F10,نوع الحساب رئيسي أو فرعي,required,implemented,IsPosting,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F11,الطبيعة مدينة أو دائنة,required,pending,,
-GL01,GL01-F12,عملة الحساب,conditional,implemented,CurrencyCode,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F13,حساب رقابي,required,implemented,IsControl,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F14,إلزام مركز تكلفة,required,implemented,RequiresCostCenter,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F15,أنشأه,system,audit,AuditEvent.ActorId: account.created,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F16,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: account.created,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F17,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
-GL01,GL01-F18,آخر تعديل,system,audit,AuditEvent.OccurredAt: account.status-changed,GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status
+GL01,GL01-F01,المعرف الداخلي,system,implemented,Account.Id,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F08,الحساب الأب,conditional,implemented,ParentId,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F09,تصنيف الحساب,required,implemented,Type,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F10,نوع الحساب رئيسي أو فرعي,required,implemented,IsPosting,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F11,الطبيعة مدينة أو دائنة,required,implemented,NormalBalance: Debit / Credit (required on create/edit),GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F12,عملة الحساب,conditional,implemented,CurrencyCode,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F13,حساب رقابي,required,implemented,IsControl,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F14,إلزام مركز تكلفة,required,implemented,RequiresCostCenter,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F15,أنشأه,system,audit,AuditEvent.ActorId: account.created,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F16,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: account.created,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F17,رقم إصدار التعديل,system,implemented,Revision (server integer); Version is a separate UUID concurrency token,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
+GL01,GL01-F18,آخر تعديل,system,audit,AuditEvent.OccurredAt: account.edited / account.status-changed; /audit-events,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
 GL02,GL02-F01,المعرف الداخلي,system,pending,,
 GL02,GL02-F02,الشركة,system,pending,,
 GL02,GL02-F03,الفرع,required,pending,,

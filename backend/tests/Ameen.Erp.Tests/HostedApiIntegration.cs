@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using Ameen.Erp.Api;
 using Ameen.Erp.Application;
+using Ameen.Erp.Domain;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -186,6 +187,39 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await history.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Recurring HTTP usage differs");
                 Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
+                Authenticate(Token("sql-owner"));
+                var accountPath = $"/api/v1/companies/{companyId}/accounts";
+                var card = await Command(client, accountPath, new CreateAccountRequest("HTTP-GL01", "حساب HTTP", AccountType.Asset,
+                    null, true, false, false, null, NormalBalance.Credit, "HTTP contra asset", "ملاحظة"));
+                using (var cardDetail = await client.GetAsync(accountPath + $"/{card.ResourceId}"))
+                {
+                    Ensure(cardDetail.StatusCode == HttpStatusCode.OK, "Account HTTP detail failed");
+                    using var account = JsonDocument.Parse(await cardDetail.Content.ReadAsStringAsync());
+                    Ensure(account.RootElement.GetProperty("revision").GetInt32() == 1 && account.RootElement.GetProperty("normalBalance").GetString() == "Credit" && account.RootElement.GetProperty("englishName").GetString() == "HTTP contra asset", "Account HTTP nature/labels differ");
+                }
+                var editCard = new EditAccountRequest(card.Version, "HTTP-GL01", "حساب معدل", AccountType.Asset, null, true, false, false,
+                    null, NormalBalance.Credit, "Edited account", null, "تصحيح الوصف");
+                var editKey = Fixture.Key();
+                var editedCard = await Command(client, accountPath + $"/{card.ResourceId}", editCard, editKey, HttpMethod.Put);
+                Ensure(await Command(client, accountPath + $"/{card.ResourceId}", editCard, editKey, HttpMethod.Put) == editedCard, "Account HTTP edit replay differs");
+                using (var changes = await client.GetAsync(accountPath + $"/{card.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await changes.Content.ReadAsStringAsync()))
+                    Ensure(changes.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 2, "Account HTTP audit differs");
+                using (var usage = await client.GetAsync(accountPath + $"/{journalRequest.Lines[0].AccountId}/usage?limit=1"))
+                using (var json = JsonDocument.Parse(await usage.Content.ReadAsStringAsync()))
+                    Ensure(usage.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("hasUsageInSubtree").GetBoolean(), "Account HTTP usage differs");
+                foreach (var invalidBody in new[]
+                {
+                    "{\"code\":\"MISSING-NATURE\",\"name\":\"Missing nature\",\"type\":\"Asset\",\"parentId\":null,\"isPosting\":true,\"isControl\":false,\"requiresCostCenter\":false,\"currencyCode\":null}",
+                    JsonSerializer.Serialize(new CreateAccountRequest("BAD-NATURE", "Bad nature", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), JsonDefaults.Options).Replace("\"Debit\"", "\"Unknown\"", StringComparison.Ordinal)
+                })
+                {
+                    using var invalid = new HttpRequestMessage(HttpMethod.Post, accountPath);
+                    invalid.Headers.Add("Idempotency-Key", Fixture.Key()); invalid.Content = new StringContent(invalidBody, Encoding.UTF8, "application/json");
+                    using var result = await client.SendAsync(invalid); Ensure(result.StatusCode == HttpStatusCode.BadRequest, "Missing/invalid normal balance accepted");
+                }
+                Authenticate(Token("sql-clerk"));
+                Console.WriteLine("  HOST PASS GL01 create/detail/PUT edit/replay, explicit nature, usage and audit over production HTTPS/JWT/SQL");
                 var company = new CreateCompanyRequest(Guid.NewGuid(), "HTTPTEST", "شركة HTTP", "YE", "YER", 2);
                 using var denied = new HttpRequestMessage(HttpMethod.Post, "/api/v1/companies");
                 denied.Headers.Add("Idempotency-Key", Fixture.Key()); denied.Headers.Add("X-Role", "erp.platform-admin");
@@ -216,9 +250,9 @@ public static class HostedApiIntegration
         ServerCertificateCustomValidationCallback = (_, certificate, _, _) =>
             certificate is not null && certificate.GetCertHashString(HashAlgorithmName.SHA256) == expected.GetCertHashString(HashAlgorithmName.SHA256)
     };
-    private static async Task<CommandReceipt> Command(HttpClient client, string path, object body, string? key = null)
+    private static async Task<CommandReceipt> Command(HttpClient client, string path, object body, string? key = null, HttpMethod? method = null)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, path);
+        using var request = new HttpRequestMessage(method ?? HttpMethod.Post, path);
         request.Headers.Add("Idempotency-Key", key ?? Fixture.Key());
         request.Content = new StringContent(JsonSerializer.Serialize(body, JsonDefaults.Options), Encoding.UTF8, "application/json");
         using var result = await client.SendAsync(request);

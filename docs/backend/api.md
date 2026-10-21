@@ -26,6 +26,9 @@
 | GET / POST | `/memberships` | Page / GrantMembershipRequest | members.manage |
 | POST | `/memberships/{id}/status` | SetMembershipStatusRequest | members.manage |
 | GET / POST | `/accounts` | Page / CreateAccountRequest | read / company.configure |
+| GET / PUT | `/accounts/{id}` | Account / EditAccountRequest | read / company.configure (كل الفروع للتعديل) |
+| GET | `/accounts/{id}/usage` | AccountUsage مع مراجع مقسمة | ledger.read، كل الفروع |
+| GET | `/accounts/{id}/audit-events` | Page&lt;AuditEvent&gt; | read + audit.read، كل الفروع |
 | POST | `/accounts/{id}/status` | SetAccountStatusRequest | company.configure |
 | GET | `/journals` | Page&lt;JournalSummary&gt; | ledger.read |
 | GET | `/journals/{id}` | JournalEntry مع السطور | ledger.read |
@@ -116,3 +119,5 @@
 رموز شائعة: `journal_unbalanced`، `period_closed`، `self_approval_forbidden`، `branch_access_denied`، `version_conflict`، `idempotency_conflict`، `already_reversed`، `control_account_protected`، `write_conflict`.
 
 المراجع النهائية لأسماء وحقول الأوامر [Contracts.cs](../../backend/src/Ameen.Erp.Application/Contracts.cs) ولمساراتها [Endpoints.cs](../../backend/src/Ameen.Erp.Api/Endpoints.cs). الطلبات في .NET 10 ترفض الخصائص غير المعروفة والمعاملات الإلزامية المحذوفة؛ الحقول القابلة للقيمة null تُرسل صراحة عندما لا تكون اختيارية في عقد constructor.
+
+تفاصيل GL01 وحقول `normalBalance` و`englishName` و`notes` وقواعد تعديل البنية وسجل الاستخدام في [عقد الحسابات](accounts.md).

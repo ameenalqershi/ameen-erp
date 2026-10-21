@@ -1,6 +1,6 @@
 diagram_id,analysis_source,status,scope
 module-SYS,muhaseb-erp-analysis/diagrams/source/module-SYS.mmd,partial,تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات
-module-GL,muhaseb-erp-analysis/diagrams/source/module-GL.mmd,partial,أستاذ وقوالب قيود متكررة وتوليد مسودات فقط؛ باقي وظائف GL غير مكتملة
+module-GL,muhaseb-erp-analysis/diagrams/source/module-GL.mmd,partial,دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة
 module-CASH,muhaseb-erp-analysis/diagrams/source/module-CASH.mmd,not-started,لم يبدأ التنفيذ
 module-INV,muhaseb-erp-analysis/diagrams/source/module-INV.mmd,not-started,لم يبدأ التنفيذ
 module-SAL,muhaseb-erp-analysis/diagrams/source/module-SAL.mmd,not-started,لم يبدأ التنفيذ

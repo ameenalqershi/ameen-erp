@@ -154,7 +154,7 @@ Test("BR07: reversal draft cannot replace source amounts", async f =>
 });
 Test("BR08: control accounts reject manual journals", async f =>
 {
-    var control = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "رقابة العملاء", AccountType.Asset, f.GroupId, true, true, false, null), default);
+    var control = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "رقابة العملاء", AccountType.Asset, f.GroupId, true, true, false, null, NormalBalance.Debit), default);
     var request = f.Request(); request.Lines[0] = request.Lines[0] with { AccountId = control.ResourceId };
     await Error("control_account_protected", () => f.Draft(request));
 });
@@ -169,7 +169,7 @@ Test("BR04: parent and inactive accounts reject posting", async f =>
 });
 Test("BR04: required cost center and center branch are validated", async f =>
 {
-    var expense = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("5001", "مصروف", AccountType.Expense, null, true, false, true, null), default);
+    var expense = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("5001", "مصروف", AccountType.Expense, null, true, false, true, null, NormalBalance.Debit), default);
     var request = f.Request(); request.Lines[0] = request.Lines[0] with { AccountId = expense.ResourceId };
     await Error("cost_center_required", () => f.Draft(request));
     var center = await f.Service.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("C", "مركز", f.OtherBranchId), default);
@@ -180,7 +180,7 @@ Test("BR02 AT25: another company account cannot be referenced", async f =>
 {
     var other = Guid.NewGuid();
     await f.Service.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "SA", "SAR", 2), default);
-    var account = await f.Service.CreateAccount(other, f.Owner, Fixture.Key(), new("1", "حساب", AccountType.Asset, null, true, false, false, null), default);
+    var account = await f.Service.CreateAccount(other, f.Owner, Fixture.Key(), new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default);
     var request = f.Request(); request.Lines[0] = request.Lines[0] with { AccountId = account.ResourceId };
     await Error("reference_not_found", () => f.Draft(request));
     await Error("permission_denied", () => f.Service.GetCompany(other, f.Clerk, default));
@@ -242,8 +242,8 @@ Test("RPT01: historical report excludes later reversal", async f =>
 Test("RPT01: account level replaces descendants without double counting", async f =>
 {
     await f.Post();
-    var group = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "أصول أخرى", AccountType.Asset, f.GroupId, false, false, false, null), default);
-    var leaf = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1201", "حساب أصول", AccountType.Asset, group.ResourceId, true, false, false, null), default);
+    var group = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1200", "أصول أخرى", AccountType.Asset, f.GroupId, false, false, false, null, NormalBalance.Debit), default);
+    var leaf = await f.Service.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(), new("1201", "حساب أصول", AccountType.Asset, group.ResourceId, true, false, false, null, NormalBalance.Debit), default);
     var request = f.Request(25, 25); request.Lines[0] = request.Lines[0] with { AccountId = leaf.ResourceId };
     await f.Post(await f.Draft(request));
     var root = await f.Service.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, accountLevel: 1);
@@ -413,6 +413,7 @@ tests.Add(("API: every ERP endpoint requires authentication and carries screen t
     Assert(ApiSupport.Actor(h).IsPlatformAdministrator);
 }));
 
+AccountTests.Register(Test);
 RecurringTests.Register(Test);
 tests.Add(("HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON", HttpIntegration.Run));
 if (args.Contains("--sql", StringComparer.Ordinal)) tests.Add(("SQL Server integration", SqlIntegration.Run));

@@ -40,7 +40,14 @@ public sealed record CreateCostCenterRequest(string Code, string Name, Guid? Bra
 public sealed record GrantMembershipRequest(string Subject, string[] Permissions, bool AllBranches, Guid[] BranchIds, Guid? ExpectedVersion);
 public sealed record SetMembershipStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
 public sealed record CreateAccountRequest(string Code, string Name, AccountType Type, Guid? ParentId,
-    bool IsPosting, bool IsControl, bool RequiresCostCenter, string? CurrencyCode);
+    bool IsPosting, bool IsControl, bool RequiresCostCenter, string? CurrencyCode, NormalBalance NormalBalance,
+    string? EnglishName = null, string? Notes = null);
+public sealed record EditAccountRequest(Guid ExpectedVersion, string Code, string Name, AccountType Type, Guid? ParentId,
+    bool IsPosting, bool IsControl, bool RequiresCostCenter, string? CurrencyCode, NormalBalance NormalBalance,
+    string? EnglishName, string? Notes, string Reason);
+public sealed record AccountUsageReference(string Kind, Guid ResourceId, Guid BranchId, string NumberOrName, string State);
+public sealed record AccountUsage(Guid AccountId, int ChildAccountCount, int JournalCount, int JournalLineCount,
+    int RecurringTemplateCount, bool HasUsageInSubtree, Page<AccountUsageReference> References);
 public sealed record SetAccountStatusRequest(Guid ExpectedVersion, bool IsActive, string Reason);
 public sealed record ChangePeriodRequest(Guid ExpectedVersion, string Reason);
 public sealed record JournalLineRequest(Guid AccountId, Guid? CostCenterId, string Description,

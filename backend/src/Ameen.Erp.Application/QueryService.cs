@@ -34,7 +34,7 @@ public sealed partial class ErpService
         Paging(offset, limit); await Authorize(cid, actor, Permissions.Read, null, ct);
         Check.That(search is null || search.Length <= 100, "search_too_long", "عبارة البحث أطول من المسموح.");
         search = search?.Trim();
-        return await store.ReadPage<Account>(cid, x => search == null || x.Code.Contains(search) || x.Name.Contains(search),
+        return await store.ReadPage<Account>(cid, x => search == null || x.Code.Contains(search) || x.Name.Contains(search) || (x.EnglishName != null && x.EnglishName.Contains(search)),
             q => q.OrderBy(x => x.Code).ThenBy(x => x.Id), offset, limit, ct);
     }
     public async Task<JournalEntry> GetJournal(Guid cid, Guid id, Actor actor, CancellationToken ct)

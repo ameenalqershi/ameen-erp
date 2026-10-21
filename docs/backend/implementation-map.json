@@ -6,11 +6,11 @@
   "partially_implemented_screens": 22,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 145,
+    "implemented": 148,
     "audit": 33,
     "derived": 4,
     "partial": 18,
-    "pending": 2559
+    "pending": 2556
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -368,9 +368,9 @@
       }
     },
     "GL01": {
-      "api": "GET/POST /companies/{companyId}/accounts; POST /accounts/{id}/status",
-      "implemented": "شجرة حسابات وتصنيف ورقابة وإلزام مركز وعملة وتعطيل مضبوط",
-      "remaining": "الأسماء الإضافية والملاحظات والطبيعة الصريحة وتعديل بنية الدليل",
+      "api": "GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events",
+      "implemented": "بطاقة ثنائية اللغة وملاحظات وطبيعة مدينة/دائنة صريحة؛ تعديل وشجرة بلا دورات وقفل بنية المستخدم وسجل استخدام وتغييرات",
+      "remaining": "مسار تحويل معتمد لتغيير بنية الحساب المستخدم؛ سجل الاستخدام الحالي للأستاذ والقوالب فقط حتى تنفيذ الدفاتر المساعدة",
       "fields": {
         "GL01-F01": {
           "status": "implemented",
@@ -388,9 +388,17 @@
           "status": "implemented",
           "binding": "Name"
         },
+        "GL01-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
         "GL01-F06": {
           "status": "implemented",
           "binding": "IsActive"
+        },
+        "GL01-F07": {
+          "status": "implemented",
+          "binding": "Notes"
         },
         "GL01-F08": {
           "status": "implemented",
@@ -403,6 +411,10 @@
         "GL01-F10": {
           "status": "implemented",
           "binding": "IsPosting"
+        },
+        "GL01-F11": {
+          "status": "implemented",
+          "binding": "NormalBalance: Debit / Credit (required on create/edit)"
         },
         "GL01-F12": {
           "status": "implemented",
@@ -418,7 +430,7 @@
         },
         "GL01-F17": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "Revision (server integer); Version is a separate UUID concurrency token"
         },
         "GL01-F15": {
           "status": "audit",
@@ -430,9 +442,10 @@
         },
         "GL01-F18": {
           "status": "audit",
-          "binding": "AuditEvent.OccurredAt: account.status-changed"
+          "binding": "AuditEvent.OccurredAt: account.edited / account.status-changed; /audit-events"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/AccountTests.cs; backend/tests/Ameen.Erp.Tests/AccountSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "GL03": {
       "api": "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}",
