@@ -16,6 +16,33 @@ public static class InventoryIdentityTests
     private static EditInventoryIdentityRequest Edit(InventoryIdentity x) => new(x.Version, x.Code, x.Name, x.ProductionDate, x.ExpiryDate, x.QualityStatus, x.EnglishName, x.Notes, "تصحيح");
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV05: independent lot number uniqueness search and omitted edit preservation", async f =>
+        {
+            var item = await Setup(f); var request = Request with { Code = "CARD-1", LotNumber = "BATCH-900" };
+            var receipt = await Create(f, item, request); var lot = await Get(f, item, receipt.ResourceId);
+            Ensure(lot.Code == "CARD-1" && lot.LotNumber == "BATCH-900" && lot.SerialNumber is null);
+            Ensure((await f.Service.InventoryIdentity.SearchLots(f.CompanyId, item, f.Owner, "BATCH-900", null, null, 0, 10, default)).TotalCount == 1);
+            await Error("duplicate_inventory_identity", () => Create(f, item, request with { Code = "CARD-2" }));
+            await f.Service.InventoryIdentity.EditLot(f.CompanyId, item, lot.Id, f.Owner, Fixture.Key(), Edit(lot) with { Code = "CARD-NEW" }, default);
+            lot = await Get(f, item, lot.Id); Ensure(lot.Code == "CARD-NEW" && lot.LotNumber == "BATCH-900");
+            await f.Service.InventoryIdentity.SetLotStatus(f.CompanyId, item, lot.Id, f.Owner, Fixture.Key(), new(lot.Version, false, "إيقاف"), default);
+            await Error("duplicate_inventory_identity", () => Create(f, item, request with { Code = "CARD-2" }));
+        });
+        test("INV05: serial number independent from card and opposite number rejected", async f =>
+        {
+            var item = await Setup(f, ItemTracking.Serial);
+            var r = await f.Service.InventoryIdentity.CreateSerial(f.CompanyId, item, f.Owner, Fixture.Key(), Request with { Code = "CARD-S", SerialNumber = "SN-001" }, default);
+            var serial = await f.Service.InventoryIdentity.GetSerial(f.CompanyId, item, r.ResourceId, f.Owner, default);
+            Ensure(serial.SerialNumber == "SN-001" && serial.LotNumber is null && serial.Code == "CARD-S");
+            await Error("inventory_number_tracking_mismatch", () => f.Service.InventoryIdentity.CreateSerial(f.CompanyId, item, f.Owner, Fixture.Key(), Request with { LotNumber = "WRONG" }, default));
+        });
+        test("INV05: omitted number retains legacy fingerprint and explicit empty number rejected", async f =>
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(Request, JsonDefaults.Options);
+            Ensure(!json.Contains("lotNumber", StringComparison.Ordinal) && !json.Contains("serialNumber", StringComparison.Ordinal));
+            var item = await Setup(f); var r = await Create(f, item); Ensure((await Get(f, item, r.ResourceId)).LotNumber == Request.Code);
+            await Error("invalid_text", () => Create(f, item, Request with { Code = "OTHER", LotNumber = "" }));
+        });
         test("INV05: lot roundtrip search audit and idempotency without stock movement", async f =>
         {
             var item = await Setup(f); var key = Fixture.Key(); var receipt = await Create(f, item, key: key);

@@ -6,10 +6,10 @@
   "partially_implemented_screens": 27,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 236,
+    "implemented": 237,
     "audit": 53,
     "derived": 4,
-    "partial": 34,
+    "partial": 33,
     "pending": 2432
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -1063,7 +1063,7 @@
     "INV05": {
       "api": "GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",
       "implemented": "بطاقات هوية دفعات وتسلسل؛ بحث وتعديل وحالة وتدقيق وتزامن؛ فحص التاريخ وقفل تتبع الصنف؛ دون أثر مخزني",
-      "remaining": "فصل رمز البطاقة عن رقم الهوية؛ اعتماد الجودة وإلزام الصلاحية؛ الاستخدام والضمان وربط المستندات وقيود الهوية المستخدمة غير منفذة",
+      "remaining": "اعتماد الجودة وإلزام الصلاحية؛ إزالة افتراض الرقم القديم عند غيابه بعقد إصدار جديد؛ الاستخدام والضمان وربط المستندات وقيود الهوية المستخدمة غير منفذة",
       "fields": {
         "INV05-F01": {
           "status": "implemented",
@@ -1072,6 +1072,10 @@
         "INV05-F02": {
           "status": "implemented",
           "binding": "CompanyId"
+        },
+        "INV05-F03": {
+          "status": "implemented",
+          "binding": "Code (independent card code)"
         },
         "INV05-F04": {
           "status": "implemented",
@@ -1113,17 +1117,13 @@
           "status": "audit",
           "binding": "AuditEvent.OccurredAt: edited / status-changed"
         },
-        "INV05-F03": {
-          "status": "partial",
-          "binding": "Code currently shared with identity number"
-        },
         "INV05-F09": {
           "status": "partial",
-          "binding": "Code when Tracking=Lot; independent card code pending"
+          "binding": "LotNumber independent; legacy creation defaults omitted number to Code"
         },
         "INV05-F10": {
           "status": "partial",
-          "binding": "Code when Tracking=Serial; independent card code pending"
+          "binding": "SerialNumber independent; legacy creation defaults omitted number to Code"
         },
         "INV05-F12": {
           "status": "partial",

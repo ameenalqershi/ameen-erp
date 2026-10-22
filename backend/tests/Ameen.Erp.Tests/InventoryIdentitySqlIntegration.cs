@@ -45,6 +45,39 @@ public static class InventoryIdentitySqlIntegration
             catch (Microsoft.Data.SqlClient.SqlException e) when (e.Number == 547) { }
         }
         await Call(s => s.InventoryIdentity.SetLotStatus(cid, item.ResourceId, r.ResourceId, owner, key, new(r.Version, false, "إيقاف"), default));
+        // Reconstruct schema 012 only inside the disposable test database to exercise populated upgrades.
+        var serialItem = await Call(s => s.Item.CreateItem(cid, owner, Fixture.Key(), new("IDENT-SERIAL", "صنف تسلسل", ItemType.Goods, ItemTracking.Serial, group.ResourceId, unit.ResourceId, new[] { new ItemUnitRequest(unit.ResourceId, 1, null, null) }), default));
+        await Call(s => s.InventoryIdentity.CreateSerial(cid, serialItem.ResourceId, owner, Fixture.Key(), request with { Code = "SERIAL-OLD" }, default));
+        await using (var db = Context())
+        {
+            var previous = await db.Set<InventoryIdentity>().AsNoTracking().ToListAsync();
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [InventoryIdentities] DROP CONSTRAINT [CK_InventoryIdentity_Number]; DROP INDEX [IX_InventoryIdentities_CompanyId_ItemId_LotNumber] ON [InventoryIdentities]; DROP INDEX [IX_InventoryIdentities_CompanyId_ItemId_SerialNumber] ON [InventoryIdentities]; ALTER TABLE [InventoryIdentities] DROP COLUMN [LotNumber], [SerialNumber]; DELETE FROM [__AmeenSchemaVersions] WHERE [Version]=13;");
+            var script = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "013_inventory_identity_numbers.sql"));
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [InventoryIdentities] ADD CONSTRAINT [CK_InventoryIdentity_Number] CHECK ([Revision] > 0)");
+            try { await db.Database.ExecuteSqlRawAsync(script); throw new Exception("Conflicting upgrade accepted"); }
+            catch (Microsoft.Data.SqlClient.SqlException e) when (e.Errors.Cast<Microsoft.Data.SqlClient.SqlError>().Any(x => x.Number == 2714)) { }
+            Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('InventoryIdentities') AND name='LotNumber'").SingleAsync() == 0, "Failed upgrade left columns");
+            Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=13").AnyAsync(), "Failed upgrade saved version");
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [InventoryIdentities] DROP CONSTRAINT [CK_InventoryIdentity_Number]");
+            await db.Database.ExecuteSqlRawAsync(script); await db.Database.ExecuteSqlRawAsync(script);
+            var upgraded = await db.Set<InventoryIdentity>().AsNoTracking().ToListAsync();
+            foreach (var old in previous)
+            {
+                var current = upgraded.Single(x => x.Id == old.Id);
+                Ensure(current.Code == old.Code && current.Version == old.Version && current.Revision == old.Revision && current.IsActive == old.IsActive, "Upgrade changed legacy identity");
+                Ensure(current.Tracking == ItemTracking.Lot ? current.LotNumber == old.Code && current.SerialNumber is null : current.SerialNumber == old.Code && current.LotNumber is null, "Legacy number backfill differs");
+            }
+        }
+        var independent = await Call(s => s.InventoryIdentity.CreateLot(cid, item.ResourceId, owner, Fixture.Key(), request with { Code = "CARD-EXT", LotNumber = "EXTERNAL-LOT" }, default));
+        Ensure((await Call(s => s.InventoryIdentity.SearchLots(cid, item.ResourceId, owner, "EXTERNAL-LOT", null, null, 0, 10, default))).TotalCount == 1, "SQL number search failed");
+        try { await Call(s => s.InventoryIdentity.CreateLot(cid, item.ResourceId, owner, Fixture.Key(), request with { Code = "CARD-OTHER", LotNumber = "EXTERNAL-LOT" }, default)); throw new Exception("Duplicate number accepted"); }
+        catch (BusinessException e) when (e.Code == "duplicate_inventory_identity") { }
+        await using (var db = Context())
+        {
+            try { await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [InventoryIdentities] SET [SerialNumber]=N'WRONG' WHERE [Id]={independent.ResourceId}"); throw new Exception("Mixed tracking numbers accepted"); }
+            catch (Microsoft.Data.SqlClient.SqlException e) when (e.Number == 547) { }
+        }
+        Console.WriteLine("  SQL PASS INV05 populated atomic/idempotent 012→013 upgrade, independent number search, uniqueness and tracking check");
         Console.WriteLine("  SQL PASS INV05 replay, uniqueness race, filters, audit rollback, retry, expiry and item FK");
     }
     private static void Ensure(bool value, string message) { if (!value) throw new Exception(message); }

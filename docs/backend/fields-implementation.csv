@@ -771,14 +771,14 @@ INV04,INV04-F21,رقم إصدار التعديل,system,implemented,Revision,GET
 INV04,INV04-F22,آخر تعديل,system,audit,AuditEvent.OccurredAt: item.edited / item.status-changed,GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|convert-quantity; GET /units/{id}/items
 INV05,INV05-F01,المعرف الداخلي,system,implemented,InventoryIdentity.Id,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV05,INV05-F03,الرمز,required,partial,Code currently shared with identity number,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
+INV05,INV05-F03,الرمز,required,implemented,Code (independent card code),GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F08,الصنف,required,implemented,ItemId,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV05,INV05-F09,الدفعة,conditional,partial,Code when Tracking=Lot; independent card code pending,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV05,INV05-F10,الرقم التسلسلي,conditional,partial,Code when Tracking=Serial; independent card code pending,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
+INV05,INV05-F09,الدفعة,conditional,partial,LotNumber independent; legacy creation defaults omitted number to Code,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
+INV05,INV05-F10,الرقم التسلسلي,conditional,partial,SerialNumber independent; legacy creation defaults omitted number to Code,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F11,الإنتاج,optional,implemented,ProductionDate,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F12,الصلاحية,conditional,partial,ExpiryDate required for ShelfLifeDays; final conditional policy pending,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F13,حالة الجودة,required,partial,QualityStatus: initial inferred Available/Quarantine/Rejected,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events

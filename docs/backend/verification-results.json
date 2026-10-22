@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-22T02:12:39.262401+00:00",
+  "startedAtUtc": "2026-10-22T02:21:41.574298+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "39b15b1ede3c4a62ea08c3ffe486f9dfb5d9683fddaccd5f6599d906bb872012",
+  "sourceSha256": "259dd795d38a3777994e5309259d08948338157c97ca01366e456f07be479542",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -171,6 +171,9 @@
     "PASS INV01: failed location replacement rolls back and retry replays with stale version rejected",
     "PASS INV01: duplicate company code invalid enum and foreign references rejected",
     "PASS INV01: disabled branch rejected and paging and audit permissions enforced",
+    "PASS INV05: independent lot number uniqueness search and omitted edit preservation",
+    "PASS INV05: serial number independent from card and opposite number rejected",
+    "PASS INV05: omitted number retains legacy fingerprint and explicit empty number rejected",
     "PASS INV05: lot roundtrip search audit and idempotency without stock movement",
     "PASS INV05: expiry boundaries quality enum and item shelf life validated",
     "PASS INV05: disabled identity still reserves number and freezes item tracking",
@@ -262,6 +265,7 @@
     "  SQL PASS atomic/idempotent schema 009→010 preserves prior data and adds item/unit tables",
     "  SQL PASS atomic/idempotent schema 010→011 adds empty warehouses and locations, preserving prior data",
     "  SQL PASS idempotent schema 011→012 adds empty inventory identities",
+    "  SQL PASS idempotent schema 012→013 separates inventory numbers",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
     "  SQL PASS concurrent idempotency across independent connections",
@@ -284,6 +288,7 @@
     "  SQL PASS SYS04/COST01 audit failures roll back cards and receipts; exact retries succeed",
     "  SQL PASS COST01 tenant FKs and SYS04/COST01 status writes under runtime role",
     "  SQL PASS INV01 creation/edit concurrent replay, locations, rollback, runtime role, search, account usage and tenant FK",
+    "  SQL PASS INV05 populated atomic/idempotent 012→013 upgrade, independent number search, uniqueness and tracking check",
     "  SQL PASS INV05 replay, uniqueness race, filters, audit rollback, retry, expiry and item FK",
     "  SQL PASS INV02 usage subtree counts, inactive references, direct filters and paged item units",
     "  SQL PASS INV04 concurrent replay, line replacement, barcode race, audit rollback, runtime role and cross-company unit FK",
@@ -312,8 +317,8 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 205,
-  "total": 205,
+  "passed": 208,
+  "total": 208,
   "failed": 0,
-  "finishedAtUtc": "2026-10-22T02:13:11.389967+00:00"
+  "finishedAtUtc": "2026-10-22T02:22:14.242474+00:00"
 }

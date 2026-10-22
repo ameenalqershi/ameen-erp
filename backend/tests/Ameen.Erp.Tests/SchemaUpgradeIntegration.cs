@@ -182,6 +182,11 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(identityScript);
         Ensure(!await db.Set<InventoryIdentity>().AnyAsync(), "Identity upgrade invented rows");
         Console.WriteLine("  SQL PASS idempotent schema 011→012 adds empty inventory identities");
+        var numberScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "013_inventory_identity_numbers.sql"));
+        await db.Database.ExecuteSqlRawAsync(numberScript);
+        await db.Database.ExecuteSqlRawAsync(numberScript);
+        Console.WriteLine("  SQL PASS idempotent schema 012→013 separates inventory numbers");
+
 
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)

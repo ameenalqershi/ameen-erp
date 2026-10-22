@@ -9,6 +9,11 @@ public sealed partial class ErpDbContext
     {
         var identity = Tenant<InventoryIdentity>(model, "InventoryIdentities");
         identity.Property(x => x.Code).HasMaxLength(32).UseCollation("Latin1_General_100_BIN2");
+        identity.Property(x => x.LotNumber).HasMaxLength(32).UseCollation("Latin1_General_100_BIN2");
+        identity.Property(x => x.SerialNumber).HasMaxLength(32).UseCollation("Latin1_General_100_BIN2");
+        identity.HasIndex(x => new { x.CompanyId, x.ItemId, x.LotNumber }).IsUnique().HasFilter("[LotNumber] IS NOT NULL");
+        identity.HasIndex(x => new { x.CompanyId, x.ItemId, x.SerialNumber }).IsUnique().HasFilter("[SerialNumber] IS NOT NULL");
+        Constraint(identity, "CK_InventoryIdentity_Number", "([Tracking] = 1 AND [LotNumber] IS NOT NULL AND LEN([LotNumber]) > 0 AND [SerialNumber] IS NULL) OR ([Tracking] = 2 AND [SerialNumber] IS NOT NULL AND LEN([SerialNumber]) > 0 AND [LotNumber] IS NULL)");
         identity.Property(x => x.Name).HasMaxLength(200);
         identity.Property(x => x.EnglishName).HasMaxLength(200);
         identity.Property(x => x.Notes).HasMaxLength(2000);

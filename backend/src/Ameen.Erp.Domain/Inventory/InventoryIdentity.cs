@@ -10,6 +10,8 @@ public sealed class InventoryIdentity : CompanyEntity
     public Guid ItemId { get; private set; }
     public ItemTracking Tracking { get; private set; }
     public string Code { get; private set; } = "";
+    public string? LotNumber { get; private set; }
+    public string? SerialNumber { get; private set; }
     public string Name { get; private set; } = "";
     public string? EnglishName { get; private set; }
     public string? Notes { get; private set; }
@@ -23,11 +25,11 @@ public sealed class InventoryIdentity : CompanyEntity
 
     public InventoryIdentity(Guid companyId, Guid itemId, ItemTracking tracking, string code, string name,
         DateOnly? productionDate, DateOnly? expiryDate, InventoryQualityStatus qualityStatus,
-        string? englishName, string? notes) : base(companyId)
-        => Configure(itemId, tracking, code, name, productionDate, expiryDate, qualityStatus, englishName, notes);
+        string? englishName, string? notes, string? lotNumber = null, string? serialNumber = null) : base(companyId)
+        => Configure(itemId, tracking, code, name, productionDate, expiryDate, qualityStatus, englishName, notes, lotNumber, serialNumber);
 
     public void Configure(Guid itemId, ItemTracking tracking, string code, string name, DateOnly? productionDate,
-        DateOnly? expiryDate, InventoryQualityStatus qualityStatus, string? englishName, string? notes)
+        DateOnly? expiryDate, InventoryQualityStatus qualityStatus, string? englishName, string? notes, string? lotNumber = null, string? serialNumber = null)
     {
         Check.That(itemId != Guid.Empty, "inventory_item_required", "الصنف مطلوب لهوية المخزون.");
         Check.That(tracking is ItemTracking.Lot or ItemTracking.Serial, "invalid_inventory_tracking",
@@ -36,9 +38,16 @@ public sealed class InventoryIdentity : CompanyEntity
         Check.That(productionDate is null || expiryDate is null || expiryDate > productionDate,
             "invalid_inventory_expiry", "تاريخ الصلاحية يجب أن يكون بعد تاريخ الإنتاج.");
 
+        Check.That(tracking == ItemTracking.Lot ? serialNumber is null : lotNumber is null,
+            "inventory_number_tracking_mismatch", "حقل الرقم لا يطابق نوع التتبع.");
+        var normalizedCode = Check.Code(code, "رمز البطاقة");
+        var number = Check.Code(tracking == ItemTracking.Lot ? lotNumber ?? normalizedCode : serialNumber ?? normalizedCode,
+            tracking == ItemTracking.Lot ? "رقم الدفعة" : "الرقم التسلسلي");
+        LotNumber = tracking == ItemTracking.Lot ? number : null;
+        SerialNumber = tracking == ItemTracking.Serial ? number : null;
         ItemId = itemId;
         Tracking = tracking;
-        Code = Check.Code(code, tracking == ItemTracking.Lot ? "رمز الدفعة" : "الرقم التسلسلي");
+        Code = normalizedCode;
         Name = Check.Text(name, "اسم هوية المخزون");
         EnglishName = englishName is null ? null : Check.Text(englishName, "الاسم الإنجليزي");
         Notes = notes is null ? null : Check.Text(notes, "الملاحظات", 2000);

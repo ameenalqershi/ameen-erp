@@ -18,7 +18,7 @@ public sealed class InventoryIdentityService : ApplicationService
     {
         identity.Version, identity.Revision, identity.ItemId, identity.Tracking, identity.Code, identity.Name,
         identity.EnglishName, identity.Notes, identity.ProductionDate, identity.ExpiryDate, identity.QualityStatus,
-        identity.IsActive
+        identity.IsActive, identity.LotNumber, identity.SerialNumber
     };
 
     private static string Label(ItemTracking tracking) => tracking == ItemTracking.Lot ? "الدفعة" : "الرقم التسلسلي";
@@ -51,7 +51,9 @@ public sealed class InventoryIdentityService : ApplicationService
     {
         var duplicate = await store.Find<InventoryIdentity>(identity.CompanyId,
             x => x.Id != excludedId && x.ItemId == identity.ItemId && x.Tracking == identity.Tracking &&
-                 x.Code == identity.Code, ct);
+                 (x.Code == identity.Code ||
+                  (identity.LotNumber != null && x.LotNumber == identity.LotNumber) ||
+                  (identity.SerialNumber != null && x.SerialNumber == identity.SerialNumber)), ct);
         Check.That(duplicate.Count == 0, "duplicate_inventory_identity",
             $"{Label(identity.Tracking)} مكررة للصنف.", ErrorKind.Conflict);
     }
@@ -63,7 +65,7 @@ public sealed class InventoryIdentityService : ApplicationService
             {
                 var item = await TrackedItem(companyId, itemId, tracking, token);
                 var identity = new InventoryIdentity(companyId, itemId, tracking, request.Code, request.Name,
-                    request.ProductionDate, request.ExpiryDate, request.QualityStatus, request.EnglishName, request.Notes);
+                    request.ProductionDate, request.ExpiryDate, request.QualityStatus, request.EnglishName, request.Notes, request.LotNumber, request.SerialNumber);
                 ValidateItemPolicy(item, identity);
                 await EnsureUniqueCode(identity, Guid.Empty, token);
                 store.Add(identity);
@@ -84,12 +86,13 @@ public sealed class InventoryIdentityService : ApplicationService
                 Check.Version(identity, request.ExpectedVersion);
                 var reason = Check.Text(request.Reason, "السبب", 500);
                 var candidate = new InventoryIdentity(companyId, itemId, tracking, request.Code, request.Name,
-                    request.ProductionDate, request.ExpiryDate, request.QualityStatus, request.EnglishName, request.Notes);
+                    request.ProductionDate, request.ExpiryDate, request.QualityStatus, request.EnglishName, request.Notes,
+                    request.LotNumber ?? identity.LotNumber, request.SerialNumber ?? identity.SerialNumber);
                 ValidateItemPolicy(item, candidate);
                 await EnsureUniqueCode(candidate, identity.Id, token);
                 var before = Snapshot(identity);
                 identity.Configure(itemId, tracking, candidate.Code, candidate.Name, candidate.ProductionDate,
-                    candidate.ExpiryDate, candidate.QualityStatus, candidate.EnglishName, candidate.Notes);
+                    candidate.ExpiryDate, candidate.QualityStatus, candidate.EnglishName, candidate.Notes, candidate.LotNumber, candidate.SerialNumber);
                 Audit(companyId, actor, Action(tracking, "edited"), identity,
                     new { itemCode = item.Code, before, after = Snapshot(identity), reason });
                 return Receipt(identity, "Updated");
@@ -139,6 +142,8 @@ public sealed class InventoryIdentityService : ApplicationService
                  (qualityStatus == null || x.QualityStatus == qualityStatus) &&
                  (isActive == null || x.IsActive == isActive) &&
                  (search == null || x.Code.Contains(search) || x.Name.Contains(search) ||
+                  (x.LotNumber != null && x.LotNumber.Contains(search)) ||
+                  (x.SerialNumber != null && x.SerialNumber.Contains(search)) ||
                   (x.EnglishName != null && x.EnglishName.Contains(search))),
             q => q.OrderBy(x => x.Code).ThenBy(x => x.Id), offset, limit, ct);
     }
