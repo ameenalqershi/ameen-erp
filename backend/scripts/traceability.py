@@ -124,6 +124,14 @@ screen("COST01", "GET/POST /companies/{companyId}/cost-centers; GET /search; GET
        [(12, "AuditEvent.ActorId: cost-center.created"), (13, "AuditEvent.OccurredAt: cost-center.created"), (15, "AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed")])
 MAP["COST01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CostCenterTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+screen("INV05", "GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",
+       "بطاقات هوية دفعات وتسلسل؛ بحث وتعديل وحالة وتدقيق وتزامن؛ فحص التاريخ وقفل تتبع الصنف؛ دون أثر مخزني",
+       "فصل رمز البطاقة عن رقم الهوية؛ اعتماد الجودة وإلزام الصلاحية؛ الاستخدام والضمان وربط المستندات وقيود الهوية المستخدمة غير منفذة",
+       {1: "InventoryIdentity.Id", 2: "CompanyId", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "ItemId", 11: "ProductionDate", 16: "Revision"},
+       [(14, "AuditEvent.ActorId: inventory-lot.created / inventory-serial.created"), (15, "AuditEvent.OccurredAt: created"), (17, "AuditEvent.OccurredAt: edited / status-changed")])
+for n, binding in {3: "Code currently shared with identity number", 9: "Code when Tracking=Lot; independent card code pending", 10: "Code when Tracking=Serial; independent card code pending", 12: "ExpiryDate required for ShelfLifeDays; final conditional policy pending", 13: "QualityStatus: initial inferred Available/Quarantine/Rejected"}.items():
+    MAP["INV05"]["fields"][f"INV05-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["INV05"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["InventoryIdentityTests.cs", "InventoryIdentitySqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("INV01", "GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses",
        "بطاقة مخزن ومواقع وحقول ثنائية اللغة وإصدار؛ أمين من عضوية فعالة في الفرع؛ بحث مقيد بالفروع وتعديل وحالة وتدقيق؛ حماية مراجع الحساب والفرع",
        "نوع Standard/Quarantine ومرجع الأمين Membership نطاق أولي غير محسوم؛ نطاق صلاحيات مخزن مستقل والاستخدام المستندي ومتـاح البيع والحركات وقفل المواقع بعد الحركة وأولوية حساب المخزن/المجموعة غير منفذة",

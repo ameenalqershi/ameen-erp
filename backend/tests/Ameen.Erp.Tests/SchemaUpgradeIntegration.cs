@@ -177,6 +177,12 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(warehouseScript); await db.Database.ExecuteSqlRawAsync(warehouseScript);
         Ensure(!await db.Set<Warehouse>().AnyAsync(), "Migration invented warehouses");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 010→011 adds empty warehouses and locations, preserving prior data");
+        var identityScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "012_inventory_identities.sql"));
+        await db.Database.ExecuteSqlRawAsync(identityScript);
+        await db.Database.ExecuteSqlRawAsync(identityScript);
+        Ensure(!await db.Set<InventoryIdentity>().AnyAsync(), "Identity upgrade invented rows");
+        Console.WriteLine("  SQL PASS idempotent schema 011→012 adds empty inventory identities");
+
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

@@ -7,7 +7,7 @@ namespace Ameen.Erp.Infrastructure;
 
 public sealed partial class ErpDbContext : DbContext
 {
-    public const int SchemaVersion = 11;
+    public const int SchemaVersion = 12;
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options) { }
 
     private static EntityTypeBuilder<T> Tenant<T>(ModelBuilder model, string table) where T : CompanyEntity
@@ -46,6 +46,7 @@ public sealed partial class ErpDbContext : DbContext
         ConfigureOutboxEvent(model);
         ConfigureIdempotencyRecord(model);
         ConfigureWarehouses(model);
+        ConfigureInventoryIdentity(model);
         ConfigureRecurring(model);
         // Use one date-only storage contract for all accounting dates.
         foreach (var entityType in model.Model.GetEntityTypes().ToArray())

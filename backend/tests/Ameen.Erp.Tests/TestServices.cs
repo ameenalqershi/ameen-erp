@@ -14,6 +14,7 @@ public sealed class TestServices
     public ExchangeRateService ExchangeRate { get; }
     public FiscalCalendarService FiscalCalendar { get; }
     public ItemGroupService ItemGroup { get; }
+    public InventoryIdentityService InventoryIdentity { get; }
     public ItemService Item { get; }
     public JournalService Journal { get; }
     public MembershipService Membership { get; }
@@ -25,6 +26,7 @@ public sealed class TestServices
     public WarehouseService Warehouse { get; }
     public TestServices(IErpStore store, ITransactionRunner transactions, IClock clock)
     {
+        InventoryIdentity = new InventoryIdentityService(store, transactions, clock);
         Currency = new CurrencyService(store, transactions, clock);
         Account = new AccountService(store, transactions, clock, Currency);
         Audit = new AuditService(store, transactions, clock);

@@ -288,6 +288,26 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "HTTP warehouse audit failed");
                 Console.WriteLine("  HOST PASS INV01 create/edit/locations/search/status/audit over HTTPS/JWT/SQL");
+                var identityCost = await Command(client, $"/api/v1/companies/{companyId}/accounts", new CreateAccountRequest("HTTP-ID-C", "تكلفة", AccountType.Expense, null, true, false, false, null, NormalBalance.Debit));
+                var identityGroup = await Command(client, groupsPath, new CreateItemGroupRequest("HTTP-ID-G", "دفعات", groupSales.ResourceId, InventoryAccountId: warehouseAccount.ResourceId, CostAccountId: identityCost.ResourceId));
+                var identityItem = await Command(client, itemsPath, new CreateItemRequest("HTTP-ID", "صنف دفعات", ItemType.Goods, ItemTracking.Lot, identityGroup.ResourceId, itemUnit.ResourceId, new[] { new ItemUnitRequest(itemUnit.ResourceId, 1, null, null) }));
+                var lotsPath = itemsPath + $"/{identityItem.ResourceId}/lots";
+                var lotRequest = new CreateInventoryIdentityRequest("HTTP-LOT", "دفعة", new(2026, 1, 1), new(2027, 1, 1), InventoryQualityStatus.Quarantine);
+                var lot = await Command(client, lotsPath, lotRequest);
+                lot = await Command(client, lotsPath + $"/{lot.ResourceId}", new EditInventoryIdentityRequest(lot.Version, lotRequest.Code, "دفعة معدلة", lotRequest.ProductionDate, lotRequest.ExpiryDate, InventoryQualityStatus.Available, null, null, "تصحيح"), method: HttpMethod.Put);
+                using (var response = await client.GetAsync(lotsPath + "?qualityStatus=Available&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP lot search failed");
+                using (var response = await client.GetAsync(lotsPath + $"/{lot.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("revision").GetInt32() == 2, "HTTP lot detail failed");
+                await Command(client, lotsPath + $"/{lot.ResourceId}/status", new SetInventoryIdentityStatusRequest(lot.Version, false, "إيقاف"));
+                using (var response = await client.GetAsync(lotsPath + $"/{lot.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 3, "HTTP lot audit failed");
+                using (var response = await client.GetAsync(itemsPath + $"/{identityItem.ResourceId}/serials/{lot.ResourceId}"))
+                    Ensure(response.StatusCode == HttpStatusCode.NotFound, "HTTP serial route exposed lot");
+                Console.WriteLine("  HOST PASS INV05 lot create/edit/search/detail/status/audit and route isolation over HTTPS/JWT/SQL");
                 var auditPath = $"/api/v1/companies/{companyId}/audit-events";
                 Guid eventId;
                 using (var response = await client.GetAsync(auditPath + $"?from=2026-01-01&to=2026-12-31&actorId=sql-owner&action=warehouse.created&resourceId={wh.ResourceId}&limit=1"))

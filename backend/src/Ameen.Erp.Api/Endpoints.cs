@@ -9,6 +9,7 @@ public static class Endpoints
         BranchesEndpoints.Map(app);
         WarehousesEndpoints.Map(app);
         ItemsEndpoints.Map(app);
+        InventoryIdentitiesEndpoints.Map(app);
         ItemGroupsEndpoints.Map(app);
         UnitsEndpoints.Map(app);
         CurrenciesEndpoints.Map(app);

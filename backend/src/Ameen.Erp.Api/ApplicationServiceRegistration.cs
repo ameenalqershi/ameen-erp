@@ -15,6 +15,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<ExchangeRateService>();
         services.AddScoped<FiscalCalendarService>();
         services.AddScoped<ItemGroupService>();
+        services.AddScoped<InventoryIdentityService>();
         services.AddScoped<ItemService>();
         services.AddScoped<JournalService>();
         services.AddScoped<MembershipService>();

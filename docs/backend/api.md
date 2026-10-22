@@ -186,3 +186,7 @@
 واجهات INV01 تحت `/api/v1/companies/{companyId}/warehouses` لإنشاء وتعديل وقراءة وبحث وتعطيل المخازن ومواقعها وتدقيقها، ومراجع الحساب عبر `/accounts/{id}/warehouses`. [العقد والصلاحيات وحدود التنفيذ](warehouses.md).
 
 مرشحات SYS14 على `GET /api/v1/companies/{companyId}/audit-events`: from/to بتواريخ UTC، actorId، action، resourceId، offset/limit؛ وتفاصيل الحدث عبر `/{id}`. كلاهما يتطلب audit.read على جميع الفروع. [العقد وحدود البحث](audit-log.md).
+
+## تحديث INV05 — 2026-10-22
+
+أضيفت InventoryIdentityService وعقود مستقلة وInventoryIdentitiesEndpoints وتهيئة EF مستقلة وترقية 012. [عقد الدفعات والتسلسل وحدوده](inventory-identities.md). الشاشة جزئية؛ لا توجد حركة مخزنية أو تكلفة. قبل دفتر المخزون: فصل رمز البطاقة عن رقم الدفعة/التسلسل، اعتماد سياسة الجودة والصلاحية، ثم حماية الهوية عند الاستخدام وربطها بالمستندات واختبارات الأثر المخزني.

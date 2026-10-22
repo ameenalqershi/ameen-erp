@@ -62,6 +62,13 @@ public sealed class ItemService : ApplicationService
         {
             var item = await Required<Item>(cid, id, token); Check.Version(item, request.ExpectedVersion); var reason = Check.Text(request.Reason, "السبب", 500);
             var candidate = new Item(cid, request.Code, request.Name, request.Type, request.Tracking, request.GroupId, request.BaseUnitId, request.ShelfLifeDays, request.ReorderLevel, request.EnglishName, request.Notes);
+            var identities = await store.Find<InventoryIdentity>(cid, x => x.ItemId == id, token);
+            Check.That(candidate.ShelfLifeDays is null || identities.All(x => x.ExpiryDate is not null), "inventory_expiry_required",
+                "لا يمكن فرض مدة صلاحية مع وجود هويات مخزون بلا تاريخ انتهاء.");
+            Check.That(identities.Count == 0 || candidate.Tracking == item.Tracking, "item_tracking_in_use",
+                "لا يمكن تغيير نوع تتبع الصنف بعد إنشاء دفعات أو أرقام تسلسلية له.", ErrorKind.Conflict);
+            Check.That(identities.Count == 0 || candidate.Type != ItemType.Service, "item_type_in_use",
+                "لا يمكن تحويل صنف له دفعات أو أرقام تسلسلية إلى خدمة.", ErrorKind.Conflict);
             Check.That(!(await store.Find<Item>(cid, x => x.Id != id && x.Code == candidate.Code, token)).Any(), "duplicate_item_code", "رمز الصنف مكرر.", ErrorKind.Conflict);
             await ValidateItemReferences(candidate, token);
             var before = ItemSnapshot(item);

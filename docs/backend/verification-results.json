@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-21T21:56:23.993807+00:00",
+  "startedAtUtc": "2026-10-22T02:12:39.262401+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "abe7f5f748722793ed0e6044ddbc86c93ccfb6f66ca49f9bdcd4ec8896e59aae",
+  "sourceSha256": "39b15b1ede3c4a62ea08c3ffe486f9dfb5d9683fddaccd5f6599d906bb872012",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -171,6 +171,11 @@
     "PASS INV01: failed location replacement rolls back and retry replays with stale version rejected",
     "PASS INV01: duplicate company code invalid enum and foreign references rejected",
     "PASS INV01: disabled branch rejected and paging and audit permissions enforced",
+    "PASS INV05: lot roundtrip search audit and idempotency without stock movement",
+    "PASS INV05: expiry boundaries quality enum and item shelf life validated",
+    "PASS INV05: disabled identity still reserves number and freezes item tracking",
+    "PASS INV05: edit failure rolls back audit and version then retry and stale edit",
+    "PASS INV05: serial and lot routes cannot cross and permissions precede writes",
     "PASS INV04: item units barcode and price roundtrip without stock movement",
     "PASS INV04: per-item conversion is exact and rejects fractional base quantities",
     "PASS INV04: services cannot carry stock policy and serial base units cannot allow fractions",
@@ -256,6 +261,7 @@
     "  SQL PASS atomic/idempotent schema 008→009 preserves prior data and adds empty item groups",
     "  SQL PASS atomic/idempotent schema 009→010 preserves prior data and adds item/unit tables",
     "  SQL PASS atomic/idempotent schema 010→011 adds empty warehouses and locations, preserving prior data",
+    "  SQL PASS idempotent schema 011→012 adds empty inventory identities",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
     "  SQL PASS concurrent idempotency across independent connections",
@@ -278,6 +284,7 @@
     "  SQL PASS SYS04/COST01 audit failures roll back cards and receipts; exact retries succeed",
     "  SQL PASS COST01 tenant FKs and SYS04/COST01 status writes under runtime role",
     "  SQL PASS INV01 creation/edit concurrent replay, locations, rollback, runtime role, search, account usage and tenant FK",
+    "  SQL PASS INV05 replay, uniqueness race, filters, audit rollback, retry, expiry and item FK",
     "  SQL PASS INV02 usage subtree counts, inactive references, direct filters and paged item units",
     "  SQL PASS INV04 concurrent replay, line replacement, barcode race, audit rollback, runtime role and cross-company unit FK",
     "  SQL PASS INV02 replay, concurrent cycle prevention, rollback/retry under runtime role, SQL search/account usage and tenant FK",
@@ -294,6 +301,7 @@
     "  HOST PASS INV02 usage and disabled item references with paging over HTTPS/JWT/SQL",
     "  HOST PASS INV04 item lifecycle, barcode search, exact conversion, unit usage and audit over HTTPS/JWT/SQL",
     "  HOST PASS INV01 create/edit/locations/search/status/audit over HTTPS/JWT/SQL",
+    "  HOST PASS INV05 lot create/edit/search/detail/status/audit and route isolation over HTTPS/JWT/SQL",
     "  HOST PASS SYS14 audit filters, event detail, invalid dates and authorization over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
@@ -304,8 +312,8 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "PASS SQL Server integration"
   ],
-  "passed": 200,
-  "total": 200,
+  "passed": 205,
+  "total": 205,
   "failed": 0,
-  "finishedAtUtc": "2026-10-21T21:56:54.123321+00:00"
+  "finishedAtUtc": "2026-10-22T02:13:11.389967+00:00"
 }

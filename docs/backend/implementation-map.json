@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 26,
+  "partially_implemented_screens": 27,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 227,
-    "audit": 50,
+    "implemented": 236,
+    "audit": 53,
     "derived": 4,
-    "partial": 29,
-    "pending": 2449
+    "partial": 34,
+    "pending": 2432
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -1059,6 +1059,82 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CostCenterTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "INV05": {
+      "api": "GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",
+      "implemented": "بطاقات هوية دفعات وتسلسل؛ بحث وتعديل وحالة وتدقيق وتزامن؛ فحص التاريخ وقفل تتبع الصنف؛ دون أثر مخزني",
+      "remaining": "فصل رمز البطاقة عن رقم الهوية؛ اعتماد الجودة وإلزام الصلاحية؛ الاستخدام والضمان وربط المستندات وقيود الهوية المستخدمة غير منفذة",
+      "fields": {
+        "INV05-F01": {
+          "status": "implemented",
+          "binding": "InventoryIdentity.Id"
+        },
+        "INV05-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "INV05-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "INV05-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
+        "INV05-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "INV05-F07": {
+          "status": "implemented",
+          "binding": "Notes"
+        },
+        "INV05-F08": {
+          "status": "implemented",
+          "binding": "ItemId"
+        },
+        "INV05-F11": {
+          "status": "implemented",
+          "binding": "ProductionDate"
+        },
+        "INV05-F16": {
+          "status": "implemented",
+          "binding": "Revision"
+        },
+        "INV05-F14": {
+          "status": "audit",
+          "binding": "AuditEvent.ActorId: inventory-lot.created / inventory-serial.created"
+        },
+        "INV05-F15": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: created"
+        },
+        "INV05-F17": {
+          "status": "audit",
+          "binding": "AuditEvent.OccurredAt: edited / status-changed"
+        },
+        "INV05-F03": {
+          "status": "partial",
+          "binding": "Code currently shared with identity number"
+        },
+        "INV05-F09": {
+          "status": "partial",
+          "binding": "Code when Tracking=Lot; independent card code pending"
+        },
+        "INV05-F10": {
+          "status": "partial",
+          "binding": "Code when Tracking=Serial; independent card code pending"
+        },
+        "INV05-F12": {
+          "status": "partial",
+          "binding": "ExpiryDate required for ShelfLifeDays; final conditional policy pending"
+        },
+        "INV05-F13": {
+          "status": "partial",
+          "binding": "QualityStatus: initial inferred Available/Quarantine/Rejected"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryIdentityTests.cs; backend/tests/Ameen.Erp.Tests/InventoryIdentitySqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "INV01": {
       "api": "GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses",
