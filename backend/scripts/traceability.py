@@ -124,6 +124,13 @@ screen("COST01", "GET/POST /companies/{companyId}/cost-centers; GET /search; GET
        [(12, "AuditEvent.ActorId: cost-center.created"), (13, "AuditEvent.OccurredAt: cost-center.created"), (15, "AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed")])
 MAP["COST01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CostCenterTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+screen("INV06", "GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events",
+       "تجهيز افتتاح متعدد السطور وتحويل دقيق وهويات محفوظة؛ تقديم وإعادة وتصحيح واعتماد منفصل؛ معاينة قيمة دون ترحيل؛ قفل الفترة وعزل الفروع والتزامن",
+       "دفتر الكميات والتكلفة والترحيل ومطابقة الرقابة ومنع ازدواج GL02 والعكس والطباعة؛ الأجنبية وسياسة القطع والجودة والمواقع وإدخال التسلسل النصي غير مكتملة",
+       {1: "InventoryOpening.Id", 2: "CompanyId", 3: "BranchId", 4: "FiscalYearId derived from FiscalPeriod", 5: "Number: IO per company/year initial sequence", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 13: "CutoffDate", 14: "WarehouseId", 15: "CountReference", 16: "Lines.ItemId", 17: "Lines.UnitId", 18: "Lines.Quantity and exact BaseQuantity snapshot", 19: "Lines.UnitCost in input unit", 20: "Lines.IdentityId for lot-tracked item", 22: "CreatedBy", 23: "CreatedAt", 24: "Revision", 25: "ModifiedAt"})
+for n, binding in {8: "CurrencyCode: functional currency only", 9: "ExchangeRate: fixed to 1 in initial scope", 12: "Draft/Submitted/Returned/Approved/Cancelled; posting and reversal pending", 21: "IdentityId selects serial; SerialNumber snapshot output instead of free-text input"}.items():
+    MAP["INV06"]["fields"][f"INV06-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["INV06"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["InventoryOpeningTests.cs", "InventoryOpeningSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("INV05", "GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",
        "بطاقات هوية دفعات وتسلسل؛ بحث وتعديل وحالة وتدقيق وتزامن؛ فحص التاريخ وقفل تتبع الصنف؛ دون أثر مخزني",
        "اعتماد الجودة وإلزام الصلاحية؛ إزالة افتراض الرقم القديم عند غيابه بعقد إصدار جديد؛ الاستخدام والضمان وربط المستندات وقيود الهوية المستخدمة غير منفذة",

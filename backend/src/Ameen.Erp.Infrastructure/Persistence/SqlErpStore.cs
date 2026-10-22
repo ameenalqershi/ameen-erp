@@ -27,6 +27,7 @@ public sealed partial class SqlErpStore : IErpStore
         var items = await order(query).Skip(offset).Take(limit).ToListAsync(ct);
         return new(items, count, offset, limit);
     }
+    public void RemoveInventoryOpeningLines(IEnumerable<InventoryOpeningLine> lines) => db.RemoveRange(lines);
     public void RemoveLines(IEnumerable<JournalLine> lines) => db.RemoveRange(lines);
     public void RemoveWarehouseLocations(IEnumerable<WarehouseLocation> locations) => db.RemoveRange(locations);
     public void RemoveItemUnits(IEnumerable<ItemUnit> units) => db.RemoveRange(units);

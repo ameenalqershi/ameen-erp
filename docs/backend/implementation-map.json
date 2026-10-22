@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 27,
+  "partially_implemented_screens": 28,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 237,
+    "implemented": 258,
     "audit": 53,
     "derived": 4,
-    "partial": 33,
-    "pending": 2432
+    "partial": 37,
+    "pending": 2407
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -1059,6 +1059,114 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CostCenterTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "INV06": {
+      "api": "GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events",
+      "implemented": "تجهيز افتتاح متعدد السطور وتحويل دقيق وهويات محفوظة؛ تقديم وإعادة وتصحيح واعتماد منفصل؛ معاينة قيمة دون ترحيل؛ قفل الفترة وعزل الفروع والتزامن",
+      "remaining": "دفتر الكميات والتكلفة والترحيل ومطابقة الرقابة ومنع ازدواج GL02 والعكس والطباعة؛ الأجنبية وسياسة القطع والجودة والمواقع وإدخال التسلسل النصي غير مكتملة",
+      "fields": {
+        "INV06-F01": {
+          "status": "implemented",
+          "binding": "InventoryOpening.Id"
+        },
+        "INV06-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "INV06-F03": {
+          "status": "implemented",
+          "binding": "BranchId"
+        },
+        "INV06-F04": {
+          "status": "implemented",
+          "binding": "FiscalYearId derived from FiscalPeriod"
+        },
+        "INV06-F05": {
+          "status": "implemented",
+          "binding": "Number: IO per company/year initial sequence"
+        },
+        "INV06-F06": {
+          "status": "implemented",
+          "binding": "DocumentDate"
+        },
+        "INV06-F07": {
+          "status": "implemented",
+          "binding": "AccountingDate"
+        },
+        "INV06-F10": {
+          "status": "implemented",
+          "binding": "Description"
+        },
+        "INV06-F11": {
+          "status": "implemented",
+          "binding": "ExternalReference"
+        },
+        "INV06-F13": {
+          "status": "implemented",
+          "binding": "CutoffDate"
+        },
+        "INV06-F14": {
+          "status": "implemented",
+          "binding": "WarehouseId"
+        },
+        "INV06-F15": {
+          "status": "implemented",
+          "binding": "CountReference"
+        },
+        "INV06-F16": {
+          "status": "implemented",
+          "binding": "Lines.ItemId"
+        },
+        "INV06-F17": {
+          "status": "implemented",
+          "binding": "Lines.UnitId"
+        },
+        "INV06-F18": {
+          "status": "implemented",
+          "binding": "Lines.Quantity and exact BaseQuantity snapshot"
+        },
+        "INV06-F19": {
+          "status": "implemented",
+          "binding": "Lines.UnitCost in input unit"
+        },
+        "INV06-F20": {
+          "status": "implemented",
+          "binding": "Lines.IdentityId for lot-tracked item"
+        },
+        "INV06-F22": {
+          "status": "implemented",
+          "binding": "CreatedBy"
+        },
+        "INV06-F23": {
+          "status": "implemented",
+          "binding": "CreatedAt"
+        },
+        "INV06-F24": {
+          "status": "implemented",
+          "binding": "Revision"
+        },
+        "INV06-F25": {
+          "status": "implemented",
+          "binding": "ModifiedAt"
+        },
+        "INV06-F08": {
+          "status": "partial",
+          "binding": "CurrencyCode: functional currency only"
+        },
+        "INV06-F09": {
+          "status": "partial",
+          "binding": "ExchangeRate: fixed to 1 in initial scope"
+        },
+        "INV06-F12": {
+          "status": "partial",
+          "binding": "Draft/Submitted/Returned/Approved/Cancelled; posting and reversal pending"
+        },
+        "INV06-F21": {
+          "status": "partial",
+          "binding": "IdentityId selects serial; SerialNumber snapshot output instead of free-text input"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryOpeningTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "INV05": {
       "api": "GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",

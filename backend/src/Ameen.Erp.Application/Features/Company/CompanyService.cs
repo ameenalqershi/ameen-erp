@@ -41,7 +41,8 @@ public sealed class CompanyService : ApplicationService
         (await store.Find<JournalEntry>(cid, x => true, ct)).Count == 0 &&
         (await store.Find<ExchangeRate>(cid, x => true, ct)).Count == 0 &&
         (await store.Find<RecurringJournalTemplate>(cid, x => true, ct)).Count == 0 &&
-        !(await store.Find<Item>(cid, x => x.Units.Any(u => u.SalePrice != null), ct)).Any();
+        !(await store.Find<Item>(cid, x => x.Units.Any(u => u.SalePrice != null), ct)).Any() &&
+        !(await store.Find<InventoryOpening>(cid, x => true, ct)).Any();
 
     public Task<CommandReceipt> SetCompanyStatus(Guid cid, Actor actor, string key, SetCompanyStatusRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "company.status:" + cid, request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>

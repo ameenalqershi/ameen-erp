@@ -31,14 +31,16 @@ public sealed class PeriodCloseService : ApplicationService
             else if (PostedJournal(journal) && BalanceError(journal) is string error)
                 issues.Add(new(journal.Id, journal.BranchId, journal.Number, journal.State, error));
         }
+        var openings = await store.Find<InventoryOpening>(cid, x => x.FiscalPeriodId == id && x.State != InventoryOpeningState.Cancelled, ct);
         var checks = new List<PeriodCloseCheck>
         {
+            new("no_pending_inventory_openings", openings.Count == 0),
             new("company_active", company.IsActive), new("company_profile_complete", company.IsProfileComplete),
             new("period_open", !period.IsClosed), new("no_unposted_journals", !journals.Any(PendingJournal)),
             new("posted_journals_balanced", !issues.Any(x => x.Code != "unposted_journal"))
         };
         return new(id, period.Version, clock.UtcNow, true, checks.All(x => x.Passed), checks,
-            journals.Count(PostedJournal), journals.Count(PendingJournal), new(issues.Skip(offset).Take(limit).ToArray(), issues.Count, offset, limit));
+            journals.Count(PostedJournal), journals.Count(PendingJournal), new(issues.Skip(offset).Take(limit).ToArray(), issues.Count, offset, limit), openings.Count);
     }
     public Task<CommandReceipt> ChangePeriod(Guid cid, Guid id, Actor actor, string key, ChangePeriodRequest request, bool close, CancellationToken ct) =>
         Command(cid, actor, key, $"period.{(close ? "close" : "reopen")}:{id}", request,
@@ -48,6 +50,8 @@ public sealed class PeriodCloseService : ApplicationService
             var reason = Check.Text(request.Reason, "سبب الإقفال أو الفتح", 500);
             if (close)
             {
+                Check.That(!(await store.Find<InventoryOpening>(cid, x => x.FiscalPeriodId == id && x.State != InventoryOpeningState.Cancelled, token)).Any(),
+                    "pending_inventory_openings", "الفترة تحتوي افتتاحات مخزون غير مكتملة؛ لا يمكن الإقفال.", ErrorKind.Conflict);
                 var journals = await PeriodJournals(cid, id, token);
                 Check.That(!journals.Any(PendingJournal), "unposted_journals", "الفترة تحتوي قيودًا غير مرحلة؛ عالجها قبل الإقفال.", ErrorKind.Conflict);
                 foreach (var journal in journals.Where(PostedJournal)) journal.ValidateBalance();

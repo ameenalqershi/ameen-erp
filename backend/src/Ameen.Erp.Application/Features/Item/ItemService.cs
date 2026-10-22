@@ -101,7 +101,12 @@ public sealed class ItemService : ApplicationService
     }
     public async Task<ItemQuantityConversion> ConvertItemQuantity(Guid cid, Guid id, Actor actor, Guid unitId, decimal quantity, CancellationToken ct)
     {
-        var item = await GetItem(cid, id, actor, ct); Check.That(item.IsActive, "inactive_item", "الصنف معطل.");
+        await Authorize(cid, actor, Permissions.Read, null, ct);
+        return await ConvertItemQuantityCore(cid, id, unitId, quantity, ct);
+    }
+    internal async Task<ItemQuantityConversion> ConvertItemQuantityCore(Guid cid, Guid id, Guid unitId, decimal quantity, CancellationToken ct)
+    {
+        var item = await Required<Item>(cid, id, ct); Check.That(item.IsActive, "inactive_item", "الصنف معطل.");
         var line = item.Units.SingleOrDefault(x => x.UnitId == unitId); Check.That(line is not null, "item_unit_not_found", "الوحدة غير معرفة للصنف.");
         var unit = await Required<UnitOfMeasure>(cid, unitId, ct); var baseUnit = await Required<UnitOfMeasure>(cid, item.BaseUnitId, ct);
         Check.That(unit.IsActive && baseUnit.IsActive, "inactive_unit", "وحدة الصنف معطلة.");

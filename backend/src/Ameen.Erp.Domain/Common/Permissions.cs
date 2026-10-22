@@ -14,5 +14,7 @@ public static class Permissions
     public const string Audit = "audit.read";
     public const string RecurringManage = "journal.recurring.manage";
     public const string RecurringGenerate = "journal.recurring.generate";
-    public static readonly string[] All = { Read, Configure, Members, Draft, Approve, Post, Reverse, PeriodClose, PeriodReopen, Audit, RecurringManage, RecurringGenerate };
+    public const string InventoryWrite = "inventory.opening.write";
+    public const string InventoryApprove = "inventory.opening.approve";
+    public static readonly string[] All = { Read, Configure, Members, Draft, Approve, Post, Reverse, PeriodClose, PeriodReopen, Audit, RecurringManage, RecurringGenerate, InventoryWrite, InventoryApprove };
 }

@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-22T02:21:41.574298+00:00",
+  "startedAtUtc": "2026-10-22T02:37:08.790182+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "259dd795d38a3777994e5309259d08948338157c97ca01366e456f07be479542",
+  "sourceSha256": "6fe9624b1af4670df2bcb3d39593a89196bd80282696e64e307ad48dd5795100",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -179,6 +179,19 @@
     "PASS INV05: disabled identity still reserves number and freezes item tracking",
     "PASS INV05: edit failure rolls back audit and version then retry and stale edit",
     "PASS INV05: serial and lot routes cannot cross and permissions precede writes",
+    "PASS INV06: draft snapshots numbering idempotency and valuation without ledger effect",
+    "PASS INV06: returned state requires correction before resubmit and approval locks edits",
+    "PASS INV06: self approval forbidden and posting unavailable",
+    "PASS INV06: journal write permission does not confer inventory write",
+    "PASS INV06: branch warehouse consistency and branch-scoped reads",
+    "PASS INV06: positive quantity cost bounds and item unit validation",
+    "PASS INV06: alternate unit conversion snapshot and currency-scale valuation",
+    "PASS INV06: tracked lot required and wrong tracking identity rejected",
+    "PASS INV06: serial quantity exactly one and no duplicate serial in document",
+    "PASS INV06: reference change requires refreshing draft before submission",
+    "PASS INV06: atomic edit rollback stale version and request replay",
+    "PASS INV06: pending opening blocks period close and cancellation releases blocker",
+    "PASS INV06: foreign currency rate and missing reference cannot create",
     "PASS INV04: item units barcode and price roundtrip without stock movement",
     "PASS INV04: per-item conversion is exact and rejects fractional base quantities",
     "PASS INV04: services cannot carry stock policy and serial base units cannot allow fractions",
@@ -266,6 +279,7 @@
     "  SQL PASS atomic/idempotent schema 010→011 adds empty warehouses and locations, preserving prior data",
     "  SQL PASS idempotent schema 011→012 adds empty inventory identities",
     "  SQL PASS idempotent schema 012→013 separates inventory numbers",
+    "  SQL PASS idempotent schema 013→014 adds empty inventory opening documents",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
     "  SQL PASS concurrent idempotency across independent connections",
@@ -307,6 +321,7 @@
     "  HOST PASS INV04 item lifecycle, barcode search, exact conversion, unit usage and audit over HTTPS/JWT/SQL",
     "  HOST PASS INV01 create/edit/locations/search/status/audit over HTTPS/JWT/SQL",
     "  HOST PASS INV05 lot create/edit/search/detail/status/audit and route isolation over HTTPS/JWT/SQL",
+    "  HOST PASS INV06 draft/valuation/submit/return/correct/approve/search/detail/audit over HTTPS/JWT/SQL",
     "  HOST PASS SYS14 audit filters, event detail, invalid dates and authorization over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
@@ -315,10 +330,11 @@
     "  HOST PASS SYS02 branch addresses, tree, edit, search, usage, status and audit over HTTPS/JWT/SQL",
     "  HOST PASS SYS03 explicit periods, calendar state, search, usage and audit over HTTPS/JWT/SQL",
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
+    "  SQL PASS INV06 concurrent replay/numbering, valuation, audit rollback, runtime line replacement, return/correct/approve, immutable lines and close blockers",
     "PASS SQL Server integration"
   ],
-  "passed": 208,
-  "total": 208,
+  "passed": 221,
+  "total": 221,
   "failed": 0,
-  "finishedAtUtc": "2026-10-22T02:22:14.242474+00:00"
+  "finishedAtUtc": "2026-10-22T02:37:41.347079+00:00"
 }

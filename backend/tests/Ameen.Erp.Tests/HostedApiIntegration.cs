@@ -308,6 +308,35 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(itemsPath + $"/{identityItem.ResourceId}/serials/{lot.ResourceId}"))
                     Ensure(response.StatusCode == HttpStatusCode.NotFound, "HTTP serial route exposed lot");
                 Console.WriteLine("  HOST PASS INV05 lot create/edit/search/detail/status/audit and route isolation over HTTPS/JWT/SQL");
+                var openingWarehouse = await Command(client, warehousesPath, whRequest with { Code = "HTTP-OPEN-WH" });
+                var openingItem = await Command(client, itemsPath, new CreateItemRequest("HTTP-OPEN-I", "صنف افتتاح", ItemType.Goods, ItemTracking.None, identityGroup.ResourceId, itemUnit.ResourceId, new[] { new ItemUnitRequest(itemUnit.ResourceId, 1, null, null) }));
+                var openingsPath = $"/api/v1/companies/{companyId}/inventory-openings";
+                var openingRequest = new CreateInventoryOpeningRequest(warehouseBranch.ResourceId, openingWarehouse.ResourceId, Fixture.Date, Fixture.Date, Fixture.Date, "SAR", 1, "HTTP-COUNT", "افتتاح", new[] { new InventoryOpeningLineRequest(openingItem.ResourceId, itemUnit.ResourceId, 2, 7.5m) });
+                Authenticate(Token("sql-clerk"));
+                var opening = await Command(client, openingsPath, openingRequest);
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}/valuation-preview"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && decimal.Parse(json.RootElement.GetProperty("totalValue").GetString()!, System.Globalization.CultureInfo.InvariantCulture) == 15m && !json.RootElement.GetProperty("canPost").GetBoolean(), "HTTP opening valuation failed");
+                opening = await Command(client, openingsPath + $"/{opening.ResourceId}/submit", new TransitionRequest(opening.Version));
+                Authenticate(Token("sql-approver"));
+                opening = await Command(client, openingsPath + $"/{opening.ResourceId}/return", new TransitionRequest(opening.Version, "تصحيح"));
+                Authenticate(Token("sql-clerk"));
+                opening = await Command(client, openingsPath + $"/{opening.ResourceId}", new EditInventoryOpeningRequest(opening.Version, "افتتاح معدل", openingRequest.Lines, "تصحيح"), method: HttpMethod.Put);
+                opening = await Command(client, openingsPath + $"/{opening.ResourceId}/submit", new TransitionRequest(opening.Version));
+                Authenticate(Token("sql-approver"));
+                opening = await Command(client, openingsPath + $"/{opening.ResourceId}/approve", new TransitionRequest(opening.Version));
+                using (var response = await client.GetAsync(openingsPath + "?state=Approved&search=HTTP-COUNT"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP opening search failed");
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("state").GetString() == "Approved" && json.RootElement.GetProperty("lines").GetArrayLength() == 1, "HTTP opening detail failed");
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 6, "HTTP opening audit failed");
+                Authenticate(Token("sql-owner"));
+                Console.WriteLine("  HOST PASS INV06 draft/valuation/submit/return/correct/approve/search/detail/audit over HTTPS/JWT/SQL");
+
                 var auditPath = $"/api/v1/companies/{companyId}/audit-events";
                 Guid eventId;
                 using (var response = await client.GetAsync(auditPath + $"?from=2026-01-01&to=2026-12-31&actorId=sql-owner&action=warehouse.created&resourceId={wh.ResourceId}&limit=1"))

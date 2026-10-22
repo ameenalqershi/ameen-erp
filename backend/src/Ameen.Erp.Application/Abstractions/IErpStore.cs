@@ -14,6 +14,7 @@ public interface IErpStore
         Func<IQueryable<T>, IOrderedQueryable<T>> order, int offset, int limit, CancellationToken ct) where T : CompanyEntity;
     Task<Page<AuditEvent>> ReadAuditPage(Guid companyId, AuditReadFilter filter, int offset, int limit, CancellationToken ct);
     void Add(Entity entity);
+    void RemoveInventoryOpeningLines(IEnumerable<InventoryOpeningLine> lines);
     void RemoveLines(IEnumerable<JournalLine> lines);
     void RemoveWarehouseLocations(IEnumerable<WarehouseLocation> locations);
     void RemoveItemUnits(IEnumerable<ItemUnit> units);

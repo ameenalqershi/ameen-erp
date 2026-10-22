@@ -8,6 +8,20 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        foreach (var entry in ChangeTracker.Entries<InventoryOpeningLine>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
+        {
+            var owner = ChangeTracker.Entries<InventoryOpening>().SingleOrDefault(e => e.Entity.CompanyId == entry.Entity.CompanyId && e.Entity.Id == entry.Entity.OpeningId);
+            Check.That(owner is not null && owner.Entity.State == InventoryOpeningState.Draft &&
+                (owner.State == EntityState.Added || owner.State == EntityState.Modified && owner.Property(x => x.Version).IsModified &&
+                 owner.OriginalValues.GetValue<InventoryOpeningState>(nameof(InventoryOpening.State)) is InventoryOpeningState.Draft or InventoryOpeningState.Returned),
+                "opening_lines_immutable", "السطور تعدل داخل مسودة أو تصحيح محمل فقط.");
+        }
+        foreach (var entry in ChangeTracker.Entries<InventoryOpening>().Where(e => e.State is EntityState.Modified or EntityState.Deleted))
+        {
+            var original = entry.OriginalValues.GetValue<InventoryOpeningState>(nameof(InventoryOpening.State));
+            Check.That(entry.State != EntityState.Deleted && original is not (InventoryOpeningState.Approved or InventoryOpeningState.Cancelled),
+                "opening_immutable", "المستند المعتمد أو الملغى محمي من التعديل.");
+        }
         foreach (var entry in ChangeTracker.Entries<AuditEvent>())
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "audit_immutable", "سجل التدقيق غير قابل للتعديل أو الحذف.");
         foreach (var entry in ChangeTracker.Entries<ExchangeRate>())

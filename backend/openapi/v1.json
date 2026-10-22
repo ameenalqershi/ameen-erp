@@ -2610,6 +2610,620 @@
         ]
       }
     },
+    "/api/v1/companies/{companyId}/inventory-openings": {
+      "post": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique logical command key. Replay with the same actor, operation and body.",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInventoryOpeningRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "branchId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/InventoryOpeningState"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfInventoryOpening"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/inventory-openings/{id}": {
+      "put": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique logical command key. Replay with the same actor, operation and body.",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditInventoryOpeningRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryOpening"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/inventory-openings/{id}/valuation-preview": {
+      "get": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryOpeningPreview"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/inventory-openings/{id}/audit-events": {
+      "get": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfAuditEvent"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/inventory-openings/{id}/submit": {
+      "post": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique logical command key. Replay with the same actor, operation and body.",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/inventory-openings/{id}/approve": {
+      "post": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique logical command key. Replay with the same actor, operation and body.",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/inventory-openings/{id}/return": {
+      "post": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique logical command key. Replay with the same actor, operation and body.",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/inventory-openings/{id}/cancel": {
+      "post": {
+        "tags": [
+          "INV06 Inventory openings preparation"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique logical command key. Replay with the same actor, operation and body.",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransitionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/companies/{companyId}/item-groups": {
       "get": {
         "tags": [
@@ -8854,6 +9468,71 @@
         },
         "additionalProperties": false
       },
+      "CreateInventoryOpeningRequest": {
+        "required": [
+          "branchId",
+          "warehouseId",
+          "documentDate",
+          "accountingDate",
+          "cutoffDate",
+          "currencyCode",
+          "exchangeRate",
+          "countReference",
+          "description",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "warehouseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "accountingDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "cutoffDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "exchangeRate": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "countReference": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryOpeningLineRequest"
+            }
+          },
+          "externalReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateItemGroupRequest": {
         "required": [
           "code",
@@ -9641,6 +10320,34 @@
         },
         "additionalProperties": false
       },
+      "EditInventoryOpeningRequest": {
+        "required": [
+          "expectedVersion",
+          "description",
+          "lines",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryOpeningLineRequest"
+            }
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "EditItemGroupRequest": {
         "required": [
           "expectedVersion",
@@ -10400,6 +11107,328 @@
           }
         },
         "additionalProperties": false
+      },
+      "InventoryOpening": {
+        "required": [
+          "number",
+          "documentDate",
+          "accountingDate",
+          "cutoffDate",
+          "countReference",
+          "description",
+          "externalReference"
+        ],
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "warehouseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fiscalYearId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fiscalPeriodId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "documentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "accountingDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "cutoffDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "exchangeRate": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "countReference": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "externalReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "approvedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "state": {
+            "$ref": "#/components/schemas/InventoryOpeningState"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryOpeningLine"
+            }
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryOpeningLine": {
+        "required": [
+          "openingId",
+          "position",
+          "quantity",
+          "baseQuantity"
+        ],
+        "type": "object",
+        "properties": {
+          "openingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "itemVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "identityId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "identityVersion": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "itemCode": {
+            "type": "string"
+          },
+          "unitCode": {
+            "type": "string"
+          },
+          "lotNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "serialNumber": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quantity": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "factorToBase": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "baseQuantity": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "unitCost": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "value": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryOpeningLineRequest": {
+        "required": [
+          "itemId",
+          "unitId",
+          "quantity",
+          "unitCost"
+        ],
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "unitCost": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "identityId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryOpeningPreview": {
+        "required": [
+          "id",
+          "expectedVersion",
+          "currencyCode",
+          "totalValue",
+          "lineCount",
+          "canPost",
+          "postingBlocker",
+          "checkedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "totalValue": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "lineCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "canPost": {
+            "type": "boolean"
+          },
+          "postingBlocker": {
+            "type": "string"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryOpeningState": {
+        "enum": [
+          "Draft",
+          "Submitted",
+          "Returned",
+          "Approved",
+          "Cancelled"
+        ]
       },
       "InventoryQualityStatus": {
         "enum": [
@@ -11675,6 +12704,48 @@
         },
         "additionalProperties": false
       },
+      "PageOfInventoryOpening": {
+        "required": [
+          "items",
+          "totalCount",
+          "offset",
+          "limit"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryOpening"
+            }
+          },
+          "totalCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "offset": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "PageOfItem": {
         "required": [
           "items",
@@ -12197,6 +13268,15 @@
           },
           "issues": {
             "$ref": "#/components/schemas/PageOfPeriodCloseIssue"
+          },
+          "pendingInventoryOpeningCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32",
+            "default": 0
           }
         },
         "additionalProperties": false
@@ -13261,6 +14341,9 @@
     },
     {
       "name": "INV05 Serials"
+    },
+    {
+      "name": "INV06 Inventory openings preparation"
     },
     {
       "name": "INV02 Item groups"

@@ -186,6 +186,17 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(numberScript);
         await db.Database.ExecuteSqlRawAsync(numberScript);
         Console.WriteLine("  SQL PASS idempotent schema 012→013 separates inventory numbers");
+        var openingScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "014_inventory_openings.sql"));
+        await db.Database.ExecuteSqlRawAsync("CREATE TABLE [InventoryOpeningLines] ([TestOnly] int NULL)");
+        try { await db.Database.ExecuteSqlRawAsync(openingScript); throw new Exception("Conflicting opening upgrade accepted"); }
+        catch (SqlException e) when (e.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='InventoryOpenings'").SingleAsync() == 0, "Failed opening upgrade left header table");
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=14").AnyAsync(), "Failed opening upgrade saved version");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE [InventoryOpeningLines]");
+        await db.Database.ExecuteSqlRawAsync(openingScript); await db.Database.ExecuteSqlRawAsync(openingScript);
+        Ensure(!await db.Set<InventoryOpening>().AnyAsync(), "Opening upgrade invented balances");
+        Console.WriteLine("  SQL PASS idempotent schema 013→014 adds empty inventory opening documents");
+
 
 
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();

@@ -786,31 +786,31 @@ INV05,INV05-F14,أنشأه,system,audit,AuditEvent.ActorId: inventory-lot.create
 INV05,INV05-F15,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: created,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F16,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
 INV05,INV05-F17,آخر تعديل,system,audit,AuditEvent.OccurredAt: edited / status-changed,GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events
-INV06,INV06-F01,المعرف الداخلي,system,pending,,
-INV06,INV06-F02,الشركة,system,pending,,
-INV06,INV06-F03,الفرع,required,pending,,
-INV06,INV06-F04,السنة,system,pending,,
-INV06,INV06-F05,رقم المستند,system,pending,,
-INV06,INV06-F06,تاريخ الوثيقة,required,pending,,
-INV06,INV06-F07,تاريخ الأثر,required,pending,,
-INV06,INV06-F08,العملة,required,pending,,
-INV06,INV06-F09,سعر الصرف,required,pending,,
-INV06,INV06-F10,البيان,required,pending,,
-INV06,INV06-F11,المرجع الخارجي,optional,pending,,
-INV06,INV06-F12,الحالة,system,pending,,
-INV06,INV06-F13,تاريخ القطع,required,pending,,
-INV06,INV06-F14,المخزن,required,pending,,
-INV06,INV06-F15,مرجع الجرد,required,pending,,
-INV06,INV06-F16,الصنف,required,pending,,
-INV06,INV06-F17,الوحدة,required,pending,,
-INV06,INV06-F18,الكمية,required,pending,,
-INV06,INV06-F19,تكلفة الوحدة,required,pending,,
-INV06,INV06-F20,الدفعة,conditional,pending,,
-INV06,INV06-F21,التسلسل,conditional,pending,,
-INV06,INV06-F22,أنشأه,system,pending,,
-INV06,INV06-F23,وقت الإنشاء,system,pending,,
-INV06,INV06-F24,رقم إصدار التعديل,system,pending,,
-INV06,INV06-F25,آخر تعديل,system,pending,,
+INV06,INV06-F01,المعرف الداخلي,system,implemented,InventoryOpening.Id,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F03,الفرع,required,implemented,BranchId,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F04,السنة,system,implemented,FiscalYearId derived from FiscalPeriod,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F05,رقم المستند,system,implemented,Number: IO per company/year initial sequence,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F06,تاريخ الوثيقة,required,implemented,DocumentDate,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F07,تاريخ الأثر,required,implemented,AccountingDate,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F08,العملة,required,partial,CurrencyCode: functional currency only,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F09,سعر الصرف,required,partial,ExchangeRate: fixed to 1 in initial scope,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F10,البيان,required,implemented,Description,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F11,المرجع الخارجي,optional,implemented,ExternalReference,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F12,الحالة,system,partial,Draft/Submitted/Returned/Approved/Cancelled; posting and reversal pending,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F13,تاريخ القطع,required,implemented,CutoffDate,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F14,المخزن,required,implemented,WarehouseId,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F15,مرجع الجرد,required,implemented,CountReference,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F16,الصنف,required,implemented,Lines.ItemId,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F17,الوحدة,required,implemented,Lines.UnitId,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F18,الكمية,required,implemented,Lines.Quantity and exact BaseQuantity snapshot,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F19,تكلفة الوحدة,required,implemented,Lines.UnitCost in input unit,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F20,الدفعة,conditional,implemented,Lines.IdentityId for lot-tracked item,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F21,التسلسل,conditional,partial,IdentityId selects serial; SerialNumber snapshot output instead of free-text input,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F22,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F23,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F24,رقم إصدار التعديل,system,implemented,Revision,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
+INV06,INV06-F25,آخر تعديل,system,implemented,ModifiedAt,GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel; GET /{id}/valuation-preview|audit-events
 INV07,INV07-F01,المعرف الداخلي,system,pending,,
 INV07,INV07-F02,الشركة,system,pending,,
 INV07,INV07-F03,الفرع,required,pending,,
