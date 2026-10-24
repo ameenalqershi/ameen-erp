@@ -24,7 +24,8 @@ public static class OpenApiConfiguration
         options.AddOperationTransformer((operation, context, ct) =>
         {
             if (context.Description.HttpMethod is "POST" or "PUT" &&
-                context.Description.RelativePath?.StartsWith("api/v1/", StringComparison.Ordinal) == true)
+                context.Description.RelativePath?.StartsWith("api/v1/", StringComparison.Ordinal) == true &&
+                context.Description.RelativePath?.EndsWith("/journals/process-batch", StringComparison.Ordinal) != true)
             {
                 operation.Parameters ??= new List<IOpenApiParameter>();
                 operation.Parameters.Add(new OpenApiParameter

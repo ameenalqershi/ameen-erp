@@ -6,11 +6,11 @@
   "partially_implemented_screens": 30,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 273,
+    "implemented": 275,
     "audit": 53,
     "derived": 4,
-    "partial": 41,
-    "pending": 2388
+    "partial": 43,
+    "pending": 2384
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -757,9 +757,9 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/RecurringTests.cs; backend/tests/Ameen.Erp.Tests/RecurringSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "GL05": {
-      "api": "POST /companies/{companyId}/journals/{id}/submit|approve|return",
-      "implemented": "تقديم واعتماد مستقل وإعادة مسببّة للمسودة",
-      "remaining": "قائمة مراجعة بمرشح الفترة ومراجع منفصل عن المعتمد ومراحل اعتماد متعددة",
+      "api": "POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch",
+      "implemented": "قائمة مراجعة حسب الفترة والفرع والحالة والمصدر والتسلسل؛ معاينة موانع كل قيد واعتماد أو إعادة جماعية بمعاملة لكل مستند وسجل قرار محفوظ وإعادة آمنة",
+      "remaining": "مراجع مستقل عن المعتمد ومراحل اعتماد متعددة؛ حالة مراجعة مستقلة عن حالة القيد وإصدار عددي للإجراء",
       "fields": {
         "GL05-F01": {
           "status": "implemented",
@@ -800,13 +800,18 @@
         "GL05-F12": {
           "status": "audit",
           "binding": "AuditEvent.OccurredAt"
+        },
+        "GL05-F04": {
+          "status": "implemented",
+          "binding": "processing-queue.periodId: required"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/JournalProcessingTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/Program.cs"
     },
     "GL06": {
-      "api": "POST /companies/{companyId}/journals/{id}/post",
-      "implemented": "ترحيل قيد يدوي واحد ذري مع منع التكرار وOutbox",
-      "remaining": "مستندات المصدر والترحيل الجماعي ومعاينة نتائج الدفعات وعامل إرسال Outbox",
+      "api": "POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch",
+      "implemented": "ترحيل جماعي مستقل لكل قيد مع إيصال ومفتاح مستند وتدقيق وOutbox؛ نتائج نجاح وفشل صريحة ومعاينة وسجل رفض التحقق؛ إعادة الناجح دون تكرار وتراجع الفاشل",
+      "remaining": "توجيه مستندات المصادر الأخرى وعامل Outbox؛ سجل فشل تقني خارجي دائم ورأس دفعة مستقل وإصدار عددي للإجراء؛ نطاق أرقام نصي حر غير متاح",
       "fields": {
         "GL06-F01": {
           "status": "implemented",
@@ -843,8 +848,21 @@
         "GL06-F11": {
           "status": "audit",
           "binding": "AuditEvent.OccurredAt: journal.post"
+        },
+        "GL06-F04": {
+          "status": "partial",
+          "binding": "processing-queue.source: journal provenance only; source documents route separately"
+        },
+        "GL06-F05": {
+          "status": "partial",
+          "binding": "processing-queue.sequenceFrom/sequenceTo within required fiscal period; explicit selected IDs for execution"
+        },
+        "GL06-F08": {
+          "status": "implemented",
+          "binding": "JournalProcessingPreview.CanExecute/ErrorCode; JournalProcessingRow.ErrorCode/Receipt/RejectionRecorded"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/JournalProcessingTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/Program.cs"
     },
     "GL07": {
       "api": "POST /companies/{companyId}/journals/{id}/reverse",

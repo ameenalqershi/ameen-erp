@@ -200,3 +200,7 @@
 ## تقارير المخزون RPT08/RPT09
 
 أضيف GET reports/inventory-balances وGET reports/items/{itemId}/ledger تحت نطاق الشركة، بمرشحات تاريخ وفرع ومخزن وصفحات وعزل الصلاحيات. [عقد التقارير وحدود التغطية](inventory-reports.md). المصدر الحالي افتتاح المخزون وعكسه، والعملة الوظيفية فقط؛ ليس تقييمًا عامًا لكل مصادر المخزون.
+
+## مراجعة ومعالجة قيود الأستاذ GL05/GL06
+
+GET journals/processing-queue وGET journals/{id}/processing-preview وPOST journals/process-batch وGET journals/{id}/processing-history. الدفعة تستخدم مفاتيح مستقلة داخل items؛ ليس لها رأس Idempotency-Key عام. كل عنصر معاملة ونتيجة مستقلة، مع سجل رفض تحقق محفوظ وإعادة آمنة. [العقد والقيود](journal-processing.md).

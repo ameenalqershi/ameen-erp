@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-24T19:27:51.146312+00:00",
+  "startedAtUtc": "2026-10-24T19:35:42.776472+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "2e2461d12acf955ff92aca2f5286dec49b422a35f1df4d2fbca605ae3b22d2aa",
+  "sourceSha256": "a14a133e52cf477fc734997de72ead13903166e9be643a71d454f98480974a7f",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -218,6 +218,15 @@
     "PASS RPT08/09: stock valuation equals control ledger and reads create no effects",
     "PASS RPT08/09: inactive cards retain history and implicit branch scope excludes other stock",
     "PASS RPT08/09: invalid dates and paging are rejected",
+    "PASS GL05/06: mixed batch commits valid document and records invalid document without all-success claim",
+    "PASS GL05: batch approval preserves separate approver and return requires a reason",
+    "PASS GL05/06: queue filters period branch state source and number range with no writes",
+    "PASS GL06: preview does not reserve state and execution revalidates versions",
+    "PASS GL05/06: rejected decision replays after state changes and new key permits a new decision",
+    "PASS GL05/06: duplicate and malformed selection rejects entire request before effects",
+    "PASS GL05/06: foreign reference and denied branches do not expose journal receipts",
+    "PASS GL06: failed persistence rolls back posting and processing history then exact retry succeeds",
+    "PASS GL05/06: rejection history is immutable audited scoped and paginated",
     "PASS INV04: item units barcode and price roundtrip without stock movement",
     "PASS INV04: per-item conversion is exact and rejects fractional base quantities",
     "PASS INV04: services cannot carry stock policy and serial base units cannot allow fractions",
@@ -318,6 +327,7 @@
     "  SQL PASS period closure and posting serialize correctly",
     "  SQL PASS database-level company isolation",
     "  SQL PASS runtime role can save commands and cannot modify audit history",
+    "  SQL PASS GL05/06 mixed concurrent batch replay, durable rejection, per-document rollback/retry, history and refreshed authorization",
     "  SQL PASS recurring generation is unique per template/period across identical and distinct concurrent keys",
     "  SQL PASS recurring failure rolls back journal, occurrence, numbering, audit and receipt; identical retry succeeds",
     "  SQL PASS recurring source FK/uniqueness, immutable history, runtime-role template edit and independent posting",
@@ -342,6 +352,7 @@
     "  SQL PASS SYS01 audit failure rolls back company revision, fields and receipt; exact retry succeeds",
     "  SQL PASS SYS01 incomplete-profile guard, correction, inactive-company replay denial and reactivation",
     "  SQL PASS SYS14 exact actor/action filters including case and trailing spaces, leap-day boundaries, pagination and event detail",
+    "  HOST PASS GL05/06 preview, mixed batch with per-item keys, replay and rejection history over HTTPS/JWT/SQL",
     "  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL",
     "  HOST PASS INV02 create/edit/search/status/detail/audit and account references over HTTPS/JWT/SQL",
     "  HOST PASS INV03 create/edit/search/status/detail/audit and rejection of global conversion over HTTPS/JWT/SQL",
@@ -367,8 +378,8 @@
     "  SQL PASS INV06 reversal draft/post replay, unique source, atomic Outbox rollback, runtime posting, negative movement and linked historical journal reconciliation",
     "PASS SQL Server integration"
   ],
-  "passed": 247,
-  "total": 247,
+  "passed": 256,
+  "total": 256,
   "failed": 0,
-  "finishedAtUtc": "2026-10-24T19:28:30.777263+00:00"
+  "finishedAtUtc": "2026-10-24T19:36:23.593598+00:00"
 }

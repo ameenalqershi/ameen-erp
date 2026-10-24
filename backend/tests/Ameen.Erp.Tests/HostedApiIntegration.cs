@@ -156,6 +156,29 @@ public static class HostedApiIntegration
                 }
 
                 Authenticate(Token("sql-clerk"));
+                var processingDraft = await Command(client, path, journalRequest);
+                var processingSubmitted = await Command(client, path + $"/{processingDraft.ResourceId}/submit", new TransitionRequest(processingDraft.Version));
+                Authenticate(Token("sql-approver"));
+                using (var response = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}/processing-preview?action=approve"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("canExecute").GetBoolean(), "HTTP processing preview failed");
+                var batch = new ProcessJournalsRequest("approve", new[] { new JournalProcessingItem(processingSubmitted.ResourceId, processingSubmitted.Version, Fixture.Key()), new JournalProcessingItem(receipt.ResourceId, receipt.Version, Fixture.Key()) });
+                for (var attempt = 0; attempt < 2; attempt++)
+                {
+                    using var response = await client.PostAsync(path + "/process-batch", new StringContent(JsonSerializer.Serialize(batch, JsonDefaults.Options), Encoding.UTF8, "application/json"));
+                    using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.OK && !json.RootElement.GetProperty("allSucceeded").GetBoolean() && json.RootElement.GetProperty("succeededCount").GetInt32() == 1 && json.RootElement.GetProperty("failedCount").GetInt32() == 1, "HTTP mixed processing/replay failed");
+                }
+                using (var response = await client.GetAsync(path + $"/{receipt.ResourceId}/processing-history"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP processing history duplicated");
+                // Finish the additional approved journal so it cannot interfere with later close checks.
+                using (var response = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    await Command(client, path + $"/{processingSubmitted.ResourceId}/post", new TransitionRequest(json.RootElement.GetProperty("version").GetGuid()));
+                Console.WriteLine("  HOST PASS GL05/06 preview, mixed batch with per-item keys, replay and rejection history over HTTPS/JWT/SQL");
+
+                Authenticate(Token("sql-clerk"));
                 var recurringPath = $"/api/v1/companies/{companyId}/recurring-journals";
                 var recurringRequest = new CreateRecurringJournalRequest(journalRequest.BranchId, "HTTP recurring", Ameen.Erp.Domain.RecurringFrequency.Monthly,
                     Ameen.Erp.Domain.RecurringGenerationMode.Manual, new(2026, 1, 31), new(2026, 12, 31),

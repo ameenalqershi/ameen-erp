@@ -111,3 +111,7 @@ flowchart TD
 ## تقارير المخزون
 
 تفصل ReportService.Inventory.cs حساب RPT08/RPT09 عن تقارير الأستاذ في ReportService.cs، مع عقود مستقلة لكل نوع داخل Contracts/InventoryReport. مسارات GET في ReportsEndpoints؛ لا تغيير للدومين أو مخطط SQL 016.
+
+## معالجة قيود الأستاذ
+
+JournalService.Processing.cs يفصل قائمة المراجعة والمعاينة والمعالجة الجماعية والسجل عن دورة القيد الأساسية؛ ApplyTransition يعيد استخدام الأثر نفسه داخل معاملة العنصر. العقود في Contracts/JournalProcessing وكل نوع مستقل. SqlTransactionRunner يفرغ المتتبع بعد قفل الشركة لإعادة قراءة الصلاحيات والفترات لكل أمر مستقل في الخدمة الواحدة.

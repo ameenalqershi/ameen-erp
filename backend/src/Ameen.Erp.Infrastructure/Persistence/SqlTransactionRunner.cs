@@ -34,6 +34,9 @@ public sealed class SqlTransactionRunner : ITransactionRunner
 DECLARE @result int;
 EXEC @result = sys.sp_getapplock @Resource={resource}, @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000;
 IF @result < 0 THROW 51000, 'Company write lock unavailable', 1;", ct);
+            // A scoped service may execute several independent batch commands. Discard prior tracked
+            // reads after acquiring the lock so grants, periods and versions are current for each item.
+            db.ChangeTracker.Clear();
             // Re-authorize even idempotent replays, including current branch scope.
             await authorize(ct);
             var previous = await db.Set<IdempotencyRecord>().SingleOrDefaultAsync(

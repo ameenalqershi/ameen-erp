@@ -333,31 +333,31 @@ GL04,GL04-F13,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{compa
 GL04,GL04-F14,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
 GL04,GL04-F15,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
 GL04,GL04-F16,آخر تعديل,system,audit,AuditEvent.OccurredAt: recurring.edited / recurring.status-changed; scoped /audit-events,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events
-GL05,GL05-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/journals/{id}/submit|approve|return
-GL05,GL05-F02,الفرع,conditional,implemented,JournalEntry.BranchId,POST /companies/{companyId}/journals/{id}/submit|approve|return
-GL05,GL05-F03,الحالة,system,implemented,JournalEntry.State,POST /companies/{companyId}/journals/{id}/submit|approve|return
-GL05,GL05-F04,الفترة,required,pending,,
+GL05,GL05-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL05,GL05-F02,الفرع,conditional,implemented,JournalEntry.BranchId,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL05,GL05-F03,الحالة,system,implemented,JournalEntry.State,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL05,GL05-F04,الفترة,required,implemented,processing-queue.periodId: required,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
 GL05,GL05-F05,حالة المراجعة,required,pending,,
-GL05,GL05-F06,المراجع,system,audit,AuditEvent.ActorId: journal.approve / journal.return,POST /companies/{companyId}/journals/{id}/submit|approve|return
-GL05,GL05-F07,رقم القيد,required,implemented,JournalEntry.Number,POST /companies/{companyId}/journals/{id}/submit|approve|return
-GL05,GL05-F08,نتيجة المراجعة,required,audit,AuditEvent.Action / Details.after,POST /companies/{companyId}/journals/{id}/submit|approve|return
-GL05,GL05-F09,سبب الرفض,conditional,audit,AuditEvent.Details.reason: journal.return,POST /companies/{companyId}/journals/{id}/submit|approve|return
+GL05,GL05-F06,المراجع,system,audit,AuditEvent.ActorId: journal.approve / journal.return,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL05,GL05-F07,رقم القيد,required,implemented,JournalEntry.Number,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL05,GL05-F08,نتيجة المراجعة,required,audit,AuditEvent.Action / Details.after,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL05,GL05-F09,سبب الرفض,conditional,audit,AuditEvent.Details.reason: journal.return,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
 GL05,GL05-F10,أنشأه,system,pending,,
-GL05,GL05-F11,وقت الإنشاء,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/journals/{id}/submit|approve|return
-GL05,GL05-F12,رقم إصدار التعديل,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/journals/{id}/submit|approve|return
-GL05,GL05-F13,آخر تعديل,system,implemented,Version,POST /companies/{companyId}/journals/{id}/submit|approve|return
-GL06,GL06-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/journals/{id}/post
-GL06,GL06-F02,الفرع,conditional,implemented,JournalEntry.BranchId,POST /companies/{companyId}/journals/{id}/post
-GL06,GL06-F03,الحالة,system,implemented,State,POST /companies/{companyId}/journals/{id}/post
-GL06,GL06-F04,نوع المصدر,required,pending,,
-GL06,GL06-F05,نطاق أرقام,required,pending,,
-GL06,GL06-F06,تاريخ التنفيذ,system,implemented,PostedAt,POST /companies/{companyId}/journals/{id}/post
-GL06,GL06-F07,المستند,required,implemented,route.id,POST /companies/{companyId}/journals/{id}/post
-GL06,GL06-F08,نتيجة التحقق,system,pending,,
-GL06,GL06-F09,مرجع القيد,system,implemented,CommandReceipt.ResourceId / Number,POST /companies/{companyId}/journals/{id}/post
-GL06,GL06-F10,أنشأه,system,audit,AuditEvent.ActorId: journal.post,POST /companies/{companyId}/journals/{id}/post
-GL06,GL06-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: journal.post,POST /companies/{companyId}/journals/{id}/post
-GL06,GL06-F12,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/journals/{id}/post
+GL05,GL05-F11,وقت الإنشاء,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL05,GL05-F12,رقم إصدار التعديل,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL05,GL05-F13,آخر تعديل,system,implemented,Version,POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F02,الفرع,conditional,implemented,JournalEntry.BranchId,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F03,الحالة,system,implemented,State,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F04,نوع المصدر,required,partial,processing-queue.source: journal provenance only; source documents route separately,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F05,نطاق أرقام,required,partial,processing-queue.sequenceFrom/sequenceTo within required fiscal period; explicit selected IDs for execution,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F06,تاريخ التنفيذ,system,implemented,PostedAt,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F07,المستند,required,implemented,route.id,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F08,نتيجة التحقق,system,implemented,JournalProcessingPreview.CanExecute/ErrorCode; JournalProcessingRow.ErrorCode/Receipt/RejectionRecorded,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F09,مرجع القيد,system,implemented,CommandReceipt.ResourceId / Number,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F10,أنشأه,system,audit,AuditEvent.ActorId: journal.post,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: journal.post,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
+GL06,GL06-F12,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch
 GL06,GL06-F13,آخر تعديل,system,pending,,
 GL07,GL07-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,POST /companies/{companyId}/journals/{id}/reverse
 GL07,GL07-F02,الشركة,system,implemented,CompanyId,POST /companies/{companyId}/journals/{id}/reverse

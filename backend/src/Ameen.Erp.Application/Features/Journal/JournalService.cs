@@ -3,7 +3,7 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed class JournalService : ApplicationService
+public sealed partial class JournalService : ApplicationService
 {
     private readonly BranchService branchService;
     private readonly CurrencyService currencyService;
@@ -143,6 +143,13 @@ public sealed class JournalService : ApplicationService
             token => AuthorizeJournal(cid, id, actor, permission, token), async token =>
         {
             var journal = await Required<JournalEntry>(cid, id, token); Check.Version(journal, request.ExpectedVersion);
+            return await ApplyTransition(cid, journal, actor, request, action, token);
+        }, ct);
+    }
+
+    private async Task<CommandReceipt> ApplyTransition(Guid cid, JournalEntry journal, Actor actor,
+        TransitionRequest request, string action, CancellationToken token)
+    {
             var before = journal.State;
             switch (action)
             {
@@ -173,7 +180,6 @@ public sealed class JournalService : ApplicationService
             }
             Audit(cid, actor, "journal." + action, journal, new { before, after = journal.State, request.Reason });
             return Receipt(journal, journal.State.ToString(), journal.Number);
-        }, ct);
     }
 
     public Task<CommandReceipt> ReverseJournal(Guid cid, Guid id, Actor actor, string key, ReverseJournalRequest request, CancellationToken ct) =>
