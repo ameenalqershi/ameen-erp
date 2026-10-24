@@ -173,6 +173,17 @@ screen("RPT02", "GET /companies/{companyId}/reports/accounts/{accountId}/ledger"
        "حساب واحد برصيد افتتاحي وجارٍ صحيح عبر الصفحات؛ مرشح مركز ومرجع خارجي يطبقان على الافتتاح والحركة", "نطاق حسابات وتصدير وطباعة وطرق عرض إضافية",
        {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 11: "query.costCenterId", 12: "query.externalReference (exact case-sensitive match)"})
 
+screen("RPT08", "GET /companies/{companyId}/reports/inventory-balances",
+       "رصيد وحركة وقيمة افتتاح المخزون وعكسه حسب المخزن والصنف والهوية والرقابة؛ إجماليات قبل الصفحات وعزل الفروع",
+       "افتتاح وعكسه فقط؛ لا حجز/متاح/طريق/عزل ولا محرك تكلفة أو مطابقة رقابة آلية عامة؛ لا عملة عرض أو طباعة أو تصدير؛ حتى تاريخ يستخدم to نفسه؛ التجميع ثابت",
+       {1: "CompanyId", 2: "BranchIds: authorized scope; optional branchId", 3: "query.from", 4: "query.to", 10: "query.warehouseId", 11: "query.groupId (current item group)", 12: "query.itemId"})
+screen("RPT09", "GET /companies/{companyId}/reports/items/{itemId}/ledger",
+       "حركة افتتاح وعكس بوحدة أساسية ورصيد جارٍ عبر الصفحات؛ وحدات وتكلفة سطور المصدر التاريخية وروابط المستند والقيد؛ ترتيب تاريخ الأثر ووقت الترحيل",
+       "المصادر الحالية افتتاح وعكسه فقط؛ لا صرف/استلام/تحويل؛ لا عملة عرض أو طباعة أو تصدير؛ التفصيل ثابت؛ تجميع القراءة في الذاكرة يحتاج تحسينًا للأحجام الكبيرة",
+       {1: "CompanyId", 2: "BranchIds: authorized scope; optional branchId", 3: "query.from", 4: "query.to", 9: "route.itemId", 10: "query.warehouseId", 11: "query.identityNumber (exact normalized lot or serial number)"})
+for report in ["RPT08", "RPT09"]:
+    MAP[report]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["InventoryReportTests.cs", "InventoryOpeningSqlIntegration.cs", "HostedApiIntegration.cs"])
+
 # Partial/derived semantics are explicit, never counted as full field implementation.
 for code, n, binding, status in [
     ("SYS03", 10, "FiscalPeriod.IsClosed: general ledger only", "partial"),
@@ -197,6 +208,11 @@ for code, n, binding, status in [
     ("GL11", 3, "FiscalPeriod.IsClosed: general ledger only", "partial"),
     ("GL11", 7, "PeriodClosePreview.Checks.Code: general ledger checks only", "partial"),
     ("GL11", 8, "PeriodClosePreview.Checks.Passed: general ledger checks only", "partial"),
+    ("RPT08", 5, "Currency: functional currency only", "partial"),
+    ("RPT08", 7, "StockMovement: posted openings and reversals only", "partial"),
+    ("RPT08", 9, "query.to: shared inclusive cutoff, no separate third date", "partial"),
+    ("RPT09", 5, "Currency: functional currency only", "partial"),
+    ("RPT09", 7, "StockMovement: posted openings and reversals only", "partial"),
     ("RPT01", 5, "Currency: functional currency only; no selection", "partial"),
     ("RPT01", 7, "Posted and Reversed originals only; no selection", "partial"),
     ("RPT02", 5, "Currency: functional currency; original line amounts retained", "partial"),

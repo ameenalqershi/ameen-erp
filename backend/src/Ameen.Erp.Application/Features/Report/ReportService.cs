@@ -2,7 +2,7 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed class ReportService : ApplicationService
+public sealed partial class ReportService : ApplicationService
 {
     public ReportService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
     {

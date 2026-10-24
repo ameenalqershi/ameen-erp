@@ -127,6 +127,10 @@ public static class InventoryOpeningSqlIntegration
             finally { await db.Database.ExecuteSqlRawAsync("REVERT; DROP USER [stock_runtime_test];"); }
         }
         Console.WriteLine("  SQL PASS INV06 atomic posting rollback/retry, concurrent replay, duplicate opening prevention, stock/control reconciliation, immutable ledger and runtime denial");
+        var stockReport = await Call(s => s.Report.InventoryBalances(cid, writer, Fixture.Date, Fixture.Date, branch, wh.ResourceId, group.ResourceId, item.ResourceId, true, 0, 1, default));
+        Ensure(stockReport.Rows.TotalCount == 1 && stockReport.ClosingValue == 15 && stockReport.Rows.Items.Single().ClosingQuantity == 3, "SQL inventory balances filters/totals differ");
+        var controlReport = await Call(s => s.Report.AccountLedger(cid, stock.ResourceId, writer, Fixture.Date, Fixture.Date, branch, 0, 10, default));
+        Ensure(stockReport.ClosingValue == controlReport.ClosingBalance, "SQL stock report differs from control ledger");
         var postedSource = await Call(s => s.InventoryOpening.Get(cid, r.ResourceId, writer, default));
         var reverseKey = Fixture.Key(); var reverseRequest = new ReverseInventoryOpeningRequest(postedSource.Version, Fixture.Date, "تصحيح SQL");
         var reversals = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s => s.InventoryOpening.CreateReversal(cid, r.ResourceId, writer, reverseKey, reverseRequest, default))));
@@ -167,6 +171,14 @@ public static class InventoryOpeningSqlIntegration
             Ensure(originalJournal.State == JournalState.Reversed && originalJournal.ReversalJournalId == reverseJournal.Id && reverseJournal.ReversesJournalId == originalJournal.Id, "Reverse provenance differs");
             Ensure(originalJournal.Lines.Single(x => x.Position == 1).FunctionalDebit == reverseJournal.Lines.Single(x => x.Position == 1).FunctionalCredit, "Historical journal value differs");
         }
+        var stockLedger = await Call(s => s.Report.InventoryLedger(cid, item.ResourceId, writer, Fixture.Date, Fixture.Date, branch, wh.ResourceId, null, 1, 1, default));
+        Ensure(stockLedger.Rows.TotalCount == 2 && stockLedger.ClosingQuantity == 0 && stockLedger.ClosingValue == 0 && stockLedger.InValue == 15 && stockLedger.OutValue == 15 && stockLedger.Rows.Items.Single().RunningValue == 0, "SQL item ledger page balance differs");
+        Ensure(stockLedger.Rows.Items.Single().DocumentUnits.Single().Quantity == -3, "SQL source document units missing");
+        var hiddenZero = await Call(s => s.Report.InventoryBalances(cid, writer, Fixture.Date, Fixture.Date, branch, wh.ResourceId, group.ResourceId, item.ResourceId, false, 0, 1, default));
+        Ensure(hiddenZero.Rows.TotalCount == 0, "SQL zero balance filter failed");
+        var unknownIdentity = await Call(s => s.Report.InventoryLedger(cid, item.ResourceId, writer, Fixture.Date, Fixture.Date, branch, wh.ResourceId, "UNKNOWN", 0, 1, default));
+        Ensure(unknownIdentity.Rows.TotalCount == 0, "SQL empty identity filter leaked movements");
+        Console.WriteLine("  SQL PASS RPT08/09 filtered balances, control tie-out, reversal paging, historical units and zero/identity filters");
         var reconciled = await Call(s => s.PeriodClose.PreviewPeriodClose(cid, periodId, reviewer, 0, 10, default));
         Ensure(reconciled.Checks.Single(x => x.Code == "inventory_openings_reconciled").Passed, "Reversed opening fails reconciliation");
         Console.WriteLine("  SQL PASS INV06 reversal draft/post replay, unique source, atomic Outbox rollback, runtime posting, negative movement and linked historical journal reconciliation");

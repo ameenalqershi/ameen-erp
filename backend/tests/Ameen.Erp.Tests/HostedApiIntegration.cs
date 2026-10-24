@@ -368,6 +368,17 @@ public static class HostedApiIntegration
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 2 &&
                         json.RootElement.GetProperty("items").EnumerateArray().Sum(x => decimal.Parse(x.GetProperty("baseQuantity").GetString()!, System.Globalization.CultureInfo.InvariantCulture)) == 0, "HTTP reversal stock balance differs");
                 Authenticate(Token("sql-owner"));
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/reports/inventory-balances?from=2026-01-01&to=2026-12-31&warehouseId={openingWarehouse.ResourceId}&itemId={openingItem.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("rows").GetProperty("totalCount").GetInt32() == 1 && json.RootElement.GetProperty("closingValue").GetString() == "0" && json.RootElement.GetProperty("inventoryOpeningsOnly").GetBoolean(), "HTTP inventory balance result differs");
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/reports/items/{openingItem.ResourceId}/ledger?from=2026-01-01&to=2026-12-31&warehouseId={openingWarehouse.ResourceId}&offset=1&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("rows").GetProperty("totalCount").GetInt32() == 2, "HTTP item ledger paging differs");
+                    var row = json.RootElement.GetProperty("rows").GetProperty("items")[0];
+                    Ensure(row.GetProperty("runningQuantity").GetString() == "0" && row.GetProperty("openingId").GetGuid() == reversalOpening.ResourceId && row.GetProperty("documentUnits").GetArrayLength() == 1, "HTTP stock drilldown or running balance differs");
+                }
+                Console.WriteLine("  HOST PASS RPT08/09 balances and paged item ledger over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS INV06 create/submit/approve/post reversal and net-zero stock over HTTPS/JWT/SQL");
 
 

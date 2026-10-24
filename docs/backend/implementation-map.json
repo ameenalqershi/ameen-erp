@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 28,
+  "partially_implemented_screens": 30,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 259,
+    "implemented": 273,
     "audit": 53,
     "derived": 4,
-    "partial": 36,
-    "pending": 2407
+    "partial": 41,
+    "pending": 2388
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -1633,6 +1633,98 @@
           "binding": "route.accountId: one account only"
         }
       }
+    },
+    "RPT08": {
+      "api": "GET /companies/{companyId}/reports/inventory-balances",
+      "implemented": "رصيد وحركة وقيمة افتتاح المخزون وعكسه حسب المخزن والصنف والهوية والرقابة؛ إجماليات قبل الصفحات وعزل الفروع",
+      "remaining": "افتتاح وعكسه فقط؛ لا حجز/متاح/طريق/عزل ولا محرك تكلفة أو مطابقة رقابة آلية عامة؛ لا عملة عرض أو طباعة أو تصدير؛ حتى تاريخ يستخدم to نفسه؛ التجميع ثابت",
+      "fields": {
+        "RPT08-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "RPT08-F02": {
+          "status": "implemented",
+          "binding": "BranchIds: authorized scope; optional branchId"
+        },
+        "RPT08-F03": {
+          "status": "implemented",
+          "binding": "query.from"
+        },
+        "RPT08-F04": {
+          "status": "implemented",
+          "binding": "query.to"
+        },
+        "RPT08-F10": {
+          "status": "implemented",
+          "binding": "query.warehouseId"
+        },
+        "RPT08-F11": {
+          "status": "implemented",
+          "binding": "query.groupId (current item group)"
+        },
+        "RPT08-F12": {
+          "status": "implemented",
+          "binding": "query.itemId"
+        },
+        "RPT08-F05": {
+          "status": "partial",
+          "binding": "Currency: functional currency only"
+        },
+        "RPT08-F07": {
+          "status": "partial",
+          "binding": "StockMovement: posted openings and reversals only"
+        },
+        "RPT08-F09": {
+          "status": "partial",
+          "binding": "query.to: shared inclusive cutoff, no separate third date"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryReportTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "RPT09": {
+      "api": "GET /companies/{companyId}/reports/items/{itemId}/ledger",
+      "implemented": "حركة افتتاح وعكس بوحدة أساسية ورصيد جارٍ عبر الصفحات؛ وحدات وتكلفة سطور المصدر التاريخية وروابط المستند والقيد؛ ترتيب تاريخ الأثر ووقت الترحيل",
+      "remaining": "المصادر الحالية افتتاح وعكسه فقط؛ لا صرف/استلام/تحويل؛ لا عملة عرض أو طباعة أو تصدير؛ التفصيل ثابت؛ تجميع القراءة في الذاكرة يحتاج تحسينًا للأحجام الكبيرة",
+      "fields": {
+        "RPT09-F01": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "RPT09-F02": {
+          "status": "implemented",
+          "binding": "BranchIds: authorized scope; optional branchId"
+        },
+        "RPT09-F03": {
+          "status": "implemented",
+          "binding": "query.from"
+        },
+        "RPT09-F04": {
+          "status": "implemented",
+          "binding": "query.to"
+        },
+        "RPT09-F09": {
+          "status": "implemented",
+          "binding": "route.itemId"
+        },
+        "RPT09-F10": {
+          "status": "implemented",
+          "binding": "query.warehouseId"
+        },
+        "RPT09-F11": {
+          "status": "implemented",
+          "binding": "query.identityNumber (exact normalized lot or serial number)"
+        },
+        "RPT09-F05": {
+          "status": "partial",
+          "binding": "Currency: functional currency only"
+        },
+        "RPT09-F07": {
+          "status": "partial",
+          "binding": "StockMovement: posted openings and reversals only"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryReportTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     }
   }
 }

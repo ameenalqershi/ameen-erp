@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-24T14:21:27.556718+00:00",
+  "startedAtUtc": "2026-10-24T19:27:51.146312+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "ff7687bb18bd356fb26f62f27a8de40c9db6b65722bae66e308baa6ea3cb1c35",
+  "sourceSha256": "2e2461d12acf955ff92aca2f5286dec49b422a35f1df4d2fbca605ae3b22d2aa",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -210,6 +210,14 @@
     "PASS INV06 reversal: failed post restores source links movement outbox and approval",
     "PASS INV06 reversal: later open period reverses closed period with historical accounts despite settings change",
     "PASS INV06 reversal: no reverse of reversal and no second posted reversal",
+    "PASS RPT08/09: approved stock has no balance until posted; inclusive date boundaries",
+    "PASS RPT08/09: later reversal preserves historical as-of values and running balance across pages",
+    "PASS RPT08: zero closing filter and totals are computed before pagination",
+    "PASS RPT09: lot and serial number filters do not confuse card code or another identity",
+    "PASS RPT08/09: branch and company scope are enforced before exposing stock",
+    "PASS RPT08/09: stock valuation equals control ledger and reads create no effects",
+    "PASS RPT08/09: inactive cards retain history and implicit branch scope excludes other stock",
+    "PASS RPT08/09: invalid dates and paging are rejected",
     "PASS INV04: item units barcode and price roundtrip without stock movement",
     "PASS INV04: per-item conversion is exact and rejects fractional base quantities",
     "PASS INV04: services cannot carry stock policy and serial base units cannot allow fractions",
@@ -343,6 +351,7 @@
     "  HOST PASS INV05 lot create/edit/search/detail/status/audit and route isolation over HTTPS/JWT/SQL",
     "  HOST PASS INV06 draft/valuation/submit/return/correct/approve/search/detail/audit over HTTPS/JWT/SQL",
     "  HOST PASS INV06 configure/preview/post/linked journal/stock movement over HTTPS/JWT/SQL",
+    "  HOST PASS RPT08/09 balances and paged item ledger over HTTPS/JWT/SQL",
     "  HOST PASS INV06 create/submit/approve/post reversal and net-zero stock over HTTPS/JWT/SQL",
     "  HOST PASS SYS14 audit filters, event detail, invalid dates and authorization over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
@@ -354,11 +363,12 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "  SQL PASS INV06 concurrent replay/numbering, valuation, audit rollback, runtime line replacement, return/correct/approve, immutable lines and close blockers",
     "  SQL PASS INV06 atomic posting rollback/retry, concurrent replay, duplicate opening prevention, stock/control reconciliation, immutable ledger and runtime denial",
+    "  SQL PASS RPT08/09 filtered balances, control tie-out, reversal paging, historical units and zero/identity filters",
     "  SQL PASS INV06 reversal draft/post replay, unique source, atomic Outbox rollback, runtime posting, negative movement and linked historical journal reconciliation",
     "PASS SQL Server integration"
   ],
-  "passed": 239,
-  "total": 239,
+  "passed": 247,
+  "total": 247,
   "failed": 0,
-  "finishedAtUtc": "2026-10-24T14:22:14.470939+00:00"
+  "finishedAtUtc": "2026-10-24T19:28:30.777263+00:00"
 }

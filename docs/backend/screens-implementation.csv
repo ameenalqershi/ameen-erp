@@ -142,8 +142,8 @@ RPT04,RPT,التدفقات النقدية,not-started,,,الشاشة كاملة,
 RPT05,RPT,تحليل المبيعات والربحية,not-started,,,الشاشة كاملة,
 RPT06,RPT,أعمار ديون العملاء,not-started,,,الشاشة كاملة,
 RPT07,RPT,أعمار ومستحقات الموردين,not-started,,,الشاشة كاملة,
-RPT08,RPT,أرصدة وتقييم المخزون,not-started,,,الشاشة كاملة,
-RPT09,RPT,بطاقة الصنف والحركة,not-started,,,الشاشة كاملة,
+RPT08,RPT,أرصدة وتقييم المخزون,partial,GET /companies/{companyId}/reports/inventory-balances,رصيد وحركة وقيمة افتتاح المخزون وعكسه حسب المخزن والصنف والهوية والرقابة؛ إجماليات قبل الصفحات وعزل الفروع,افتتاح وعكسه فقط؛ لا حجز/متاح/طريق/عزل ولا محرك تكلفة أو مطابقة رقابة آلية عامة؛ لا عملة عرض أو طباعة أو تصدير؛ حتى تاريخ يستخدم to نفسه؛ التجميع ثابت,backend/tests/Ameen.Erp.Tests/InventoryReportTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs
+RPT09,RPT,بطاقة الصنف والحركة,partial,GET /companies/{companyId}/reports/items/{itemId}/ledger,حركة افتتاح وعكس بوحدة أساسية ورصيد جارٍ عبر الصفحات؛ وحدات وتكلفة سطور المصدر التاريخية وروابط المستند والقيد؛ ترتيب تاريخ الأثر ووقت الترحيل,المصادر الحالية افتتاح وعكسه فقط؛ لا صرف/استلام/تحويل؛ لا عملة عرض أو طباعة أو تصدير؛ التفصيل ثابت؛ تجميع القراءة في الذاكرة يحتاج تحسينًا للأحجام الكبيرة,backend/tests/Ameen.Erp.Tests/InventoryReportTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs
 RPT10,RPT,الراكد والصلاحية وإعادة الطلب,not-started,,,الشاشة كاملة,
 RPT11,RPT,سجل الأصول والإهلاك,not-started,,,الشاشة كاملة,
 RPT12,RPT,لوحة الإدارة والاستثناءات,not-started,,,الشاشة كاملة,
