@@ -33,7 +33,7 @@ public sealed partial class ErpDbContext
         journal.Property(x => x.Source).HasDefaultValue(JournalSource.Manual);
         journal.HasOne<RecurringJournalTemplate>().WithMany().HasForeignKey(x => new { x.CompanyId, x.RecurringTemplateId }).OnDelete(DeleteBehavior.NoAction);
         Constraint(journal, "CK_Journal_Source",
-            "([Source] = 0 AND [InventoryOpeningId] IS NULL AND [RecurringTemplateId] IS NULL AND [SourceTemplateVersion] IS NULL AND [ReversesJournalId] IS NULL) OR " +
+            "([Source] IN (0, 4) AND [InventoryOpeningId] IS NULL AND [RecurringTemplateId] IS NULL AND [SourceTemplateVersion] IS NULL AND [ReversesJournalId] IS NULL) OR " +
             "([Source] = 1 AND [InventoryOpeningId] IS NULL AND [RecurringTemplateId] IS NOT NULL AND [SourceTemplateVersion] IS NOT NULL AND [ReversesJournalId] IS NULL) OR " +
             "([Source] = 2 AND [InventoryOpeningId] IS NULL AND [RecurringTemplateId] IS NULL AND [SourceTemplateVersion] IS NULL AND [ReversesJournalId] IS NOT NULL) OR " +
             "([Source] = 3 AND [InventoryOpeningId] IS NOT NULL AND [RecurringTemplateId] IS NULL AND [SourceTemplateVersion] IS NULL)");

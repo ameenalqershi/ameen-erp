@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 30,
+  "partially_implemented_screens": 31,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 275,
+    "implemented": 292,
     "audit": 53,
-    "derived": 4,
-    "partial": 43,
-    "pending": 2384
+    "derived": 5,
+    "partial": 47,
+    "pending": 2362
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -580,6 +580,102 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/AccountTests.cs; backend/tests/Ameen.Erp.Tests/AccountSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "GL02": {
+      "api": "GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs",
+      "implemented": "افتتاح عام مصدره GeneralOpening ومرجع ميزان وتاريخ تشغيل؛ قيد متزن ودورة مستقلة واعتماد وترحيل وعكس تاريخي؛ منع الحسابات الرقابية؛ معاينة حسابات التسوية التاريخية للمخزون دون عد القيد مرتين",
+      "remaining": "الأجنبية والطباعة وتعديل تواريخ الرأس والاستيراد؛ تصفير حساب التسوية بوابة شاملة غير منفذ؛ الذمم والمصادر غير المنفذة ليست مطابقة؛ عداد افتتاح لتعديلات المحتوى وحالاته لا روابط العكس التاريخية",
+      "fields": {
+        "GL02-F01": {
+          "status": "implemented",
+          "binding": "JournalEntry.Id"
+        },
+        "GL02-F02": {
+          "status": "implemented",
+          "binding": "CompanyId"
+        },
+        "GL02-F03": {
+          "status": "implemented",
+          "binding": "BranchId"
+        },
+        "GL02-F05": {
+          "status": "implemented",
+          "binding": "Number (JV yearly sequence)"
+        },
+        "GL02-F06": {
+          "status": "implemented",
+          "binding": "DocumentDate"
+        },
+        "GL02-F07": {
+          "status": "implemented",
+          "binding": "AccountingDate"
+        },
+        "GL02-F10": {
+          "status": "implemented",
+          "binding": "Description"
+        },
+        "GL02-F11": {
+          "status": "implemented",
+          "binding": "ExternalReference"
+        },
+        "GL02-F12": {
+          "status": "implemented",
+          "binding": "State with linked historical reversal"
+        },
+        "GL02-F13": {
+          "status": "implemented",
+          "binding": "OperationStartsOn"
+        },
+        "GL02-F14": {
+          "status": "implemented",
+          "binding": "PreviousTrialBalanceReference"
+        },
+        "GL02-F15": {
+          "status": "implemented",
+          "binding": "Lines.AccountId: non-control only"
+        },
+        "GL02-F16": {
+          "status": "implemented",
+          "binding": "Lines.Debit"
+        },
+        "GL02-F17": {
+          "status": "implemented",
+          "binding": "Lines.Credit"
+        },
+        "GL02-F18": {
+          "status": "implemented",
+          "binding": "Lines.CostCenterId"
+        },
+        "GL02-F19": {
+          "status": "implemented",
+          "binding": "CreatedBy"
+        },
+        "GL02-F20": {
+          "status": "implemented",
+          "binding": "CreatedAt"
+        },
+        "GL02-F04": {
+          "status": "derived",
+          "binding": "FiscalPeriod.FiscalYearId via settlement-preview"
+        },
+        "GL02-F08": {
+          "status": "partial",
+          "binding": "OpeningCurrencyCode: functional currency only"
+        },
+        "GL02-F09": {
+          "status": "partial",
+          "binding": "OpeningExchangeRate: fixed 1"
+        },
+        "GL02-F21": {
+          "status": "partial",
+          "binding": "OpeningRevision: content edits and own workflow, excluding original reversal-link changes"
+        },
+        "GL02-F22": {
+          "status": "partial",
+          "binding": "OpeningModifiedAt: content edits and own workflow, excluding original reversal-link changes"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/GeneralOpeningTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "GL03": {
       "api": "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}",

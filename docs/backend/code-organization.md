@@ -115,3 +115,7 @@ flowchart TD
 ## معالجة قيود الأستاذ
 
 JournalService.Processing.cs يفصل قائمة المراجعة والمعاينة والمعالجة الجماعية والسجل عن دورة القيد الأساسية؛ ApplyTransition يعيد استخدام الأثر نفسه داخل معاملة العنصر. العقود في Contracts/JournalProcessing وكل نوع مستقل. SqlTransactionRunner يفرغ المتتبع بعد قفل الشركة لإعادة قراءة الصلاحيات والفترات لكل أمر مستقل في الخدمة الواحدة.
+
+## مصدر الافتتاح العام GL02
+
+JournalService.GeneralOpening.cs يضم أوامر المصدر ومعاينة التسوية؛ دورة الحالات مشتركة مع JournalService لمنع ازدواج الأثر. عقود مستقلة في Contracts/GeneralOpening ومسارات في GeneralOpeningsEndpoints.cs. أضيفت بيانات افتتاح محمية إلى JournalEntry ومصدر enum مستقل، بترقية SQL 017.

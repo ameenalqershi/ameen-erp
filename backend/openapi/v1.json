@@ -8080,6 +8080,285 @@
         ]
       }
     },
+    "/api/v1/companies/{companyId}/general-openings": {
+      "post": {
+        "tags": [
+          "GL02 General openings"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique logical command key. Replay with the same actor, operation and body.",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGeneralOpeningRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "GL02 General openings"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "branchId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/JournalState"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageOfJournalSummary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/general-openings/{id}": {
+      "put": {
+        "tags": [
+          "GL02 General openings"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Unique logical command key. Replay with the same actor, operation and body.",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditGeneralOpeningRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "get": {
+        "tags": [
+          "GL02 General openings"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JournalEntry"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/general-openings/{id}/settlement-preview": {
+      "get": {
+        "tags": [
+          "GL02 General openings"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneralOpeningSettlementPreview"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/companies/{companyId}/reports/inventory-balances": {
       "get": {
         "tags": [
@@ -10445,6 +10724,67 @@
         },
         "additionalProperties": false
       },
+      "CreateGeneralOpeningRequest": {
+        "required": [
+          "branchId",
+          "documentDate",
+          "accountingDate",
+          "operationStartsOn",
+          "previousTrialBalanceReference",
+          "currencyCode",
+          "exchangeRate",
+          "description",
+          "externalReference",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "accountingDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "operationStartsOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "previousTrialBalanceReference": {
+            "type": "string"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "exchangeRate": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "description": {
+            "type": "string"
+          },
+          "externalReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalLineRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateInventoryIdentityRequest": {
         "required": [
           "code",
@@ -11286,6 +11626,34 @@
         },
         "additionalProperties": false
       },
+      "EditGeneralOpeningRequest": {
+        "required": [
+          "expectedVersion",
+          "description",
+          "previousTrialBalanceReference",
+          "lines"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "description": {
+            "type": "string"
+          },
+          "previousTrialBalanceReference": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JournalLineRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "EditInventoryIdentityRequest": {
         "required": [
           "expectedVersion",
@@ -11989,6 +12357,62 @@
               "string"
             ],
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GeneralOpeningSettlementPreview": {
+        "required": [
+          "journalId",
+          "version",
+          "fiscalYearId",
+          "currencyCode",
+          "accountingDate",
+          "includesUnpostedCandidate",
+          "allShownAccountsZero",
+          "allSubledgersImplemented",
+          "accounts",
+          "checkedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "journalId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fiscalYearId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "accountingDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "includesUnpostedCandidate": {
+            "type": "boolean"
+          },
+          "allShownAccountsZero": {
+            "type": "boolean"
+          },
+          "allSubledgersImplemented": {
+            "type": "boolean"
+          },
+          "accounts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpeningClearingBalance"
+            }
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -13517,6 +13941,40 @@
         ],
         "type": "object",
         "properties": {
+          "operationStartsOn": {
+            "format": "date"
+          },
+          "previousTrialBalanceReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "openingCurrencyCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "openingExchangeRate": {
+            "format": "double"
+          },
+          "openingRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "openingModifiedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
           "branchId": {
             "type": "string",
             "format": "uuid"
@@ -13942,7 +14400,8 @@
           "Manual",
           "Recurring",
           "Reversal",
-          "InventoryOpening"
+          "InventoryOpening",
+          "GeneralOpening"
         ]
       },
       "JournalState": {
@@ -14152,6 +14611,44 @@
           "Debit",
           "Credit"
         ]
+      },
+      "OpeningClearingBalance": {
+        "required": [
+          "accountId",
+          "postedBalance",
+          "proposedChange",
+          "resultingBalance",
+          "isZero"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "postedBalance": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "proposedChange": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "resultingBalance": {
+            "pattern": "^-?[0-9]\u002B(\\.[0-9]\u002B)?$",
+            "type": "string",
+            "description": "Exact base-10 decimal string; preserve precision in the client.",
+            "format": "decimal"
+          },
+          "isZero": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
       },
       "PageOfAccount": {
         "required": [
@@ -16539,6 +17036,9 @@
     },
     {
       "name": "GL07 Reversals"
+    },
+    {
+      "name": "GL02 General openings"
     },
     {
       "name": "RPT08 Inventory balances"

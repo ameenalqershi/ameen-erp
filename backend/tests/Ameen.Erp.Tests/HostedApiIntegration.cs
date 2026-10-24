@@ -179,6 +179,20 @@ public static class HostedApiIntegration
                 Console.WriteLine("  HOST PASS GL05/06 preview, mixed batch with per-item keys, replay and rejection history over HTTPS/JWT/SQL");
 
                 Authenticate(Token("sql-clerk"));
+                var generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings", GeneralOpeningTests.Request(journalRequest));
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("source").GetString() == "GeneralOpening" && json.RootElement.GetProperty("openingRevision").GetInt32() == 1, "HTTP general opening metadata missing");
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}/settlement-preview"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && !json.RootElement.GetProperty("allSubledgersImplemented").GetBoolean(), "HTTP settlement coverage overstated");
+                generalOpening = await Command(client, path + $"/{generalOpening.ResourceId}/submit", new TransitionRequest(generalOpening.Version));
+                Authenticate(Token("sql-approver"));
+                generalOpening = await Command(client, path + $"/{generalOpening.ResourceId}/approve", new TransitionRequest(generalOpening.Version));
+                await Command(client, path + $"/{generalOpening.ResourceId}/post", new TransitionRequest(generalOpening.Version));
+                Console.WriteLine("  HOST PASS GL02 source metadata, settlement scope and journal lifecycle over HTTPS/JWT/SQL");
+
+                Authenticate(Token("sql-clerk"));
                 var recurringPath = $"/api/v1/companies/{companyId}/recurring-journals";
                 var recurringRequest = new CreateRecurringJournalRequest(journalRequest.BranchId, "HTTP recurring", Ameen.Erp.Domain.RecurringFrequency.Monthly,
                     Ameen.Erp.Domain.RecurringGenerationMode.Manual, new(2026, 1, 31), new(2026, 12, 31),

@@ -16,6 +16,19 @@ public static class JournalProcessingSqlIntegration
             r = await Call(s => s.Journal.TransitionJournal(cid, r.ResourceId, clerk, Fixture.Key(), new(r.Version), "submit", default));
             return await Call(s => s.Journal.TransitionJournal(cid, r.ResourceId, approver, Fixture.Key(), new(r.Version), "approve", default));
         }
+        var openingKey = Fixture.Key(); var openingRequest = GeneralOpeningTests.Request(request);
+        var openingReplays = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s => s.Journal.CreateGeneralOpening(cid, clerk, openingKey, openingRequest, default))));
+        Ensure(openingReplays.Distinct().Count() == 1, "General opening concurrent replay duplicated source");
+        var opening = openingReplays[0];
+        opening = await Call(s => s.Journal.EditGeneralOpening(cid, opening.ResourceId, clerk, Fixture.Key(), new(opening.Version, "تصحيح SQL", "TB-SQL", request.Lines), default));
+        opening = await Approve(opening);
+        opening = await Call(s => s.Journal.TransitionJournal(cid, opening.ResourceId, approver, Fixture.Key(), new(opening.Version), "post", default));
+        var inverse = await Call(s => s.Journal.ReverseJournal(cid, opening.ResourceId, clerk, Fixture.Key(), new(opening.Version, request.AccountingDate, "تصحيح افتتاح"), default));
+        inverse = await Approve(inverse);
+        await Call(s => s.Journal.TransitionJournal(cid, inverse.ResourceId, approver, Fixture.Key(), new(inverse.Version), "post", default));
+        var originalOpening = await Call(s => s.Journal.GetGeneralOpening(cid, opening.ResourceId, clerk, default));
+        Ensure(originalOpening.Source == JournalSource.GeneralOpening && originalOpening.State == JournalState.Reversed && originalOpening.PreviousTrialBalanceReference == "TB-SQL", "SQL opening metadata/reversal lost");
+        Console.WriteLine("  SQL PASS GL02 concurrent replay, draft replacement, approval posting and immutable historical reversal provenance");
         var first = await Approve(await Draft()); var rejected = await Draft(); var last = await Approve(await Draft());
         var items = new[] { new JournalProcessingItem(first.ResourceId, first.Version, Fixture.Key()), new JournalProcessingItem(rejected.ResourceId, rejected.Version, Fixture.Key()), new JournalProcessingItem(last.ResourceId, last.Version, Fixture.Key()) };
         var command = new ProcessJournalsRequest("post", items);

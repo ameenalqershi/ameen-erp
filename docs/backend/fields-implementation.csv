@@ -267,28 +267,28 @@ GL01,GL01-F15,أنشأه,system,audit,AuditEvent.ActorId: account.created,GET/PO
 GL01,GL01-F16,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: account.created,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
 GL01,GL01-F17,رقم إصدار التعديل,system,implemented,Revision (server integer); Version is a separate UUID concurrency token,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
 GL01,GL01-F18,آخر تعديل,system,audit,AuditEvent.OccurredAt: account.edited / account.status-changed; /audit-events,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
-GL02,GL02-F01,المعرف الداخلي,system,pending,,
-GL02,GL02-F02,الشركة,system,pending,,
-GL02,GL02-F03,الفرع,required,pending,,
-GL02,GL02-F04,السنة,system,pending,,
-GL02,GL02-F05,رقم المستند,system,pending,,
-GL02,GL02-F06,تاريخ الوثيقة,required,pending,,
-GL02,GL02-F07,تاريخ الأثر,required,pending,,
-GL02,GL02-F08,العملة,required,pending,,
-GL02,GL02-F09,سعر الصرف,required,pending,,
-GL02,GL02-F10,البيان,required,pending,,
-GL02,GL02-F11,المرجع الخارجي,optional,pending,,
-GL02,GL02-F12,الحالة,system,pending,,
-GL02,GL02-F13,تاريخ بداية التشغيل,required,pending,,
-GL02,GL02-F14,مرجع ميزان سابق,required,pending,,
-GL02,GL02-F15,الحساب,required,pending,,
-GL02,GL02-F16,مدين,required,pending,,
-GL02,GL02-F17,دائن,required,pending,,
-GL02,GL02-F18,مركز التكلفة,conditional,pending,,
-GL02,GL02-F19,أنشأه,system,pending,,
-GL02,GL02-F20,وقت الإنشاء,system,pending,,
-GL02,GL02-F21,رقم إصدار التعديل,system,pending,,
-GL02,GL02-F22,آخر تعديل,system,pending,,
+GL02,GL02-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F03,الفرع,required,implemented,BranchId,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F04,السنة,system,derived,FiscalPeriod.FiscalYearId via settlement-preview,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F05,رقم المستند,system,implemented,Number (JV yearly sequence),GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F06,تاريخ الوثيقة,required,implemented,DocumentDate,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F07,تاريخ الأثر,required,implemented,AccountingDate,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F08,العملة,required,partial,OpeningCurrencyCode: functional currency only,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F09,سعر الصرف,required,partial,OpeningExchangeRate: fixed 1,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F10,البيان,required,implemented,Description,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F11,المرجع الخارجي,optional,implemented,ExternalReference,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F12,الحالة,system,implemented,State with linked historical reversal,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F13,تاريخ بداية التشغيل,required,implemented,OperationStartsOn,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F14,مرجع ميزان سابق,required,implemented,PreviousTrialBalanceReference,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F15,الحساب,required,implemented,Lines.AccountId: non-control only,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F16,مدين,required,implemented,Lines.Debit,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F17,دائن,required,implemented,Lines.Credit,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F18,مركز التكلفة,conditional,implemented,Lines.CostCenterId,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F19,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F20,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F21,رقم إصدار التعديل,system,partial,"OpeningRevision: content edits and own workflow, excluding original reversal-link changes",GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F22,آخر تعديل,system,partial,"OpeningModifiedAt: content edits and own workflow, excluding original reversal-link changes",GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
 GL03,GL03-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL03,GL03-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL03,GL03-F03,الفرع,required,implemented,BranchId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}

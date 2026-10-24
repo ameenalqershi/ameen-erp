@@ -2,6 +2,12 @@ namespace Ameen.Erp.Domain;
 
 public sealed class JournalEntry : CompanyEntity
 {
+    public DateOnly? OperationStartsOn { get; private set; }
+    public string? PreviousTrialBalanceReference { get; private set; }
+    public string? OpeningCurrencyCode { get; private set; }
+    public decimal? OpeningExchangeRate { get; private set; }
+    public int? OpeningRevision { get; private set; }
+    public DateTimeOffset? OpeningModifiedAt { get; private set; }
     public Guid BranchId { get; private set; }
     public Guid FiscalPeriodId { get; private set; }
     public string Number { get; private set; } = "";
@@ -110,6 +116,29 @@ public sealed class JournalEntry : CompanyEntity
         Check.That(Source == JournalSource.Manual && openingId != Guid.Empty && ReversesJournalId is null && RecurringTemplateId is null,
             "journal_source_conflict", "مصدر القيد غير صالح.", ErrorKind.Conflict);
         InventoryOpeningId = openingId; ReversesJournalId = originalJournalId; Source = JournalSource.InventoryOpening; Touch();
+    }
+    public void SetGeneralOpeningSource(DateOnly startsOn, string previousReference, string currency, decimal rate, DateTimeOffset now)
+    {
+        RequireState(JournalState.Draft);
+        Check.That(Source == JournalSource.Manual && ReversesJournalId is null && RecurringTemplateId is null,
+            "journal_source_conflict", "مصدر القيد محدد مسبقًا.");
+        Check.That(startsOn != DateOnly.MinValue, "opening_start_required", "تاريخ بداية التشغيل مطلوب.");
+        Check.That(rate == 1, "opening_functional_currency_only", "الافتتاح العام الحالي بالعملة الوظيفية وسعر واحد.");
+        Source = JournalSource.GeneralOpening; OperationStartsOn = startsOn;
+        PreviousTrialBalanceReference = Check.Text(previousReference, "مرجع الميزان السابق", 500);
+        OpeningCurrencyCode = Check.Currency(currency); OpeningExchangeRate = rate; OpeningRevision = 1; OpeningModifiedAt = now; Touch();
+    }
+    public void EditOpeningReference(string previousReference)
+    {
+        RequireState(JournalState.Draft);
+        Check.That(Source == JournalSource.GeneralOpening, "general_opening_required", "القيد ليس افتتاحًا عامًا.");
+        PreviousTrialBalanceReference = Check.Text(previousReference, "مرجع الميزان السابق", 500); Touch();
+    }
+    public void AdvanceOpening(DateTimeOffset now)
+    {
+        if (Source != JournalSource.GeneralOpening) return;
+        Check.That(OpeningRevision < int.MaxValue, "opening_revision_exhausted", "بلغ إصدار الافتتاح الحد الأقصى.");
+        OpeningRevision++; OpeningModifiedAt = now; Touch();
     }
     public void SetRecurringSource(Guid templateId, Guid templateVersion)
     {

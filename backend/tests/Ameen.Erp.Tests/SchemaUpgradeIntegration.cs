@@ -221,6 +221,15 @@ public static class SchemaUpgradeIntegration
 
 
 
+        var generalOpeningScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "017_general_openings.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Journals] ADD CONSTRAINT [CK_Journal_GeneralOpening] CHECK ([Sequence] > 0)");
+        try { await db.Database.ExecuteSqlRawAsync(generalOpeningScript); throw new Exception("Conflicting general opening upgrade accepted"); }
+        catch (SqlException e) when (e.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('Journals') AND name='OperationStartsOn'").SingleAsync() == 0, "Failed opening upgrade left columns");
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=17").AnyAsync(), "Failed general opening migration saved version");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Journals] DROP CONSTRAINT [CK_Journal_GeneralOpening]");
+        await db.Database.ExecuteSqlRawAsync(generalOpeningScript); await db.Database.ExecuteSqlRawAsync(generalOpeningScript);
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 016→017 preserves journal provenance and adds opening metadata");
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

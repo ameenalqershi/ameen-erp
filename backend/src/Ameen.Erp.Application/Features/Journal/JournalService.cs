@@ -42,6 +42,9 @@ public sealed partial class JournalService : ApplicationService
         {
             Check.That(request is not null, "invalid_line", "سطر القيد لا يمكن أن يكون فارغًا.");
             var currencyCode = Check.Currency(request!.CurrencyCode);
+            Check.That(journal.Source != JournalSource.GeneralOpening || currencyCode == journal.OpeningCurrencyCode &&
+                currencyCode == company.FunctionalCurrency && request.ExchangeRateId is null,
+                "opening_functional_currency_only", "سطور الافتتاح العام بالعملة الوظيفية فقط.");
             var currency = await currencyService.RequireCurrency(company.Id, currencyCode, ct);
             decimal rate = 1;
             if (currencyCode == company.FunctionalCurrency)
@@ -124,7 +127,7 @@ public sealed partial class JournalService : ApplicationService
             var newLines = await PrepareLines(company, journal, request.Lines, token);
             var before = new { journal.Description, Lines = journal.Lines.ToArray() };
             store.RemoveLines(journal.Lines.ToArray());
-            journal.EditDescription(request.Description); journal.SetLines(newLines);
+            journal.EditDescription(request.Description); journal.SetLines(newLines); journal.AdvanceOpening(clock.UtcNow);
             Audit(cid, actor, "journal.edited", journal, new { before, after = new { journal.Description, journal.Lines } });
             return Receipt(journal, journal.State.ToString(), journal.Number);
         }, ct);
@@ -178,6 +181,7 @@ public sealed partial class JournalService : ApplicationService
                         JsonSerializer.Serialize(new { journal.Id, journal.Number, journal.BranchId, journal.AccountingDate, journal.ReversesJournalId }, JsonDefaults.Options)));
                     break;
             }
+            journal.AdvanceOpening(clock.UtcNow);
             Audit(cid, actor, "journal." + action, journal, new { before, after = journal.State, request.Reason });
             return Receipt(journal, journal.State.ToString(), journal.Number);
     }

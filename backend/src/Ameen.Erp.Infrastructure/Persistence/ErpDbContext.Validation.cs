@@ -79,7 +79,7 @@ public sealed partial class ErpDbContext
                     "inventory_journal_owner_required", "القيد الآلي يتطلب مصدرًا وحركات مخزون داخل معاملة الترحيل.");
             }
             if (entry.State is not (EntityState.Modified or EntityState.Deleted)) continue;
-            var sourceFields = new[] { nameof(JournalEntry.Source), nameof(JournalEntry.InventoryOpeningId), nameof(JournalEntry.RecurringTemplateId), nameof(JournalEntry.SourceTemplateVersion), nameof(JournalEntry.ReversesJournalId) };
+            var sourceFields = new[] { nameof(JournalEntry.Source), nameof(JournalEntry.OperationStartsOn), nameof(JournalEntry.OpeningCurrencyCode), nameof(JournalEntry.OpeningExchangeRate), nameof(JournalEntry.InventoryOpeningId), nameof(JournalEntry.RecurringTemplateId), nameof(JournalEntry.SourceTemplateVersion), nameof(JournalEntry.ReversesJournalId) };
             Check.That(!entry.Properties.Any(p => p.IsModified && sourceFields.Contains(p.Metadata.Name)),
                 "journal_source_immutable", "لا يمكن تغيير مصدر قيد محفوظ.");
             var previous = entry.OriginalValues.GetValue<JournalState>(nameof(JournalEntry.State));

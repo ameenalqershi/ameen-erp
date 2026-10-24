@@ -204,3 +204,7 @@
 ## مراجعة ومعالجة قيود الأستاذ GL05/GL06
 
 GET journals/processing-queue وGET journals/{id}/processing-preview وPOST journals/process-batch وGET journals/{id}/processing-history. الدفعة تستخدم مفاتيح مستقلة داخل items؛ ليس لها رأس Idempotency-Key عام. كل عنصر معاملة ونتيجة مستقلة، مع سجل رفض تحقق محفوظ وإعادة آمنة. [العقد والقيود](journal-processing.md).
+
+## افتتاح GL02
+
+GET/POST general-openings وGET/PUT general-openings/{id} وGET /{id}/settlement-preview ضمن الشركة. دورة الحالات والمعالجة والعكس من journals على المعرف نفسه؛ لا قيد ثانٍ للأثر. [العقد](general-openings.md). المخطط المطلوب 017.
