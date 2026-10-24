@@ -17,10 +17,19 @@ public sealed partial class InventoryOpeningService
     }
     public async Task<InventoryOpeningPreview> Preview(Guid cid, Guid id, Actor actor, CancellationToken ct)
     {
-        var opening = await Get(cid, id, actor, ct); await ValidateSnapshot(opening, ct);
+        var opening = await Get(cid, id, actor, ct);
+        var value = opening.Lines.Sum(x => x.Value);
+        if (opening.State == InventoryOpeningState.Posted)
+            return new(id, opening.Version, opening.CurrencyCode, value, opening.Lines.Count, false, "already_posted", clock.UtcNow);
+        await ValidateSnapshot(opening, ct);
         Check.That(opening.State != InventoryOpeningState.Cancelled, "opening_state_conflict", "المستند ملغى.", ErrorKind.Conflict);
-        return new(id, opening.Version, opening.CurrencyCode, opening.Lines.Sum(x => x.Value), opening.Lines.Count,
-            false, "inventory_ledger_and_opening_reconciliation_pending", clock.UtcNow);
+        InventoryOpeningPostingPlan plan;
+        try { plan = await PlanPosting(opening, ct); }
+        catch (BusinessException e) { return new(id, opening.Version, opening.CurrencyCode, value, opening.Lines.Count, false, e.Code, clock.UtcNow); }
+        var member = await Authorize(cid, actor, Permissions.Read, opening.BranchId, ct);
+        var blocker = opening.State != InventoryOpeningState.Approved ? "opening_not_approved" :
+            !member.Has(Permissions.InventoryPost) ? "posting_permission_required" : "";
+        return new(id, opening.Version, opening.CurrencyCode, value, opening.Lines.Count, blocker.Length == 0, blocker, clock.UtcNow, plan);
     }
     public async Task<Page<AuditEvent>> AuditEvents(Guid cid, Guid id, Actor actor, int offset, int limit, CancellationToken ct)
     {

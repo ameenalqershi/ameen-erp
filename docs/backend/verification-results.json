@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-22T02:37:08.790182+00:00",
+  "startedAtUtc": "2026-10-24T13:56:44.743314+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "6fe9624b1af4670df2bcb3d39593a89196bd80282696e64e307ad48dd5795100",
+  "sourceSha256": "a78674727e09b9347f7f8c93b55a401e339c1fb01a9f5d04418923fe46a120bc",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -192,6 +192,17 @@
     "PASS INV06: atomic edit rollback stale version and request replay",
     "PASS INV06: pending opening blocks period close and cancellation releases blocker",
     "PASS INV06: foreign currency rate and missing reference cannot create",
+    "PASS INV06 posting: atomic stock ledger balanced control journal provenance and replay",
+    "PASS INV06 posting: failure restores approved source journal stock outbox and receipt",
+    "PASS INV06 posting: settings changes invalidate posting preview and permission is separate",
+    "PASS INV06 posting: duplicate opening with distinct document and key rejected",
+    "PASS INV06 posting: control journal cannot be reversed independently",
+    "PASS INV06 posting: posted opening reconciles at close and survives inactive cards",
+    "PASS INV06 posting: stock freezes item conversion warehouse account and identity number",
+    "PASS INV06 posting: serial cannot open in two warehouses",
+    "PASS INV06 posting: revoked post permission blocks replay and foreign branch cannot read movements",
+    "PASS INV06 posting: repeated item lines aggregate quantity and value once",
+    "PASS INV06 posting: stock reads hide foreign branch and no setup means no post",
     "PASS INV04: item units barcode and price roundtrip without stock movement",
     "PASS INV04: per-item conversion is exact and rejects fractional base quantities",
     "PASS INV04: services cannot carry stock policy and serial base units cannot allow fractions",
@@ -280,6 +291,7 @@
     "  SQL PASS idempotent schema 011→012 adds empty inventory identities",
     "  SQL PASS idempotent schema 012→013 separates inventory numbers",
     "  SQL PASS idempotent schema 013→014 adds empty inventory opening documents",
+    "  SQL PASS atomic/idempotent schema 014→015 creates no stock or settings and preserves old journals",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
     "  SQL PASS concurrent idempotency across independent connections",
@@ -322,6 +334,7 @@
     "  HOST PASS INV01 create/edit/locations/search/status/audit over HTTPS/JWT/SQL",
     "  HOST PASS INV05 lot create/edit/search/detail/status/audit and route isolation over HTTPS/JWT/SQL",
     "  HOST PASS INV06 draft/valuation/submit/return/correct/approve/search/detail/audit over HTTPS/JWT/SQL",
+    "  HOST PASS INV06 configure/preview/post/linked journal/stock movement over HTTPS/JWT/SQL",
     "  HOST PASS SYS14 audit filters, event detail, invalid dates and authorization over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
@@ -331,10 +344,11 @@
     "  HOST PASS SYS03 explicit periods, calendar state, search, usage and audit over HTTPS/JWT/SQL",
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "  SQL PASS INV06 concurrent replay/numbering, valuation, audit rollback, runtime line replacement, return/correct/approve, immutable lines and close blockers",
+    "  SQL PASS INV06 atomic posting rollback/retry, concurrent replay, duplicate opening prevention, stock/control reconciliation, immutable ledger and runtime denial",
     "PASS SQL Server integration"
   ],
-  "passed": 221,
-  "total": 221,
+  "passed": 232,
+  "total": 232,
   "failed": 0,
-  "finishedAtUtc": "2026-10-22T02:37:41.347079+00:00"
+  "finishedAtUtc": "2026-10-24T13:57:20.667768+00:00"
 }

@@ -30,6 +30,7 @@ public sealed class AccountService : ApplicationService
     }
 
     private async Task<bool> HasAccountUsage(Guid cid, Guid[] ids, CancellationToken ct) =>
+        (await store.Find<InventoryOpeningPostingSettings>(cid, x => ids.Contains(x.ClearingAccountId), ct)).Count > 0 ||
         (await store.Find<Warehouse>(cid, x => ids.Contains(x.InventoryAccountId), ct)).Count > 0 ||
         (await store.Find<JournalEntry>(cid, x => x.Lines.Any(l => ids.Contains(l.AccountId)), ct)).Count > 0 ||
         (await store.Find<RecurringJournalTemplate>(cid, x => x.Lines.Any(l => ids.Contains(l.AccountId)), ct)).Count > 0 ||

@@ -20,10 +20,10 @@ public sealed partial class ErpDbContext
         document.HasOne<Currency>().WithMany().HasForeignKey(x => new { x.CompanyId, x.CurrencyCode }).HasPrincipalKey(x => new { x.CompanyId, x.Code }).OnDelete(DeleteBehavior.NoAction);
         document.HasMany(x => x.Lines).WithOne().HasForeignKey(x => new { x.CompanyId, x.OpeningId }).OnDelete(DeleteBehavior.Cascade);
         document.Navigation(x => x.Lines).AutoInclude();
-        Constraint(document, "CK_InventoryOpening_State", "[State] BETWEEN 0 AND 4");
+        Constraint(document, "CK_InventoryOpening_State", "[State] BETWEEN 0 AND 5");
         Constraint(document, "CK_InventoryOpening_Revision", "[Revision] > 0");
         Constraint(document, "CK_InventoryOpening_Rate", "[ExchangeRate] = 1");
-        Constraint(document, "CK_InventoryOpening_Approval", "([State] = 3 AND [ApprovedBy] IS NOT NULL AND [ApprovedBy] <> [CreatedBy]) OR ([State] <> 3 AND [ApprovedBy] IS NULL)");
+        Constraint(document, "CK_InventoryOpening_Approval", "([State] IN (3,5) AND [ApprovedBy] IS NOT NULL AND [ApprovedBy] <> [CreatedBy]) OR ([State] NOT IN (3,5) AND [ApprovedBy] IS NULL)");
         var line = Tenant<InventoryOpeningLine>(model, "InventoryOpeningLines");
         line.Property(x => x.ItemCode).HasMaxLength(32); line.Property(x => x.UnitCode).HasMaxLength(32);
         line.Property(x => x.LotNumber).HasMaxLength(32); line.Property(x => x.SerialNumber).HasMaxLength(32);

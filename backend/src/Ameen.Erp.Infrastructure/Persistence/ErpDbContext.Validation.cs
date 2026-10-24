@@ -19,8 +19,22 @@ public sealed partial class ErpDbContext
         foreach (var entry in ChangeTracker.Entries<InventoryOpening>().Where(e => e.State is EntityState.Modified or EntityState.Deleted))
         {
             var original = entry.OriginalValues.GetValue<InventoryOpeningState>(nameof(InventoryOpening.State));
-            Check.That(entry.State != EntityState.Deleted && original is not (InventoryOpeningState.Approved or InventoryOpeningState.Cancelled),
-                "opening_immutable", "المستند المعتمد أو الملغى محمي من التعديل.");
+            Check.That(entry.State != EntityState.Deleted && original is not (InventoryOpeningState.Posted or InventoryOpeningState.Cancelled),
+                "opening_immutable", "المستند المرحل أو الملغى محمي من التعديل.");
+            if (original == InventoryOpeningState.Approved)
+            {
+                var allowed = new[] { nameof(InventoryOpening.State), nameof(InventoryOpening.JournalId), nameof(InventoryOpening.InventoryAccountId), nameof(InventoryOpening.ClearingAccountId), nameof(InventoryOpening.PostingSettingsVersion), nameof(InventoryOpening.PostedBy), nameof(InventoryOpening.PostedAt), nameof(InventoryOpening.Version), nameof(InventoryOpening.Revision), nameof(InventoryOpening.ModifiedAt) };
+                Check.That(entry.Entity.State == InventoryOpeningState.Posted && !entry.Properties.Any(p => p.IsModified && !allowed.Contains(p.Metadata.Name)), "opening_immutable", "المعتمد يقبل أثر الترحيل فقط.");
+            }
+        }
+        foreach (var entry in ChangeTracker.Entries<StockMovement>())
+        {
+            Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "stock_movement_immutable", "حركة المخزون تاريخية غير قابلة للتعديل.");
+            if (entry.State == EntityState.Added)
+                Check.That(ChangeTracker.Entries<InventoryOpening>().Any(x => x.State == EntityState.Modified && x.Entity.CompanyId == entry.Entity.CompanyId &&
+                    x.Entity.Id == entry.Entity.OpeningId && x.Entity.State == InventoryOpeningState.Posted && x.Entity.JournalId == entry.Entity.JournalId &&
+                    x.OriginalValues.GetValue<InventoryOpeningState>(nameof(InventoryOpening.State)) == InventoryOpeningState.Approved),
+                    "stock_posting_owner_required", "الحركة تتطلب ترحيل مصدر معتمد ضمن المعاملة.");
         }
         foreach (var entry in ChangeTracker.Entries<AuditEvent>())
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "audit_immutable", "سجل التدقيق غير قابل للتعديل أو الحذف.");
@@ -45,14 +59,26 @@ public sealed partial class ErpDbContext
         foreach (var entry in ChangeTracker.Entries<JournalLine>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
         {
             var owner = ChangeTracker.Entries<JournalEntry>().SingleOrDefault(e => e.Entity.CompanyId == entry.Entity.CompanyId && e.Entity.Id == entry.Entity.JournalId);
-            Check.That(owner is not null && owner.Entity.State == JournalState.Draft &&
+            var generatedOpening = owner is not null && owner.State == EntityState.Added && owner.Entity.Source == JournalSource.InventoryOpening && owner.Entity.State == JournalState.Posted &&
+                ChangeTracker.Entries<InventoryOpening>().Any(x => x.State == EntityState.Modified && x.Entity.CompanyId == owner.Entity.CompanyId && x.Entity.Id == owner.Entity.InventoryOpeningId &&
+                    x.Entity.State == InventoryOpeningState.Posted && x.Entity.JournalId == owner.Entity.Id);
+            Check.That(generatedOpening || owner is not null && owner.Entity.State == JournalState.Draft &&
                 (owner.State == EntityState.Added || owner.OriginalValues.GetValue<JournalState>(nameof(JournalEntry.State)) == JournalState.Draft),
                 "journal_lines_immutable", "تعديل السطور مسموح داخل مسودة محملة فقط.");
         }
         foreach (var entry in ChangeTracker.Entries<JournalEntry>())
         {
+            if (entry.State == EntityState.Added && entry.Entity.Source == JournalSource.InventoryOpening)
+            {
+                var opening = ChangeTracker.Entries<InventoryOpening>().SingleOrDefault(x => x.State == EntityState.Modified && x.Entity.CompanyId == entry.Entity.CompanyId && x.Entity.Id == entry.Entity.InventoryOpeningId);
+                var movements = ChangeTracker.Entries<StockMovement>().Where(x => x.State == EntityState.Added && x.Entity.CompanyId == entry.Entity.CompanyId && x.Entity.OpeningId == entry.Entity.InventoryOpeningId).Select(x => x.Entity).ToArray();
+                Check.That(opening is not null && opening.Entity.State == InventoryOpeningState.Posted && opening.Entity.JournalId == entry.Entity.Id &&
+                    entry.Entity.State == JournalState.Posted && entry.Entity.ApprovedBy == opening.Entity.ApprovedBy && entry.Entity.CreatedBy == opening.Entity.CreatedBy &&
+                    movements.Sum(x => x.Value) == entry.Entity.Lines.Sum(x => x.FunctionalDebit) && movements.Length > 0,
+                    "inventory_journal_owner_required", "القيد الآلي يتطلب مصدرًا وحركات مخزون داخل معاملة الترحيل.");
+            }
             if (entry.State is not (EntityState.Modified or EntityState.Deleted)) continue;
-            var sourceFields = new[] { nameof(JournalEntry.Source), nameof(JournalEntry.RecurringTemplateId), nameof(JournalEntry.SourceTemplateVersion), nameof(JournalEntry.ReversesJournalId) };
+            var sourceFields = new[] { nameof(JournalEntry.Source), nameof(JournalEntry.InventoryOpeningId), nameof(JournalEntry.RecurringTemplateId), nameof(JournalEntry.SourceTemplateVersion), nameof(JournalEntry.ReversesJournalId) };
             Check.That(!entry.Properties.Any(p => p.IsModified && sourceFields.Contains(p.Metadata.Name)),
                 "journal_source_immutable", "لا يمكن تغيير مصدر قيد محفوظ.");
             var previous = entry.OriginalValues.GetValue<JournalState>(nameof(JournalEntry.State));

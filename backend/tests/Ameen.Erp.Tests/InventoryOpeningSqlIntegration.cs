@@ -61,6 +61,73 @@ public static class InventoryOpeningSqlIntegration
         Ensure(close.PendingInventoryOpeningCount >= 4 && !close.CanCloseGeneralLedger, "Pending openings omitted from close checks");
         Ensure((await Call(s => s.InventoryOpening.Search(cid, writer, branch, InventoryOpeningState.Approved, "SQL-COUNT", 0, 10, default))).TotalCount == 1, "SQL opening search failed");
         Console.WriteLine("  SQL PASS INV06 concurrent replay/numbering, valuation, audit rollback, runtime line replacement, return/correct/approve, immutable lines and close blockers");
+        var clearing = await Call(s => s.Account.CreateAccount(cid, owner, Fixture.Key(), new("OPEN-CLEAR", "تسوية افتتاح", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit), default));
+        var settings = await Call(s => s.InventoryOpening.GetPostingSettings(cid, owner, default));
+        await Call(s => s.InventoryOpening.ConfigurePosting(cid, owner, Fixture.Key(), new(settings?.Version, clearing.ResourceId, "إعداد"), default));
+        var preview = await Call(s => s.InventoryOpening.Preview(cid, r.ResourceId, writer, default));
+        Ensure(preview.CanPost && preview.PostingPlan is not null, "SQL posting plan unavailable");
+        var post = new PostInventoryOpeningRequest(r.Version, preview.PostingPlan!.SettingsVersion, preview.PostingPlan.WarehouseVersion);
+        var postKey = Fixture.Key();
+        await using (var db = Context()) await db.Database.ExecuteSqlRawAsync("ALTER TABLE [OutboxEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_StockPost] CHECK ([Type] <> 'stock.inventory-opening-posted.v1')");
+        try { await Call(s => s.InventoryOpening.Post(cid, r.ResourceId, writer, postKey, post, default)); throw new Exception("Posting failure expected"); }
+        catch (BusinessException e) when (e.Code == "database_constraint") { }
+        await using (var db = Context())
+        {
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [OutboxEvents] DROP CONSTRAINT [CK_Test_StockPost]");
+            Ensure(!await db.Set<StockMovement>().AnyAsync(x => x.OpeningId == r.ResourceId) && !await db.Set<JournalEntry>().AnyAsync(x => x.InventoryOpeningId == r.ResourceId), "Failed posting leaked ledger rows");
+            Ensure((await db.Set<InventoryOpening>().SingleAsync(x => x.Id == r.ResourceId)).State == InventoryOpeningState.Approved, "Failed posting changed source");
+            Ensure(!await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == postKey), "Failed posting saved receipt");
+        }
+        await using (var db = Context())
+        {
+            await db.Database.OpenConnectionAsync();
+            await db.Database.ExecuteSqlRawAsync("CREATE USER [posting_runtime_test] WITHOUT LOGIN; ALTER ROLE [ameen_runtime] ADD MEMBER [posting_runtime_test]; EXECUTE AS USER = 'posting_runtime_test';");
+            try
+            {
+                var service = new TestServices(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock());
+                await service.InventoryOpening.Post(cid, r.ResourceId, writer, postKey, post, default);
+            }
+            finally { await db.Database.ExecuteSqlRawAsync("REVERT; DROP USER [posting_runtime_test];"); }
+        }
+        var posts = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Call(s => s.InventoryOpening.Post(cid, r.ResourceId, writer, postKey, post, default))));
+        Ensure(posts.Distinct().Count() == 1, "Concurrent post receipts differ");
+        await using (var db = Context())
+        {
+            var document = await db.Set<InventoryOpening>().SingleAsync(x => x.Id == r.ResourceId);
+            var journal = await db.Set<JournalEntry>().SingleAsync(x => x.InventoryOpeningId == document.Id);
+            var movement = await db.Set<StockMovement>().SingleAsync(x => x.OpeningId == document.Id);
+            Ensure(document.JournalId == journal.Id && document.State == InventoryOpeningState.Posted && journal.State == JournalState.Posted &&
+                movement.Value == 15 && movement.BaseQuantity == 3 && journal.Lines.Sum(x => x.FunctionalDebit) == 15 && journal.Lines.Sum(x => x.FunctionalCredit) == 15,
+                "Stock and control journal do not reconcile");
+            Ensure(await db.Set<OutboxEvent>().CountAsync(x => x.ResourceId == document.Id && x.Type == "stock.inventory-opening-posted.v1") == 1, "Duplicate stock outbox");
+            db.Remove(movement);
+            try { await db.SaveChangesAsync(); throw new Exception("Stock delete accepted"); }
+            catch (BusinessException e) when (e.Code == "stock_movement_immutable") { }
+        }
+        // Different document/key cannot repeat the same warehouse/item opening.
+        var duplicate = more[0];
+        duplicate = await Call(s => s.InventoryOpening.Transition(cid, duplicate.ResourceId, writer, Fixture.Key(), new(duplicate.Version), "submit", default));
+        duplicate = await Call(s => s.InventoryOpening.Transition(cid, duplicate.ResourceId, reviewer, Fixture.Key(), new(duplicate.Version), "approve", default));
+        try { await Call(s => s.InventoryOpening.Post(cid, duplicate.ResourceId, writer, Fixture.Key(), post with { ExpectedVersion = duplicate.Version }, default)); throw new Exception("Duplicate opening accepted"); }
+        catch (BusinessException e) when (e.Code == "inventory_opening_already_recorded") { }
+        // Administrative corruption is detected before closing, even though the journal stays balanced.
+        await using (var db = Context()) await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [StockMovements] SET [Value]=[Value]+1 WHERE [OpeningId]={r.ResourceId}");
+        var corrupt = await Call(s => s.PeriodClose.PreviewPeriodClose(cid, periodId, reviewer, 0, 10, default));
+        Ensure(!corrupt.Checks.Single(x => x.Code == "inventory_openings_reconciled").Passed, "Close ignored mismatched stock valuation");
+        await using (var db = Context())
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [StockMovements] SET [Value]=[Value]-1 WHERE [OpeningId]={r.ResourceId}");
+            await db.Database.OpenConnectionAsync();
+            await db.Database.ExecuteSqlRawAsync("CREATE USER [stock_runtime_test] WITHOUT LOGIN; ALTER ROLE [ameen_runtime] ADD MEMBER [stock_runtime_test]; EXECUTE AS USER = 'stock_runtime_test';");
+            try
+            {
+                try { await db.Database.ExecuteSqlRawAsync("UPDATE [StockMovements] SET [Value]=[Value]+1"); throw new Exception("Runtime stock mutation accepted"); }
+                catch (Microsoft.Data.SqlClient.SqlException e) when (e.Number == 229) { }
+            }
+            finally { await db.Database.ExecuteSqlRawAsync("REVERT; DROP USER [stock_runtime_test];"); }
+        }
+        Console.WriteLine("  SQL PASS INV06 atomic posting rollback/retry, concurrent replay, duplicate opening prevention, stock/control reconciliation, immutable ledger and runtime denial");
+
     }
     private static void Ensure(bool value, string message) { if (!value) throw new Exception(message); }
 }

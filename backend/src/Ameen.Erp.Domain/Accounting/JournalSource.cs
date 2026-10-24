@@ -1,3 +1,3 @@
 namespace Ameen.Erp.Domain;
 
-public enum JournalSource { Manual, Recurring, Reversal }
+public enum JournalSource { Manual, Recurring, Reversal, InventoryOpening }

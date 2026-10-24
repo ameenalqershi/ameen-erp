@@ -196,6 +196,17 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(openingScript); await db.Database.ExecuteSqlRawAsync(openingScript);
         Ensure(!await db.Set<InventoryOpening>().AnyAsync(), "Opening upgrade invented balances");
         Console.WriteLine("  SQL PASS idempotent schema 013→014 adds empty inventory opening documents");
+        var postingScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "015_inventory_opening_posting.sql"));
+        await db.Database.ExecuteSqlRawAsync("CREATE TABLE [StockMovements] ([TestOnly] int NULL)");
+        try { await db.Database.ExecuteSqlRawAsync(postingScript); throw new Exception("Conflicting posting upgrade accepted"); }
+        catch (SqlException e) when (e.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('Journals') AND name='InventoryOpeningId'").SingleAsync() == 0, "Failed posting migration left journal source column");
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=15").AnyAsync(), "Failed posting migration saved version");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE [StockMovements]");
+        await db.Database.ExecuteSqlRawAsync(postingScript); await db.Database.ExecuteSqlRawAsync(postingScript);
+        Ensure(!await db.Set<StockMovement>().AnyAsync(), "Posting upgrade invented balances");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 014→015 creates no stock or settings and preserves old journals");
+
 
 
 

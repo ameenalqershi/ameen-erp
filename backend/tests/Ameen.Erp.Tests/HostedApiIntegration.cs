@@ -308,7 +308,7 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(itemsPath + $"/{identityItem.ResourceId}/serials/{lot.ResourceId}"))
                     Ensure(response.StatusCode == HttpStatusCode.NotFound, "HTTP serial route exposed lot");
                 Console.WriteLine("  HOST PASS INV05 lot create/edit/search/detail/status/audit and route isolation over HTTPS/JWT/SQL");
-                var openingWarehouse = await Command(client, warehousesPath, whRequest with { Code = "HTTP-OPEN-WH" });
+                var openingWarehouse = await Command(client, warehousesPath, whRequest with { Code = "HTTP-OPEN-WH", Type = WarehouseType.Standard, TrackLocations = false, Locations = Array.Empty<WarehouseLocationRequest>() });
                 var openingItem = await Command(client, itemsPath, new CreateItemRequest("HTTP-OPEN-I", "صنف افتتاح", ItemType.Goods, ItemTracking.None, identityGroup.ResourceId, itemUnit.ResourceId, new[] { new ItemUnitRequest(itemUnit.ResourceId, 1, null, null) }));
                 var openingsPath = $"/api/v1/companies/{companyId}/inventory-openings";
                 var openingRequest = new CreateInventoryOpeningRequest(warehouseBranch.ResourceId, openingWarehouse.ResourceId, Fixture.Date, Fixture.Date, Fixture.Date, "SAR", 1, "HTTP-COUNT", "افتتاح", new[] { new InventoryOpeningLineRequest(openingItem.ResourceId, itemUnit.ResourceId, 2, 7.5m) });
@@ -336,6 +336,27 @@ public static class HostedApiIntegration
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 6, "HTTP opening audit failed");
                 Authenticate(Token("sql-owner"));
                 Console.WriteLine("  HOST PASS INV06 draft/valuation/submit/return/correct/approve/search/detail/audit over HTTPS/JWT/SQL");
+                var clearingAccount = await Command(client, $"/api/v1/companies/{companyId}/accounts", new CreateAccountRequest("HTTP-OPEN-CLEAR", "تسوية افتتاح", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit));
+                await Command(client, openingsPath + "/posting-settings", new ConfigureInventoryOpeningPostingRequest(null, clearingAccount.ResourceId, "إعداد"), method: HttpMethod.Put);
+                Authenticate(Token("sql-clerk"));
+                PostInventoryOpeningRequest postOpening;
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}/valuation-preview"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("canPost").GetBoolean(), "HTTP posting preview blocked");
+                    var plan = json.RootElement.GetProperty("postingPlan");
+                    postOpening = new(opening.Version, plan.GetProperty("settingsVersion").GetGuid(), plan.GetProperty("warehouseVersion").GetGuid());
+                }
+                opening = await Command(client, openingsPath + $"/{opening.ResourceId}/post", postOpening);
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("state").GetString() == "Posted" && json.RootElement.GetProperty("journalId").GetGuid() != Guid.Empty, "HTTP posted source missing journal");
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/stock-movements?warehouseId={openingWarehouse.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP stock movement missing");
+                Authenticate(Token("sql-owner"));
+                Console.WriteLine("  HOST PASS INV06 configure/preview/post/linked journal/stock movement over HTTPS/JWT/SQL");
+
 
                 var auditPath = $"/api/v1/companies/{companyId}/audit-events";
                 Guid eventId;

@@ -20,6 +20,14 @@ internal static class InventoryOpeningsEndpoints
             Results.Ok(await s.Preview(companyId, id, Actor(h), ct))).Produces<InventoryOpeningPreview>().RequireAuthorization().WithTags(tag);
         app.MapGet(p + "/{id:guid}/audit-events", async (Guid companyId, Guid id, int? offset, int? limit, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.AuditEvents(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags(tag);
+        app.MapPost(p + "/{id:guid}/post", async (Guid companyId, Guid id, PostInventoryOpeningRequest r, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.Post(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags(tag);
+        app.MapGet(p + "/posting-settings", async (Guid companyId, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetPostingSettings(companyId, Actor(h), ct))).Produces<InventoryOpeningPostingSettings>().RequireAuthorization().WithTags(tag);
+        app.MapPut(p + "/posting-settings", async (Guid companyId, ConfigureInventoryOpeningPostingRequest r, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ConfigurePosting(companyId, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags(tag);
+        app.MapGet(EndpointRoutes.Company + "/stock-movements", async (Guid companyId, Guid? warehouseId, Guid? itemId, int? offset, int? limit, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.Movements(companyId, Actor(h), warehouseId, itemId, offset ?? 0, limit ?? 50, ct))).Produces<Page<StockMovement>>().RequireAuthorization().WithTags(tag);
         foreach (var action in new[] { "submit", "approve", "return", "cancel" })
             app.MapPost(p + "/{id:guid}/" + action, async (Guid companyId, Guid id, TransitionRequest r, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
                 Results.Ok(await s.Transition(companyId, id, Actor(h), Key(h), r, action, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags(tag);

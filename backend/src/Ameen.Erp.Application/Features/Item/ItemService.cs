@@ -62,6 +62,11 @@ public sealed class ItemService : ApplicationService
         {
             var item = await Required<Item>(cid, id, token); Check.Version(item, request.ExpectedVersion); var reason = Check.Text(request.Reason, "السبب", 500);
             var candidate = new Item(cid, request.Code, request.Name, request.Type, request.Tracking, request.GroupId, request.BaseUnitId, request.ShelfLifeDays, request.ReorderLevel, request.EnglishName, request.Notes);
+            if ((await store.Find<StockMovement>(cid, x => x.ItemId == id, token)).Any())
+                Check.That(candidate.Code == item.Code && candidate.Type == item.Type && candidate.Tracking == item.Tracking && candidate.BaseUnitId == item.BaseUnitId &&
+                    request.Units is not null && request.Units.All(x => x is not null) && request.Units.Select(x => (x.UnitId, x.FactorToBase)).OrderBy(x => x.UnitId)
+                        .SequenceEqual(item.Units.Select(x => (x.UnitId, x.FactorToBase)).OrderBy(x => x.UnitId)),
+                    "item_stock_structure_in_use", "بنية الصنف ووحداته مقفلة بعد حركة المخزون.", ErrorKind.Conflict);
             var identities = await store.Find<InventoryIdentity>(cid, x => x.ItemId == id, token);
             Check.That(candidate.ShelfLifeDays is null || identities.All(x => x.ExpiryDate is not null), "inventory_expiry_required",
                 "لا يمكن فرض مدة صلاحية مع وجود هويات مخزون بلا تاريخ انتهاء.");

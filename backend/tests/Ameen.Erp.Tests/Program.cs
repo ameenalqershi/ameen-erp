@@ -424,6 +424,7 @@ ItemGroupTests.Register(Test);
 WarehouseTests.Register(Test);
 InventoryIdentityTests.Register(Test);
 InventoryOpeningTests.Register(Test);
+InventoryOpeningPostingTests.Register(Test);
 ItemTests.Register(Test);
 ItemGroupUsageTests.Register(Test);
 CostCenterTests.Register(Test);

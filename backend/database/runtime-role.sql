@@ -16,3 +16,5 @@ DENY UPDATE, DELETE ON OBJECT::dbo.ExchangeRates TO [ameen_runtime];
 DENY UPDATE, DELETE ON OBJECT::dbo.RecurringJournalGenerations TO [ameen_runtime];
 DENY INSERT, UPDATE, DELETE ON OBJECT::dbo.__AmeenSchemaVersions TO [ameen_runtime];
 -- No CREATE/ALTER/DROP, db_owner, or server administrator permission is needed by the API.
+
+DENY UPDATE, DELETE ON OBJECT::dbo.StockMovements TO [ameen_runtime];

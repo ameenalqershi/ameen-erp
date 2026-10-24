@@ -1,2 +1,2 @@
 namespace Ameen.Erp.Domain;
-public enum InventoryOpeningState { Draft, Submitted, Returned, Approved, Cancelled }
+public enum InventoryOpeningState { Draft, Submitted, Returned, Approved, Cancelled, Posted }

@@ -41,6 +41,9 @@ public sealed class WarehouseService : ApplicationService
         {
             var w = await Required<Warehouse>(cid, id, token); Check.Version(w, request.ExpectedVersion); var reason = Check.Text(request.Reason, "السبب", 500);
             var candidate = new Warehouse(cid, request.Code, request.Name, request.BranchId, request.KeeperMembershipId, request.InventoryAccountId, request.Type, request.TrackLocations, request.EnglishName, request.Notes);
+            if ((await store.Find<StockMovement>(cid, x => x.WarehouseId == id, token)).Any())
+                Check.That(w.Code == candidate.Code && w.BranchId == candidate.BranchId && w.InventoryAccountId == candidate.InventoryAccountId &&
+                    w.Type == candidate.Type && w.TrackLocations == candidate.TrackLocations, "warehouse_stock_structure_in_use", "بنية المخزن مقفلة بعد حركة المخزون.", ErrorKind.Conflict);
             await ValidateWarehouseReferences(candidate, token); await UniqueWarehouseCode(candidate, id, token);
             var before = WarehouseSnapshot(w);
             w.Configure(candidate.Code, candidate.Name, candidate.BranchId, candidate.KeeperMembershipId, candidate.InventoryAccountId, candidate.Type, candidate.TrackLocations, candidate.EnglishName, candidate.Notes);

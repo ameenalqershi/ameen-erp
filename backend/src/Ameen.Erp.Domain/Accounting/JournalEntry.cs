@@ -12,6 +12,7 @@ public sealed class JournalEntry : CompanyEntity
     public string? ExternalReference { get; private set; }
     public JournalState State { get; private set; } = JournalState.Draft;
     public JournalSource Source { get; private set; } = JournalSource.Manual;
+    public Guid? InventoryOpeningId { get; private set; }
     public Guid? RecurringTemplateId { get; private set; }
     public Guid? SourceTemplateVersion { get; private set; }
     public string CreatedBy { get; private set; } = "";
@@ -102,6 +103,13 @@ public sealed class JournalEntry : CompanyEntity
         Check.That(Source == JournalSource.Manual && RecurringTemplateId is null, "journal_source_conflict", "مصدر القيد محدد مسبقًا.", ErrorKind.Conflict);
         ReversesJournalId = originalId; Source = JournalSource.Reversal;
         ReversalReason = Check.Text(reason, "سبب العكس", 500);
+    }
+    public void SetInventoryOpeningSource(Guid openingId)
+    {
+        RequireState(JournalState.Draft);
+        Check.That(Source == JournalSource.Manual && openingId != Guid.Empty && ReversesJournalId is null && RecurringTemplateId is null,
+            "journal_source_conflict", "مصدر القيد غير صالح.", ErrorKind.Conflict);
+        InventoryOpeningId = openingId; Source = JournalSource.InventoryOpening; Touch();
     }
     public void SetRecurringSource(Guid templateId, Guid templateVersion)
     {

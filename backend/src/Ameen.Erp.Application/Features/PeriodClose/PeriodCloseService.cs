@@ -18,6 +18,18 @@ public sealed class PeriodCloseService : ApplicationService
         try { journal.ValidateBalance(); return null; }
         catch (BusinessException e) { return e.Code; }
     }
+    private async Task<bool> InventoryReconciles(Guid cid, Guid periodId, CancellationToken ct)
+    {
+        var openings = await store.Find<InventoryOpening>(cid, x => x.FiscalPeriodId == periodId && x.State == InventoryOpeningState.Posted, ct);
+        foreach (var opening in openings)
+        {
+            var journal = opening.JournalId is Guid id ? await store.Get<JournalEntry>(cid, id, ct) : null;
+            var movements = await store.Find<StockMovement>(cid, x => x.OpeningId == opening.Id, ct);
+            if (!InventoryOpeningReconciliation.Matches(opening, journal, movements)) return false;
+        }
+        var sources = await store.Find<JournalEntry>(cid, x => x.FiscalPeriodId == periodId && x.Source == JournalSource.InventoryOpening, ct);
+        return sources.All(j => openings.Any(o => o.Id == j.InventoryOpeningId && o.JournalId == j.Id));
+    }
     public async Task<PeriodClosePreview> PreviewPeriodClose(Guid cid, Guid id, Actor actor, int offset, int limit, CancellationToken ct)
     {
         Paging(offset, limit); await AuthorizeGlobal(cid, actor, Permissions.PeriodClose, ct);
@@ -31,9 +43,10 @@ public sealed class PeriodCloseService : ApplicationService
             else if (PostedJournal(journal) && BalanceError(journal) is string error)
                 issues.Add(new(journal.Id, journal.BranchId, journal.Number, journal.State, error));
         }
-        var openings = await store.Find<InventoryOpening>(cid, x => x.FiscalPeriodId == id && x.State != InventoryOpeningState.Cancelled, ct);
+        var openings = await store.Find<InventoryOpening>(cid, x => x.FiscalPeriodId == id && x.State != InventoryOpeningState.Cancelled && x.State != InventoryOpeningState.Posted, ct);
         var checks = new List<PeriodCloseCheck>
         {
+            new("inventory_openings_reconciled", await InventoryReconciles(cid, id, ct)),
             new("no_pending_inventory_openings", openings.Count == 0),
             new("company_active", company.IsActive), new("company_profile_complete", company.IsProfileComplete),
             new("period_open", !period.IsClosed), new("no_unposted_journals", !journals.Any(PendingJournal)),
@@ -50,11 +63,12 @@ public sealed class PeriodCloseService : ApplicationService
             var reason = Check.Text(request.Reason, "سبب الإقفال أو الفتح", 500);
             if (close)
             {
-                Check.That(!(await store.Find<InventoryOpening>(cid, x => x.FiscalPeriodId == id && x.State != InventoryOpeningState.Cancelled, token)).Any(),
+                Check.That(!(await store.Find<InventoryOpening>(cid, x => x.FiscalPeriodId == id && x.State != InventoryOpeningState.Cancelled && x.State != InventoryOpeningState.Posted, token)).Any(),
                     "pending_inventory_openings", "الفترة تحتوي افتتاحات مخزون غير مكتملة؛ لا يمكن الإقفال.", ErrorKind.Conflict);
                 var journals = await PeriodJournals(cid, id, token);
                 Check.That(!journals.Any(PendingJournal), "unposted_journals", "الفترة تحتوي قيودًا غير مرحلة؛ عالجها قبل الإقفال.", ErrorKind.Conflict);
                 foreach (var journal in journals.Where(PostedJournal)) journal.ValidateBalance();
+                Check.That(await InventoryReconciles(cid, id, token), "inventory_opening_reconciliation_failed", "افتتاح المخزون لا يطابق القيد المرتبط؛ لا يمكن الإقفال.", ErrorKind.Conflict);
             }
             period.SetClosed(close);
             Audit(cid, actor, close ? "period.closed" : "period.reopened", period, new { reason, GeneralLedgerOnly = true });

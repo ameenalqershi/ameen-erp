@@ -88,6 +88,10 @@ public sealed class InventoryIdentityService : ApplicationService
                 var candidate = new InventoryIdentity(companyId, itemId, tracking, request.Code, request.Name,
                     request.ProductionDate, request.ExpiryDate, request.QualityStatus, request.EnglishName, request.Notes,
                     request.LotNumber ?? identity.LotNumber, request.SerialNumber ?? identity.SerialNumber);
+                if ((await store.Find<StockMovement>(companyId, x => x.IdentityId == id, token)).Any())
+                    Check.That(candidate.Code == identity.Code && candidate.LotNumber == identity.LotNumber && candidate.SerialNumber == identity.SerialNumber &&
+                        candidate.ProductionDate == identity.ProductionDate && candidate.ExpiryDate == identity.ExpiryDate,
+                        "inventory_identity_in_stock", "رقم الهوية وتواريخها مقفلة بعد حركة المخزون.", ErrorKind.Conflict);
                 ValidateItemPolicy(item, candidate);
                 await EnsureUniqueCode(candidate, identity.Id, token);
                 var before = Snapshot(identity);

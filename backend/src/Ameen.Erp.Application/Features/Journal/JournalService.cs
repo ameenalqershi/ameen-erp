@@ -182,6 +182,7 @@ public sealed class JournalService : ApplicationService
         {
             var original = await Required<JournalEntry>(cid, id, token); Check.Version(original, request.ExpectedVersion);
             original.RequireState(JournalState.Posted);
+            Check.That(original.Source != JournalSource.InventoryOpening, "source_reversal_required", "عكس افتتاح المخزون يجب أن يعكس دفتر المخزون والقيد معًا من المصدر.", ErrorKind.Conflict);
             Check.That(request.AccountingDate >= original.AccountingDate, "reversal_before_original", "تاريخ العكس لا يسبق تاريخ الأصل.");
             var reason = Check.Text(request.Reason, "سبب العكس", 500);
             var period = await OpenPeriod(cid, request.AccountingDate, token);
