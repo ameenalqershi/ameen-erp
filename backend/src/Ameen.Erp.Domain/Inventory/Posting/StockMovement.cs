@@ -2,6 +2,7 @@ namespace Ameen.Erp.Domain;
 // Initial ledger source: inventory opening. Later movement sources require their own immutable provenance.
 public sealed class StockMovement : CompanyEntity
 {
+    public Guid? ReversesMovementId { get; private set; }
     public Guid OpeningId { get; private set; }
     public Guid JournalId { get; private set; }
     public Guid BranchId { get; private set; }
@@ -27,5 +28,17 @@ public sealed class StockMovement : CompanyEntity
         OpeningId = opening.Id; JournalId = journalId; BranchId = opening.BranchId; WarehouseId = opening.WarehouseId;
         ItemId = itemId; IdentityId = identityId; IsSerial = isSerial; InventoryAccountId = inventoryAccountId;
         BaseQuantity = baseQuantity; Value = value; CurrencyCode = opening.CurrencyCode; AccountingDate = opening.AccountingDate; OccurredAt = now;
+    }
+    public StockMovement Opposite(InventoryOpening reversal, Guid journalId, DateTimeOffset now)
+    {
+        Check.That(ReversesMovementId is null && reversal.ReversesOpeningId == OpeningId && reversal.CompanyId == CompanyId,
+            "stock_reversal_source_conflict", "مصدر حركة العكس غير صالح.");
+        return new StockMovement
+        {
+            CompanyId = CompanyId, ReversesMovementId = Id, OpeningId = reversal.Id, JournalId = journalId,
+            BranchId = BranchId, WarehouseId = WarehouseId, ItemId = ItemId, IdentityId = IdentityId, IsSerial = IsSerial,
+            InventoryAccountId = InventoryAccountId, BaseQuantity = -BaseQuantity, Value = -Value,
+            CurrencyCode = CurrencyCode, AccountingDate = reversal.AccountingDate, OccurredAt = now
+        };
     }
 }

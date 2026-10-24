@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-24T13:56:44.743314+00:00",
+  "startedAtUtc": "2026-10-24T14:21:27.556718+00:00",
   "sdk": "10.0.402",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "a78674727e09b9347f7f8c93b55a401e339c1fb01a9f5d04418923fe46a120bc",
+  "sourceSha256": "ff7687bb18bd356fb26f62f27a8de40c9db6b65722bae66e308baa6ea3cb1c35",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -203,6 +203,13 @@
     "PASS INV06 posting: revoked post permission blocks replay and foreign branch cannot read movements",
     "PASS INV06 posting: repeated item lines aggregate quantity and value once",
     "PASS INV06 posting: stock reads hide foreign branch and no setup means no post",
+    "PASS INV06 reversal: approved source reversal preserves history and nets stock and ledger to zero",
+    "PASS INV06 reversal: one live reversal and cancelled draft releases reservation",
+    "PASS INV06 reversal: dates permissions state and separate approver enforced",
+    "PASS INV06 reversal: return correct reason and resubmit preserves immutable quantities",
+    "PASS INV06 reversal: failed post restores source links movement outbox and approval",
+    "PASS INV06 reversal: later open period reverses closed period with historical accounts despite settings change",
+    "PASS INV06 reversal: no reverse of reversal and no second posted reversal",
     "PASS INV04: item units barcode and price roundtrip without stock movement",
     "PASS INV04: per-item conversion is exact and rejects fractional base quantities",
     "PASS INV04: services cannot carry stock policy and serial base units cannot allow fractions",
@@ -292,6 +299,7 @@
     "  SQL PASS idempotent schema 012→013 separates inventory numbers",
     "  SQL PASS idempotent schema 013→014 adds empty inventory opening documents",
     "  SQL PASS atomic/idempotent schema 014→015 creates no stock or settings and preserves old journals",
+    "  SQL PASS idempotent schema 015→016 adds reversal provenance without changing old amounts",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
     "  SQL PASS concurrent idempotency across independent connections",
@@ -335,6 +343,7 @@
     "  HOST PASS INV05 lot create/edit/search/detail/status/audit and route isolation over HTTPS/JWT/SQL",
     "  HOST PASS INV06 draft/valuation/submit/return/correct/approve/search/detail/audit over HTTPS/JWT/SQL",
     "  HOST PASS INV06 configure/preview/post/linked journal/stock movement over HTTPS/JWT/SQL",
+    "  HOST PASS INV06 create/submit/approve/post reversal and net-zero stock over HTTPS/JWT/SQL",
     "  HOST PASS SYS14 audit filters, event detail, invalid dates and authorization over HTTPS/JWT/SQL",
     "  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL",
     "  HOST PASS SYS04/COST01 create, PUT edit, search, status, usage and audit over production HTTPS/JWT/SQL",
@@ -345,10 +354,11 @@
     "  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS",
     "  SQL PASS INV06 concurrent replay/numbering, valuation, audit rollback, runtime line replacement, return/correct/approve, immutable lines and close blockers",
     "  SQL PASS INV06 atomic posting rollback/retry, concurrent replay, duplicate opening prevention, stock/control reconciliation, immutable ledger and runtime denial",
+    "  SQL PASS INV06 reversal draft/post replay, unique source, atomic Outbox rollback, runtime posting, negative movement and linked historical journal reconciliation",
     "PASS SQL Server integration"
   ],
-  "passed": 232,
-  "total": 232,
+  "passed": 239,
+  "total": 239,
   "failed": 0,
-  "finishedAtUtc": "2026-10-24T13:57:20.667768+00:00"
+  "finishedAtUtc": "2026-10-24T14:22:14.470939+00:00"
 }

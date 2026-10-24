@@ -4,7 +4,7 @@ namespace Ameen.Erp.Tests;
 public static class InventoryOpeningPostingTests
 {
     private static Actor Writer => InventoryOpeningTests.Writer;
-    private static async Task<(CreateInventoryOpeningRequest Request, CommandReceipt Receipt)> Setup(Fixture f, ItemTracking tracking = ItemTracking.None)
+    internal static async Task<(CreateInventoryOpeningRequest Request, CommandReceipt Receipt)> Setup(Fixture f, ItemTracking tracking = ItemTracking.None)
     {
         var request = await InventoryOpeningTests.Setup(f, tracking);
         var member = f.Store.All<Membership>().Single(x => x.Subject == Writer.Subject);
@@ -18,13 +18,13 @@ public static class InventoryOpeningPostingTests
         r = await InventoryOpeningTests.Action(f, r, "approve", reviewer);
         return (request, r);
     }
-    private static async Task<PostInventoryOpeningRequest> Plan(Fixture f, CommandReceipt r)
+    internal static async Task<PostInventoryOpeningRequest> Plan(Fixture f, CommandReceipt r)
     {
         var preview = await f.Service.InventoryOpening.Preview(f.CompanyId, r.ResourceId, Writer, default);
         Ensure(preview.CanPost && preview.PostingPlan is not null);
         return new(r.Version, preview.PostingPlan!.SettingsVersion, preview.PostingPlan.WarehouseVersion);
     }
-    private static Task<CommandReceipt> Post(Fixture f, CommandReceipt r, PostInventoryOpeningRequest p, string? key = null) =>
+    internal static Task<CommandReceipt> Post(Fixture f, CommandReceipt r, PostInventoryOpeningRequest p, string? key = null) =>
         f.Service.InventoryOpening.Post(f.CompanyId, r.ResourceId, Writer, key ?? Fixture.Key(), p, default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {

@@ -356,6 +356,20 @@ public static class HostedApiIntegration
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP stock movement missing");
                 Authenticate(Token("sql-owner"));
                 Console.WriteLine("  HOST PASS INV06 configure/preview/post/linked journal/stock movement over HTTPS/JWT/SQL");
+                Authenticate(Token("sql-clerk"));
+                var reversalOpening = await Command(client, openingsPath + $"/{opening.ResourceId}/reversals", new ReverseInventoryOpeningRequest(opening.Version, Fixture.Date, "تصحيح HTTP"));
+                reversalOpening = await Command(client, openingsPath + $"/{reversalOpening.ResourceId}/submit", new TransitionRequest(reversalOpening.Version));
+                Authenticate(Token("sql-approver"));
+                reversalOpening = await Command(client, openingsPath + $"/{reversalOpening.ResourceId}/approve", new TransitionRequest(reversalOpening.Version));
+                Authenticate(Token("sql-clerk"));
+                reversalOpening = await Command(client, openingsPath + $"/{reversalOpening.ResourceId}/post-reversal", new TransitionRequest(reversalOpening.Version));
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/stock-movements?warehouseId={openingWarehouse.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 2 &&
+                        json.RootElement.GetProperty("items").EnumerateArray().Sum(x => decimal.Parse(x.GetProperty("baseQuantity").GetString()!, System.Globalization.CultureInfo.InvariantCulture)) == 0, "HTTP reversal stock balance differs");
+                Authenticate(Token("sql-owner"));
+                Console.WriteLine("  HOST PASS INV06 create/submit/approve/post reversal and net-zero stock over HTTPS/JWT/SQL");
+
 
 
                 var auditPath = $"/api/v1/companies/{companyId}/audit-events";

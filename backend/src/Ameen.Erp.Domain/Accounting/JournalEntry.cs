@@ -104,12 +104,12 @@ public sealed class JournalEntry : CompanyEntity
         ReversesJournalId = originalId; Source = JournalSource.Reversal;
         ReversalReason = Check.Text(reason, "سبب العكس", 500);
     }
-    public void SetInventoryOpeningSource(Guid openingId)
+    public void SetInventoryOpeningSource(Guid openingId, Guid? originalJournalId = null)
     {
         RequireState(JournalState.Draft);
         Check.That(Source == JournalSource.Manual && openingId != Guid.Empty && ReversesJournalId is null && RecurringTemplateId is null,
             "journal_source_conflict", "مصدر القيد غير صالح.", ErrorKind.Conflict);
-        InventoryOpeningId = openingId; Source = JournalSource.InventoryOpening; Touch();
+        InventoryOpeningId = openingId; ReversesJournalId = originalJournalId; Source = JournalSource.InventoryOpening; Touch();
     }
     public void SetRecurringSource(Guid templateId, Guid templateVersion)
     {

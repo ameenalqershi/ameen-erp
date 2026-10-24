@@ -61,6 +61,7 @@ public sealed partial class InventoryOpeningService : ApplicationService
     }
     private async Task ValidateSnapshot(InventoryOpening opening, CancellationToken ct)
     {
+        if (opening.ReversesOpeningId is not null) { await ValidateReversal(opening, ct); return; }
         await ValidateHeader(opening, ct);
         var current = await Prepare(opening, opening.Lines.OrderBy(x => x.Position)
             .Select(x => new InventoryOpeningLineRequest(x.ItemId, x.UnitId, x.Quantity, x.UnitCost, x.IdentityId)).ToArray(), ct);
@@ -95,6 +96,7 @@ public sealed partial class InventoryOpeningService : ApplicationService
             token => AuthorizeOpening(cid, id, actor, Permissions.InventoryWrite, token), async token =>
         {
             var opening = await Required<InventoryOpening>(cid, id, token); Check.Version(opening, request.ExpectedVersion);
+            Check.That(opening.ReversesOpeningId is null, "opening_reversal_immutable", "سطور العكس وتواريخه تاريخية ثابتة؛ ألغِ المسودة لإنشاء عكس آخر.", ErrorKind.Conflict);
             var reason = Check.Text(request.Reason, "سبب التعديل", 500); await ValidateHeader(opening, token);
             var before = new { opening.Description, Lines = opening.Lines.ToArray(), opening.State, opening.Version };
             var lines = await Prepare(opening, request.Lines, token);

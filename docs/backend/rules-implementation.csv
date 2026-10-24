@@ -5,7 +5,7 @@ BR03,manual-journal,تاريخ الوثيقة والأثر ووقت الترحي
 BR04,partial,حساب فعال فرعي وعملة ومركز صحيح؛ المشروع والطرف لاحقًا,Program.cs: BR04
 BR05,partial,ذرية القيد والتدقيق وOutbox والنتيجة والتوليد الدوري وافتتاح المخزون؛ بقية الدفاتر والعامل الخارجي لم تنفذ,Program.cs: BR05; SqlIntegration.cs / RecurringSqlIntegration.cs: constraint rollback
 BR06,partial,Idempotency per company/actor/operation/body؛ قيد دوري فريد لكل قالب وفترة؛ مصادر بقية المستندات لاحقًا,Program.cs: BR06; RecurringTests.cs; SqlIntegration.cs / RecurringSqlIntegration.cs: concurrency
-BR07,manual-journal,حماية المرحل وعكس مرتبط بفترة مفتوحة وتثبيت سعر الأصل,Program.cs: BR07
+BR07,partial,حماية المرحل وعكس مرتبط تاريخي للقيد وافتتاح المخزون بكمية وقيمة وقيد ذري؛ بقية المصادر لاحقًا,Program.cs: BR07; InventoryOpeningReversalTests.cs; InventoryOpeningSqlIntegration.cs
 BR08,partial,منع قيد يدوي للحساب الرقابي؛ مطابقة افتتاح المخزون وحركته مع قيده عند الإقفال؛ بقية الدفاتر لاحقًا,Program.cs: BR08
 BR09,partial,تدقيق الأوامر وفصل المنشئ والمعتمد؛ مسارات مراجعة متعددة لاحقًا,Program.cs: BR09 / Workflow
 BR10,manual-journal,سعر موجب مؤرخ ثابت ومبالغ أصلية ووظيفية وعكس تاريخي,Program.cs: BR10

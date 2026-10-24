@@ -40,4 +40,11 @@ public sealed class InventoryOpeningLine : CompanyEntity
         LotNumber = identity?.LotNumber; SerialNumber = identity?.SerialNumber;
         Quantity = quantity; FactorToBase = factor; BaseQuantity = baseQuantity; UnitCost = cost; Value = value;
     }
+    public InventoryOpeningLine CopyFor(Guid openingId) => new()
+    {
+        CompanyId = CompanyId, OpeningId = openingId, Position = Position, ItemId = ItemId, ItemVersion = ItemVersion,
+        UnitId = UnitId, IdentityId = IdentityId, IdentityVersion = IdentityVersion, ItemCode = ItemCode, UnitCode = UnitCode,
+        LotNumber = LotNumber, SerialNumber = SerialNumber, Quantity = Quantity, FactorToBase = FactorToBase,
+        BaseQuantity = BaseQuantity, UnitCost = UnitCost, Value = Value
+    };
 }

@@ -26,6 +26,24 @@ public sealed class PeriodCloseService : ApplicationService
             var journal = opening.JournalId is Guid id ? await store.Get<JournalEntry>(cid, id, ct) : null;
             var movements = await store.Find<StockMovement>(cid, x => x.OpeningId == opening.Id, ct);
             if (!InventoryOpeningReconciliation.Matches(opening, journal, movements)) return false;
+            if (opening.ReversesOpeningId is Guid sourceId)
+            {
+                var source = await store.Get<InventoryOpening>(cid, sourceId, ct);
+                var original = source?.JournalId is Guid journalId ? await store.Get<JournalEntry>(cid, journalId, ct) : null;
+                if (source is null || source.ReversesOpeningId is not null || original is null || original.State != JournalState.Reversed ||
+                    original.ReversalJournalId != journal!.Id || journal.ReversesJournalId != original.Id) return false;
+                var originals = await store.Find<StockMovement>(cid, x => x.OpeningId == sourceId, ct);
+                if (originals.Count != movements.Count || !movements.All(m => originals.Any(o => m.ReversesMovementId == o.Id && m.ItemId == o.ItemId &&
+                    m.IdentityId == o.IdentityId && m.WarehouseId == o.WarehouseId && m.BaseQuantity == -o.BaseQuantity && m.Value == -o.Value))) return false;
+            }
+            else if (journal!.State == JournalState.Reversed)
+            {
+                var opposite = journal.ReversalJournalId is Guid reversalId ? await store.Get<JournalEntry>(cid, reversalId, ct) : null;
+                var reversal = opposite?.InventoryOpeningId is Guid openingId ? await store.Get<InventoryOpening>(cid, openingId, ct) : null;
+                if (reversal is null || reversal.ReversesOpeningId != opening.Id || reversal.State != InventoryOpeningState.Posted || opposite!.ReversesJournalId != journal.Id) return false;
+                var reverseMovements = await store.Find<StockMovement>(cid, x => x.OpeningId == reversal.Id, ct);
+                if (!InventoryOpeningReconciliation.Matches(reversal, opposite, reverseMovements)) return false;
+            }
         }
         var sources = await store.Find<JournalEntry>(cid, x => x.FiscalPeriodId == periodId && x.Source == JournalSource.InventoryOpening, ct);
         return sources.All(j => openings.Any(o => o.Id == j.InventoryOpeningId && o.JournalId == j.Id));

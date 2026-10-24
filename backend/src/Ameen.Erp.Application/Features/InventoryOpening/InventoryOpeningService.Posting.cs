@@ -71,6 +71,7 @@ public sealed partial class InventoryOpeningService
             token => AuthorizeOpening(cid, id, actor, Permissions.InventoryPost, token), async token =>
         {
             var opening = await Required<InventoryOpening>(cid, id, token); Check.Version(opening, request.ExpectedVersion);
+            Check.That(opening.ReversesOpeningId is null, "opening_reversal_post_required", "استخدم ترحيل مستند العكس.", ErrorKind.Conflict);
             Check.That(opening.State == InventoryOpeningState.Approved, "opening_state_conflict", "المستند غير معتمد.", ErrorKind.Conflict);
             await ValidateSnapshot(opening, token); var plan = await PlanPosting(opening, token);
             Check.That(plan.SettingsVersion == request.ExpectedSettingsVersion && plan.WarehouseVersion == request.ExpectedWarehouseVersion,

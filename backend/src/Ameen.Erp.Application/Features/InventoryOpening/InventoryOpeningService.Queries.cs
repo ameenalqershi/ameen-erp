@@ -20,9 +20,16 @@ public sealed partial class InventoryOpeningService
         var opening = await Get(cid, id, actor, ct);
         var value = opening.Lines.Sum(x => x.Value);
         if (opening.State == InventoryOpeningState.Posted)
-            return new(id, opening.Version, opening.CurrencyCode, value, opening.Lines.Count, false, "already_posted", clock.UtcNow);
+            return new(id, opening.Version, opening.CurrencyCode, opening.ReversesOpeningId is null ? value : -value, opening.Lines.Count, false, "already_posted", clock.UtcNow);
         await ValidateSnapshot(opening, ct);
         Check.That(opening.State != InventoryOpeningState.Cancelled, "opening_state_conflict", "المستند ملغى.", ErrorKind.Conflict);
+        if (opening.ReversesOpeningId is not null)
+        {
+            var reversalMember = await Authorize(cid, actor, Permissions.Read, opening.BranchId, ct);
+            var ready = opening.State == InventoryOpeningState.Approved && reversalMember.Has(Permissions.InventoryReverse) && reversalMember.Has(Permissions.InventoryPost);
+            return new(id, opening.Version, opening.CurrencyCode, -value, opening.Lines.Count, ready,
+                ready ? "" : "reversal_approval_or_permission_required", clock.UtcNow);
+        }
         InventoryOpeningPostingPlan plan;
         try { plan = await PlanPosting(opening, ct); }
         catch (BusinessException e) { return new(id, opening.Version, opening.CurrencyCode, value, opening.Lines.Count, false, e.Code, clock.UtcNow); }

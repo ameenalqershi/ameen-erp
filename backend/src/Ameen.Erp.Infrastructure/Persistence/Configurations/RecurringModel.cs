@@ -36,7 +36,7 @@ public sealed partial class ErpDbContext
             "([Source] = 0 AND [InventoryOpeningId] IS NULL AND [RecurringTemplateId] IS NULL AND [SourceTemplateVersion] IS NULL AND [ReversesJournalId] IS NULL) OR " +
             "([Source] = 1 AND [InventoryOpeningId] IS NULL AND [RecurringTemplateId] IS NOT NULL AND [SourceTemplateVersion] IS NOT NULL AND [ReversesJournalId] IS NULL) OR " +
             "([Source] = 2 AND [InventoryOpeningId] IS NULL AND [RecurringTemplateId] IS NULL AND [SourceTemplateVersion] IS NULL AND [ReversesJournalId] IS NOT NULL) OR " +
-            "([Source] = 3 AND [InventoryOpeningId] IS NOT NULL AND [RecurringTemplateId] IS NULL AND [SourceTemplateVersion] IS NULL AND [ReversesJournalId] IS NULL)");
+            "([Source] = 3 AND [InventoryOpeningId] IS NOT NULL AND [RecurringTemplateId] IS NULL AND [SourceTemplateVersion] IS NULL)");
 
         var generation = Tenant<RecurringJournalGeneration>(model, "RecurringJournalGenerations");
         generation.Property(x => x.GeneratedBy).HasMaxLength(200);

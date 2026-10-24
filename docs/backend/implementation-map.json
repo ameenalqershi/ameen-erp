@@ -6,10 +6,10 @@
   "partially_implemented_screens": 28,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 258,
+    "implemented": 259,
     "audit": 53,
     "derived": 4,
-    "partial": 37,
+    "partial": 36,
     "pending": 2407
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -1061,9 +1061,9 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/CostCenterTests.cs; backend/tests/Ameen.Erp.Tests/FoundationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "INV06": {
-      "api": "GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel|post; GET /{id}/valuation-preview|audit-events; GET/PUT /posting-settings; GET /companies/{companyId}/stock-movements",
-      "implemented": "تجهيز ومراجعة افتتاح ثم ترحيل ذري لحركة كمية وقيمة وقيد رقابة وOutbox؛ إعداد حساب التسوية ومعاينة الأثر؛ منع الافتتاح المكرر ومطابقة عند الإقفال وعزل الفروع",
-      "remaining": "تسوية افتتاح GL02 الشاملة والعكس والطباعة ومحرك تقييم الصرف؛ الأجنبية وسياسة القطع والجودة والمواقع وإدخال التسلسل النصي غير مكتملة",
+      "api": "GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel|post|correct-reversal|post-reversal; GET/POST /{id}/reversals; GET /{id}/valuation-preview|audit-events; GET/PUT /posting-settings; GET /companies/{companyId}/stock-movements",
+      "implemented": "تجهيز ومراجعة افتتاح ثم ترحيل ذري لحركة كمية وقيمة وقيد رقابة وOutbox؛ إعداد حساب التسوية ومعاينة الأثر؛ عكس مصدر معتمد بقيم تاريخية وحركات سالبة وقيد مرتبط؛ منع الافتتاح والعكس المكرر ومطابقة الإقفال وعزل الفروع",
+      "remaining": "تسوية افتتاح GL02 الشاملة وإعادة افتتاح مصحح والعكس الجزئي والطباعة ومحرك تقييم الصرف؛ الأجنبية وسياسة القطع والجودة والمواقع وإدخال التسلسل النصي غير مكتملة",
       "fields": {
         "INV06-F01": {
           "status": "implemented",
@@ -1157,16 +1157,16 @@
           "status": "partial",
           "binding": "ExchangeRate: fixed to 1 in initial scope"
         },
-        "INV06-F12": {
-          "status": "partial",
-          "binding": "Draft/Submitted/Returned/Approved/Cancelled/Posted; source reversal pending"
-        },
         "INV06-F21": {
           "status": "partial",
           "binding": "IdentityId selects serial; SerialNumber snapshot output instead of free-text input"
+        },
+        "INV06-F12": {
+          "status": "implemented",
+          "binding": "State: Draft/Submitted/Returned/Approved/Cancelled/Posted; linked reversal document with its own workflow"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryOpeningTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningPostingTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryOpeningTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningPostingTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningReversalTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "INV05": {
       "api": "GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",

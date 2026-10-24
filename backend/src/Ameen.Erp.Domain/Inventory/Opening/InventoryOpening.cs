@@ -1,6 +1,8 @@
 namespace Ameen.Erp.Domain;
 public sealed class InventoryOpening : CompanyEntity
 {
+    public Guid? ReversesOpeningId { get; private set; }
+    public string? ReversalReason { get; private set; }
     public Guid BranchId { get; private set; }
     public Guid WarehouseId { get; private set; }
     public Guid FiscalYearId { get; private set; }
@@ -61,6 +63,18 @@ public sealed class InventoryOpening : CompanyEntity
         }
         State = action switch { "submit" => InventoryOpeningState.Submitted, "approve" => InventoryOpeningState.Approved, "return" => InventoryOpeningState.Returned, _ => InventoryOpeningState.Cancelled };
         Advance(now);
+    }
+    public void SetReversalSource(Guid sourceId, string reason)
+    {
+        Check.That(State == InventoryOpeningState.Draft && ReversesOpeningId is null && sourceId != Guid.Empty && sourceId != Id,
+            "opening_reversal_source_conflict", "مصدر العكس غير صالح.", ErrorKind.Conflict);
+        ReversesOpeningId = sourceId; ReversalReason = Check.Text(reason, "سبب العكس", 500); Touch();
+    }
+    public void CorrectReversal(string reason, DateTimeOffset now)
+    {
+        Check.That(ReversesOpeningId is not null && State == InventoryOpeningState.Returned,
+            "opening_state_conflict", "التصحيح لمستند عكس معاد فقط.", ErrorKind.Conflict);
+        ReversalReason = Check.Text(reason, "سبب العكس", 500); State = InventoryOpeningState.Draft; Advance(now);
     }
     public void Post(Guid journalId, Guid inventoryAccountId, Guid clearingAccountId, Guid settingsVersion, string actor, DateTimeOffset now)
     {

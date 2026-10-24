@@ -124,13 +124,14 @@ screen("COST01", "GET/POST /companies/{companyId}/cost-centers; GET /search; GET
        [(12, "AuditEvent.ActorId: cost-center.created"), (13, "AuditEvent.OccurredAt: cost-center.created"), (15, "AuditEvent.OccurredAt: cost-center.edited / cost-center.status-changed")])
 MAP["COST01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CostCenterTests.cs", "FoundationSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
-screen("INV06", "GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel|post; GET /{id}/valuation-preview|audit-events; GET/PUT /posting-settings; GET /companies/{companyId}/stock-movements",
-       "تجهيز ومراجعة افتتاح ثم ترحيل ذري لحركة كمية وقيمة وقيد رقابة وOutbox؛ إعداد حساب التسوية ومعاينة الأثر؛ منع الافتتاح المكرر ومطابقة عند الإقفال وعزل الفروع",
-       "تسوية افتتاح GL02 الشاملة والعكس والطباعة ومحرك تقييم الصرف؛ الأجنبية وسياسة القطع والجودة والمواقع وإدخال التسلسل النصي غير مكتملة",
+screen("INV06", "GET/POST /companies/{companyId}/inventory-openings; GET/PUT /{id}; POST /{id}/submit|return|approve|cancel|post|correct-reversal|post-reversal; GET/POST /{id}/reversals; GET /{id}/valuation-preview|audit-events; GET/PUT /posting-settings; GET /companies/{companyId}/stock-movements",
+       "تجهيز ومراجعة افتتاح ثم ترحيل ذري لحركة كمية وقيمة وقيد رقابة وOutbox؛ إعداد حساب التسوية ومعاينة الأثر؛ عكس مصدر معتمد بقيم تاريخية وحركات سالبة وقيد مرتبط؛ منع الافتتاح والعكس المكرر ومطابقة الإقفال وعزل الفروع",
+       "تسوية افتتاح GL02 الشاملة وإعادة افتتاح مصحح والعكس الجزئي والطباعة ومحرك تقييم الصرف؛ الأجنبية وسياسة القطع والجودة والمواقع وإدخال التسلسل النصي غير مكتملة",
        {1: "InventoryOpening.Id", 2: "CompanyId", 3: "BranchId", 4: "FiscalYearId derived from FiscalPeriod", 5: "Number: IO per company/year initial sequence", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 13: "CutoffDate", 14: "WarehouseId", 15: "CountReference", 16: "Lines.ItemId", 17: "Lines.UnitId", 18: "Lines.Quantity and exact BaseQuantity snapshot", 19: "Lines.UnitCost in input unit", 20: "Lines.IdentityId for lot-tracked item", 22: "CreatedBy", 23: "CreatedAt", 24: "Revision", 25: "ModifiedAt"})
-for n, binding in {8: "CurrencyCode: functional currency only", 9: "ExchangeRate: fixed to 1 in initial scope", 12: "Draft/Submitted/Returned/Approved/Cancelled/Posted; source reversal pending", 21: "IdentityId selects serial; SerialNumber snapshot output instead of free-text input"}.items():
+for n, binding in {8: "CurrencyCode: functional currency only", 9: "ExchangeRate: fixed to 1 in initial scope", 21: "IdentityId selects serial; SerialNumber snapshot output instead of free-text input"}.items():
     MAP["INV06"]["fields"][f"INV06-F{n:02}"] = dict(status="partial", binding=binding)
-MAP["INV06"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["InventoryOpeningTests.cs", "InventoryOpeningPostingTests.cs", "InventoryOpeningSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+MAP["INV06"]["fields"]["INV06-F12"] = dict(status="implemented", binding="State: Draft/Submitted/Returned/Approved/Cancelled/Posted; linked reversal document with its own workflow")
+MAP["INV06"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["InventoryOpeningTests.cs", "InventoryOpeningPostingTests.cs", "InventoryOpeningReversalTests.cs", "InventoryOpeningSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("INV05", "GET/POST /companies/{companyId}/items/{itemId}/lots|serials; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events",
        "بطاقات هوية دفعات وتسلسل؛ بحث وتعديل وحالة وتدقيق وتزامن؛ فحص التاريخ وقفل تتبع الصنف؛ دون أثر مخزني",
        "اعتماد الجودة وإلزام الصلاحية؛ إزالة افتراض الرقم القديم عند غيابه بعقد إصدار جديد؛ الاستخدام والضمان وربط المستندات وقيود الهوية المستخدمة غير منفذة",
@@ -211,7 +212,7 @@ RULES = {
     "BR04": ("partial", "حساب فعال فرعي وعملة ومركز صحيح؛ المشروع والطرف لاحقًا", "Program.cs: BR04"),
     "BR05": ("partial", "ذرية القيد والتدقيق وOutbox والنتيجة والتوليد الدوري وافتتاح المخزون؛ بقية الدفاتر والعامل الخارجي لم تنفذ", "Program.cs: BR05; SqlIntegration.cs / RecurringSqlIntegration.cs: constraint rollback"),
     "BR06": ("partial", "Idempotency per company/actor/operation/body؛ قيد دوري فريد لكل قالب وفترة؛ مصادر بقية المستندات لاحقًا", "Program.cs: BR06; RecurringTests.cs; SqlIntegration.cs / RecurringSqlIntegration.cs: concurrency"),
-    "BR07": ("manual-journal", "حماية المرحل وعكس مرتبط بفترة مفتوحة وتثبيت سعر الأصل", "Program.cs: BR07"),
+    "BR07": ("partial", "حماية المرحل وعكس مرتبط تاريخي للقيد وافتتاح المخزون بكمية وقيمة وقيد ذري؛ بقية المصادر لاحقًا", "Program.cs: BR07; InventoryOpeningReversalTests.cs; InventoryOpeningSqlIntegration.cs"),
     "BR08": ("partial", "منع قيد يدوي للحساب الرقابي؛ مطابقة افتتاح المخزون وحركته مع قيده عند الإقفال؛ بقية الدفاتر لاحقًا", "Program.cs: BR08"),
     "BR09": ("partial", "تدقيق الأوامر وفصل المنشئ والمعتمد؛ مسارات مراجعة متعددة لاحقًا", "Program.cs: BR09 / Workflow"),
     "BR10": ("manual-journal", "سعر موجب مؤرخ ثابت ومبالغ أصلية ووظيفية وعكس تاريخي", "Program.cs: BR10"),

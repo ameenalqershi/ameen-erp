@@ -18,6 +18,7 @@ public sealed partial class ErpDbContext
         }
         foreach (var entry in ChangeTracker.Entries<InventoryOpening>().Where(e => e.State is EntityState.Modified or EntityState.Deleted))
         {
+            Check.That(!entry.Property(x => x.ReversesOpeningId).IsModified, "opening_reversal_source_immutable", "مرجع العكس غير قابل للتعديل.");
             var original = entry.OriginalValues.GetValue<InventoryOpeningState>(nameof(InventoryOpening.State));
             Check.That(entry.State != EntityState.Deleted && original is not (InventoryOpeningState.Posted or InventoryOpeningState.Cancelled),
                 "opening_immutable", "المستند المرحل أو الملغى محمي من التعديل.");
@@ -74,7 +75,7 @@ public sealed partial class ErpDbContext
                 var movements = ChangeTracker.Entries<StockMovement>().Where(x => x.State == EntityState.Added && x.Entity.CompanyId == entry.Entity.CompanyId && x.Entity.OpeningId == entry.Entity.InventoryOpeningId).Select(x => x.Entity).ToArray();
                 Check.That(opening is not null && opening.Entity.State == InventoryOpeningState.Posted && opening.Entity.JournalId == entry.Entity.Id &&
                     entry.Entity.State == JournalState.Posted && entry.Entity.ApprovedBy == opening.Entity.ApprovedBy && entry.Entity.CreatedBy == opening.Entity.CreatedBy &&
-                    movements.Sum(x => x.Value) == entry.Entity.Lines.Sum(x => x.FunctionalDebit) && movements.Length > 0,
+                    movements.Sum(x => x.Value) == (opening.Entity.ReversesOpeningId is null ? 1 : -1) * entry.Entity.Lines.Sum(x => x.FunctionalDebit) && movements.Length > 0,
                     "inventory_journal_owner_required", "القيد الآلي يتطلب مصدرًا وحركات مخزون داخل معاملة الترحيل.");
             }
             if (entry.State is not (EntityState.Modified or EntityState.Deleted)) continue;

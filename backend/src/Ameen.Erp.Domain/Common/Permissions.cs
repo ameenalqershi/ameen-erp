@@ -17,5 +17,6 @@ public static class Permissions
     public const string InventoryWrite = "inventory.opening.write";
     public const string InventoryApprove = "inventory.opening.approve";
     public const string InventoryPost = "inventory.opening.post";
-    public static readonly string[] All = { Read, Configure, Members, Draft, Approve, Post, Reverse, PeriodClose, PeriodReopen, Audit, RecurringManage, RecurringGenerate, InventoryWrite, InventoryApprove, InventoryPost };
+    public const string InventoryReverse = "inventory.opening.reverse";
+    public static readonly string[] All = { Read, Configure, Members, Draft, Approve, Post, Reverse, PeriodClose, PeriodReopen, Audit, RecurringManage, RecurringGenerate, InventoryWrite, InventoryApprove, InventoryPost, InventoryReverse };
 }

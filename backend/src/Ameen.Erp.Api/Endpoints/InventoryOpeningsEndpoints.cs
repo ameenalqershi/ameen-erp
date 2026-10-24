@@ -28,6 +28,14 @@ internal static class InventoryOpeningsEndpoints
             Results.Ok(await s.ConfigurePosting(companyId, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags(tag);
         app.MapGet(EndpointRoutes.Company + "/stock-movements", async (Guid companyId, Guid? warehouseId, Guid? itemId, int? offset, int? limit, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.Movements(companyId, Actor(h), warehouseId, itemId, offset ?? 0, limit ?? 50, ct))).Produces<Page<StockMovement>>().RequireAuthorization().WithTags(tag);
+        app.MapGet(p + "/{id:guid}/reversals", async (Guid companyId, Guid id, int? offset, int? limit, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.Reversals(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<InventoryOpening>>().RequireAuthorization().WithTags(tag);
+        app.MapPost(p + "/{id:guid}/reversals", async (Guid companyId, Guid id, ReverseInventoryOpeningRequest r, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.CreateReversal(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags(tag);
+        app.MapPost(p + "/{id:guid}/correct-reversal", async (Guid companyId, Guid id, TransitionRequest r, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.CorrectReversal(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags(tag);
+        app.MapPost(p + "/{id:guid}/post-reversal", async (Guid companyId, Guid id, TransitionRequest r, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.PostReversal(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags(tag);
         foreach (var action in new[] { "submit", "approve", "return", "cancel" })
             app.MapPost(p + "/{id:guid}/" + action, async (Guid companyId, Guid id, TransitionRequest r, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
                 Results.Ok(await s.Transition(companyId, id, Actor(h), Key(h), r, action, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags(tag);

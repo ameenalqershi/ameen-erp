@@ -206,6 +206,17 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(postingScript); await db.Database.ExecuteSqlRawAsync(postingScript);
         Ensure(!await db.Set<StockMovement>().AnyAsync(), "Posting upgrade invented balances");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 014→015 creates no stock or settings and preserves old journals");
+        var reversalScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "016_inventory_opening_reversals.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [InventoryOpenings] ADD CONSTRAINT [CK_InventoryOpening_Reversal] CHECK ([Revision] > 0)");
+        try { await db.Database.ExecuteSqlRawAsync(reversalScript); throw new Exception("Conflicting reversal migration accepted"); }
+        catch (SqlException e) when (e.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('StockMovements') AND name='ReversesMovementId'").SingleAsync() == 0, "Failed reversal migration left columns");
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=16").AnyAsync(), "Failed reversal migration saved version");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [InventoryOpenings] DROP CONSTRAINT [CK_InventoryOpening_Reversal]");
+        await db.Database.ExecuteSqlRawAsync(reversalScript); await db.Database.ExecuteSqlRawAsync(reversalScript);
+        Ensure(!await db.Set<StockMovement>().AnyAsync(), "Reversal upgrade invented movements");
+        Console.WriteLine("  SQL PASS idempotent schema 015→016 adds reversal provenance without changing old amounts");
+
 
 
 

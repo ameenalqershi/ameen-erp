@@ -127,6 +127,50 @@ public static class InventoryOpeningSqlIntegration
             finally { await db.Database.ExecuteSqlRawAsync("REVERT; DROP USER [stock_runtime_test];"); }
         }
         Console.WriteLine("  SQL PASS INV06 atomic posting rollback/retry, concurrent replay, duplicate opening prevention, stock/control reconciliation, immutable ledger and runtime denial");
+        var postedSource = await Call(s => s.InventoryOpening.Get(cid, r.ResourceId, writer, default));
+        var reverseKey = Fixture.Key(); var reverseRequest = new ReverseInventoryOpeningRequest(postedSource.Version, Fixture.Date, "تصحيح SQL");
+        var reversals = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s => s.InventoryOpening.CreateReversal(cid, r.ResourceId, writer, reverseKey, reverseRequest, default))));
+        Ensure(reversals.Distinct().Count() == 1, "Reversal draft replay duplicated");
+        try { await Call(s => s.InventoryOpening.CreateReversal(cid, r.ResourceId, writer, Fixture.Key(), reverseRequest, default)); throw new Exception("Second live reversal accepted"); }
+        catch (BusinessException e) when (e.Code == "opening_reversal_exists") { }
+        var reversal = reversals[0];
+        reversal = await Call(s => s.InventoryOpening.Transition(cid, reversal.ResourceId, writer, Fixture.Key(), new(reversal.Version), "submit", default));
+        reversal = await Call(s => s.InventoryOpening.Transition(cid, reversal.ResourceId, reviewer, Fixture.Key(), new(reversal.Version), "approve", default));
+        var reversePost = new TransitionRequest(reversal.Version); var reversePostKey = Fixture.Key();
+        await using (var db = Context()) await db.Database.ExecuteSqlRawAsync("ALTER TABLE [OutboxEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_ReverseStock] CHECK ([Type] <> 'stock.inventory-opening-reversed.v1')");
+        try { await Call(s => s.InventoryOpening.PostReversal(cid, reversal.ResourceId, writer, reversePostKey, reversePost, default)); throw new Exception("Reverse Outbox failure expected"); }
+        catch (BusinessException e) when (e.Code == "database_constraint") { }
+        await using (var db = Context())
+        {
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [OutboxEvents] DROP CONSTRAINT [CK_Test_ReverseStock]");
+            Ensure(!await db.Set<StockMovement>().AnyAsync(x => x.OpeningId == reversal.ResourceId) && !await db.Set<JournalEntry>().AnyAsync(x => x.InventoryOpeningId == reversal.ResourceId), "Failed reversal leaked effects");
+            var originalJournal = await db.Set<JournalEntry>().SingleAsync(x => x.Id == postedSource.JournalId);
+            Ensure(originalJournal.State == JournalState.Posted && originalJournal.ReversalJournalId == null, "Failed reversal changed original journal");
+            Ensure(!await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == reversePostKey), "Failed reversal saved receipt");
+            await db.Database.OpenConnectionAsync();
+            await db.Database.ExecuteSqlRawAsync("CREATE USER [reverse_runtime_test] WITHOUT LOGIN; ALTER ROLE [ameen_runtime] ADD MEMBER [reverse_runtime_test]; EXECUTE AS USER = 'reverse_runtime_test';");
+            try
+            {
+                var service = new TestServices(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock());
+                await service.InventoryOpening.PostReversal(cid, reversal.ResourceId, writer, reversePostKey, reversePost, default);
+            }
+            finally { await db.Database.ExecuteSqlRawAsync("REVERT; DROP USER [reverse_runtime_test];"); }
+        }
+        var reversedReplays = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s => s.InventoryOpening.PostReversal(cid, reversal.ResourceId, writer, reversePostKey, reversePost, default))));
+        Ensure(reversedReplays.Distinct().Count() == 1, "Reversal post replay differs");
+        await using (var db = Context())
+        {
+            var movements = await db.Set<StockMovement>().Where(x => x.OpeningId == r.ResourceId || x.OpeningId == reversal.ResourceId).ToListAsync();
+            Ensure(movements.Count == 2 && movements.Sum(x => x.Value) == 0 && movements.Sum(x => x.BaseQuantity) == 0, "Stock reversal does not net to zero");
+            var originalJournal = await db.Set<JournalEntry>().SingleAsync(x => x.Id == postedSource.JournalId);
+            var reverseJournal = await db.Set<JournalEntry>().SingleAsync(x => x.InventoryOpeningId == reversal.ResourceId);
+            Ensure(originalJournal.State == JournalState.Reversed && originalJournal.ReversalJournalId == reverseJournal.Id && reverseJournal.ReversesJournalId == originalJournal.Id, "Reverse provenance differs");
+            Ensure(originalJournal.Lines.Single(x => x.Position == 1).FunctionalDebit == reverseJournal.Lines.Single(x => x.Position == 1).FunctionalCredit, "Historical journal value differs");
+        }
+        var reconciled = await Call(s => s.PeriodClose.PreviewPeriodClose(cid, periodId, reviewer, 0, 10, default));
+        Ensure(reconciled.Checks.Single(x => x.Code == "inventory_openings_reconciled").Passed, "Reversed opening fails reconciliation");
+        Console.WriteLine("  SQL PASS INV06 reversal draft/post replay, unique source, atomic Outbox rollback, runtime posting, negative movement and linked historical journal reconciliation");
+
 
     }
     private static void Ensure(bool value, string message) { if (!value) throw new Exception(message); }
