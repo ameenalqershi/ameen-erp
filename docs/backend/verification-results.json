@@ -342,15 +342,15 @@
     "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40381093687"
   },
   "latestGithubActions": {
-    "runId": 40407738776,
-    "headSha": "321806e688be942d778a6cb43e0e213722c46a67",
+    "runId": 40409584891,
+    "headSha": "46afe78e98dcbf4dfb02b7eabfd04444d28e4c2b",
     "result": "passed",
-    "passed": 279,
-    "total": 279,
+    "passed": 280,
+    "total": 280,
     "failed": 0,
     "liveSql": true,
     "httpsJwt": true,
-    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40407738776",
-    "note": "Verified in GitHub Actions for the linked code SHA. Top-level local verification fields document a prior baseline run and are preserved."
+    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40409584891",
+    "note": "Run for code SHA; earlier local verification remains historical."
   }
 }
