@@ -26,9 +26,11 @@ BEGIN TRY
                 t.[LastModifiedAt] = CASE WHEN h.LastChange > t.[CreatedAt] THEN h.LastChange ELSE t.[CreatedAt] END
             FROM [RecurringJournalTemplates] t LEFT JOIN history h
                 ON h.CompanyId = t.CompanyId AND h.ResourceId = t.Id;';
-        ALTER TABLE [RecurringJournalTemplates] ALTER COLUMN [LastModifiedAt] datetimeoffset NOT NULL;
-        ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_Recurring_Revision]
-            CHECK ([Revision] > 0 AND [LastModifiedAt] >= [CreatedAt]);
+        -- Compile conversion/check only after both new columns exist.
+        EXEC sys.sp_executesql N'
+            ALTER TABLE [RecurringJournalTemplates] ALTER COLUMN [LastModifiedAt] datetimeoffset NOT NULL;
+            ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_Recurring_Revision]
+                CHECK ([Revision] > 0 AND [LastModifiedAt] >= [CreatedAt]);';
         INSERT INTO dbo.__AmeenSchemaVersions ([Version],[AppliedAt]) VALUES (20,SYSUTCDATETIME());
     END;
     COMMIT TRANSACTION;
