@@ -9,6 +9,29 @@ public static class JournalProcessingTests
     private static async Task<CommandReceipt> Approved(Fixture f) => await f.Action(await f.Action(await f.Draft(), "submit"), "approve", f.Approver);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("GL03-A01: journal search finds number, description and external reference without leaking branch", async f =>
+        {
+            var first = await f.Draft(f.Request() with { Description = "MANUAL-SEARCH-ALPHA", ExternalReference = "EXT-MANUAL-ALPHA" });
+            var second = await f.Draft(f.Request(branch: f.OtherBranchId) with { Description = "MANUAL-SEARCH-BETA", ExternalReference = "EXT-MANUAL-BETA" });
+            var result = await f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 0, 10, default,
+                JournalSource.Manual, "EXT-MANUAL-ALPHA");
+            Ensure(result.TotalCount == 1 && result.Items.Single().Id == first.ResourceId);
+            result = await f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 0, 10, default,
+                JournalSource.Manual, "MANUAL-SEARCH-BETA");
+            Ensure(result.TotalCount == 1 && result.Items.Single().Id == second.ResourceId);
+            result = await f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, f.BranchId, null, 0, 1, default,
+                JournalSource.Manual, "MANUAL-SEARCH");
+            Ensure(result.TotalCount == 1 && result.Items.Single().Id == first.ResourceId);
+            var confined = await f.Service.Journal.ListJournals(f.CompanyId, f.Limited, null, null, 0, 10, default,
+                JournalSource.Manual, "EXT-MANUAL-BETA");
+            Ensure(confined.TotalCount == 0);
+            var oldNumber = (await f.Journal(first.ResourceId)).Number;
+            result = await f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 0, 10, default,
+                JournalSource.Manual, oldNumber);
+            Ensure(result.TotalCount == 1 && result.Items.Single().Id == first.ResourceId);
+            await Error("search_too_long", () => f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null,
+                0, 10, default, JournalSource.Manual, new string('x', 101)));
+        });
         test("GL05/06: mixed batch commits valid document and records invalid document without all-success claim", async f =>
         {
             var approved = await Approved(f); var draft = await f.Draft(); var items = new[] { Item(approved), Item(draft) };

@@ -141,6 +141,13 @@ public static class HostedApiIntegration
 
                 var requestKey = Fixture.Key();
                 var receipt = await Command(client, path, journalRequest, requestKey);
+                using (var response = await client.GetAsync(path + "?source=Manual&search=" + Uri.EscapeDataString(receipt.Number)))
+                {
+                    using var result = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        result.RootElement.GetProperty("items").EnumerateArray().Any(x => x.GetProperty("id").GetGuid() == receipt.ResourceId),
+                        "GL03 list/search must find a manual journal by number over HTTPS/JWT/SQL");
+                }
                 var replay = await Command(client, path, journalRequest, requestKey);
                 Ensure(receipt == replay, "Production HTTP/SQL replay differs");
                 receipt = await Command(client, path + $"/{receipt.ResourceId}/submit", new TransitionRequest(receipt.Version));

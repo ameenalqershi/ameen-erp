@@ -19,8 +19,8 @@ internal static class JournalsEndpoints
             Results.Ok(await s.ProcessJournals(companyId, Actor(h), r, ct))).Produces<JournalProcessingResult>().RequireAuthorization().WithTags("GL05 GL06 Journal processing");
         app.MapGet(p + "/journals/{id:guid}/processing-history", async (Guid companyId, Guid id, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ProcessingHistory(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("GL05 GL06 Journal processing");
-        app.MapGet(p + "/journals", async (Guid companyId, Guid? branchId, JournalState? state, JournalSource? source, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
-            Results.Ok(await s.ListJournals(companyId, Actor(h), branchId, state, offset ?? 0, limit ?? 50, ct, source))).Produces<Page<JournalSummary>>().RequireAuthorization().WithTags("GL03 Journals");
+        app.MapGet(p + "/journals", async (Guid companyId, Guid? branchId, JournalState? state, JournalSource? source, string? search, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListJournals(companyId, Actor(h), branchId, state, offset ?? 0, limit ?? 50, ct, source, search))).Produces<Page<JournalSummary>>().RequireAuthorization().WithTags("GL03 Journals");
         app.MapGet(p + "/journals/{id:guid}", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.GetJournal(companyId, id, Actor(h), ct))).Produces<JournalEntry>().RequireAuthorization().WithTags("GL03 Journals");
         app.MapPost(p + "/journals", async (Guid companyId, CreateJournalRequest r, JournalService s, HttpContext h, CancellationToken ct) =>
