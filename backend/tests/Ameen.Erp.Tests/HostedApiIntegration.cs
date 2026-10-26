@@ -281,11 +281,11 @@ public static class HostedApiIntegration
                         new RunDueRecurringRequest(new DateOnly(2026, 6, 30), 100), JsonDefaults.Options),
                         Encoding.UTF8, "application/json");
                     using var result = await client.SendAsync(run);
-                    using var body = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
+                    using var dueJson = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
                     Ensure(result.StatusCode == HttpStatusCode.OK &&
-                        body.RootElement.GetProperty("generatedCount").GetInt32() == 6 &&
-                        body.RootElement.GetProperty("failedCount").GetInt32() == 0 &&
-                        body.RootElement.GetProperty("rows").EnumerateArray().All(x =>
+                        dueJson.RootElement.GetProperty("generatedCount").GetInt32() == 6 &&
+                        dueJson.RootElement.GetProperty("failedCount").GetInt32() == 0 &&
+                        dueJson.RootElement.GetProperty("rows").EnumerateArray().All(x =>
                             x.GetProperty("templateId").GetGuid() == scheduledTemplate.ResourceId &&
                             x.GetProperty("succeeded").GetBoolean()),
                         "GL04 signed HTTPS due scan failed or generated manual templates");
@@ -296,9 +296,9 @@ public static class HostedApiIntegration
                         new RunDueRecurringRequest(new DateOnly(2026, 6, 30)), JsonDefaults.Options),
                         Encoding.UTF8, "application/json");
                     using var result = await client.SendAsync(run);
-                    using var body = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
+                    using var dueJson = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
                     Ensure(result.StatusCode == HttpStatusCode.OK &&
-                        body.RootElement.GetProperty("selectedCount").GetInt32() == 0,
+                        dueJson.RootElement.GetProperty("selectedCount").GetInt32() == 0,
                         "GL04 HTTPS recurring scheduler was not idempotent");
                 }
                 using (var generations = await client.GetAsync(recurringPath + $"/{scheduledTemplate.ResourceId}/generations"))
