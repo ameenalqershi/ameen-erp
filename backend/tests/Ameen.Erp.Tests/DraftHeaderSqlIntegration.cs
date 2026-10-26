@@ -13,7 +13,23 @@ public static class DraftHeaderSqlIntegration
         async Task<T> Call<T>(Func<TestServices, Task<T>> work)
         { await using var db = Context(); return await work(new TestServices(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock())); }
         var draft = await Call(s => s.Journal.CreateGeneralOpening(cid, clerk, Fixture.Key(), GeneralOpeningTests.Request(request), default));
-        var date = request.AccountingDate.AddMonths(1);
+        DateOnly date;
+        await using (var db = Context())
+        {
+            var source = await db.Set<JournalEntry>().SingleAsync(x => x.Id == draft.ResourceId);
+            var period = await db.Set<FiscalPeriod>().SingleAsync(x => x.Id == source.FiscalPeriodId);
+            var available = await db.Set<FiscalPeriod>().Where(x => x.CompanyId == cid && x.FiscalYearId == period.FiscalYearId &&
+                x.Id != period.Id && !x.IsClosed).OrderByDescending(x => x.StartsOn).FirstAsync();
+            date = available.StartsOn;
+            var closed = await db.Set<FiscalPeriod>().FirstOrDefaultAsync(x => x.CompanyId == cid && x.IsClosed);
+            if (closed is not null)
+            {
+                var denied = new EditGeneralOpeningRequest(draft.Version, "فترة مقفلة", "TB-CLOSED", request.Lines,
+                    new(request.BranchId, closed.StartsOn, closed.StartsOn, null, closed.StartsOn));
+                try { await Call(s => s.Journal.EditGeneralOpening(cid, draft.ResourceId, clerk, Fixture.Key(), denied, default)); throw new Exception("Closed target period was accepted"); }
+                catch (BusinessException e) when (e.Code == "period_closed") { }
+            }
+        }
         var header = new DraftJournalHeaderRequest(request.BranchId, date.AddDays(1), date, "SQL-HEADER", date.AddDays(2));
         var edit = new EditGeneralOpeningRequest(draft.Version, "تصحيح الرأس والسطور", "TB-SQL-HEADER", request.Lines, header);
         var key = Fixture.Key();
