@@ -6,10 +6,10 @@
   "partially_implemented_screens": 31,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 297,
+    "implemented": 298,
     "audit": 52,
     "derived": 5,
-    "partial": 43,
+    "partial": 42,
     "pending": 2362
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -783,7 +783,7 @@
     "GL04": {
       "api": "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
       "implemented": "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ رقم إصدار تعديل صحيح وآخر تعديل خادمي؛ مصدر وإصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
-      "remaining": "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ تاريخ النهاية اختياري بالمخطط لكن العقد الحالي يتطلبه (GL04-F07)؛ خيارات دورية أخرى غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",
+      "remaining": "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ خيارات دورية إضافية غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",
       "fields": {
         "GL04-F01": {
           "status": "implemented",
@@ -810,8 +810,8 @@
           "binding": "StartsOn"
         },
         "GL04-F07": {
-          "status": "partial",
-          "binding": "EndsOn required; analysis marks end date optional, open-ended template not yet supported"
+          "status": "implemented",
+          "binding": "EndsOn: nullable optional; recurring generation continues until explicitly ended"
         },
         "GL04-F09": {
           "status": "implemented",

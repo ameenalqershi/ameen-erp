@@ -342,15 +342,15 @@
     "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40381093687"
   },
   "latestGithubActions": {
-    "runId": 40418027090,
-    "headSha": "502932ba2a5e3287e6d4d8696e8510d750be1f0f",
+    "runId": 40421699088,
+    "headSha": "143a2fbe97f38fd8cf1e95460ec7f1a94334abad",
     "result": "passed",
-    "passed": 284,
-    "total": 284,
+    "passed": 286,
+    "total": 286,
     "failed": 0,
     "liveSql": true,
     "httpsJwt": true,
-    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40418027090",
-    "note": "Verified GL04 scheduled recurring draft runner, opt-in worker wiring, SQL schema 019 and auth-scoped API with 284/284 passing; worker not enabled on production."
+    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40421699088",
+    "note": "Verified SQL 021 nullable EndsOn and open-ended recurring template with full tests. Activation on VPS is opt-in."
   }
 }
