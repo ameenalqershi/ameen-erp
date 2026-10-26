@@ -6,10 +6,10 @@
   "partially_implemented_screens": 31,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 297,
+    "implemented": 298,
     "audit": 53,
     "derived": 5,
-    "partial": 42,
+    "partial": 41,
     "pending": 2362
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -781,9 +781,9 @@
       }
     },
     "GL04": {
-      "api": "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events",
-      "implemented": "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي لمسودة واحدة لكل فترة؛ إصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
-      "remaining": "طرق توليد مجدولة غير طريقة Manual الحالية؛ تخصيص دوريات غير الشهرية وربع السنوية والسنوية إذا اعتمدت ضمن خيارات الشاشة",
+      "api": "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
+      "implemented": "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ إصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
+      "remaining": "الفرع العام الشرطي غير محسوم؛ تخصيص دوريات غير الشهرية وربع السنوية والسنوية إذا اعتمدت ضمن خيارات الشاشة؛ يلزم إعداد هوية المشغل وخدمة الإنتاج",
       "fields": {
         "GL04-F01": {
           "status": "implemented",
@@ -846,8 +846,8 @@
           "binding": "AuditEvent.OccurredAt: recurring.edited / recurring.status-changed; scoped /audit-events"
         },
         "GL04-F08": {
-          "status": "partial",
-          "binding": "GenerationMode: Manual only; produces Draft with independent approval/posting"
+          "status": "implemented",
+          "binding": "GenerationMode: Manual or Scheduled; due-only draft runner and opt-in authorized worker; no automatic approval/posting"
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/RecurringTests.cs; backend/tests/Ameen.Erp.Tests/RecurringSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"

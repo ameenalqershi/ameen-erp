@@ -342,15 +342,15 @@
     "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40381093687"
   },
   "latestGithubActions": {
-    "runId": 40415280131,
-    "headSha": "595b7dc3632bde7dd71ea55d4f9326c70127c9ea",
+    "runId": 40418027090,
+    "headSha": "502932ba2a5e3287e6d4d8696e8510d750be1f0f",
     "result": "passed",
-    "passed": 283,
-    "total": 283,
+    "passed": 284,
+    "total": 284,
     "failed": 0,
     "liveSql": true,
     "httpsJwt": true,
-    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40415280131",
-    "note": "GL02 FX schema 018 + GL07 reversal lifecycle regression, original local evidence preserved."
+    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40418027090",
+    "note": "Verified GL04 scheduled recurring draft runner, opt-in worker wiring, SQL schema 019 and auth-scoped API with 284/284 passing; worker not enabled on production."
   }
 }

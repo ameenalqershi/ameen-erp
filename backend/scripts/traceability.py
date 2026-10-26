@@ -98,12 +98,13 @@ screen("GL03", "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
        "قيد يدوي متعدد العملات والمراكز بدورة مستقلة وأرقام وسعر تاريخي؛ تعديل رأس المسودة والسطور مع إعادة ربط الفترة وترقيم السنة والتحقق من السعر النافذ", "المشروع والطرف والمرفقات وأنواع القيود والعكس المجدول",
        {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 16: "Lines[].AccountId", 17: "Lines[].Debit", 18: "Lines[].Credit", 19: "Lines[].CurrencyCode", 20: "Lines[].ExchangeRate (ExchangeRateId on input)", 21: "Lines[].CostCenterId", 24: "Lines[].Description", 25: "CreatedBy", 26: "CreatedAt", 27: "Version"},
        [(28, "AuditEvent.OccurredAt: journal.edited")])
-screen("GL04", "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate; GET /generations|schedule|audit-events",
-       "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي لمسودة واحدة لكل فترة؛ إصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
-       "طرق توليد مجدولة غير طريقة Manual الحالية؛ تخصيص دوريات غير الشهرية وربع السنوية والسنوية إذا اعتمدت ضمن خيارات الشاشة",
+screen("GL04", "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
+       "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ إصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
+       "الفرع العام الشرطي غير محسوم؛ تخصيص دوريات غير الشهرية وربع السنوية والسنوية إذا اعتمدت ضمن خيارات الشاشة؛ يلزم إعداد هوية المشغل وخدمة الإنتاج",
        {1: "CompanyId", 2: "BranchId", 3: "IsActive", 4: "Name", 5: "Frequency", 6: "StartsOn", 7: "EndsOn", 9: "Lines[].AccountId",
         10: "Lines[].Debit", 11: "Lines[].Credit", 12: "Lines[].CostCenterId", 13: "CreatedBy", 14: "CreatedAt", 15: "Version"},
        [(16, "AuditEvent.OccurredAt: recurring.edited / recurring.status-changed; scoped /audit-events")])
+MAP["GL04"]["fields"]["GL04-F08"] = dict(status="implemented", binding="GenerationMode: Manual or Scheduled; due-only draft runner and opt-in authorized worker; no automatic approval/posting")
 MAP["GL04"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["RecurringTests.cs", "RecurringSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("GL05", "POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch",
