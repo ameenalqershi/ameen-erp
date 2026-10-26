@@ -329,5 +329,16 @@
   "passed": 277,
   "total": 277,
   "failed": 0,
-  "finishedAtUtc": "2026-10-26T18:48:15.044834+00:00"
+  "finishedAtUtc": "2026-10-26T18:48:15.044834+00:00",
+  "githubActions": {
+    "commit": "963aa165fcbf7073acf33df75e5fe4649e7a9449",
+    "runId": 40381093687,
+    "jobId": 121777202117,
+    "result": "passed",
+    "passed": 278,
+    "total": 278,
+    "failed": 0,
+    "liveSqlRequested": true,
+    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40381093687"
+  }
 }
