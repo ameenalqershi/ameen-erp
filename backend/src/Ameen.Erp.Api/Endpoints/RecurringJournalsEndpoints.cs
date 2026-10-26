@@ -11,6 +11,9 @@ internal static class RecurringJournalsEndpoints
         const string p = EndpointRoutes.Company;
         app.MapGet(p + "/recurring-journals", async (Guid companyId, Guid? branchId, bool? isActive, int? offset, int? limit, string? search, RecurringJournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ListRecurringJournals(companyId, Actor(h), branchId, isActive, offset ?? 0, limit ?? 50, ct, search))).Produces<Page<RecurringJournalSummary>>().RequireAuthorization().WithTags("GL04 Recurring journals");
+        app.MapPost(p + "/recurring-journals/run-due", async (Guid companyId, RunDueRecurringRequest r, RecurringJournalService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.RunScheduledDue(companyId, Actor(h), r.AsOf, r.Limit ?? 100, ct))).Produces<RecurringDueRunResult>()
+            .RequireAuthorization().WithTags("GL04 Recurring journals");
         app.MapGet(p + "/recurring-journals/{id:guid}", async (Guid companyId, Guid id, RecurringJournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.GetRecurringJournal(companyId, id, Actor(h), ct))).Produces<RecurringJournalTemplate>().RequireAuthorization().WithTags("GL04 Recurring journals");
         app.MapPost(p + "/recurring-journals", async (Guid companyId, CreateRecurringJournalRequest r, RecurringJournalService s, HttpContext h, CancellationToken ct) =>

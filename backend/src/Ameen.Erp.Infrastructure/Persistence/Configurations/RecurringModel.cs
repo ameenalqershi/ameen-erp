@@ -16,7 +16,7 @@ public sealed partial class ErpDbContext
         template.Navigation(x => x.Lines).AutoInclude();
         Constraint(template, "CK_Recurring_Dates", "[EndsOn] >= [StartsOn]");
         Constraint(template, "CK_Recurring_Frequency", "[Frequency] BETWEEN 0 AND 2");
-        Constraint(template, "CK_Recurring_Mode", "[GenerationMode] = 0");
+        Constraint(template, "CK_Recurring_Mode", "[GenerationMode] IN (0, 1)");
 
         var line = Tenant<RecurringJournalLine>(model, "RecurringJournalLines");
         line.Property(x => x.Description).HasMaxLength(500); line.Property(x => x.CurrencyCode).HasMaxLength(3);

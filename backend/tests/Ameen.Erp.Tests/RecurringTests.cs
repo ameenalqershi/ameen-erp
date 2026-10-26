@@ -29,6 +29,41 @@ public static class RecurringTests
             await f.Action(first, "cancel", reason: "إلغاء مسودة دورية");
             await Error("recurring_already_generated", () => Generate(f, template, 10));
         });
+
+        test("GL04-GP01: scheduled mode generates due-only drafts, exactly once, with no post or privilege bypass", async f =>
+        {
+            var scheduled = await Create(f, Request(f) with {
+                Name = "مجدول قابل للتدقيق", GenerationMode = RecurringGenerationMode.Scheduled });
+            await Create(f, Request(f) with { Name = "يدوي فقط" });
+            var empty = await f.Service.RecurringJournal.RunScheduledDue(f.CompanyId, f.Clerk,
+                new(2026, 1, 30), 100, default);
+            Ensure(empty.SelectedCount == 0);
+            var batch = await f.Service.RecurringJournal.RunScheduledDue(f.CompanyId, f.Clerk,
+                new(2026, 9, 30), 100, default);
+            Ensure(batch.SelectedCount == 9 && batch.GeneratedCount == 9 && batch.FailedCount == 0 &&
+                batch.Rows.All(x => x.Succeeded && x.JournalId.HasValue && x.TemplateId == scheduled.ResourceId));
+            Ensure(f.Store.Count<RecurringJournalGeneration>() == 9 &&
+                f.Store.Count<JournalEntry>() == 9 && f.Store.Count<OutboxEvent>() == 0);
+            Ensure(f.Store.All<JournalEntry>().All(x => x.State == JournalState.Draft &&
+                x.ApprovedBy == null && x.PostedAt == null &&
+                x.RecurringTemplateId == scheduled.ResourceId));
+            var replay = await f.Service.RecurringJournal.RunScheduledDue(f.CompanyId, f.Clerk,
+                new(2026, 9, 30), 100, default);
+            Ensure(replay.SelectedCount == 0 && f.Store.Count<NumberSequence>() == 1);
+            var generated = f.Store.All<JournalEntry>().First();
+            var canceled = await f.Service.Journal.TransitionJournal(f.CompanyId, generated.Id, f.Clerk,
+                Fixture.Key(), new(generated.Version, "إلغاء مسودة مجدولة"), "cancel", default);
+            Ensure(canceled.Status == "Cancelled");
+            Ensure((await f.Service.RecurringJournal.RunScheduledDue(f.CompanyId, f.Clerk,
+                new(2026, 9, 30), 100, default)).SelectedCount == 0);
+            await Error("future_schedule_forbidden", () => f.Service.RecurringJournal.RunScheduledDue(
+                f.CompanyId, f.Clerk, new(9999, 1, 1), 100, default));
+            await Error("invalid_schedule_limit", () => f.Service.RecurringJournal.RunScheduledDue(
+                f.CompanyId, f.Clerk, new(2026, 9, 30), 0, default));
+            await Grant(f, f.Clerk, new[] { Permissions.Read, Permissions.Draft });
+            await Error("permission_denied", () => f.Service.RecurringJournal.RunScheduledDue(
+                f.CompanyId, f.Clerk, new(2026, 9, 30), 100, default));
+        });
         test("GL04: future template edits preserve generated amounts and historical version", async f =>
         {
             var template = await Create(f); var first = await Generate(f, template, 10);
@@ -191,7 +226,7 @@ public static class RecurringTests
             foreach (var (request, code) in new[]
             {
                 (Request(f) with { Frequency = (RecurringFrequency)99 }, "invalid_command_payload"),
-                (Request(f) with { GenerationMode = (RecurringGenerationMode)1 }, "invalid_command_payload"),
+                (Request(f) with { GenerationMode = (RecurringGenerationMode)99 }, "invalid_command_payload"),
                 (Request(f) with { EndsOn = new(2025, 1, 1) }, "invalid_recurring_dates")
             }) await Error(code, () => f.Service.RecurringJournal.CreateRecurringJournal(f.CompanyId, f.Clerk, Fixture.Key(), request, default));
             var template = await Create(f, Request(f) with { EndsOn = new(2026, 2, 15) });

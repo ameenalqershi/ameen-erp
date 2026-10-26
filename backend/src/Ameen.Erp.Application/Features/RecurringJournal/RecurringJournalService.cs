@@ -123,6 +123,59 @@ public sealed class RecurringJournalService : ApplicationService
             return Receipt(journal, journal.State.ToString(), journal.Number);
         }, ct);
 
+    // Used by the explicitly authorized HTTPS run-due endpoint and the opt-in hosted worker.
+    // Scheduled generation is draft-only; the normal approval/posting workflow remains mandatory.
+    public async Task<RecurringDueRunResult> RunScheduledDue(Guid cid, Actor actor, DateOnly asOf, int limit, CancellationToken ct)
+    {
+        Check.That(limit is >= 1 and <= 100, "invalid_schedule_limit", "حد تشغيل القوالب من 1 إلى 100 موعد.");
+        Check.That(asOf != DateOnly.MinValue && asOf <= DateOnly.FromDateTime(clock.UtcNow.UtcDateTime),
+            "future_schedule_forbidden", "لا يجوز توليد قيد مجدول بتاريخ مستقبلي.");
+        var generateMember = await Authorize(cid, actor, Permissions.RecurringGenerate, null, ct);
+        var draftMember = await Authorize(cid, actor, Permissions.Draft, null, ct);
+        var generateBranches = await AllowedBranches(cid, generateMember, null, ct);
+        var draftBranches = await AllowedBranches(cid, draftMember, null, ct);
+        var branches = generateBranches.Intersect(draftBranches).ToArray();
+        var templates = await store.Find<RecurringJournalTemplate>(cid,
+            x => x.GenerationMode == RecurringGenerationMode.Scheduled && x.IsActive && branches.Contains(x.BranchId), ct);
+        var periods = await store.Find<FiscalPeriod>(cid, x => x.StartsOn <= asOf, ct);
+        var occurrences = await store.Find<RecurringJournalGeneration>(cid, x => true, ct);
+        var existing = occurrences.Select(x => (x.TemplateId, x.FiscalPeriodId)).ToHashSet();
+        var candidates = new List<(RecurringJournalTemplate Template, FiscalPeriod Period, DateOnly Due)>();
+        foreach (var template in templates)
+        foreach (var period in periods)
+        {
+            var due = template.DueDateFor(period.StartsOn, period.EndsOn);
+            if (due is DateOnly scheduled && scheduled <= asOf && !existing.Contains((template.Id, period.Id)))
+                candidates.Add((template, period, scheduled));
+        }
+        var rows = new List<RecurringDueRunRow>();
+        foreach (var (template, period, due) in candidates.OrderBy(x => x.Due)
+            .ThenBy(x => x.Template.Id).ThenBy(x => x.Period.Id).Take(limit))
+        {
+            ct.ThrowIfCancellationRequested();
+            if (period.IsClosed)
+            {
+                rows.Add(new(template.Id, period.Id, due, null, false, "period_closed"));
+                continue;
+            }
+            try
+            {
+                // Same occurrence has the same transaction key on retries and between worker replicas.
+                var key = $"sched:{template.Id:N}:{period.Id:N}";
+                var receipt = await GenerateRecurringJournal(cid, template.Id, actor, key,
+                    new GenerateRecurringJournalRequest(template.Version, period.Id), ct);
+                rows.Add(new(template.Id, period.Id, due, receipt.ResourceId, true, null));
+            }
+            catch (BusinessException ex)
+            {
+                // An individually failing occurrence does not falsely mark the rest as generated.
+                rows.Add(new(template.Id, period.Id, due, null, false, ex.Code));
+            }
+        }
+        return new(asOf, rows.Count, rows.Count(x => x.Succeeded),
+            rows.Count(x => !x.Succeeded), rows.ToArray());
+    }
+
     public Task<RecurringJournalTemplate> GetRecurringJournal(Guid cid, Guid id, Actor actor, CancellationToken ct) =>
         AuthorizeRecurring(cid, id, actor, Permissions.Read, ct);
 

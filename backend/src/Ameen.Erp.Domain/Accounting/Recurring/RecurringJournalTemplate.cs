@@ -23,7 +23,7 @@ public sealed class RecurringJournalTemplate : CompanyEntity
     public void Configure(string name, RecurringFrequency frequency, RecurringGenerationMode mode, DateOnly startsOn, DateOnly endsOn)
     {
         Check.That(Enum.IsDefined(frequency), "invalid_recurring_frequency", "دورية القالب غير صالحة.");
-        Check.That(mode == RecurringGenerationMode.Manual, "invalid_generation_mode", "التوليد الحالي يدوي وينتج مسودة فقط.");
+        Check.That(Enum.IsDefined(mode), "invalid_generation_mode", "طريقة توليد القالب غير صالحة.");
         Check.That(endsOn >= startsOn, "invalid_recurring_dates", "نهاية القالب تسبق بدايته.");
         Name = Check.Text(name, "اسم القالب"); Frequency = frequency; GenerationMode = mode;
         StartsOn = startsOn; EndsOn = endsOn; Touch();

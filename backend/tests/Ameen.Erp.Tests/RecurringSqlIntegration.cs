@@ -122,6 +122,31 @@ FROM [RecurringJournalGenerations] WHERE [CompanyId]={cid} AND [TemplateId]={tem
         var sourcePage = await Call(s => s.Journal.ListJournals(cid, clerk, null, null, 0, 10, default, JournalSource.Recurring));
         Ensure(sourcePage.TotalCount == 4 && sourcePage.Items.All(x => x.RecurringTemplateId == template.ResourceId), "SQL source filter differs");
         Console.WriteLine("  SQL PASS recurring source FK/uniqueness, immutable history, runtime-role template edit and independent posting");
+
+        // GL04-GP01: schedule mode persisted by schema 019, no financial posting, safe replays.
+        var scheduledRequest = request with { Name = "SQL scheduled drafts", GenerationMode = RecurringGenerationMode.Scheduled };
+        var scheduled = await Call(s => s.RecurringJournal.CreateRecurringJournal(cid, clerk, Fixture.Key(), scheduledRequest, default));
+        var due = await Call(s => s.RecurringJournal.RunScheduledDue(cid, clerk, new DateOnly(2026, 9, 30), 100, default));
+        Ensure(due.GeneratedCount == 9 && due.FailedCount == 0 &&
+            due.Rows.All(x => x.TemplateId == scheduled.ResourceId && x.JournalId.HasValue),
+            "SQL scheduler missed a due period or generated an unrelated manual template");
+        var again = await Call(s => s.RecurringJournal.RunScheduledDue(cid, clerk, new DateOnly(2026, 9, 30), 100, default));
+        Ensure(again.SelectedCount == 0, "SQL scheduled run repeated an occurrence");
+        await using (var db = Context())
+        {
+            var occurrences = await db.Set<RecurringJournalGeneration>().Where(x => x.CompanyId == cid &&
+                x.TemplateId == scheduled.ResourceId).ToListAsync();
+            Ensure(occurrences.Count == 9 && occurrences.Select(x => x.FiscalPeriodId).Distinct().Count() == 9,
+                "SQL scheduler duplicated a template/period");
+            var ids = occurrences.Select(x => x.JournalId).ToArray();
+            var drafts = await db.Set<JournalEntry>().Where(x => x.CompanyId == cid && ids.Contains(x.Id)).ToListAsync();
+            Ensure(drafts.Count == 9 && drafts.All(x => x.State == JournalState.Draft &&
+                x.PostedAt == null && x.RecurringTemplateId == scheduled.ResourceId) &&
+                !await db.Set<OutboxEvent>().AnyAsync(x => x.CompanyId == cid && ids.Contains(x.ResourceId)),
+                "SQL scheduled generation automatically posted or lost provenance");
+        }
+        Console.WriteLine("  SQL PASS GL04-GP01 scheduled mode, nine due periods, replay uniqueness and draft-only accounting");
+
     }
     private static async Task Execute(SqlConnection connection, string text)
     {

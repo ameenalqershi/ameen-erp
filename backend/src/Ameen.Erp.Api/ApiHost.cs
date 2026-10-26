@@ -25,6 +25,13 @@ public static class ApiHost
         builder.Services.AddScoped<ITransactionRunner, SqlTransactionRunner>();
         builder.Services.AddErpApplication();
         builder.Services.AddSingleton<IClock, SystemClock>();
+        if (builder.Configuration.GetValue<bool>("RecurringScheduler:Enabled"))
+        {
+            var schedulerActor = builder.Configuration["RecurringScheduler:ActorSubject"];
+            if (string.IsNullOrWhiteSpace(schedulerActor) || schedulerActor.Length > 200)
+                throw new InvalidOperationException("RecurringScheduler requires a pre-provisioned ActorSubject with company membership, RecurringGenerate and Draft permissions.");
+            builder.Services.AddHostedService<RecurringDraftScheduler>();
+        }
         builder.Services.ConfigureHttpJsonOptions(options => JsonDefaults.Configure(options.SerializerOptions));
         builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>

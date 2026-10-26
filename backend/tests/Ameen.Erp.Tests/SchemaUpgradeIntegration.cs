@@ -246,6 +246,25 @@ public static class SchemaUpgradeIntegration
         Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=18").SingleAsync() == 1,
             "FX upgrade should apply exactly once");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 017→018 opens dated FX with rollback and no historical changes");
+
+        var scheduleScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "019_recurring_schedule.sql"));
+        // Force an object-name collision in the ADD step. The old mode=0 constraint must return on rollback.
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_Scheduler_Collision] CHECK ([GenerationMode] = 0)");
+        var brokenScheduleScript = scheduleScript.Replace(
+            "ADD CONSTRAINT [CK_Recurring_Mode]", "ADD CONSTRAINT [CK_Scheduler_Collision]");
+        try { await db.Database.ExecuteSqlRawAsync(brokenScheduleScript); throw new Exception("Conflicting scheduler migration accepted"); }
+        catch (SqlException e) when (e.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=19").AnyAsync(),
+            "Failed scheduler migration recorded version");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.check_constraints WHERE name='CK_Recurring_Mode'").SingleAsync() == 1,
+            "Failed scheduler migration did not restore original constraint");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] DROP CONSTRAINT [CK_Scheduler_Collision]");
+        await db.Database.ExecuteSqlRawAsync(scheduleScript);
+        await db.Database.ExecuteSqlRawAsync(scheduleScript);
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=19").SingleAsync() == 1,
+            "Scheduler migration was not idempotent");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 018→019 enables scheduled drafts, rolls back failures and preserves old modes");
+
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

@@ -272,6 +272,41 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await history.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Recurring HTTP usage differs");
                 Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
+
+                var scheduledTemplate = await Command(client, recurringPath,
+                    recurringRequest with { Name = "HTTP automatically scheduled", GenerationMode = RecurringGenerationMode.Scheduled });
+                using (var run = new HttpRequestMessage(HttpMethod.Post, recurringPath + "/run-due"))
+                {
+                    run.Content = new StringContent(JsonSerializer.Serialize(
+                        new RunDueRecurringRequest(new DateOnly(2026, 6, 30), 100), JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var result = await client.SendAsync(run);
+                    using var body = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
+                    Ensure(result.StatusCode == HttpStatusCode.OK &&
+                        body.RootElement.GetProperty("generatedCount").GetInt32() == 6 &&
+                        body.RootElement.GetProperty("failedCount").GetInt32() == 0 &&
+                        body.RootElement.GetProperty("rows").EnumerateArray().All(x =>
+                            x.GetProperty("templateId").GetGuid() == scheduledTemplate.ResourceId &&
+                            x.GetProperty("succeeded").GetBoolean()),
+                        "GL04 signed HTTPS due scan failed or generated manual templates");
+                }
+                using (var run = new HttpRequestMessage(HttpMethod.Post, recurringPath + "/run-due"))
+                {
+                    run.Content = new StringContent(JsonSerializer.Serialize(
+                        new RunDueRecurringRequest(new DateOnly(2026, 6, 30)), JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var result = await client.SendAsync(run);
+                    using var body = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
+                    Ensure(result.StatusCode == HttpStatusCode.OK &&
+                        body.RootElement.GetProperty("selectedCount").GetInt32() == 0,
+                        "GL04 HTTPS recurring scheduler was not idempotent");
+                }
+                using (var generations = await client.GetAsync(recurringPath + $"/{scheduledTemplate.ResourceId}/generations"))
+                using (var json = JsonDocument.Parse(await generations.Content.ReadAsStringAsync()))
+                    Ensure(generations.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 6,
+                        "GL04 scheduled generation ledger is missing occurrences");
+                Console.WriteLine("  HOST PASS GL04-GP01 scheduled run-due, scoped actor, immutable drafts and replay over HTTPS/JWT/SQL");
+
                 Authenticate(Token("sql-owner"));
                 var groupSales = await Command(client, $"/api/v1/companies/{companyId}/accounts", new CreateAccountRequest("HTTP-GROUP-SALES", "مبيعات", AccountType.Revenue, null, true, false, false, null, NormalBalance.Credit));
                 var groupsPath = $"/api/v1/companies/{companyId}/item-groups";
