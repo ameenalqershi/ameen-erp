@@ -12,17 +12,20 @@ BEGIN TRY
         ALTER TABLE [RecurringJournalTemplates] ADD
             [Revision] int NOT NULL CONSTRAINT [DF_RecurringJournalTemplates_Revision] DEFAULT (1),
             [LastModifiedAt] datetimeoffset NULL;
-        ;WITH history AS (
-            SELECT [CompanyId], [ResourceId], COUNT_BIG(*) AS RevisionCount, MAX([OccurredAt]) AS LastChange
-            FROM [AuditEvents]
-            WHERE [Action] IN ('recurring.edited', 'recurring.status-changed')
-            GROUP BY [CompanyId], [ResourceId]
-        )
-        UPDATE t SET
-            t.[Revision] = 1 + CAST(COALESCE(h.RevisionCount, 0) AS int),
-            t.[LastModifiedAt] = CASE WHEN h.LastChange > t.[CreatedAt] THEN h.LastChange ELSE t.[CreatedAt] END
-        FROM [RecurringJournalTemplates] t LEFT JOIN history h
-            ON h.CompanyId = t.CompanyId AND h.ResourceId = t.Id;
+        -- SQL Server compiles this migration batch before new columns exist.
+        -- Deferred compilation preserves atomic DDL and historical backfill in the transaction.
+        EXEC sys.sp_executesql N'
+            ;WITH history AS (
+                SELECT [CompanyId], [ResourceId], COUNT_BIG(*) AS RevisionCount, MAX([OccurredAt]) AS LastChange
+                FROM [AuditEvents]
+                WHERE [Action] IN (''recurring.edited'', ''recurring.status-changed'')
+                GROUP BY [CompanyId], [ResourceId]
+            )
+            UPDATE t SET
+                t.[Revision] = 1 + CAST(COALESCE(h.RevisionCount, 0) AS int),
+                t.[LastModifiedAt] = CASE WHEN h.LastChange > t.[CreatedAt] THEN h.LastChange ELSE t.[CreatedAt] END
+            FROM [RecurringJournalTemplates] t LEFT JOIN history h
+                ON h.CompanyId = t.CompanyId AND h.ResourceId = t.Id;';
         ALTER TABLE [RecurringJournalTemplates] ALTER COLUMN [LastModifiedAt] datetimeoffset NOT NULL;
         ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_Recurring_Revision]
             CHECK ([Revision] > 0 AND [LastModifiedAt] >= [CreatedAt]);
