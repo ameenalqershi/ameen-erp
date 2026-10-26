@@ -183,6 +183,21 @@ public static class HostedApiIntegration
                 generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}",
                     new EditGeneralOpeningRequest(generalOpening.Version, "تعديل رأس HTTP", "TB-HEADER-HTTP", journalRequest.Lines,
                         new(journalRequest.BranchId, Fixture.Date.AddDays(1), Fixture.Date, "HTTP-HEADER", Fixture.Date.AddDays(2))), method: HttpMethod.Put);
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings?search=TB-HEADER-HTTP"))
+                {
+                    using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items")[0].GetProperty("id").GetGuid() == generalOpening.ResourceId,
+                        "GL02 search must find saved opening by balance reference");
+                }
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings?search=NOT-FOUND-GL02"))
+                {
+                    using var json = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "GL02 search must exclude unrelated documents");
+                }
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("source").GetString() == "GeneralOpening" && json.RootElement.GetProperty("openingRevision").GetInt32() == 2 && json.RootElement.GetProperty("documentDate").GetString() == "2026-10-21" && json.RootElement.GetProperty("operationStartsOn").GetString() == "2026-10-22", "HTTP general opening header metadata missing");

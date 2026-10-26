@@ -9,6 +9,31 @@ public static class GeneralOpeningTests
         f.Service.Journal.CreateGeneralOpening(f.CompanyId, f.Clerk, key ?? Fixture.Key(), r ?? Request(f.Request()), default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("GL02-A01: search by document, description and references respects pagination and branch scope", async f =>
+        {
+            var first = await Create(f, Request(f.Request()) with {
+                PreviousTrialBalanceReference = "TB-OPEN-ALPHA", ExternalReference = "EXT-ALPHA", Description = "Opening alpha" });
+            var other = await Create(f, Request(f.Request(branch: f.OtherBranchId)) with {
+                PreviousTrialBalanceReference = "TB-OPEN-BETA", ExternalReference = "EXT-BETA", Description = "Opening beta" });
+            var entry = await f.Journal(first.ResourceId);
+            var number = await f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 0, 10, default,
+                JournalSource.GeneralOpening, entry.Number);
+            Ensure(number.TotalCount == 1 && number.Items[0].Id == first.ResourceId);
+            var reference = await f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 0, 10, default,
+                JournalSource.GeneralOpening, "TB-OPEN-BETA");
+            Ensure(reference.TotalCount == 1 && reference.Items[0].Id == other.ResourceId);
+            var description = await f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 0, 10, default,
+                JournalSource.GeneralOpening, "Opening alpha");
+            Ensure(description.TotalCount == 1 && description.Items[0].Id == first.ResourceId);
+            var empty = await f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 0, 10, default,
+                JournalSource.GeneralOpening, "absent-reference");
+            Ensure(empty.TotalCount == 0);
+            var scoped = await f.Service.Journal.ListJournals(f.CompanyId, f.Limited, null, null, 0, 10, default,
+                JournalSource.GeneralOpening, "EXT-BETA");
+            Ensure(scoped.TotalCount == 0);
+            await Error("search_too_long", () => f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 0, 10,
+                default, JournalSource.GeneralOpening, new string('x', 101)));
+        });
         test("GL02: opening metadata and independent approval posting use one balanced ledger", async f =>
         {
             var r = await Create(f); var source = await f.Journal(r.ResourceId);

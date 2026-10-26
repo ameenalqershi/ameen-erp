@@ -217,14 +217,19 @@ public sealed partial class JournalService : ApplicationService
         await AuthorizeJournal(cid, id, actor, Permissions.Read, ct); return await Required<JournalEntry>(cid, id, ct);
     }
     public async Task<Page<JournalSummary>> ListJournals(Guid cid, Actor actor, Guid? branchId,
-        JournalState? state, int offset, int limit, CancellationToken ct, JournalSource? source = null)
+        JournalState? state, int offset, int limit, CancellationToken ct, JournalSource? source = null, string? search = null)
     {
         Paging(offset, limit);
         if (state is not null) Check.That(Enum.IsDefined(typeof(JournalState), state.Value), "invalid_state", "حالة القيد غير معروفة.");
         if (source is not null) Check.That(Enum.IsDefined(source.Value), "invalid_source", "مصدر القيد غير معروف.");
+        Check.That(search is null || search.Length <= 100, "search_too_long", "عبارة البحث أطول من المسموح.");
+        search = search?.Trim();
         var member = await Authorize(cid, actor, Permissions.Read, branchId, ct);
         var branches = await AllowedBranches(cid, member, branchId, ct);
-        var page = await store.ReadPage<JournalEntry>(cid, x => branches.Contains(x.BranchId) && (state == null || x.State == state) && (source == null || x.Source == source),
+        var page = await store.ReadPage<JournalEntry>(cid, x => branches.Contains(x.BranchId) && (state == null || x.State == state) && (source == null || x.Source == source) &&
+                (string.IsNullOrEmpty(search) || x.Number.Contains(search) || x.Description.Contains(search) ||
+                 (x.ExternalReference != null && x.ExternalReference.Contains(search)) ||
+                 (x.PreviousTrialBalanceReference != null && x.PreviousTrialBalanceReference.Contains(search))),
             q => q.OrderByDescending(x => x.AccountingDate).ThenByDescending(x => x.Sequence).ThenBy(x => x.Id), offset, limit, ct);
         return new(page.Items.Select(x => new JournalSummary(x.Id, x.Version, x.Number, x.BranchId, x.AccountingDate,
                 x.Description, x.State, x.Lines.Sum(l => l.FunctionalDebit), x.Lines.Sum(l => l.FunctionalCredit), x.Source, x.RecurringTemplateId)).ToArray(), page.TotalCount, offset, limit);

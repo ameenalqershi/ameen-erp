@@ -5,7 +5,7 @@
 ## العقد والدورة
 
 - `POST /api/v1/companies/{companyId}/general-openings`: BranchId وDocumentDate وAccountingDate وOperationStartsOn وPreviousTrialBalanceReference وCurrencyCode وExchangeRate وDescription وExternalReference وLines. سطور JournalLineRequest المعروفة: AccountId وCostCenterId وDescription وCurrencyCode وExchangeRateId وDebit وCredit. يلزم مفتاح Idempotency-Key وصلاحية ledger.draft في الفرع.
-- `GET /general-openings` بمرشحات branchId وstate والصفحات، و`GET /general-openings/{id}` للتفاصيل. المصدر GeneralOpening مستقل (قيمة enum 4)؛ التفاصيل ترفض معرف قيد من مصدر آخر.
+- `GET /general-openings` بمرشحات branchId وstate وsearch والصفحات؛ يبحث search (حتى 100 حرف) في رقم المستند والبيان والمرجع الخارجي ومرجع الميزان السابق، مع ترشيح المصدر GeneralOpening وعزل الشركة والفروع قبل الترقيم الصفحي. `GET /general-openings/{id}` للتفاصيل. المصدر GeneralOpening مستقل (قيمة enum 4)؛ التفاصيل ترفض معرف قيد من مصدر آخر.
 - `PUT /general-openings/{id}`: ExpectedVersion وDescription وPreviousTrialBalanceReference وLines. مسودة فقط؛ يستبدل السطور ويحفظ التغيير والتدقيق والإيصال ذريًا. يدعم Header الاختياري استبدال الفرع والتواريخ والمرجع الخارجي داخل المسودة؛ العملة ثابتة بعد الإنشاء حاليًا. واجهة تعديل اليومية العامة لا تسمح بتجاوز عملة سطور الافتتاح.
 - تقديم/اعتماد/إعادة/إلغاء/ترحيل من `/journals/{id}/submit|approve|return|cancel|post` بنفس العقد والصلاحيات الموجودة. متاح أيضًا ضمن قائمة ومعالجة GL05/GL06 باستخدام source=GeneralOpening. معاينة قابلية الإجراء من `/journals/{id}/processing-preview`.
 - العكس من `/journals/{id}/reverse` ينتج مسودة JournalSource.Reversal مرتبطة، تنسخ القيم التاريخية وتحتاج اعتمادًا وترحيلًا. تبقى بطاقة الأصل GeneralOpening ومرجعها محفوظين وتصبح Reversed بعد ترحيل العكس. لا يحتسب مصدر الافتتاح كقيد إضافي فوق اليومية نفسها.
