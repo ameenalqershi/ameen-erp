@@ -11331,6 +11331,37 @@
         },
         "additionalProperties": false
       },
+      "DraftJournalHeaderRequest": {
+        "required": [
+          "branchId",
+          "documentDate",
+          "accountingDate",
+          "externalReference"
+        ],
+        "type": "object",
+        "properties": {
+          "branchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "accountingDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "externalReference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operationStartsOn": {}
+        },
+        "additionalProperties": false
+      },
       "EditAccountRequest": {
         "required": [
           "expectedVersion",
@@ -11650,6 +11681,16 @@
             "items": {
               "$ref": "#/components/schemas/JournalLineRequest"
             }
+          },
+          "header": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DraftJournalHeaderRequest"
+              }
+            ]
           }
         },
         "additionalProperties": false
@@ -11911,6 +11952,16 @@
             "items": {
               "$ref": "#/components/schemas/JournalLineRequest"
             }
+          },
+          "header": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DraftJournalHeaderRequest"
+              }
+            ]
           }
         },
         "additionalProperties": false

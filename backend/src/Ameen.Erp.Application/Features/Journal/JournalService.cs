@@ -117,18 +117,19 @@ public sealed partial class JournalService : ApplicationService
 
     public Task<CommandReceipt> EditJournal(Guid cid, Guid id, Actor actor, string key, EditJournalRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "journal.edit:" + id, request,
-            token => AuthorizeJournal(cid, id, actor, Permissions.Draft, token), async token =>
+            token => AuthorizeDraftEdit(cid, id, actor, request.Header, token), async token =>
         {
             var journal = await Required<JournalEntry>(cid, id, token);
             Check.Version(journal, request.ExpectedVersion); journal.RequireState(JournalState.Draft);
             Check.That(journal.ReversesJournalId is null, "reversal_immutable", "سطور العكس نسخة معكوسة ثابتة من المصدر؛ ألغِ مسودة العكس عند الحاجة.", ErrorKind.Conflict);
             await OpenPeriod(cid, journal.AccountingDate, token);
             var company = await Company(cid, token);
+            var before = new { Header = HeaderSnapshot(journal), journal.Description, Lines = journal.Lines.ToArray() };
+            await ReplaceDraftHeader(journal, request.Header, token);
             var newLines = await PrepareLines(company, journal, request.Lines, token);
-            var before = new { journal.Description, Lines = journal.Lines.ToArray() };
             store.RemoveLines(journal.Lines.ToArray());
             journal.EditDescription(request.Description); journal.SetLines(newLines); journal.AdvanceOpening(clock.UtcNow);
-            Audit(cid, actor, "journal.edited", journal, new { before, after = new { journal.Description, journal.Lines } });
+            Audit(cid, actor, "journal.edited", journal, new { before, after = new { Header = HeaderSnapshot(journal), journal.Description, journal.Lines } });
             return Receipt(journal, journal.State.ToString(), journal.Number);
         }, ct);
 

@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-26T13:19:08.711102+00:00",
+  "startedAtUtc": "2026-10-26T18:43:32.536570+00:00",
   "sdk": "10.0.100",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -15,7 +15,7 @@
     },
     {
       "command": [
-        "/tmp/ameen-dotnet/dotnet",
+        "/workspace/scratch/8b7f01062250/runtime/dotnet/dotnet",
         "restore",
         "Ameen.Erp.sln",
         "--locked-mode",
@@ -26,7 +26,7 @@
     },
     {
       "command": [
-        "/tmp/ameen-dotnet/dotnet",
+        "/workspace/scratch/8b7f01062250/runtime/dotnet/dotnet",
         "build",
         "Ameen.Erp.sln",
         "-c",
@@ -39,14 +39,14 @@
     },
     {
       "command": [
-        "/tmp/ameen-dotnet/dotnet",
+        "/workspace/scratch/8b7f01062250/runtime/dotnet/dotnet",
         "tests/Ameen.Erp.Tests/bin/Release/net10.0/Ameen.Erp.Tests.dll"
       ],
       "exitCode": 0
     }
   ],
   "result": "passed",
-  "sourceSha256": "be05f793639c50654791ef0b87463828b9425385a461c108cb16d9aaa19e30c8",
+  "sourceSha256": "549ffadc0fbed4696073bfc4d4d91a966624d5d99cf8d1f5090986e5a5052ace",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -238,6 +238,15 @@
     "PASS GL02: failed reversal reservation rolls back original metadata audit and idempotency",
     "PASS GL02: failed cancellation keeps reversal reservation and metadata retryable",
     "PASS GL02: failed reversal posting restores original and no duplicate effect on retry",
+    "PASS GL02: replace draft header and lines together with derived period and stable same-year number",
+    "PASS GL02: cross-year draft edit renumbers once under concurrent replay",
+    "PASS GL02: failed cross-year edit rolls back header lines sequence audit and retry key",
+    "PASS GL02: old and new periods must be open and target period must exist",
+    "PASS GL02: target branch authorization and cost center scope are revalidated atomically",
+    "PASS GL02: submitted and posted headers stay immutable and opening start is required",
+    "PASS GL02: legacy edit without header preserves dates and fingerprint shape",
+    "PASS GL03: manual header editing shares period and numbering controls without opening metadata",
+    "PASS GL03: changing accounting date requires the new effective FX rate and recomputes functional amounts",
     "PASS INV04: item units barcode and price roundtrip without stock movement",
     "PASS INV04: per-item conversion is exact and rejects fractional base quantities",
     "PASS INV04: services cannot carry stock policy and serial base units cannot allow fractions",
@@ -314,10 +323,11 @@
     "PASS GL04: invalid cadence, mode and dates fail; finite window is enforced",
     "PASS GL04: persisted journal provenance and generation history are immutable",
     "PASS GL04: search and card change log are scoped and require audit permission",
-    "PASS HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON"
+    "PASS HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON",
+    "PASS OpenAPI: production routes expose optional draft headers without SQL dependency"
   ],
-  "passed": 267,
-  "total": 267,
+  "passed": 277,
+  "total": 277,
   "failed": 0,
-  "finishedAtUtc": "2026-10-26T13:19:22.667171+00:00"
+  "finishedAtUtc": "2026-10-26T18:43:48.973122+00:00"
 }

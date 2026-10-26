@@ -35,16 +35,17 @@ public sealed partial class JournalService
     }
     public Task<CommandReceipt> EditGeneralOpening(Guid cid, Guid id, Actor actor, string key, EditGeneralOpeningRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "general-opening.edit:" + id, request,
-            token => AuthorizeJournal(cid, id, actor, Permissions.Draft, token), async token =>
+            token => AuthorizeDraftEdit(cid, id, actor, request.Header, token), async token =>
         {
             var journal = await Required<JournalEntry>(cid, id, token); Check.Version(journal, request.ExpectedVersion);
             Check.That(journal.Source == JournalSource.GeneralOpening, "general_opening_required", "القيد ليس افتتاحًا عامًا.");
             journal.RequireState(JournalState.Draft); await OpenPeriod(cid, journal.AccountingDate, token);
-            var before = new { journal.Description, journal.PreviousTrialBalanceReference, Lines = journal.Lines.ToArray() };
+            var before = new { Header = HeaderSnapshot(journal), journal.Description, journal.PreviousTrialBalanceReference, Lines = journal.Lines.ToArray() };
+            await ReplaceDraftHeader(journal, request.Header, token);
             var lines = await PrepareLines(await Company(cid, token), journal, request.Lines, token);
             journal.EditOpeningReference(request.PreviousTrialBalanceReference); journal.EditDescription(request.Description);
             store.RemoveLines(journal.Lines.ToArray()); journal.SetLines(lines); journal.AdvanceOpening(clock.UtcNow);
-            Audit(cid, actor, "general-opening.edited", journal, new { before, after = new { journal.Description, journal.PreviousTrialBalanceReference, journal.Lines } });
+            Audit(cid, actor, "general-opening.edited", journal, new { before, after = new { Header = HeaderSnapshot(journal), journal.Description, journal.PreviousTrialBalanceReference, journal.Lines } });
             return Receipt(journal, journal.State.ToString(), journal.Number);
         }, ct);
     public async Task<GeneralOpeningSettlementPreview> OpeningSettlement(Guid cid, Guid id, Actor actor, CancellationToken ct)

@@ -180,9 +180,12 @@ public static class HostedApiIntegration
 
                 Authenticate(Token("sql-clerk"));
                 var generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings", GeneralOpeningTests.Request(journalRequest));
+                generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}",
+                    new EditGeneralOpeningRequest(generalOpening.Version, "تعديل رأس HTTP", "TB-HEADER-HTTP", journalRequest.Lines,
+                        new(journalRequest.BranchId, Fixture.Date.AddDays(1), Fixture.Date, "HTTP-HEADER", Fixture.Date.AddDays(2))), method: HttpMethod.Put);
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
-                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("source").GetString() == "GeneralOpening" && json.RootElement.GetProperty("openingRevision").GetInt32() == 1, "HTTP general opening metadata missing");
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("source").GetString() == "GeneralOpening" && json.RootElement.GetProperty("openingRevision").GetInt32() == 2 && json.RootElement.GetProperty("documentDate").GetString() == "2026-10-21" && json.RootElement.GetProperty("operationStartsOn").GetString() == "2026-10-22", "HTTP general opening header metadata missing");
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}/settlement-preview"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && !json.RootElement.GetProperty("allSubledgersImplemented").GetBoolean(), "HTTP settlement coverage overstated");
@@ -194,11 +197,11 @@ public static class HostedApiIntegration
                 var generalInverse = await Command(client, path + $"/{generalOpening.ResourceId}/reverse", new ReverseJournalRequest(generalOpening.Version, Fixture.Date, "تصحيح افتتاح HTTP"));
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
-                    Ensure(json.RootElement.GetProperty("openingRevision").GetInt32() == 5 && json.RootElement.GetProperty("pendingReversalJournalId").GetGuid() == generalInverse.ResourceId, "HTTP opening reservation metadata missing");
+                    Ensure(json.RootElement.GetProperty("openingRevision").GetInt32() == 6 && json.RootElement.GetProperty("pendingReversalJournalId").GetGuid() == generalInverse.ResourceId, "HTTP opening reservation metadata missing");
                 await Command(client, path + $"/{generalInverse.ResourceId}/cancel", new TransitionRequest(generalInverse.Version, "إلغاء تصحيح HTTP"));
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
-                    Ensure(json.RootElement.GetProperty("openingRevision").GetInt32() == 6 && json.RootElement.GetProperty("pendingReversalJournalId").ValueKind == JsonValueKind.Null, "HTTP opening release metadata missing");
+                    Ensure(json.RootElement.GetProperty("openingRevision").GetInt32() == 7 && json.RootElement.GetProperty("pendingReversalJournalId").ValueKind == JsonValueKind.Null, "HTTP opening release metadata missing");
                 Console.WriteLine("  HOST PASS GL02 source metadata, settlement scope and journal lifecycle over HTTPS/JWT/SQL");
 
                 Authenticate(Token("sql-clerk"));

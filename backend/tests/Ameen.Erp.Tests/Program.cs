@@ -430,6 +430,7 @@ InventoryReportTests.Register(Test);
 JournalProcessingTests.Register(Test);
 GeneralOpeningTests.Register(Test);
 GeneralOpeningReversalTests.Register(Test);
+DraftJournalHeaderTests.Register(Test);
 ItemTests.Register(Test);
 ItemGroupUsageTests.Register(Test);
 CostCenterTests.Register(Test);
@@ -437,6 +438,7 @@ CurrencyTests.Register(Test);
 AccountTests.Register(Test);
 RecurringTests.Register(Test);
 tests.Add(("HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON", HttpIntegration.Run));
+tests.Add(("OpenAPI: production routes expose optional draft headers without SQL dependency", OpenApiSnapshotTests.Run));
 if (args.Contains("--sql", StringComparer.Ordinal)) tests.Add(("SQL Server integration", SqlIntegration.Run));
 else Console.WriteLine("SKIP live SQL Server integration (run explicitly with --sql and AMEEN_TEST_SQL_CONNECTION).");
 

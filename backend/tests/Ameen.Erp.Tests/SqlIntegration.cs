@@ -166,6 +166,7 @@ public static class SqlIntegration
             }
             Console.WriteLine("  SQL PASS runtime role can save commands and cannot modify audit history");
             await JournalProcessingSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
+            await DraftHeaderSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await RecurringSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await AccountSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
             await FoundationSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());

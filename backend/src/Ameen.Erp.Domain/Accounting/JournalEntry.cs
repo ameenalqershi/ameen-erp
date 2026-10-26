@@ -84,6 +84,27 @@ public sealed class JournalEntry : CompanyEntity
     {
         RequireState(JournalState.Draft); Description = Check.Text(description, "بيان القيد", 500); Touch();
     }
+    public void ReplaceDraftHeader(Guid branchId, Guid periodId, string number, long sequence,
+        DateOnly documentDate, DateOnly accountingDate, string? reference, DateOnly? operationStartsOn)
+    {
+        RequireState(JournalState.Draft);
+        Check.That(Source is JournalSource.Manual or JournalSource.GeneralOpening,
+            "source_header_immutable", "رأس المستند المولد يعدل من مصدره فقط.", ErrorKind.Conflict);
+        Check.That(branchId != Guid.Empty && periodId != Guid.Empty && sequence > 0,
+            "invalid_journal_header", "الفرع والفترة وتسلسل القيد مطلوبة.");
+        Check.That(documentDate != DateOnly.MinValue && accountingDate != DateOnly.MinValue,
+            "journal_dates_required", "تاريخ الوثيقة وتاريخ الأثر مطلوبان.");
+        if (Source == JournalSource.GeneralOpening)
+            Check.That(operationStartsOn is not null && operationStartsOn != DateOnly.MinValue,
+                "opening_start_required", "تاريخ بداية التشغيل مطلوب.");
+        else
+            Check.That(operationStartsOn is null, "opening_source_required", "تاريخ بداية التشغيل خاص بالافتتاح العام.");
+        var checkedNumber = Check.Text(number, "رقم القيد", 64);
+        var checkedReference = reference is null ? null : Check.Text(reference, "المرجع", 100);
+        BranchId = branchId; FiscalPeriodId = periodId; Number = checkedNumber; Sequence = sequence;
+        DocumentDate = documentDate; AccountingDate = accountingDate; ExternalReference = checkedReference;
+        OperationStartsOn = operationStartsOn; Touch();
+    }
     public void ReserveReversal(Guid reversalId)
     {
         RequireState(JournalState.Posted);

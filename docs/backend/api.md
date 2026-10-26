@@ -208,3 +208,7 @@ GET journals/processing-queue وGET journals/{id}/processing-preview وPOST jour
 ## افتتاح GL02
 
 GET/POST general-openings وGET/PUT general-openings/{id} وGET /{id}/settlement-preview ضمن الشركة. دورة الحالات والمعالجة والعكس من journals على المعرف نفسه؛ لا قيد ثانٍ للأثر. [العقد](general-openings.md). المخطط المطلوب 017.
+
+### تعديل رأس مسودات GL02 وGL03
+
+PUT للقيد اليدوي والافتتاح العام يدعم Header اختياريًا لتعديل الفرع وتواريخ الوثيقة والأثر والمرجع مع السطور ذريًا، ويضيف تاريخ التشغيل للافتتاح العام. يتحقق من نطاق الفرعين والفترتين ويعيد ترقيم المسودة عند تغير السنة المالية. [العقد والحماية والتوافق](general-openings.md#تعديل-رأس-المسودة-والسطور--gl02gl03).
