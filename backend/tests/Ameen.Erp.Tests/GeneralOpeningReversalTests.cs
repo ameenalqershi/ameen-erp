@@ -12,6 +12,38 @@ public static class GeneralOpeningReversalTests
 
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("GL07: linked reversal search, draft submission, independent approval, exact posting and replay", async f =>
+        {
+            var original = await f.Post(await f.Draft());
+            var created = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId, f.Clerk,
+                Fixture.Key(), new(original.Version, Fixture.Date, "عكس مصحح مرتبط"), default);
+            var inverse = await f.Journal(created.ResourceId);
+            Ensure(inverse.Source == JournalSource.Reversal && inverse.ReversesJournalId == original.ResourceId &&
+                inverse.ReversalReason == "عكس مصحح مرتبط" && inverse.AccountingDate == Fixture.Date &&
+                inverse.State == JournalState.Draft && inverse.ExternalReference == original.Number);
+            var found = await f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, f.BranchId, JournalState.Draft,
+                0, 10, default, JournalSource.Reversal, original.Number);
+            Ensure(found.TotalCount == 1 && found.Items.Single().Id == created.ResourceId);
+            await Error("journal_state_conflict", () => f.Service.Journal.TransitionJournal(f.CompanyId,
+                created.ResourceId, f.Clerk, Fixture.Key(), new(created.Version), "post", default));
+            created = await f.Action(created, "submit");
+            await Error("self_approval_forbidden", () => f.Action(created, "approve"));
+            created = await f.Action(created, "approve", f.Approver);
+            var key = Fixture.Key();
+            var post = new TransitionRequest(created.Version);
+            var posted = await f.Service.Journal.TransitionJournal(f.CompanyId, created.ResourceId,
+                f.Clerk, key, post, "post", default);
+            Ensure(posted == await f.Service.Journal.TransitionJournal(f.CompanyId, created.ResourceId,
+                f.Clerk, key, post, "post", default));
+            var source = await f.Journal(original.ResourceId);
+            var completed = await f.Journal(posted.ResourceId);
+            Ensure(source.State == JournalState.Reversed && source.ReversalJournalId == completed.Id &&
+                completed.State == JournalState.Posted && completed.ReversesJournalId == original.ResourceId &&
+                completed.Lines.Sum(x => x.FunctionalDebit - x.FunctionalCredit) ==
+                -source.Lines.Sum(x => x.FunctionalDebit - x.FunctionalCredit));
+            await Error("journal_state_conflict", () => f.Service.Journal.ReverseJournal(f.CompanyId,
+                original.ResourceId, f.Clerk, Fixture.Key(), new(source.Version, Fixture.Date, "مكرر"), default));
+        });
         test("GL02: reversal reserve cancel and post advance original metadata once with audit", async f =>
         {
             var source = await Opening(f);
