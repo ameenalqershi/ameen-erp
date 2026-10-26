@@ -340,5 +340,17 @@
     "failed": 0,
     "liveSqlRequested": true,
     "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40381093687"
+  },
+  "latestGithubActions": {
+    "runId": 40407738776,
+    "headSha": "321806e688be942d778a6cb43e0e213722c46a67",
+    "result": "passed",
+    "passed": 279,
+    "total": 279,
+    "failed": 0,
+    "liveSql": true,
+    "httpsJwt": true,
+    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40407738776",
+    "note": "Verified in GitHub Actions for the linked code SHA. Top-level local verification fields document a prior baseline run and are preserved."
   }
 }
