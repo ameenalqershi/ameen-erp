@@ -6,10 +6,10 @@
   "partially_implemented_screens": 31,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 294,
+    "implemented": 295,
     "audit": 53,
     "derived": 5,
-    "partial": 45,
+    "partial": 44,
     "pending": 2362
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -907,7 +907,7 @@
     "GL06": {
       "api": "POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch",
       "implemented": "ترحيل جماعي مستقل لكل قيد مع إيصال ومفتاح مستند وتدقيق وOutbox؛ نتائج نجاح وفشل صريحة ومعاينة وسجل رفض التحقق؛ إعادة الناجح دون تكرار وتراجع الفاشل",
-      "remaining": "توجيه مستندات المصادر الأخرى وعامل Outbox؛ سجل فشل تقني خارجي دائم ورأس دفعة مستقل وإصدار عددي للإجراء؛ نطاق أرقام نصي حر غير متاح",
+      "remaining": "توجيه مستندات المصادر الأخرى وعامل Outbox؛ سجل فشل تقني خارجي دائم ورأس دفعة مستقل وإصدار عددي للإجراء",
       "fields": {
         "GL06-F01": {
           "status": "implemented",
@@ -950,8 +950,8 @@
           "binding": "processing-queue.source: journal provenance only; source documents route separately"
         },
         "GL06-F05": {
-          "status": "partial",
-          "binding": "processing-queue.sequenceFrom/sequenceTo within required fiscal period; explicit selected IDs for execution"
+          "status": "implemented",
+          "binding": "processing-queue.numberRange: selected fiscal-year JV number or inclusive range; sequenceFrom/sequenceTo backward-compatible; authorized branch/state/source scoped"
         },
         "GL06-F08": {
           "status": "implemented",
