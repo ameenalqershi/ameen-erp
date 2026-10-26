@@ -274,7 +274,7 @@ public static class HostedApiIntegration
                 Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
 
                 var scheduledTemplate = await Command(client, recurringPath,
-                    recurringRequest with { Name = "HTTP automatically scheduled", GenerationMode = RecurringGenerationMode.Scheduled });
+                    recurringRequest with { Name = "HTTP automatically scheduled", GenerationMode = RecurringGenerationMode.Scheduled, EndsOn = null });
                 scheduledTemplate = await Command(client, recurringPath + $"/{scheduledTemplate.ResourceId}",
                     new EditRecurringJournalRequest(scheduledTemplate.Version, "HTTP automated schedule revised",
                         recurringRequest.Frequency, RecurringGenerationMode.Scheduled, recurringRequest.StartsOn,

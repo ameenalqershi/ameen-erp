@@ -93,6 +93,24 @@ public static class RecurringTests
             Ensure(audit.TotalCount == 3 && audit.Items.Any(x => x.Action == "recurring.edited") &&
                 audit.Items.Any(x => x.Action == "recurring.status-changed"));
         });
+        test("GL04-F07: absent end date remains null after create/edit and permits future due dates", async f =>
+        {
+            var request = Request(f) with { Name = "دوري بلا حد نهائي", EndsOn = null };
+            var receipt = await Create(f, request);
+            var template = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, receipt.ResourceId, f.Clerk, default);
+            Ensure(template.EndsOn is null &&
+                template.DueDateFor(new(2027, 1, 1), new(2027, 1, 31)) == new DateOnly(2027, 1, 31) &&
+                template.DueDateFor(new(2040, 12, 1), new(2040, 12, 31)) == new DateOnly(2040, 12, 31));
+            receipt = await f.Service.RecurringJournal.EditRecurringJournal(f.CompanyId, receipt.ResourceId,
+                f.Clerk, Fixture.Key(), Edit(receipt.Version, request with { Name = "مستمر" }), default);
+            template = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, receipt.ResourceId, f.Clerk, default);
+            Ensure(template.EndsOn is null && template.Revision == 2);
+            receipt = await f.Service.RecurringJournal.EditRecurringJournal(f.CompanyId, receipt.ResourceId,
+                f.Clerk, Fixture.Key(), Edit(receipt.Version, request with { EndsOn = new(2026, 9, 30) }), default);
+            template = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, receipt.ResourceId, f.Clerk, default);
+            Ensure(template.EndsOn == new DateOnly(2026, 9, 30) &&
+                template.DueDateFor(new(2026, 10, 1), new(2026, 10, 31)) is null);
+        });
         test("GL04: future template edits preserve generated amounts and historical version", async f =>
         {
             var template = await Create(f); var first = await Generate(f, template, 10);

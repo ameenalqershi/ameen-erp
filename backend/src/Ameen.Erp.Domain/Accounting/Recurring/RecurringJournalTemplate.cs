@@ -7,7 +7,7 @@ public sealed class RecurringJournalTemplate : CompanyEntity
     public RecurringFrequency Frequency { get; private set; }
     public RecurringGenerationMode GenerationMode { get; private set; }
     public DateOnly StartsOn { get; private set; }
-    public DateOnly EndsOn { get; private set; }
+    public DateOnly? EndsOn { get; private set; }
     public bool IsActive { get; private set; } = true;
     public string CreatedBy { get; private set; } = "";
     public DateTimeOffset CreatedAt { get; private set; }
@@ -16,17 +16,17 @@ public sealed class RecurringJournalTemplate : CompanyEntity
     public List<RecurringJournalLine> Lines { get; private set; } = new();
     private RecurringJournalTemplate() { }
     public RecurringJournalTemplate(Guid companyId, Guid branchId, string name, RecurringFrequency frequency,
-        RecurringGenerationMode mode, DateOnly startsOn, DateOnly endsOn, string actor, DateTimeOffset now) : base(companyId)
+        RecurringGenerationMode mode, DateOnly startsOn, DateOnly? endsOn, string actor, DateTimeOffset now) : base(companyId)
     {
         Check.That(branchId != Guid.Empty, "branch_required", "الفرع مطلوب.");
         BranchId = branchId; CreatedBy = Check.Text(actor, "المنشئ"); CreatedAt = now; LastModifiedAt = now;
         Configure(name, frequency, mode, startsOn, endsOn);
     }
-    public void Configure(string name, RecurringFrequency frequency, RecurringGenerationMode mode, DateOnly startsOn, DateOnly endsOn)
+    public void Configure(string name, RecurringFrequency frequency, RecurringGenerationMode mode, DateOnly startsOn, DateOnly? endsOn)
     {
         Check.That(Enum.IsDefined(frequency), "invalid_recurring_frequency", "دورية القالب غير صالحة.");
         Check.That(Enum.IsDefined(mode), "invalid_generation_mode", "طريقة توليد القالب غير صالحة.");
-        Check.That(endsOn >= startsOn, "invalid_recurring_dates", "نهاية القالب تسبق بدايته.");
+        Check.That(endsOn is null || endsOn >= startsOn, "invalid_recurring_dates", "نهاية القالب تسبق بدايته.");
         Name = Check.Text(name, "اسم القالب"); Frequency = frequency; GenerationMode = mode;
         StartsOn = startsOn; EndsOn = endsOn; Touch();
     }
@@ -52,7 +52,7 @@ public sealed class RecurringJournalTemplate : CompanyEntity
     public DateOnly? DueDateFor(DateOnly periodStartsOn, DateOnly periodEndsOn)
     {
         Check.That(periodEndsOn >= periodStartsOn, "invalid_period", "نهاية الفترة تسبق بدايتها.");
-        if (periodEndsOn < StartsOn || periodStartsOn > EndsOn) return null;
+        if (periodEndsOn < StartsOn || (EndsOn is DateOnly lastStart && periodStartsOn > lastStart)) return null;
         var step = Frequency switch { RecurringFrequency.Monthly => 1, RecurringFrequency.Quarterly => 3, _ => 12 };
         var elapsed = Math.Max(0, (periodStartsOn.Year - StartsOn.Year) * 12 + periodStartsOn.Month - StartsOn.Month);
         var offset = elapsed / step * step;
@@ -60,9 +60,9 @@ public sealed class RecurringJournalTemplate : CompanyEntity
         DateOnly? Candidate(int months) => months <= maximumOffset ? StartsOn.AddMonths(months) : null;
         var date = Candidate(offset);
         if (date < periodStartsOn) { offset += step; date = Candidate(offset); }
-        if (date is null || date > periodEndsOn || date > EndsOn) return null;
+        if (date is null || date > periodEndsOn || (EndsOn is DateOnly lastDue && date > lastDue)) return null;
         var next = Candidate(offset + step);
-        Check.That(next is null || next > periodEndsOn || next > EndsOn,
+        Check.That(next is null || next > periodEndsOn || (EndsOn is DateOnly lastNext && next > lastNext),
             "ambiguous_recurring_period", "الفترة تحتوي أكثر من موعد لهذا القالب؛ اختر فترة شهرية محددة.");
         return date;
     }

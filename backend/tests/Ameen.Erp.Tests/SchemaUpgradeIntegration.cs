@@ -290,6 +290,27 @@ public static class SchemaUpgradeIntegration
             "SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=20").SingleAsync() == 1,
             "Revision migration was not idempotent");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 019→020 backfills numeric revision and last modified without rewriting UUID");
+        var optionalEndScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory,
+            "database", "021_recurring_optional_end.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_OptionalEndCollision] CHECK ([GenerationMode] IN (0,1))");
+        var brokenOptionalEnd = optionalEndScript.Replace(
+            "ADD CONSTRAINT [CK_Recurring_Dates]", "ADD CONSTRAINT [CK_OptionalEndCollision]");
+        try { await db.Database.ExecuteSqlRawAsync(brokenOptionalEnd); throw new Exception("Conflicting optional-end migration accepted"); }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=21").AnyAsync(),
+            "Failed optional end migration saved schema version");
+        Ensure(await db.Database.SqlQueryRaw<int>(
+            "SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('RecurringJournalTemplates') AND name='EndsOn' AND is_nullable=0").SingleAsync() == 1,
+            "Failed optional-end upgrade did not roll back original NOT NULL column");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] DROP CONSTRAINT [CK_OptionalEndCollision]");
+        await db.Database.ExecuteSqlRawAsync(optionalEndScript);
+        await db.Database.ExecuteSqlRawAsync(optionalEndScript);
+        Ensure(await db.Database.SqlQueryRaw<int>(
+            "SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('RecurringJournalTemplates') AND name='EndsOn' AND is_nullable=1").SingleAsync() == 1 &&
+            await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=21").SingleAsync() == 1,
+            "GL04 optional end migration is not idempotent or cannot store NULL");
+        Console.WriteLine("  SQL PASS GL04-F07 atomic/idempotent schema 020→021 accepts open end and rolls back collision");
+
 
 
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();

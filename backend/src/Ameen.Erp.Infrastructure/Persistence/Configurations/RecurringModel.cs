@@ -15,7 +15,7 @@ public sealed partial class ErpDbContext
         template.HasOne<Branch>().WithMany().HasForeignKey(x => new { x.CompanyId, x.BranchId }).OnDelete(DeleteBehavior.NoAction);
         template.HasMany(x => x.Lines).WithOne().HasForeignKey(x => new { x.CompanyId, x.TemplateId }).OnDelete(DeleteBehavior.Cascade);
         template.Navigation(x => x.Lines).AutoInclude();
-        Constraint(template, "CK_Recurring_Dates", "[EndsOn] >= [StartsOn]");
+        Constraint(template, "CK_Recurring_Dates", "[EndsOn] IS NULL OR [EndsOn] >= [StartsOn]");
         Constraint(template, "CK_Recurring_Frequency", "[Frequency] BETWEEN 0 AND 2");
         Constraint(template, "CK_Recurring_Mode", "[GenerationMode] IN (0, 1)");
 

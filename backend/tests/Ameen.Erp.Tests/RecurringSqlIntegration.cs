@@ -131,7 +131,7 @@ FROM [RecurringJournalGenerations] WHERE [CompanyId]={cid} AND [TemplateId]={tem
         Console.WriteLine("  SQL PASS recurring source FK/uniqueness, immutable history, runtime-role template edit and independent posting");
 
         // GL04-GP01: schedule mode persisted by schema 019, no financial posting, safe replays.
-        var scheduledRequest = request with { Name = "SQL scheduled drafts", GenerationMode = RecurringGenerationMode.Scheduled };
+        var scheduledRequest = request with { Name = "SQL scheduled drafts", GenerationMode = RecurringGenerationMode.Scheduled, EndsOn = null };
         var scheduled = await Call(s => s.RecurringJournal.CreateRecurringJournal(cid, clerk, Fixture.Key(), scheduledRequest, default));
         var due = await Call(s => s.RecurringJournal.RunScheduledDue(cid, clerk, new DateOnly(2026, 9, 30), 100, default));
         Ensure(due.GeneratedCount == 9 && due.FailedCount == 0 &&
