@@ -6,10 +6,10 @@
   "partially_implemented_screens": 31,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 295,
+    "implemented": 297,
     "audit": 53,
     "derived": 5,
-    "partial": 44,
+    "partial": 42,
     "pending": 2362
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -583,8 +583,8 @@
     },
     "GL02": {
       "api": "GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs",
-      "implemented": "افتتاح عام مصدره GeneralOpening ومرجع ميزان وتاريخ تشغيل؛ قيد متزن ودورة مستقلة واعتماد وترحيل وعكس تاريخي؛ منع الحسابات الرقابية؛ معاينة حسابات التسوية التاريخية للمخزون دون عد القيد مرتين؛ إصدار ووقت تعديل يشملان حجز العكس وإلغاءه وترحيله؛ استبدال رأس المسودة والسطور مع نقل الفرع والفترة وترقيم السنة وإعادة التحقق",
-      "remaining": "الأجنبية والطباعة والاستيراد؛ تصفير حساب التسوية بوابة شاملة غير منفذ؛ الذمم والمصادر غير المنفذة ليست مطابقة",
+      "implemented": "افتتاح عام مصدره GeneralOpening ومرجع ميزان وتاريخ تشغيل وعملة وظيفية أو أجنبية بسعر تاريخي مثبت؛ قيد متزن ودورة مستقلة واعتماد وترحيل وعكس تاريخي؛ منع الحسابات الرقابية؛ معاينة حسابات التسوية التاريخية للمخزون دون عد القيد مرتين؛ إصدار ووقت تعديل يشملان حجز العكس وإلغاءه وترحيله؛ استبدال رأس المسودة والسطور مع نقل الفرع والفترة وترقيم السنة وإعادة التحقق",
+      "remaining": "الطباعة والاستيراد؛ تصفير حساب التسوية بوابة شاملة غير منفذ؛ الذمم والمصادر غير المنفذة ليست مطابقة",
       "fields": {
         "GL02-F01": {
           "status": "implemented",
@@ -659,12 +659,12 @@
           "binding": "FiscalPeriod.FiscalYearId via settlement-preview"
         },
         "GL02-F08": {
-          "status": "partial",
-          "binding": "OpeningCurrencyCode: functional currency only"
+          "status": "implemented",
+          "binding": "OpeningCurrencyCode: active functional or foreign opening currency"
         },
         "GL02-F09": {
-          "status": "partial",
-          "binding": "OpeningExchangeRate: fixed 1"
+          "status": "implemented",
+          "binding": "OpeningExchangeRate: dated FX snapshot equal to latest effective rate; exact reversal"
         },
         "GL02-F21": {
           "status": "implemented",
