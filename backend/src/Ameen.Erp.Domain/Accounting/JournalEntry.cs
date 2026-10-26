@@ -144,7 +144,8 @@ public sealed class JournalEntry : CompanyEntity
         Check.That(Source == JournalSource.Manual && ReversesJournalId is null && RecurringTemplateId is null,
             "journal_source_conflict", "مصدر القيد محدد مسبقًا.");
         Check.That(startsOn != DateOnly.MinValue, "opening_start_required", "تاريخ بداية التشغيل مطلوب.");
-        Check.That(rate == 1, "opening_functional_currency_only", "الافتتاح العام الحالي بالعملة الوظيفية وسعر واحد.");
+        Check.That(rate > 0 && rate < 1_000_000_000m && decimal.Round(rate, 10) == rate,
+            "invalid_exchange_rate", "سعر صرف الافتتاح يجب أن يكون موجبًا وبدقة معتمدة.");
         Source = JournalSource.GeneralOpening; OperationStartsOn = startsOn;
         PreviousTrialBalanceReference = Check.Text(previousReference, "مرجع الميزان السابق", 500);
         OpeningCurrencyCode = Check.Currency(currency); OpeningExchangeRate = rate; OpeningRevision = 1; OpeningModifiedAt = now; Touch();

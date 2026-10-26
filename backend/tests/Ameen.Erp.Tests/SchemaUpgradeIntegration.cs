@@ -230,6 +230,22 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Journals] DROP CONSTRAINT [CK_Journal_GeneralOpening]");
         await db.Database.ExecuteSqlRawAsync(generalOpeningScript); await db.Database.ExecuteSqlRawAsync(generalOpeningScript);
         Console.WriteLine("  SQL PASS atomic/idempotent schema 016→017 preserves journal provenance and adds opening metadata");
+        var foreignOpeningScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "018_general_opening_foreign_currency.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Journals] ADD CONSTRAINT [CK_OpeningFx_TestCollision] CHECK ([Sequence] > 0)");
+        var collisionScript = foreignOpeningScript.Replace("[CK_Journal_GeneralOpening] CHECK (",
+            "[CK_OpeningFx_TestCollision] CHECK (");
+        try { await db.Database.ExecuteSqlRawAsync(collisionScript); throw new Exception("Conflicting FX upgrade unexpectedly succeeded"); }
+        catch (SqlException e) when (e.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=18").AnyAsync(),
+            "Failed FX upgrade saved schema version");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.check_constraints WHERE name='CK_Journal_GeneralOpening'").SingleAsync() == 1,
+            "Failed FX upgrade did not roll back old opening protection");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Journals] DROP CONSTRAINT [CK_OpeningFx_TestCollision]");
+        await db.Database.ExecuteSqlRawAsync(foreignOpeningScript);
+        await db.Database.ExecuteSqlRawAsync(foreignOpeningScript);
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=18").SingleAsync() == 1,
+            "FX upgrade should apply exactly once");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 017→018 opens dated FX with rollback and no historical changes");
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

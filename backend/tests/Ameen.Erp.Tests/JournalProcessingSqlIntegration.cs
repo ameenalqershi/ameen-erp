@@ -125,6 +125,47 @@ public static class JournalProcessingSqlIntegration
             }
         }
         Console.WriteLine("  SQL PASS GL05/06 mixed concurrent batch replay, durable rejection, per-document rollback/retry, history and refreshed authorization");
+        // GL02-GP01: verify the real persisted SQL snapshot, posted reversal and dated FX constraint.
+        await Call(s => s.Currency.CreateCurrency(cid, owner, Fixture.Key(), new("CHF", 2, "فرنك"), default));
+        var datedRate = await Call(s => s.ExchangeRate.CreateExchangeRate(cid, owner, Fixture.Key(),
+            new("CHF", request.AccountingDate, 3.125m, "سعر الافتتاح"), default));
+        var foreignLines = request.Lines.Select((x, i) => x with {
+            CurrencyCode = "CHF", ExchangeRateId = datedRate.ResourceId,
+            Debit = i == 0 ? 20m : 0m, Credit = i == 1 ? 20m : 0m }).ToArray();
+        var foreignRequest = GeneralOpeningTests.Request(request) with {
+            CurrencyCode = "CHF", ExchangeRate = 3.125m,
+            PreviousTrialBalanceReference = "TB-CHF-SQL", Lines = foreignLines };
+        var foreignKey = Fixture.Key();
+        var foreign = await Call(s => s.Journal.CreateGeneralOpening(cid, clerk, foreignKey, foreignRequest, default));
+        Ensure(foreign == await Call(s => s.Journal.CreateGeneralOpening(cid, clerk, foreignKey, foreignRequest, default)),
+            "Foreign opening idempotency differs in SQL");
+        var foreignApproved = await Approve(foreign);
+        foreign = await Call(s => s.Journal.TransitionJournal(cid, foreignApproved.ResourceId, approver, Fixture.Key(),
+            new(foreignApproved.Version), "post", default));
+        await using (var db = Context())
+        {
+            var snapshot = await db.Set<JournalEntry>().SingleAsync(x => x.Id == foreign.ResourceId);
+            Ensure(snapshot.OpeningCurrencyCode == "CHF" && snapshot.OpeningExchangeRate == 3.125m &&
+                snapshot.Lines.All(x => x.ExchangeRateId == datedRate.ResourceId && x.ExchangeRate == 3.125m) &&
+                snapshot.Lines.Sum(x => x.FunctionalDebit) == 62.5m, "SQL foreign opening snapshot differs");
+        }
+        var foreignInverse = await Call(s => s.Journal.ReverseJournal(cid, foreign.ResourceId, clerk, Fixture.Key(),
+            new(foreign.Version, request.AccountingDate, "تصحيح افتتاح أجنبي"), default));
+        foreignInverse = await Approve(foreignInverse);
+        await Call(s => s.Journal.TransitionJournal(cid, foreignInverse.ResourceId, approver, Fixture.Key(),
+            new(foreignInverse.Version), "post", default));
+        await using (var db = Context())
+        {
+            var originalFx = await db.Set<JournalEntry>().SingleAsync(x => x.Id == foreign.ResourceId);
+            var inverseFx = await db.Set<JournalEntry>().SingleAsync(x => x.Id == foreignInverse.ResourceId);
+            Ensure(originalFx.State == JournalState.Reversed &&
+                originalFx.Lines.Sum(x => x.FunctionalDebit - x.FunctionalCredit) +
+                inverseFx.Lines.Sum(x => x.FunctionalDebit - x.FunctionalCredit) == 0 &&
+                inverseFx.Lines.All(x => x.ExchangeRateId == datedRate.ResourceId && x.ExchangeRate == 3.125m),
+                "SQL FX reversal recomputed historical rates or amounts");
+        }
+        Console.WriteLine("  SQL PASS GL02-GP01 dated FX opening 018, replay, immutable snapshot and historical reversal");
+
     }
     private static void Ensure(bool value, string message) { if (!value) throw new Exception(message); }
 }

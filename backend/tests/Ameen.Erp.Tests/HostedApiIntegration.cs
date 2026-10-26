@@ -647,6 +647,43 @@ public static class HostedApiIntegration
                 using var blocked = await client.SendAsync(disallowed);
                 Ensure(!blocked.Headers.Contains("Access-Control-Allow-Origin"), "Unlisted CORS origin accepted");
                 Console.WriteLine("  HOST PASS HTTPS, OIDC discovery/JWKS, JWT validation, roles, strict JSON, SQL posting, OpenAPI and CORS");
+                // GL02-GP01: exercise the production HTTPS + JWT route using an existing dated NZD quote.
+                Authenticate(Token("sql-clerk"));
+                var fxOpeningLines = journalRequest.Lines.Select(x => x with {
+                    CurrencyCode = "NZD", ExchangeRateId = rate.ResourceId }).ToArray();
+                var fxOpeningRequest = GeneralOpeningTests.Request(journalRequest) with {
+                    CurrencyCode = "NZD", ExchangeRate = 1.25m, PreviousTrialBalanceReference = "TB-NZD-HTTP",
+                    Lines = fxOpeningLines };
+                var fxOpeningPath = $"/api/v1/companies/{companyId}/general-openings";
+                var fxOpening = await Command(client, fxOpeningPath, fxOpeningRequest);
+                using (var detail = await client.GetAsync(fxOpeningPath + $"/{fxOpening.ResourceId}"))
+                using (var snapshot = JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                    Ensure(detail.StatusCode == HttpStatusCode.OK &&
+                        snapshot.RootElement.GetProperty("openingCurrencyCode").GetString() == "NZD" &&
+                        snapshot.RootElement.GetProperty("openingExchangeRate").GetString() == "1.25" &&
+                        snapshot.RootElement.GetProperty("lines").EnumerateArray().All(x =>
+                            x.GetProperty("exchangeRateId").GetGuid() == rate.ResourceId &&
+                            x.GetProperty("exchangeRate").GetString() == "1.25"),
+                        "GL02 foreign opening HTTPS/SQL snapshot differs");
+                fxOpening = await Command(client, path + $"/{fxOpening.ResourceId}/submit",
+                    new TransitionRequest(fxOpening.Version));
+                Authenticate(Token("sql-approver"));
+                fxOpening = await Command(client, path + $"/{fxOpening.ResourceId}/approve",
+                    new TransitionRequest(fxOpening.Version));
+                fxOpening = await Command(client, path + $"/{fxOpening.ResourceId}/post",
+                    new TransitionRequest(fxOpening.Version));
+                Ensure(fxOpening.Status == "Posted", "GL02 foreign opening production post failed");
+                Authenticate(Token("sql-clerk"));
+                var fxReverse = await Command(client, path + $"/{fxOpening.ResourceId}/reverse",
+                    new ReverseJournalRequest(fxOpening.Version, Fixture.Date, "عكس افتتاح أجنبي HTTP"));
+                using (var inverse = await client.GetAsync(path + $"/{fxReverse.ResourceId}"))
+                using (var history = JsonDocument.Parse(await inverse.Content.ReadAsStringAsync()))
+                    Ensure(inverse.StatusCode == HttpStatusCode.OK &&
+                        history.RootElement.GetProperty("lines").EnumerateArray().All(x =>
+                            x.GetProperty("exchangeRateId").GetGuid() == rate.ResourceId &&
+                            x.GetProperty("exchangeRate").GetString() == "1.25"),
+                        "GL02 reversal unexpectedly repriced posted opening");
+                Console.WriteLine("  HOST PASS GL02-GP01 dated FX opening and historical inverse over HTTPS/JWT/SQL");
             }
             finally { await api.StopAsync(); }
         }

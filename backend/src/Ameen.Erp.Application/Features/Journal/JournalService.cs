@@ -42,9 +42,8 @@ public sealed partial class JournalService : ApplicationService
         {
             Check.That(request is not null, "invalid_line", "سطر القيد لا يمكن أن يكون فارغًا.");
             var currencyCode = Check.Currency(request!.CurrencyCode);
-            Check.That(journal.Source != JournalSource.GeneralOpening || currencyCode == journal.OpeningCurrencyCode &&
-                currencyCode == company.FunctionalCurrency && request.ExchangeRateId is null,
-                "opening_functional_currency_only", "سطور الافتتاح العام بالعملة الوظيفية فقط.");
+            Check.That(journal.Source != JournalSource.GeneralOpening || currencyCode == journal.OpeningCurrencyCode,
+                "opening_currency_mismatch", "يجب أن تطابق عملة جميع سطور الافتتاح عملة رأس المستند.");
             var currency = await currencyService.RequireCurrency(company.Id, currencyCode, ct);
             decimal rate = 1;
             if (currencyCode == company.FunctionalCurrency)
@@ -61,6 +60,8 @@ public sealed partial class JournalService : ApplicationService
                     "stale_exchange_rate", "اختر أحدث سعر صرف نافذ في تاريخ القيد.");
                 rate = exchange.RateToFunctional;
             }
+            Check.That(journal.Source != JournalSource.GeneralOpening || rate == journal.OpeningExchangeRate,
+                "opening_rate_mismatch", "سعر سطر الافتتاح لا يطابق السعر المثبت في رأس المستند.");
             var line = new JournalLine(company.Id, journal.Id, result.Count + 1, request.AccountId,
                 request.CostCenterId, request.Description, currencyCode, request.ExchangeRateId, rate,
                 request.Debit, request.Credit, currency.Scale, company.CurrencyScale);

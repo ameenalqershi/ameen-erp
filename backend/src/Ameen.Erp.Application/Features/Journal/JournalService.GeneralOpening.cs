@@ -11,13 +11,31 @@ public sealed partial class JournalService
                 original.PendingReversalJournalId, original.ReversalJournalId, original.State });
     }
 
+    private async Task ValidateOpeningRate(Company company, string currencyCode, decimal declaredRate, DateOnly accountingDate, CancellationToken ct)
+    {
+        await currencyService.RequireCurrency(company.Id, currencyCode, ct);
+        Check.That(declaredRate > 0 && declaredRate < 1_000_000_000m && decimal.Round(declaredRate, 10) == declaredRate,
+            "invalid_exchange_rate", "سعر صرف الافتتاح غير صالح.");
+        if (currencyCode == company.FunctionalCurrency)
+        {
+            Check.That(declaredRate == 1m, "opening_functional_currency_only",
+                "سعر صرف الافتتاح بالعملة الوظيفية يجب أن يساوي واحدًا.");
+            return;
+        }
+        var available = await store.Find<ExchangeRate>(company.Id,
+            x => x.CurrencyCode == currencyCode && x.EffectiveDate <= accountingDate, ct);
+        var latest = available.OrderByDescending(x => x.EffectiveDate).ThenBy(x => x.Id).FirstOrDefault();
+        Check.That(latest is not null, "exchange_rate_required", "لا يوجد سعر صرف نافذ في تاريخ الافتتاح.");
+        Check.That(latest!.RateToFunctional == declaredRate, "opening_rate_mismatch",
+            "سعر الافتتاح لا يطابق أحدث سعر نافذ للعملة وتاريخ القيد.");
+    }
+
     public Task<CommandReceipt> CreateGeneralOpening(Guid cid, Actor actor, string key, CreateGeneralOpeningRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "general-opening.create", request,
             async token => { await Authorize(cid, actor, Permissions.Draft, request.BranchId, token); }, async token =>
         {
             var company = await Company(cid, token); await branchService.ActiveBranch(cid, request.BranchId, token);
-            Check.That(Check.Currency(request.CurrencyCode) == company.FunctionalCurrency && request.ExchangeRate == 1,
-                "opening_functional_currency_only", "الافتتاح العام الحالي بالعملة الوظيفية وسعر واحد.");
+            await ValidateOpeningRate(company, Check.Currency(request.CurrencyCode), request.ExchangeRate, request.AccountingDate, token);
             var period = await OpenPeriod(cid, request.AccountingDate, token); var number = await NextNumber(cid, period.Id, token);
             var journal = new JournalEntry(cid, request.BranchId, period.Id, number.Number, number.Sequence, request.DocumentDate,
                 request.AccountingDate, request.Description, request.ExternalReference, actor.Subject, clock.UtcNow);
