@@ -7226,6 +7226,13 @@
             }
           },
           {
+            "name": "numberRange",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "action",
             "in": "query",
             "schema": {
@@ -7483,6 +7490,13 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/JournalSource"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -8162,6 +8176,13 @@
             "in": "query",
             "schema": {
               "$ref": "#/components/schemas/JournalState"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -9035,6 +9056,51 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CommandReceipt"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/companies/{companyId}/recurring-journals/run-due": {
+      "post": {
+        "tags": [
+          "GL04 Recurring journals"
+        ],
+        "parameters": [
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunDueRecurringRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurringDueRunResult"
                 }
               }
             }
@@ -11067,7 +11133,6 @@
           "frequency",
           "generationMode",
           "startsOn",
-          "endsOn",
           "lines"
         ],
         "type": "object",
@@ -11089,10 +11154,7 @@
             "type": "string",
             "format": "date"
           },
-          "endsOn": {
-            "type": "string",
-            "format": "date"
-          },
+          "endsOn": {},
           "lines": {
             "type": "array",
             "items": {
@@ -11973,7 +12035,6 @@
           "frequency",
           "generationMode",
           "startsOn",
-          "endsOn",
           "lines"
         ],
         "type": "object",
@@ -11995,10 +12056,7 @@
             "type": "string",
             "format": "date"
           },
-          "endsOn": {
-            "type": "string",
-            "format": "date"
-          },
+          "endsOn": {},
           "lines": {
             "type": "array",
             "items": {
@@ -15866,6 +15924,95 @@
         },
         "additionalProperties": false
       },
+      "RecurringDueRunResult": {
+        "required": [
+          "asOf",
+          "selectedCount",
+          "generatedCount",
+          "failedCount",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date"
+          },
+          "selectedCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "generatedCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "failedCount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecurringDueRunRow"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "RecurringDueRunRow": {
+        "required": [
+          "templateId",
+          "fiscalPeriodId",
+          "dueDate",
+          "journalId",
+          "succeeded",
+          "errorCode"
+        ],
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fiscalPeriodId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "journalId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "succeeded": {
+            "type": "boolean"
+          },
+          "errorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
       "RecurringFrequency": {
         "enum": [
           "Monthly",
@@ -15875,7 +16022,8 @@
       },
       "RecurringGenerationMode": {
         "enum": [
-          "Manual"
+          "Manual",
+          "Scheduled"
         ]
       },
       "RecurringJournalGeneration": {
@@ -16009,7 +16157,9 @@
           "startsOn",
           "endsOn",
           "isActive",
-          "lineCount"
+          "lineCount",
+          "revision",
+          "lastModifiedAt"
         ],
         "type": "object",
         "properties": {
@@ -16039,7 +16189,6 @@
             "format": "date"
           },
           "endsOn": {
-            "type": "string",
             "format": "date"
           },
           "isActive": {
@@ -16052,6 +16201,18 @@
               "string"
             ],
             "format": "int32"
+          },
+          "revision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastModifiedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -16085,7 +16246,6 @@
             "format": "date"
           },
           "endsOn": {
-            "type": "string",
             "format": "date"
           },
           "isActive": {
@@ -16095,6 +16255,18 @@
             "type": "string"
           },
           "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "lastModifiedAt": {
             "type": "string",
             "format": "date-time"
           },
@@ -16247,6 +16419,28 @@
           },
           "reason": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RunDueRecurringRequest": {
+        "required": [
+          "asOf"
+        ],
+        "type": "object",
+        "properties": {
+          "asOf": {
+            "type": "string",
+            "format": "date"
+          },
+          "limit": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           }
         },
         "additionalProperties": false

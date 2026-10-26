@@ -269,6 +269,16 @@ public static class SchemaUpgradeIntegration
             RecurringFrequency.Monthly, RecurringGenerationMode.Manual, new DateOnly(2026, 1, 1),
             new DateOnly(2026, 12, 31), f.Clerk.Subject, new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
         await InsertLegacy(db, legacyRecurring);
+        var historyAt = legacyRecurring.CreatedAt.AddDays(2);
+        foreach (var change in new[] {
+            new AuditEvent(f.CompanyId, f.Clerk.Subject, "recurring.edited", legacyRecurring.Id, historyAt.AddDays(-1), "{}"),
+            new AuditEvent(f.CompanyId, f.Clerk.Subject, "recurring.status-changed", legacyRecurring.Id, historyAt, "{}"),
+            new AuditEvent(f.CompanyId, f.Clerk.Subject, "recurring.generated", legacyRecurring.Id, historyAt.AddDays(1), "{}") })
+            await InsertLegacy(db, change);
+        var noHistory = new RecurringJournalTemplate(f.CompanyId, f.BranchId, "قالب بلا تعديلات",
+            RecurringFrequency.Yearly, RecurringGenerationMode.Manual, new DateOnly(2026, 1, 1),
+            new DateOnly(2026, 12, 31), f.Clerk.Subject, legacyRecurring.CreatedAt);
+        await InsertLegacy(db, noHistory);
         var revisionScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory,
             "database", "020_recurring_revisions.sql"));
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_Recurring_Revision] CHECK ([GenerationMode] IN (0, 1))");
@@ -284,34 +294,44 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(revisionScript);
         db.ChangeTracker.Clear();
         var upgraded = await db.Set<RecurringJournalTemplate>().SingleAsync(x => x.CompanyId == f.CompanyId && x.Id == legacyRecurring.Id);
-        Ensure(upgraded.Revision == 1 && upgraded.LastModifiedAt == legacyRecurring.CreatedAt &&
+        Ensure(upgraded.Revision == 3 && upgraded.LastModifiedAt == historyAt &&
             upgraded.Version == legacyRecurring.Version, "Revision migration changed legacy metadata or UUID");
+        var unchanged = await db.Set<RecurringJournalTemplate>().SingleAsync(x => x.CompanyId == f.CompanyId && x.Id == noHistory.Id);
+        Ensure(unchanged.Revision == 1 && unchanged.LastModifiedAt == noHistory.CreatedAt &&
+            unchanged.Version == noHistory.Version, "No-history template did not keep creation metadata");
         Ensure(await db.Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=20").SingleAsync() == 1,
             "Revision migration was not idempotent");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 019→020 backfills numeric revision and last modified without rewriting UUID");
+
         var optionalEndScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory,
             "database", "021_recurring_optional_end.sql"));
-        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_OptionalEndCollision] CHECK ([GenerationMode] IN (0,1))");
-        var brokenOptionalEnd = optionalEndScript.Replace(
-            "ADD CONSTRAINT [CK_Recurring_Dates]", "ADD CONSTRAINT [CK_OptionalEndCollision]");
-        try { await db.Database.ExecuteSqlRawAsync(brokenOptionalEnd); throw new Exception("Conflicting optional-end migration accepted"); }
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_OptionalEnd_Collision] CHECK ([Frequency] BETWEEN 0 AND 2)");
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(optionalEndScript.Replace("ADD CONSTRAINT [CK_Recurring_Dates]", "ADD CONSTRAINT [CK_OptionalEnd_Collision]"));
+            throw new Exception("Conflicting optional-end migration accepted");
+        }
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
         Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=21").AnyAsync(),
-            "Failed optional end migration saved schema version");
-        Ensure(await db.Database.SqlQueryRaw<int>(
-            "SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('RecurringJournalTemplates') AND name='EndsOn' AND is_nullable=0").SingleAsync() == 1,
-            "Failed optional-end upgrade did not roll back original NOT NULL column");
-        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] DROP CONSTRAINT [CK_OptionalEndCollision]");
+            "Failed optional-end migration recorded version");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT CAST(is_nullable AS int) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('RecurringJournalTemplates') AND name='EndsOn'").SingleAsync() == 0,
+            "Failed optional-end migration retained nullable column");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.check_constraints WHERE name='CK_Recurring_Dates'").SingleAsync() == 1,
+            "Failed optional-end migration lost date constraint");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] DROP CONSTRAINT [CK_OptionalEnd_Collision]");
         await db.Database.ExecuteSqlRawAsync(optionalEndScript);
         await db.Database.ExecuteSqlRawAsync(optionalEndScript);
-        Ensure(await db.Database.SqlQueryRaw<int>(
-            "SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('RecurringJournalTemplates') AND name='EndsOn' AND is_nullable=1").SingleAsync() == 1 &&
-            await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=21").SingleAsync() == 1,
-            "GL04 optional end migration is not idempotent or cannot store NULL");
-        Console.WriteLine("  SQL PASS GL04-F07 atomic/idempotent schema 020→021 accepts open end and rolls back collision");
-
-
+        db.ChangeTracker.Clear();
+        var optionalUpgraded = await db.Set<RecurringJournalTemplate>().SingleAsync(x => x.CompanyId == f.CompanyId && x.Id == legacyRecurring.Id);
+        Ensure(optionalUpgraded.EndsOn == legacyRecurring.EndsOn && optionalUpgraded.Revision == 3 &&
+            optionalUpgraded.Version == legacyRecurring.Version && optionalUpgraded.LastModifiedAt == historyAt,
+            "Optional-end migration rewrote old date, revision or identity");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=21").SingleAsync() == 1,
+            "Optional-end migration was not idempotent");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT CAST(is_nullable AS int) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('RecurringJournalTemplates') AND name='EndsOn'").SingleAsync() == 1,
+            "Optional-end migration did not persist nullable column");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 020→021 makes end date optional and preserves old dates, revision and UUID");
 
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
@@ -326,7 +346,7 @@ public static class SchemaUpgradeIntegration
         }
         Console.WriteLine("  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications");
         db.ChangeTracker.Clear();
-        foreach (var table in new[] { "RecurringJournalLines", "RecurringJournalGenerations", "RecurringJournalTemplates", "JournalLines", "Journals", "Accounts", "CostCenters", "FiscalPeriods", "FiscalYears", "Branches", "Currencies" })
+        foreach (var table in new[] { "RecurringJournalLines", "RecurringJournalGenerations", "JournalLines", "Journals", "RecurringJournalTemplates", "AuditEvents", "Accounts", "CostCenters", "FiscalPeriods", "FiscalYears", "Branches", "Currencies" })
         {
             // Table identifiers come only from this fixed test list; values remain parameters.
             var sql = "DELETE FROM [" + table + "] WHERE [CompanyId]=@company";

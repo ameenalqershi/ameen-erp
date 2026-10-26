@@ -273,15 +273,20 @@ public static class HostedApiIntegration
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Recurring HTTP usage differs");
                 Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
 
-                var scheduledTemplate = await Command(client, recurringPath,
-                    recurringRequest with { Name = "HTTP automatically scheduled", GenerationMode = RecurringGenerationMode.Scheduled, EndsOn = null });
-                scheduledTemplate = await Command(client, recurringPath + $"/{scheduledTemplate.ResourceId}",
-                    new EditRecurringJournalRequest(scheduledTemplate.Version, "HTTP automated schedule revised",
-                        recurringRequest.Frequency, RecurringGenerationMode.Scheduled, recurringRequest.StartsOn,
-                        recurringRequest.EndsOn, recurringRequest.Lines), method: HttpMethod.Put);
+                var scheduledBody = JsonSerializer.SerializeToNode(
+                    recurringRequest with { Name = "HTTP automatically scheduled", GenerationMode = RecurringGenerationMode.Scheduled }, JsonDefaults.Options)!.AsObject();
+                scheduledBody.Remove("endsOn");
+                var scheduledTemplate = await Command(client, recurringPath, scheduledBody);
+                var scheduledEdit = JsonSerializer.SerializeToNode(new EditRecurringJournalRequest(scheduledTemplate.Version, "HTTP automated schedule revised",
+                    recurringRequest.Frequency, RecurringGenerationMode.Scheduled, recurringRequest.StartsOn,
+                    null, recurringRequest.Lines), JsonDefaults.Options)!.AsObject();
+                scheduledEdit.Remove("endsOn");
+                scheduledTemplate = await Command(client, recurringPath + $"/{scheduledTemplate.ResourceId}", scheduledEdit, method: HttpMethod.Put);
                 using (var templateDetail = await client.GetAsync(recurringPath + $"/{scheduledTemplate.ResourceId}"))
                 using (var templateJson = JsonDocument.Parse(await templateDetail.Content.ReadAsStringAsync()))
                     Ensure(templateDetail.StatusCode == HttpStatusCode.OK &&
+                        templateJson.RootElement.GetProperty("endsOn").ValueKind == JsonValueKind.Null &&
+                        templateJson.RootElement.GetProperty("createdBy").GetString() == "sql-clerk" &&
                         templateJson.RootElement.GetProperty("revision").GetInt32() == 2 &&
                         templateJson.RootElement.GetProperty("lastModifiedAt").GetDateTimeOffset() >=
                         templateJson.RootElement.GetProperty("createdAt").GetDateTimeOffset(),
@@ -317,6 +322,28 @@ public static class HostedApiIntegration
                     Ensure(generations.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 6,
                         "GL04 scheduled generation ledger is missing occurrences");
                 Console.WriteLine("  HOST PASS GL04-GP01 scheduled run-due, scoped actor, immutable drafts and replay over HTTPS/JWT/SQL");
+                using (var request = new HttpRequestMessage(HttpMethod.Post, recurringPath))
+                {
+                    var forged = scheduledBody.DeepClone().AsObject(); forged["revision"] = 999;
+                    request.Headers.Add("Idempotency-Key", Fixture.Key());
+                    request.Content = new StringContent(forged.ToJsonString(), Encoding.UTF8, "application/json");
+                    using var response = await client.SendAsync(request);
+                    Ensure(response.StatusCode == HttpStatusCode.BadRequest, "Client-supplied numeric revision was accepted");
+                }
+                var inactiveBody = new SetRecurringStatusRequest(scheduledTemplate.Version, false, "HTTPS status audit");
+                var inactiveKey = Fixture.Key();
+                var inactiveTemplate = await Command(client, recurringPath + $"/{scheduledTemplate.ResourceId}/status", inactiveBody, inactiveKey);
+                Ensure(inactiveTemplate == await Command(client, recurringPath + $"/{scheduledTemplate.ResourceId}/status", inactiveBody, inactiveKey),
+                    "HTTPS status replay did not retain its receipt");
+                using (var detail = await client.GetAsync(recurringPath + $"/{scheduledTemplate.ResourceId}"))
+                using (var json = JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("revision").GetInt32() == 3 && !json.RootElement.GetProperty("isActive").GetBoolean() &&
+                        json.RootElement.GetProperty("endsOn").ValueKind == JsonValueKind.Null, "HTTPS status changed audit revision more than once");
+                using (var changes = await client.GetAsync(recurringPath + $"/{scheduledTemplate.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await changes.Content.ReadAsStringAsync()))
+                    Ensure(changes.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 3,
+                        "HTTPS template change log omitted or duplicated an audit event");
+                Console.WriteLine("  HOST PASS GL04-FG02/FG04 omitted end on create/edit, server audit identity, spoof rejection and status replay");
 
                 Authenticate(Token("sql-owner"));
                 var groupSales = await Command(client, $"/api/v1/companies/{companyId}/accounts", new CreateAccountRequest("HTTP-GROUP-SALES", "مبيعات", AccountType.Revenue, null, true, false, false, null, NormalBalance.Credit));

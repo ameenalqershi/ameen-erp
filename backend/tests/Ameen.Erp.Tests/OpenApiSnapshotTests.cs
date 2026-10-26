@@ -46,6 +46,16 @@ public static class OpenApiSnapshotTests
                     throw new Exception("Draft header must be optional for legacy clients");
             }
             var artifacts = Environment.GetEnvironmentVariable("AMEEN_TEST_ARTIFACTS");
+            foreach (var name in new[] { "CreateRecurringJournalRequest", "EditRecurringJournalRequest" })
+            {
+                var schema = schemas.GetProperty(name);
+                var required = schema.GetProperty("required").EnumerateArray().Select(x => x.GetString()).ToArray();
+                if (required.Contains("endsOn") || !required.Contains("lines") || !required.Contains("startsOn"))
+                    throw new Exception("GL04 end date must be optional while start date and lines remain required");
+            }
+            var runDue = json.RootElement.GetProperty("paths").GetProperty("/api/v1/companies/{companyId}/recurring-journals/run-due").GetProperty("post");
+            if (runDue.GetProperty("parameters").EnumerateArray().Any(x => x.GetProperty("name").GetString() == "Idempotency-Key"))
+                throw new Exception("Scheduled scan uses per-occurrence command keys and must not require a batch key");
             if (!string.IsNullOrWhiteSpace(artifacts))
             {
                 Directory.CreateDirectory(artifacts);

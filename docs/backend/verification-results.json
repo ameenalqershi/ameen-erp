@@ -1,21 +1,21 @@
 {
-  "startedAtUtc": "2026-10-26T18:47:40.035864+00:00",
-  "sdk": "10.0.100",
+  "startedAtUtc": "2026-10-26T23:52:09.955451+00:00",
+  "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
   "liveSqlRequested": false,
   "steps": [
     {
       "command": [
-        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
-        "/workspace/scratch/8b7f01062250/ameen-erp/backend/scripts/traceability.py",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/scratch/e72e4266e47a/ameen-erp/backend/scripts/traceability.py",
         "--check"
       ],
       "exitCode": 0
     },
     {
       "command": [
-        "/workspace/scratch/8b7f01062250/runtime/dotnet/dotnet",
+        "/workspace/scratch/e72e4266e47a/dotnet/dotnet",
         "restore",
         "Ameen.Erp.sln",
         "--locked-mode",
@@ -26,7 +26,7 @@
     },
     {
       "command": [
-        "/workspace/scratch/8b7f01062250/runtime/dotnet/dotnet",
+        "/workspace/scratch/e72e4266e47a/dotnet/dotnet",
         "build",
         "Ameen.Erp.sln",
         "-c",
@@ -39,14 +39,14 @@
     },
     {
       "command": [
-        "/workspace/scratch/8b7f01062250/runtime/dotnet/dotnet",
+        "/workspace/scratch/e72e4266e47a/dotnet/dotnet",
         "tests/Ameen.Erp.Tests/bin/Release/net10.0/Ameen.Erp.Tests.dll"
       ],
       "exitCode": 0
     }
   ],
   "result": "passed",
-  "sourceSha256": "36c2997246028cb58cd56ee69b868b392e5ac2d50e56cd0fc694516a93975c73",
+  "sourceSha256": "1b27d5873467478843c5eaae7f8698127fdf3a9e3fce97422b26e08a7065a81a",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -217,6 +217,8 @@
     "PASS RPT08/09: stock valuation equals control ledger and reads create no effects",
     "PASS RPT08/09: inactive cards retain history and implicit branch scope excludes other stock",
     "PASS RPT08/09: invalid dates and paging are rejected",
+    "PASS GL03-A01: journal search finds number, description and external reference without leaking branch",
+    "PASS GL06-GP03: textual journal number range matches the selected fiscal year, branch and state without writes",
     "PASS GL05/06: mixed batch commits valid document and records invalid document without all-success claim",
     "PASS GL05: batch approval preserves separate approver and return requires a reason",
     "PASS GL05/06: queue filters period branch state source and number range with no writes",
@@ -226,14 +228,17 @@
     "PASS GL05/06: foreign reference and denied branches do not expose journal receipts",
     "PASS GL06: failed persistence rolls back posting and processing history then exact retry succeeds",
     "PASS GL05/06: rejection history is immutable audited scoped and paginated",
+    "PASS GL02-A01: search by document, description and references respects pagination and branch scope",
     "PASS GL02: opening metadata and independent approval posting use one balanced ledger",
     "PASS GL02: control accounts cannot duplicate subsidiary openings",
     "PASS GL02: missing prior balance reference and foreign header or lines fail atomically",
     "PASS GL02: draft correction changes prior reference and lines but ordinary edit cannot bypass currency policy",
     "PASS GL02: replay and failed save preserve one opening and immutable posted reference",
     "PASS GL02: historical reversal retains opening provenance and nets general ledger",
+    "PASS GL02-GP01: foreign opening takes exact effective snapshot, rejects stale or mixed rates and reverses without repricing",
     "PASS GL02: settlement preview uses historical clearing accounts and never adds posted candidate twice",
     "PASS GL02: pending opening blocks period close and cannot be accessed outside branch",
+    "PASS GL07: linked reversal search, draft submission, independent approval, exact posting and replay",
     "PASS GL02: reversal reserve cancel and post advance original metadata once with audit",
     "PASS GL02: failed reversal reservation rolls back original metadata audit and idempotency",
     "PASS GL02: failed cancellation keeps reversal reservation and metadata retryable",
@@ -303,8 +308,15 @@
     "PASS GL01: failed edit rolls back card, audit and idempotency receipt; exact retry succeeds",
     "PASS GL01: integer revision increments on edit/status; replay and rejection do not advance it",
     "PASS GL01: invalid nature, overlong labels and missing edit reason are rejected",
+    "PASS GL04-F07: omitted/null end dates are optional on create/edit while lines remain required",
+    "PASS GL04-F07: open-ended templates can be bounded/unbounded without changing prior generations",
+    "PASS GL04-F07: unbounded cadence preserves leap anchors, date ceiling and one occurrence per period",
+    "PASS GL04-FG04: failed template edit/status rolls back revision, timestamp, lines, audit and receipt",
     "PASS GL04: generation creates a linked draft with no approval, posting or report balance",
     "PASS GL04 BR06: same key replays; another key cannot generate the same template/period",
+    "PASS GL04-GP01: scheduled mode generates due-only drafts, exactly once, with no post or privilege bypass",
+    "PASS GL04-F15/F16: numeric revision and last-modified timestamp advance once, independent of UUID concurrency",
+    "PASS GL04-F07: absent end date remains null after create/edit and permits future due dates",
     "PASS GL04: future template edits preserve generated amounts and historical version",
     "PASS GL04: inactive template blocks new generation and can be reactivated",
     "PASS GL04 BR18: branch scope applies to template create, detail, list, schedule and generation",
@@ -326,22 +338,11 @@
     "PASS HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON",
     "PASS OpenAPI: production routes expose optional draft headers without SQL dependency"
   ],
-  "passed": 277,
-  "total": 277,
+  "passed": 289,
+  "total": 289,
   "failed": 0,
-  "finishedAtUtc": "2026-10-26T18:48:15.044834+00:00",
-  "githubActions": {
-    "commit": "963aa165fcbf7073acf33df75e5fe4649e7a9449",
-    "runId": 40381093687,
-    "jobId": 121777202117,
-    "result": "passed",
-    "passed": 278,
-    "total": 278,
-    "failed": 0,
-    "liveSqlRequested": true,
-    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40381093687"
-  },
-  "latestGithubActions": {
+  "finishedAtUtc": "2026-10-26T23:52:32.480786+00:00",
+  "previousGithubActions": {
     "runId": 40421699088,
     "headSha": "143a2fbe97f38fd8cf1e95460ec7f1a94334abad",
     "result": "passed",

@@ -2,6 +2,7 @@ using Ameen.Erp.Application;
 using Ameen.Erp.Domain;
 using Ameen.Erp.Infrastructure;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ameen.Erp.Tests;
@@ -10,6 +11,85 @@ public static class RecurringTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("GL04-F07: omitted/null end dates are optional on create/edit while lines remain required", async f =>
+        {
+            var body = JsonSerializer.SerializeToNode(Request(f), JsonDefaults.Options)!.AsObject();
+            body.Remove("endsOn");
+            var request = body.Deserialize<CreateRecurringJournalRequest>(JsonDefaults.Options)!;
+            Ensure(request.EndsOn is null);
+            var created = await Create(f, request);
+            var editBody = JsonSerializer.SerializeToNode(Edit(created.Version, request), JsonDefaults.Options)!.AsObject();
+            editBody.Remove("endsOn");
+            Ensure(editBody.Deserialize<EditRecurringJournalRequest>(JsonDefaults.Options)!.EndsOn is null);
+            foreach (var node in new[] { body, editBody })
+            {
+                node.Remove("lines");
+                try
+                {
+                    if (node.ContainsKey("expectedVersion")) node.Deserialize<EditRecurringJournalRequest>(JsonDefaults.Options);
+                    else node.Deserialize<CreateRecurringJournalRequest>(JsonDefaults.Options);
+                    throw new Exception("Missing template lines were accepted by JSON contract");
+                }
+                catch (JsonException) { }
+            }
+        });
+        test("GL04-F07: open-ended templates can be bounded/unbounded without changing prior generations", async f =>
+        {
+            var request = Request(f) with { EndsOn = null };
+            var template = await Create(f, request);
+            var generated = await Generate(f, template, 10);
+            var bounded = await f.Service.RecurringJournal.EditRecurringJournal(f.CompanyId, template.ResourceId,
+                f.Clerk, Fixture.Key(), Edit(template.Version, request with { EndsOn = new(2026, 9, 30) }), default);
+            await Error("recurring_not_due", () => Generate(f, bounded, 11));
+            var calendar = await f.Service.RecurringJournal.RecurringSchedule(f.CompanyId, template.ResourceId,
+                f.Store.All<FiscalYear>().Single().Id, f.Clerk, default);
+            Ensure(calendar.Single(x => x.FiscalPeriodId == Period(f, 10)).GeneratedJournalId == generated.ResourceId);
+            var unbounded = await f.Service.RecurringJournal.EditRecurringJournal(f.CompanyId, template.ResourceId,
+                f.Clerk, Fixture.Key(), Edit(bounded.Version, request), default);
+            await Generate(f, unbounded, 11);
+            var card = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, template.ResourceId, f.Clerk, default);
+            Ensure(card.EndsOn is null && card.Revision == 3 && card.CreatedBy == f.Clerk.Subject);
+            Ensure((await f.Journal(generated.ResourceId)).SourceTemplateVersion == template.Version);
+            Ensure((await f.Service.RecurringJournal.ListRecurringJournals(f.CompanyId, f.Clerk, null, true, 0, 10, default))
+                .Items.Single().EndsOn is null);
+        });
+        test("GL04-F07: unbounded cadence preserves leap anchors, date ceiling and one occurrence per period", async f =>
+        {
+            var template = new RecurringJournalTemplate(f.CompanyId, f.BranchId, "مستمر", RecurringFrequency.Monthly,
+                RecurringGenerationMode.Manual, new(2028, 1, 31), null, f.Clerk.Subject, new FixedClock().UtcNow);
+            Ensure(template.DueDateFor(new(2028, 2, 1), new(2028, 2, 29)) == new DateOnly(2028, 2, 29));
+            Ensure(template.DueDateFor(new(2028, 3, 1), new(2028, 3, 31)) == new DateOnly(2028, 3, 31));
+            await Error("ambiguous_recurring_period", () => Task.FromResult(template.DueDateFor(new(2028, 1, 1), new(2028, 12, 31))));
+            foreach (var frequency in Enum.GetValues<RecurringFrequency>())
+            {
+                var last = new RecurringJournalTemplate(f.CompanyId, f.BranchId, "حد التاريخ", frequency,
+                    RecurringGenerationMode.Manual, new(9999, 12, 31), null, f.Clerk.Subject, new FixedClock().UtcNow);
+                Ensure(last.DueDateFor(new(9999, 12, 1), DateOnly.MaxValue) == DateOnly.MaxValue);
+            }
+            await Task.CompletedTask;
+        });
+        test("GL04-FG04: failed template edit/status rolls back revision, timestamp, lines, audit and receipt", async f =>
+        {
+            var template = await Create(f); var key = Fixture.Key();
+            var original = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, template.ResourceId, f.Clerk, default);
+            var before = new { original.Version, original.LastModifiedAt, original.EndsOn };
+            var auditCount = f.Store.Count<AuditEvent>(); var receiptCount = f.Store.Count<IdempotencyRecord>();
+            var request = Edit(template.Version, Request(f, 250) with { EndsOn = null });
+            f.Store.FailBeforeCommit = true;
+            try { await f.Service.RecurringJournal.EditRecurringJournal(f.CompanyId, template.ResourceId, f.Clerk, key, request, default); throw new Exception("Expected injected edit failure"); }
+            catch (IOException) { }
+            var restored = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, template.ResourceId, f.Clerk, default);
+            Ensure(restored.Revision == 1 && restored.Version == before.Version && restored.LastModifiedAt == before.LastModifiedAt &&
+                restored.EndsOn == before.EndsOn && restored.Lines.Sum(x => x.Debit) == 100 &&
+                f.Store.Count<AuditEvent>() == auditCount && f.Store.Count<IdempotencyRecord>() == receiptCount);
+            var edited = await f.Service.RecurringJournal.EditRecurringJournal(f.CompanyId, template.ResourceId, f.Clerk, key, request, default);
+            Ensure(edited == await f.Service.RecurringJournal.EditRecurringJournal(f.CompanyId, template.ResourceId, f.Clerk, key, request, default));
+            f.Store.FailBeforeCommit = true;
+            try { await f.Service.RecurringJournal.SetRecurringStatus(f.CompanyId, template.ResourceId, f.Clerk, Fixture.Key(), new(edited.Version, false, "فشل حفظ"), default); throw new Exception("Expected injected status failure"); }
+            catch (IOException) { }
+            restored = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, template.ResourceId, f.Clerk, default);
+            Ensure(restored.IsActive && restored.Revision == 2 && restored.Version == edited.Version);
+        });
         test("GL04: generation creates a linked draft with no approval, posting or report balance", async f =>
         {
             var template = await Create(f); var result = await Generate(f, template, 10);

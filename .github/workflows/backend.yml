@@ -42,6 +42,7 @@ jobs:
           name: backend-verification
           path: backend/.artifacts/
           if-no-files-found: warn
+          include-hidden-files: true
       - name: Publish API
         working-directory: backend
         run: dotnet publish src/Ameen.Erp.Api/Ameen.Erp.Api.csproj -c Release --no-restore --output .artifacts/api

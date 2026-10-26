@@ -18,7 +18,7 @@ public static class RecurringSqlIntegration
         }
         var lines = example.Lines.Select(x => new RecurringLineRequest(x.AccountId, x.CostCenterId, x.Description, x.CurrencyCode, x.Debit, x.Credit)).ToArray();
         var request = new CreateRecurringJournalRequest(example.BranchId, "SQL recurring", RecurringFrequency.Monthly,
-            RecurringGenerationMode.Manual, new(2026, 1, 31), new(2026, 12, 31), lines);
+            RecurringGenerationMode.Manual, new(2026, 1, 31), null, lines);
         var template = await Call(s => s.RecurringJournal.CreateRecurringJournal(cid, clerk, Fixture.Key(), request, default));
         Dictionary<int, Guid> periods;
         await using (var db = Context())
@@ -154,6 +154,56 @@ FROM [RecurringJournalGenerations] WHERE [CompanyId]={cid} AND [TemplateId]={tem
         }
         Console.WriteLine("  SQL PASS GL04-GP01 scheduled mode, nine due periods, replay uniqueness and draft-only accounting");
 
+        var auditCard = await Call(s => s.RecurringJournal.CreateRecurringJournal(cid, clerk, Fixture.Key(),
+            request with { Name = "SQL audit rollback" }, default));
+        var auditEdit = new EditRecurringJournalRequest(auditCard.Version, "SQL audit rollback revised", request.Frequency,
+            request.GenerationMode, request.StartsOn, new DateOnly(2026, 12, 31), changed);
+        var editKey = Fixture.Key(); var statusKey = Fixture.Key();
+        await using (var db = Context())
+        {
+            // The only substituted value is an internally generated, typed GUID rendered in fixed D format.
+            var auditFailureDdl = "ALTER TABLE [AuditEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_RecurringAuditFailure] CHECK ([ResourceId] <> '" + auditCard.ResourceId.ToString("D") + "' OR [Action] NOT IN ('recurring.edited','recurring.status-changed'))";
+            await db.Database.ExecuteSqlRawAsync(auditFailureDdl);
+            try
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [RecurringJournalTemplates] SET [EndsOn]='2025-01-01' WHERE [CompanyId]={cid} AND [Id]={auditCard.ResourceId}");
+                throw new Exception("SQL accepted end date before start");
+            }
+            catch (SqlException ex) when (ex.Number == 547) { }
+        }
+        await Expect("database_constraint", () => Call(s => s.RecurringJournal.EditRecurringJournal(cid, auditCard.ResourceId, clerk, editKey, auditEdit, default)));
+        await Expect("database_constraint", () => Call(s => s.RecurringJournal.SetRecurringStatus(cid, auditCard.ResourceId, clerk, statusKey,
+            new(auditCard.Version, false, "فشل حفظ التدقيق"), default)));
+        await using (var db = Context())
+        {
+            var card = await db.Set<RecurringJournalTemplate>().SingleAsync(x => x.CompanyId == cid && x.Id == auditCard.ResourceId);
+            Ensure(card.Version == auditCard.Version && card.Revision == 1 && card.LastModifiedAt == card.CreatedAt &&
+                card.EndsOn is null && card.IsActive && card.Lines.Sum(x => x.Debit) == 100,
+                "Failed SQL audit leaked a template revision/content/status change");
+            Ensure(!await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && (x.Key == editKey || x.Key == statusKey)),
+                "Failed SQL audit retained a command receipt");
+            Ensure(await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.ResourceId == auditCard.ResourceId) == 1,
+                "Failed SQL audit retained a change event");
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [AuditEvents] DROP CONSTRAINT [CK_Test_RecurringAuditFailure]");
+        }
+        var editReplays = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s =>
+            s.RecurringJournal.EditRecurringJournal(cid, auditCard.ResourceId, clerk, editKey, auditEdit, default))));
+        Ensure(editReplays.Distinct().Count() == 1, "Concurrent edit replay returned different receipts");
+        await Expect("version_conflict", () => Call(s => s.RecurringJournal.EditRecurringJournal(cid, auditCard.ResourceId, clerk, Fixture.Key(), auditEdit, default)));
+        var statusBody = new SetRecurringStatusRequest(editReplays[0].Version, false, "تعطيل مفحوص");
+        var statusReplays = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s =>
+            s.RecurringJournal.SetRecurringStatus(cid, auditCard.ResourceId, clerk, statusKey, statusBody, default))));
+        Ensure(statusReplays.Distinct().Count() == 1, "Concurrent status replay returned different receipts");
+        await using (var db = Context())
+        {
+            var card = await db.Set<RecurringJournalTemplate>().SingleAsync(x => x.CompanyId == cid && x.Id == auditCard.ResourceId);
+            Ensure(card.Revision == 3 && card.Version == statusReplays[0].Version && !card.IsActive &&
+                card.EndsOn == new DateOnly(2026, 12, 31) && card.CreatedBy == clerk.Subject && card.LastModifiedAt >= card.CreatedAt,
+                "Successful edit/status retries did not advance numeric revision exactly once");
+            Ensure(await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.ResourceId == auditCard.ResourceId) == 3,
+                "Concurrent template edit/status duplicated audit events");
+        }
+        Console.WriteLine("  SQL PASS GL04-FG02/FG04 nullable end, date constraint, atomic audit rollback, concurrent replay and numeric revision");
     }
     private static async Task Execute(SqlConnection connection, string text)
     {

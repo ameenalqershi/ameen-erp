@@ -782,8 +782,8 @@
     },
     "GL04": {
       "api": "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
-      "implemented": "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ رقم إصدار تعديل صحيح وآخر تعديل خادمي؛ مصدر وإصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
-      "remaining": "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ خيارات دورية إضافية غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",
+      "implemented": "قالب شهري أو ربع سنوي أو سنوي بتاريخ نهاية اختياري دون تاريخ مصطنع؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ رقم إصدار تعديل صحيح وآخر تعديل خادمي؛ مصدر وإصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
+      "remaining": "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ خيارات دورية أخرى غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",
       "fields": {
         "GL04-F01": {
           "status": "implemented",
@@ -811,7 +811,7 @@
         },
         "GL04-F07": {
           "status": "implemented",
-          "binding": "EndsOn: nullable optional; recurring generation continues until explicitly ended"
+          "binding": "EndsOn nullable/optional in create, edit, detail, list and SQL schema 021; null has no fabricated date limit; bounded fiscal-period scan; historical generations retained"
         },
         "GL04-F09": {
           "status": "implemented",

@@ -99,12 +99,13 @@ screen("GL03", "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
        {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 16: "Lines[].AccountId", 17: "Lines[].Debit", 18: "Lines[].Credit", 19: "Lines[].CurrencyCode", 20: "Lines[].ExchangeRate (ExchangeRateId on input)", 21: "Lines[].CostCenterId", 24: "Lines[].Description", 25: "CreatedBy", 26: "CreatedAt", 27: "Version"},
        [(28, "AuditEvent.OccurredAt: journal.edited")])
 screen("GL04", "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
-       "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ رقم إصدار تعديل صحيح وآخر تعديل خادمي؛ مصدر وإصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
-       "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ خيارات دورية إضافية غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",
-       {1: "CompanyId", 2: "BranchId", 3: "IsActive", 4: "Name", 5: "Frequency", 6: "StartsOn", 7: "EndsOn: nullable optional; recurring generation continues until explicitly ended", 9: "Lines[].AccountId",
+       "قالب شهري أو ربع سنوي أو سنوي بتاريخ نهاية اختياري دون تاريخ مصطنع؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ رقم إصدار تعديل صحيح وآخر تعديل خادمي؛ مصدر وإصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
+       "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ خيارات دورية أخرى غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",
+       {1: "CompanyId", 2: "BranchId", 3: "IsActive", 4: "Name", 5: "Frequency", 6: "StartsOn", 7: "EndsOn", 9: "Lines[].AccountId",
         10: "Lines[].Debit", 11: "Lines[].Credit", 12: "Lines[].CostCenterId", 13: "CreatedBy", 14: "CreatedAt", 15: "Revision: integer (Version UUID is a separate concurrency token)"},
        [(16, "AuditEvent.OccurredAt: recurring.edited / recurring.status-changed; scoped /audit-events")])
 MAP["GL04"]["fields"]["GL04-F02"] = dict(status="partial", binding="BranchId required; analysis marks branch conditional, no company-wide template policy yet")
+MAP["GL04"]["fields"]["GL04-F07"] = dict(status="implemented", binding="EndsOn nullable/optional in create, edit, detail, list and SQL schema 021; null has no fabricated date limit; bounded fiscal-period scan; historical generations retained")
 MAP["GL04"]["fields"]["GL04-F16"] = dict(status="implemented", binding="LastModifiedAt server datetimeoffset; audit changes retained")
 MAP["GL04"]["fields"]["GL04-F08"] = dict(status="implemented", binding="GenerationMode: Manual or Scheduled; due-only draft runner and opt-in authorized worker; no automatic approval/posting")
 MAP["GL04"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
