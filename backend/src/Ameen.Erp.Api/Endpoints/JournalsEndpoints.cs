@@ -10,8 +10,8 @@ internal static class JournalsEndpoints
     {
         const string p = EndpointRoutes.Company;
         app.MapGet(p + "/journals/processing-queue", async (Guid companyId, Guid periodId, Guid? branchId, JournalState? state,
-            JournalSource? source, long? sequenceFrom, long? sequenceTo, string? action, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
-            Results.Ok(await s.ProcessingQueue(companyId, Actor(h), periodId, branchId, state, source, sequenceFrom, sequenceTo, action ?? "approve", offset ?? 0, limit ?? 50, ct)))
+            JournalSource? source, long? sequenceFrom, long? sequenceTo, string? numberRange, string? action, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ProcessingQueue(companyId, Actor(h), periodId, branchId, state, source, sequenceFrom, sequenceTo, action ?? "approve", offset ?? 0, limit ?? 50, ct, numberRange)))
             .Produces<Page<JournalProcessingPreview>>().RequireAuthorization().WithTags("GL05 GL06 Journal processing");
         app.MapGet(p + "/journals/{id:guid}/processing-preview", async (Guid companyId, Guid id, string action, string? reason, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ProcessingPreview(companyId, id, Actor(h), action, reason, ct))).Produces<JournalProcessingPreview>().RequireAuthorization().WithTags("GL05 GL06 Journal processing");

@@ -169,6 +169,20 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}/processing-preview?action=approve"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("canExecute").GetBoolean(), "HTTP processing preview failed");
+                using (var detail = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}"))
+                using (var journal = JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                {
+                    Ensure(detail.StatusCode == HttpStatusCode.OK, "GL06 textual range test journal missing");
+                    var period = journal.RootElement.GetProperty("fiscalPeriodId").GetGuid();
+                    var number = journal.RootElement.GetProperty("number").GetString()!;
+                    using var queue = await client.GetAsync(path + "/processing-queue?periodId=" + period +
+                        "&action=approve&numberRange=" + Uri.EscapeDataString(number));
+                    using var queueBody = JsonDocument.Parse(await queue.Content.ReadAsStringAsync());
+                    Ensure(queue.StatusCode == HttpStatusCode.OK &&
+                        queueBody.RootElement.GetProperty("items").EnumerateArray().Any(x =>
+                            x.GetProperty("journal").GetProperty("id").GetGuid() == processingSubmitted.ResourceId),
+                        "GL06 textual number range missing expected journal through HTTPS/JWT/SQL");
+                }
                 var batch = new ProcessJournalsRequest("approve", new[] { new JournalProcessingItem(processingSubmitted.ResourceId, processingSubmitted.Version, Fixture.Key()), new JournalProcessingItem(receipt.ResourceId, receipt.Version, Fixture.Key()) });
                 for (var attempt = 0; attempt < 2; attempt++)
                 {

@@ -32,6 +32,39 @@ public static class JournalProcessingTests
             await Error("search_too_long", () => f.Service.Journal.ListJournals(f.CompanyId, f.Clerk, null, null,
                 0, 10, default, JournalSource.Manual, new string('x', 101)));
         });
+        test("GL06-GP03: textual journal number range matches the selected fiscal year, branch and state without writes", async f =>
+        {
+            var first = await Approved(f);
+            var rejected = await f.Draft();
+            var last = await Approved(f);
+            var a = await f.Journal(first.ResourceId);
+            var b = await f.Journal(last.ResourceId);
+            var auditCount = f.Store.Count<AuditEvent>();
+            var range = a.Number + ".." + b.Number;
+            var preview = await f.Service.Journal.ProcessingQueue(f.CompanyId, f.Approver, a.FiscalPeriodId,
+                f.BranchId, null, JournalSource.Manual, null, null, "post", 0, 1, default, range);
+            Ensure(preview.TotalCount == 2 && preview.Items.Count == 1 && preview.Items[0].Journal.Id == first.ResourceId);
+            var single = await f.Service.Journal.ProcessingQueue(f.CompanyId, f.Approver, a.FiscalPeriodId,
+                f.BranchId, null, JournalSource.Manual, null, null, "post", 0, 10, default, b.Number);
+            Ensure(single.TotalCount == 1 && single.Items.Single().Journal.Id == last.ResourceId);
+            var decimalRange = await f.Service.Journal.ProcessingQueue(f.CompanyId, f.Approver, a.FiscalPeriodId,
+                f.BranchId, null, JournalSource.Manual, null, null, "post", 0, 10, default,
+                a.Sequence + ".." + b.Sequence);
+            Ensure(decimalRange.TotalCount == 2);
+            await Error("invalid_journal_number_range", () => f.Service.Journal.ProcessingQueue(f.CompanyId,
+                f.Approver, a.FiscalPeriodId, null, null, null, null, null, "post", 0, 10, default,
+                "JV-1900-000001"));
+            await Error("invalid_journal_number_range", () => f.Service.Journal.ProcessingQueue(f.CompanyId,
+                f.Approver, a.FiscalPeriodId, null, null, null, null, null, "post", 0, 10, default,
+                b.Number + ".." + a.Number));
+            await Error("invalid_journal_number_range", () => f.Service.Journal.ProcessingQueue(f.CompanyId,
+                f.Approver, a.FiscalPeriodId, null, null, null, null, null, "post", 0, 10, default,
+                "1..2..3"));
+            await Error("ambiguous_number_range", () => f.Service.Journal.ProcessingQueue(f.CompanyId,
+                f.Approver, a.FiscalPeriodId, null, null, null, 1, 3, "post", 0, 10, default, range));
+            Ensure((await f.Journal(rejected.ResourceId)).State == JournalState.Draft &&
+                f.Store.Count<AuditEvent>() == auditCount);
+        });
         test("GL05/06: mixed batch commits valid document and records invalid document without all-success claim", async f =>
         {
             var approved = await Approved(f); var draft = await f.Draft(); var items = new[] { Item(approved), Item(draft) };

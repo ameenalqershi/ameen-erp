@@ -1,4 +1,5 @@
 using Ameen.Erp.Domain;
+using System.Globalization;
 namespace Ameen.Erp.Application;
 public sealed partial class JournalService
 {
@@ -45,16 +46,45 @@ public sealed partial class JournalService
         return await PreviewProcessing(await Required<JournalEntry>(cid, id, ct), actor, action, reason, ct);
     }
     public async Task<Page<JournalProcessingPreview>> ProcessingQueue(Guid cid, Actor actor, Guid periodId, Guid? branchId,
-        JournalState? state, JournalSource? source, long? sequenceFrom, long? sequenceTo, string action, int offset, int limit, CancellationToken ct)
+        JournalState? state, JournalSource? source, long? sequenceFrom, long? sequenceTo, string action, int offset, int limit, CancellationToken ct, string? numberRange = null)
     {
         Paging(offset, limit); var permission = ProcessingPermission(action);
         var member = await Authorize(cid, actor, Permissions.Read, branchId, ct);
         await Authorize(cid, actor, permission, branchId, ct);
-        await Required<FiscalPeriod>(cid, periodId, ct);
+        var selectedPeriod = await Required<FiscalPeriod>(cid, periodId, ct);
         Check.That(state is null || Enum.IsDefined(state.Value), "invalid_state", "حالة غير معروفة.");
         Check.That(source is null || Enum.IsDefined(source.Value), "invalid_source", "مصدر غير معروف.");
         Check.That((sequenceFrom is null || sequenceFrom > 0) && (sequenceTo is null || sequenceTo > 0) &&
             (sequenceFrom is null || sequenceTo is null || sequenceFrom <= sequenceTo), "invalid_sequence_range", "نطاق أرقام غير صالح.");
+        if (numberRange is not null)
+        {
+            Check.That(sequenceFrom is null && sequenceTo is null, "ambiguous_number_range",
+                "لا تجمع بين نطاق الأرقام النصي وحدود التسلسل الرقمية.");
+            Check.That(numberRange.Length is > 0 and <= 200, "invalid_journal_number_range",
+                "نطاق أرقام القيود غير صالح.");
+            var year = await Required<FiscalYear>(cid, selectedPeriod.FiscalYearId, ct);
+            var prefix = $"JV-{year.Code}-";
+            var parts = numberRange.Split("..", StringSplitOptions.None);
+            Check.That(parts.Length is 1 or 2, "invalid_journal_number_range",
+                "أدخل رقم قيد واحدًا أو نطاقًا من رقمين مفصولين بـ ..");
+            long ParseNumber(string value)
+            {
+                var part = value.Trim();
+                if (part.StartsWith("JV-", StringComparison.Ordinal))
+                {
+                    Check.That(part.StartsWith(prefix, StringComparison.Ordinal), "invalid_journal_number_range",
+                        "رقم القيد لا يخص السنة المالية المختارة.");
+                    part = part[prefix.Length..];
+                }
+                Check.That(part.Length > 0 && long.TryParse(part, NumberStyles.None, CultureInfo.InvariantCulture, out var sequence) && sequence > 0,
+                    "invalid_journal_number_range", "رقم قيد غير صالح ضمن النطاق.");
+                return sequence;
+            }
+            sequenceFrom = ParseNumber(parts[0]);
+            sequenceTo = parts.Length == 2 ? ParseNumber(parts[1]) : sequenceFrom;
+            Check.That(sequenceFrom <= sequenceTo, "invalid_journal_number_range",
+                "بداية نطاق القيود بعد نهايته.");
+        }
         var branches = await AllowedBranches(cid, member, branchId, ct);
         state ??= action == "post" ? JournalState.Approved : JournalState.Submitted;
         var page = await store.ReadPage<JournalEntry>(cid, x => x.FiscalPeriodId == periodId && branches.Contains(x.BranchId) &&

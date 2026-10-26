@@ -71,6 +71,14 @@ public static class JournalProcessingSqlIntegration
         }
         Console.WriteLine("  SQL PASS GL02 concurrent replay, draft replacement, approval posting and immutable historical reversal provenance");
         var first = await Approve(await Draft()); var rejected = await Draft(); var last = await Approve(await Draft());
+        var firstJournal = await Call(s => s.Journal.GetJournal(cid, first.ResourceId, clerk, default));
+        var lastJournal = await Call(s => s.Journal.GetJournal(cid, last.ResourceId, clerk, default));
+        var textual = await Call(s => s.Journal.ProcessingQueue(cid, approver, firstJournal.FiscalPeriodId,
+            firstJournal.BranchId, null, JournalSource.Manual, null, null, "post", 0, 10, default,
+            firstJournal.Number + ".." + lastJournal.Number));
+        Ensure(textual.TotalCount == 2 && textual.Items.Count == 2 &&
+            textual.Items.All(x => x.CanExecute), "GL06 textual queue scope differs on SQL Server");
+        Console.WriteLine("  SQL PASS GL06-GP03 fiscal-year textual range and scoped queue selection");
         var items = new[] { new JournalProcessingItem(first.ResourceId, first.Version, Fixture.Key()), new JournalProcessingItem(rejected.ResourceId, rejected.Version, Fixture.Key()), new JournalProcessingItem(last.ResourceId, last.Version, Fixture.Key()) };
         var command = new ProcessJournalsRequest("post", items);
         var results = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s => s.Journal.ProcessJournals(cid, approver, command, default))));
