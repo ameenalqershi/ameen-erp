@@ -141,7 +141,7 @@ public static class HostedApiIntegration
 
                 var requestKey = Fixture.Key();
                 var receipt = await Command(client, path, journalRequest, requestKey);
-                using (var response = await client.GetAsync(path + "?source=Manual&search=" + Uri.EscapeDataString(receipt.Number)))
+                using (var response = await client.GetAsync(path + "?source=Manual&search=" + Uri.EscapeDataString(receipt.Number ?? throw new Exception("Missing journal number"))))
                 {
                     using var result = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
                     Ensure(response.StatusCode == HttpStatusCode.OK &&
