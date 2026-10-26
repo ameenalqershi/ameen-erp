@@ -76,7 +76,8 @@ public sealed partial class JournalService
                         "رقم القيد لا يخص السنة المالية المختارة.");
                     part = part[prefix.Length..];
                 }
-                Check.That(part.Length > 0 && long.TryParse(part, NumberStyles.None, CultureInfo.InvariantCulture, out var sequence) && sequence > 0,
+                Check.That(part.Length > 0, "invalid_journal_number_range", "رقم قيد فارغ ضمن النطاق.");
+                Check.That(long.TryParse(part, NumberStyles.None, CultureInfo.InvariantCulture, out var sequence) && sequence > 0,
                     "invalid_journal_number_range", "رقم قيد غير صالح ضمن النطاق.");
                 return sequence;
             }
