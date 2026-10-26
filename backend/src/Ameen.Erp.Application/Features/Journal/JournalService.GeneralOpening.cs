@@ -2,6 +2,15 @@ using Ameen.Erp.Domain;
 namespace Ameen.Erp.Application;
 public sealed partial class JournalService
 {
+    private void TrackOpeningReversal(JournalEntry original, Guid reversalId, Actor actor, string action)
+    {
+        if (original.Source != JournalSource.GeneralOpening) return;
+        original.AdvanceOpening(clock.UtcNow);
+        Audit(original.CompanyId, actor, "general-opening.reversal-" + action, original,
+            new { ReversalId = reversalId, original.OpeningRevision, original.OpeningModifiedAt,
+                original.PendingReversalJournalId, original.ReversalJournalId, original.State });
+    }
+
     public Task<CommandReceipt> CreateGeneralOpening(Guid cid, Actor actor, string key, CreateGeneralOpeningRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "general-opening.create", request,
             async token => { await Authorize(cid, actor, Permissions.Draft, request.BranchId, token); }, async token =>

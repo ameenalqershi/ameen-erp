@@ -23,11 +23,52 @@ public static class JournalProcessingSqlIntegration
         opening = await Call(s => s.Journal.EditGeneralOpening(cid, opening.ResourceId, clerk, Fixture.Key(), new(opening.Version, "تصحيح SQL", "TB-SQL", request.Lines), default));
         opening = await Approve(opening);
         opening = await Call(s => s.Journal.TransitionJournal(cid, opening.ResourceId, approver, Fixture.Key(), new(opening.Version), "post", default));
-        var inverse = await Call(s => s.Journal.ReverseJournal(cid, opening.ResourceId, clerk, Fixture.Key(), new(opening.Version, request.AccountingDate, "تصحيح افتتاح"), default));
+        var reverseKey = Fixture.Key(); var reverseRequest = new ReverseJournalRequest(opening.Version, request.AccountingDate, "تصحيح افتتاح");
+        var reversals = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s => s.Journal.ReverseJournal(cid, opening.ResourceId, clerk, reverseKey, reverseRequest, default))));
+        Ensure(reversals.Distinct().Count() == 1, "Opening reversal concurrent replay differs");
+        var inverse = reversals[0];
+        var trackedOpening = await Call(s => s.Journal.GetGeneralOpening(cid, opening.ResourceId, clerk, default));
+        Ensure(trackedOpening.OpeningRevision == 6, "Reservation did not advance opening revision once");
+        var cancellationKey = Fixture.Key(); var cancellation = new TransitionRequest(inverse.Version, "إلغاء العكس");
+        await Call(s => s.Journal.TransitionJournal(cid, inverse.ResourceId, clerk, cancellationKey, cancellation, "cancel", default));
+        await Call(s => s.Journal.TransitionJournal(cid, inverse.ResourceId, clerk, cancellationKey, cancellation, "cancel", default));
+        trackedOpening = await Call(s => s.Journal.GetGeneralOpening(cid, opening.ResourceId, clerk, default));
+        Ensure(trackedOpening.OpeningRevision == 7 && trackedOpening.PendingReversalJournalId == null, "Cancellation metadata or replay differs");
+        inverse = await Call(s => s.Journal.ReverseJournal(cid, opening.ResourceId, clerk, Fixture.Key(), new(trackedOpening.Version, request.AccountingDate, "عكس بديل"), default));
         inverse = await Approve(inverse);
-        await Call(s => s.Journal.TransitionJournal(cid, inverse.ResourceId, approver, Fixture.Key(), new(inverse.Version), "post", default));
+        var postOpeningKey = Fixture.Key(); var postOpening = new TransitionRequest(inverse.Version);
+        var rejectOpeningAudit = "ALTER TABLE [AuditEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_OpeningTracking] CHECK ([ResourceId] <> '" + opening.ResourceId.ToString("D") + "' OR [Action] <> 'general-opening.reversal-posted')";
+        await using (var db = Context()) await db.Database.ExecuteSqlRawAsync(rejectOpeningAudit);
+        try
+        {
+            await Call(s => s.Journal.TransitionJournal(cid, inverse.ResourceId, approver, postOpeningKey, postOpening, "post", default));
+            throw new Exception("Expected opening tracking audit failure");
+        }
+        catch (BusinessException e) when (e.Code == "database_constraint") { }
+        finally
+        {
+            await using var db = Context();
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [AuditEvents] DROP CONSTRAINT [CK_Test_OpeningTracking]");
+        }
+        await using (var db = Context())
+        {
+            var original = await db.Set<JournalEntry>().SingleAsync(x => x.Id == opening.ResourceId);
+            Ensure(original.OpeningRevision == 8 && original.State == JournalState.Posted && original.ReversalJournalId == null && original.PendingReversalJournalId == inverse.ResourceId, "Failed audit left original reversal metadata");
+            Ensure((await db.Set<JournalEntry>().SingleAsync(x => x.Id == inverse.ResourceId)).State == JournalState.Approved, "Failed audit posted inverse");
+            Ensure(!await db.Set<OutboxEvent>().AnyAsync(x => x.ResourceId == inverse.ResourceId) && !await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == postOpeningKey), "Failed audit retained effect or consumed key");
+        }
+        var postedOpening = await Call(s => s.Journal.TransitionJournal(cid, inverse.ResourceId, approver, postOpeningKey, postOpening, "post", default));
+        Ensure(postedOpening == await Call(s => s.Journal.TransitionJournal(cid, inverse.ResourceId, approver, postOpeningKey, postOpening, "post", default)), "Opening post replay differs");
         var originalOpening = await Call(s => s.Journal.GetGeneralOpening(cid, opening.ResourceId, clerk, default));
-        Ensure(originalOpening.Source == JournalSource.GeneralOpening && originalOpening.State == JournalState.Reversed && originalOpening.PreviousTrialBalanceReference == "TB-SQL", "SQL opening metadata/reversal lost");
+        Ensure(originalOpening.Source == JournalSource.GeneralOpening && originalOpening.State == JournalState.Reversed && originalOpening.PreviousTrialBalanceReference == "TB-SQL" && originalOpening.OpeningRevision == 9, "SQL opening metadata/reversal lost");
+        await using (var db = Context())
+        {
+            Ensure(await db.Set<AuditEvent>().CountAsync(x => x.ResourceId == opening.ResourceId && x.Action.StartsWith("general-opening.reversal-")) == 4, "Opening reversal audit missing or duplicated");
+            var protectedOpening = await db.Set<JournalEntry>().SingleAsync(x => x.Id == opening.ResourceId);
+            protectedOpening.AdvanceOpening(new FixedClock().UtcNow.AddMinutes(1));
+            try { await db.SaveChangesAsync(); throw new Exception("Unrelated posted metadata edit was accepted"); }
+            catch (BusinessException e) when (e.Code == "posted_journal_immutable") { }
+        }
         Console.WriteLine("  SQL PASS GL02 concurrent replay, draft replacement, approval posting and immutable historical reversal provenance");
         var first = await Approve(await Draft()); var rejected = await Draft(); var last = await Approve(await Draft());
         var items = new[] { new JournalProcessingItem(first.ResourceId, first.Version, Fixture.Key()), new JournalProcessingItem(rejected.ResourceId, rejected.Version, Fixture.Key()), new JournalProcessingItem(last.ResourceId, last.Version, Fixture.Key()) };

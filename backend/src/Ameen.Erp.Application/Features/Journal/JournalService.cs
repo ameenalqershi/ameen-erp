@@ -166,7 +166,11 @@ public sealed partial class JournalService : ApplicationService
                 case "cancel":
                     Check.Text(request.Reason, "سبب الإلغاء", 500); journal.Cancel();
                     if (journal.ReversesJournalId is Guid cancelledOriginal)
-                        (await Required<JournalEntry>(cid, cancelledOriginal, token)).ReleaseReversal(journal.Id);
+                    {
+                        var original = await Required<JournalEntry>(cid, cancelledOriginal, token);
+                        original.ReleaseReversal(journal.Id);
+                        TrackOpeningReversal(original, journal.Id, actor, "released");
+                    }
                     break;
                 case "post":
                     await ValidateForPosting(journal, token);
@@ -175,6 +179,7 @@ public sealed partial class JournalService : ApplicationService
                     {
                         var original = await Required<JournalEntry>(cid, originalId, token);
                         original.LinkReversal(journal.Id);
+                        TrackOpeningReversal(original, journal.Id, actor, "posted");
                         Audit(cid, actor, "journal.reversed", original, new { ReversalId = journal.Id, journal.ReversalReason });
                     }
                     store.Add(new OutboxEvent(cid, "ledger.journal-posted.v1", journal.Id, clock.UtcNow,
@@ -202,6 +207,7 @@ public sealed partial class JournalService : ApplicationService
             reversal.SetReversalSource(original.Id, reason);
             reversal.SetLines(original.Lines.Select(x => x.Opposite(reversal.Id)));
             original.ReserveReversal(reversal.Id); store.Add(reversal);
+            TrackOpeningReversal(original, reversal.Id, actor, "reserved");
             Audit(cid, actor, "journal.reversal-drafted", reversal, new { OriginalId = id, reason });
             return Receipt(reversal, reversal.State.ToString(), reversal.Number);
         }, ct);

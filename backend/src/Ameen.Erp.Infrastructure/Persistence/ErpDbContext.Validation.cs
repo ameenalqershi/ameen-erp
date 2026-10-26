@@ -86,6 +86,15 @@ public sealed partial class ErpDbContext
             if (previous is not (JournalState.Posted or JournalState.Reversed)) continue;
             Check.That(entry.State != EntityState.Deleted, "posted_journal_immutable", "لا يمكن حذف قيد مرحل.");
             var allowed = new[] { nameof(JournalEntry.State), nameof(JournalEntry.ReversalJournalId), nameof(JournalEntry.PendingReversalJournalId), nameof(JournalEntry.Version) };
+            if (entry.Entity.Source == JournalSource.GeneralOpening &&
+                (entry.Property(x => x.ReversalJournalId).IsModified || entry.Property(x => x.PendingReversalJournalId).IsModified))
+            {
+                Check.That(entry.OriginalValues.GetValue<int?>(nameof(JournalEntry.OpeningRevision)) is int revision &&
+                    revision < int.MaxValue && entry.Entity.OpeningRevision == revision + 1 &&
+                    entry.Entity.OpeningModifiedAt is not null,
+                    "opening_revision_required", "تغيير رابط عكس الافتتاح يتطلب تحديث إصداره ووقت تعديله.");
+                allowed = [.. allowed, nameof(JournalEntry.OpeningRevision), nameof(JournalEntry.OpeningModifiedAt)];
+            }
             Check.That(!entry.Properties.Any(p => p.IsModified && !allowed.Contains(p.Metadata.Name)),
                 "posted_journal_immutable", "لا يمكن تعديل المحتوى المالي لقيد مرحل.");
         }

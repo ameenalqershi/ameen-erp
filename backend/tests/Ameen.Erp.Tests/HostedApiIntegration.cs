@@ -189,7 +189,16 @@ public static class HostedApiIntegration
                 generalOpening = await Command(client, path + $"/{generalOpening.ResourceId}/submit", new TransitionRequest(generalOpening.Version));
                 Authenticate(Token("sql-approver"));
                 generalOpening = await Command(client, path + $"/{generalOpening.ResourceId}/approve", new TransitionRequest(generalOpening.Version));
-                await Command(client, path + $"/{generalOpening.ResourceId}/post", new TransitionRequest(generalOpening.Version));
+                generalOpening = await Command(client, path + $"/{generalOpening.ResourceId}/post", new TransitionRequest(generalOpening.Version));
+                Authenticate(Token("sql-clerk"));
+                var generalInverse = await Command(client, path + $"/{generalOpening.ResourceId}/reverse", new ReverseJournalRequest(generalOpening.Version, Fixture.Date, "تصحيح افتتاح HTTP"));
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("openingRevision").GetInt32() == 5 && json.RootElement.GetProperty("pendingReversalJournalId").GetGuid() == generalInverse.ResourceId, "HTTP opening reservation metadata missing");
+                await Command(client, path + $"/{generalInverse.ResourceId}/cancel", new TransitionRequest(generalInverse.Version, "إلغاء تصحيح HTTP"));
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("openingRevision").GetInt32() == 6 && json.RootElement.GetProperty("pendingReversalJournalId").ValueKind == JsonValueKind.Null, "HTTP opening release metadata missing");
                 Console.WriteLine("  HOST PASS GL02 source metadata, settlement scope and journal lifecycle over HTTPS/JWT/SQL");
 
                 Authenticate(Token("sql-clerk"));

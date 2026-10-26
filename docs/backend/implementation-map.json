@@ -6,10 +6,10 @@
   "partially_implemented_screens": 31,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 292,
+    "implemented": 294,
     "audit": 53,
     "derived": 5,
-    "partial": 47,
+    "partial": 45,
     "pending": 2362
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -583,8 +583,8 @@
     },
     "GL02": {
       "api": "GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs",
-      "implemented": "افتتاح عام مصدره GeneralOpening ومرجع ميزان وتاريخ تشغيل؛ قيد متزن ودورة مستقلة واعتماد وترحيل وعكس تاريخي؛ منع الحسابات الرقابية؛ معاينة حسابات التسوية التاريخية للمخزون دون عد القيد مرتين",
-      "remaining": "الأجنبية والطباعة وتعديل تواريخ الرأس والاستيراد؛ تصفير حساب التسوية بوابة شاملة غير منفذ؛ الذمم والمصادر غير المنفذة ليست مطابقة؛ عداد افتتاح لتعديلات المحتوى وحالاته لا روابط العكس التاريخية",
+      "implemented": "افتتاح عام مصدره GeneralOpening ومرجع ميزان وتاريخ تشغيل؛ قيد متزن ودورة مستقلة واعتماد وترحيل وعكس تاريخي؛ منع الحسابات الرقابية؛ معاينة حسابات التسوية التاريخية للمخزون دون عد القيد مرتين؛ إصدار ووقت تعديل يشملان حجز العكس وإلغاءه وترحيله",
+      "remaining": "الأجنبية والطباعة وتعديل تواريخ الرأس والاستيراد؛ تصفير حساب التسوية بوابة شاملة غير منفذ؛ الذمم والمصادر غير المنفذة ليست مطابقة",
       "fields": {
         "GL02-F01": {
           "status": "implemented",
@@ -667,15 +667,15 @@
           "binding": "OpeningExchangeRate: fixed 1"
         },
         "GL02-F21": {
-          "status": "partial",
-          "binding": "OpeningRevision: content edits and own workflow, excluding original reversal-link changes"
+          "status": "implemented",
+          "binding": "OpeningRevision: content, workflow and reversal reservation/release/post"
         },
         "GL02-F22": {
-          "status": "partial",
-          "binding": "OpeningModifiedAt: content edits and own workflow, excluding original reversal-link changes"
+          "status": "implemented",
+          "binding": "OpeningModifiedAt: content, workflow and reversal reservation/release/post"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/GeneralOpeningTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/GeneralOpeningTests.cs; backend/tests/Ameen.Erp.Tests/GeneralOpeningReversalTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "GL03": {
       "api": "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}",
