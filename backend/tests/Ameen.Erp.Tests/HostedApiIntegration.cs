@@ -275,6 +275,17 @@ public static class HostedApiIntegration
 
                 var scheduledTemplate = await Command(client, recurringPath,
                     recurringRequest with { Name = "HTTP automatically scheduled", GenerationMode = RecurringGenerationMode.Scheduled });
+                scheduledTemplate = await Command(client, recurringPath + $"/{scheduledTemplate.ResourceId}",
+                    new EditRecurringJournalRequest(scheduledTemplate.Version, "HTTP automated schedule revised",
+                        recurringRequest.Frequency, RecurringGenerationMode.Scheduled, recurringRequest.StartsOn,
+                        recurringRequest.EndsOn, recurringRequest.Lines), method: HttpMethod.Put);
+                using (var templateDetail = await client.GetAsync(recurringPath + $"/{scheduledTemplate.ResourceId}"))
+                using (var templateJson = JsonDocument.Parse(await templateDetail.Content.ReadAsStringAsync()))
+                    Ensure(templateDetail.StatusCode == HttpStatusCode.OK &&
+                        templateJson.RootElement.GetProperty("revision").GetInt32() == 2 &&
+                        templateJson.RootElement.GetProperty("lastModifiedAt").GetDateTimeOffset() >=
+                        templateJson.RootElement.GetProperty("createdAt").GetDateTimeOffset(),
+                        "GL04 numeric revision/last modified not exposed over HTTPS/JWT/SQL");
                 using (var run = new HttpRequestMessage(HttpMethod.Post, recurringPath + "/run-due"))
                 {
                     run.Content = new StringContent(JsonSerializer.Serialize(

@@ -43,6 +43,13 @@ public static class RecurringSqlIntegration
         var changed = lines.Select(x => x with { Debit = x.Debit * 2, Credit = x.Credit * 2 }).ToArray();
         var edited = await Call(s => s.RecurringJournal.EditRecurringJournal(cid, template.ResourceId, clerk, Fixture.Key(),
             new(template.Version, request.Name, request.Frequency, request.GenerationMode, request.StartsOn, request.EndsOn, changed), default));
+        await using (var revisionDb = Context())
+        {
+            var card = await revisionDb.Set<RecurringJournalTemplate>().SingleAsync(x =>
+                x.CompanyId == cid && x.Id == template.ResourceId);
+            Ensure(card.Revision == 2 && card.LastModifiedAt >= card.CreatedAt &&
+                card.Version == edited.Version, "GL04 numeric revision not persisted on SQL edit");
+        }
         var december = await Generate(edited, 12, Fixture.Key());
         await using (var db = Context())
         {

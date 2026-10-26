@@ -10,6 +10,7 @@ public sealed partial class ErpDbContext
         var template = Tenant<RecurringJournalTemplate>(model, "RecurringJournalTemplates");
         template.Property(x => x.Name).HasMaxLength(200).UseCollation("Latin1_General_100_BIN2");
         template.Property(x => x.CreatedBy).HasMaxLength(200);
+        Constraint(template, "CK_Recurring_Revision", "[Revision] > 0 AND [LastModifiedAt] >= [CreatedAt]");
         template.HasIndex(x => new { x.CompanyId, x.BranchId, x.Name }).IsUnique();
         template.HasOne<Branch>().WithMany().HasForeignKey(x => new { x.CompanyId, x.BranchId }).OnDelete(DeleteBehavior.NoAction);
         template.HasMany(x => x.Lines).WithOne().HasForeignKey(x => new { x.CompanyId, x.TemplateId }).OnDelete(DeleteBehavior.Cascade);

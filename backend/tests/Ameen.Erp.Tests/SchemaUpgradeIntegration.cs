@@ -265,6 +265,33 @@ public static class SchemaUpgradeIntegration
             "Scheduler migration was not idempotent");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 018→019 enables scheduled drafts, rolls back failures and preserves old modes");
 
+        var legacyRecurring = new RecurringJournalTemplate(f.CompanyId, f.BranchId, "قالب من إصدار سابق",
+            RecurringFrequency.Monthly, RecurringGenerationMode.Manual, new DateOnly(2026, 1, 1),
+            new DateOnly(2026, 12, 31), f.Clerk.Subject, new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        await InsertLegacy(db, legacyRecurring);
+        var revisionScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory,
+            "database", "020_recurring_revisions.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_Recurring_Revision] CHECK ([GenerationMode] IN (0, 1))");
+        try { await db.Database.ExecuteSqlRawAsync(revisionScript); throw new Exception("Conflicting revision migration accepted"); }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=20").AnyAsync(),
+            "Failed revision migration recorded version");
+        Ensure(await db.Database.SqlQueryRaw<int>(
+            "SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('RecurringJournalTemplates') AND name IN ('Revision','LastModifiedAt')").SingleAsync() == 0,
+            "Failed revision migration retained partial columns");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] DROP CONSTRAINT [CK_Recurring_Revision]");
+        await db.Database.ExecuteSqlRawAsync(revisionScript);
+        await db.Database.ExecuteSqlRawAsync(revisionScript);
+        db.ChangeTracker.Clear();
+        var upgraded = await db.Set<RecurringJournalTemplate>().SingleAsync(x => x.CompanyId == f.CompanyId && x.Id == legacyRecurring.Id);
+        Ensure(upgraded.Revision == 1 && upgraded.LastModifiedAt == legacyRecurring.CreatedAt &&
+            upgraded.Version == legacyRecurring.Version, "Revision migration changed legacy metadata or UUID");
+        Ensure(await db.Database.SqlQueryRaw<int>(
+            "SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=20").SingleAsync() == 1,
+            "Revision migration was not idempotent");
+        Console.WriteLine("  SQL PASS atomic/idempotent schema 019→020 backfills numeric revision and last modified without rewriting UUID");
+
+
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

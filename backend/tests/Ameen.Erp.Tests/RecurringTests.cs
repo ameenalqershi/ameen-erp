@@ -64,6 +64,35 @@ public static class RecurringTests
             await Error("permission_denied", () => f.Service.RecurringJournal.RunScheduledDue(
                 f.CompanyId, f.Clerk, new(2026, 9, 30), 100, default));
         });
+        test("GL04-F15/F16: numeric revision and last-modified timestamp advance once, independent of UUID concurrency", async f =>
+        {
+            var receipt = await Create(f);
+            var created = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, receipt.ResourceId, f.Clerk, default);
+            Ensure(created.Revision == 1 && created.LastModifiedAt == created.CreatedAt);
+            var key = Fixture.Key();
+            var request = Edit(receipt.Version, Request(f));
+            var edited = await f.Service.RecurringJournal.EditRecurringJournal(f.CompanyId, receipt.ResourceId,
+                f.Clerk, key, request, default);
+            Ensure(edited == await f.Service.RecurringJournal.EditRecurringJournal(f.CompanyId, receipt.ResourceId,
+                f.Clerk, key, request, default));
+            var current = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, receipt.ResourceId, f.Clerk, default);
+            Ensure(current.Revision == 2 && current.LastModifiedAt >= created.CreatedAt &&
+                current.Version == edited.Version);
+            await Error("version_conflict", () => f.Service.RecurringJournal.EditRecurringJournal(
+                f.CompanyId, receipt.ResourceId, f.Clerk, Fixture.Key(), request, default));
+            edited = await f.Service.RecurringJournal.SetRecurringStatus(f.CompanyId, receipt.ResourceId,
+                f.Clerk, Fixture.Key(), new(edited.Version, false, "تعطيل مؤقت"), default);
+            current = await f.Service.RecurringJournal.GetRecurringJournal(f.CompanyId, receipt.ResourceId, f.Clerk, default);
+            Ensure(current.Revision == 3 && current.LastModifiedAt >= created.CreatedAt && !current.IsActive);
+            var list = await f.Service.RecurringJournal.ListRecurringJournals(f.CompanyId, f.Clerk,
+                f.BranchId, false, 0, 10, default);
+            Ensure(list.Items.Single(x => x.Id == receipt.ResourceId).Revision == 3 &&
+                list.Items.Single(x => x.Id == receipt.ResourceId).LastModifiedAt == current.LastModifiedAt);
+            var audit = await f.Service.RecurringJournal.ListRecurringChanges(f.CompanyId, receipt.ResourceId,
+                f.Clerk, 0, 10, default);
+            Ensure(audit.TotalCount == 3 && audit.Items.Any(x => x.Action == "recurring.edited") &&
+                audit.Items.Any(x => x.Action == "recurring.status-changed"));
+        });
         test("GL04: future template edits preserve generated amounts and historical version", async f =>
         {
             var template = await Create(f); var first = await Generate(f, template, 10);

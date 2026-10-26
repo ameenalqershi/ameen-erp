@@ -52,7 +52,7 @@ public sealed class RecurringJournalService : ApplicationService
                 "duplicate_recurring_name", "اسم القالب مستخدم في الفرع نفسه.", ErrorKind.Conflict);
             template.SetLines(await PrepareRecurringLines(template, request.Lines, token));
             store.Add(template);
-            Audit(cid, actor, "recurring.created", template, new { template.Version, template.Name, template.BranchId, template.Frequency,
+            Audit(cid, actor, "recurring.created", template, new { template.Version, template.Revision, template.LastModifiedAt, template.Name, template.BranchId, template.Frequency,
                 template.GenerationMode, template.StartsOn, template.EndsOn, template.Lines });
             return Receipt(template, "Active");
         }, ct);
@@ -62,13 +62,14 @@ public sealed class RecurringJournalService : ApplicationService
         {
             var template = await Required<RecurringJournalTemplate>(cid, id, token); Check.Version(template, request.ExpectedVersion);
             await branchService.ActiveBranch(cid, template.BranchId, token);
-            var before = new { template.Version, template.Name, template.Frequency, template.GenerationMode, template.StartsOn, template.EndsOn, Lines = template.Lines.ToArray() };
+            var before = new { template.Version, template.Revision, template.LastModifiedAt, template.Name, template.Frequency, template.GenerationMode, template.StartsOn, template.EndsOn, Lines = template.Lines.ToArray() };
             template.Configure(request.Name, request.Frequency, request.GenerationMode, request.StartsOn, request.EndsOn);
             Check.That(!(await store.Find<RecurringJournalTemplate>(cid, x => x.Id != id && x.BranchId == template.BranchId && x.Name == template.Name, token)).Any(),
                 "duplicate_recurring_name", "اسم القالب مستخدم في الفرع نفسه.", ErrorKind.Conflict);
             var lines = await PrepareRecurringLines(template, request.Lines, token);
             store.RemoveRecurringLines(template.Lines.ToArray()); template.SetLines(lines);
-            Audit(cid, actor, "recurring.edited", template, new { before, after = new { template.Version, template.Name, template.Frequency,
+            template.AdvanceRevision(clock.UtcNow);
+            Audit(cid, actor, "recurring.edited", template, new { before, after = new { template.Version, template.Revision, template.LastModifiedAt, template.Name, template.Frequency,
                 template.GenerationMode, template.StartsOn, template.EndsOn, template.Lines } });
             return Receipt(template, template.IsActive ? "Active" : "Inactive");
         }, ct);
@@ -77,9 +78,10 @@ public sealed class RecurringJournalService : ApplicationService
         Command(cid, actor, key, "recurring.status:" + id, request, token => AuthorizeRecurring(cid, id, actor, Permissions.RecurringManage, token), async token =>
         {
             var template = await Required<RecurringJournalTemplate>(cid, id, token); Check.Version(template, request.ExpectedVersion);
-            var reason = Check.Text(request.Reason, "السبب", 500); var before = template.IsActive;
-            template.SetActive(request.IsActive);
-            Audit(cid, actor, "recurring.status-changed", template, new { beforeVersion = request.ExpectedVersion, template.Version, before, after = template.IsActive, reason });
+            var reason = Check.Text(request.Reason, "السبب", 500); var before = template.IsActive; var beforeRevision = template.Revision;
+            template.SetActive(request.IsActive); template.AdvanceRevision(clock.UtcNow);
+            Audit(cid, actor, "recurring.status-changed", template, new { beforeVersion = request.ExpectedVersion, beforeRevision,
+                template.Version, template.Revision, template.LastModifiedAt, before, after = template.IsActive, reason });
             return Receipt(template, template.IsActive ? "Active" : "Inactive");
         }, ct);
 
@@ -189,7 +191,7 @@ public sealed class RecurringJournalService : ApplicationService
             (search == null || x.Name.Contains(search)),
             q => q.OrderBy(x => x.Name).ThenBy(x => x.Id), offset, limit, ct);
         return new(page.Items.Select(x => new RecurringJournalSummary(x.Id, x.Version, x.BranchId, x.Name, x.Frequency,
-            x.GenerationMode, x.StartsOn, x.EndsOn, x.IsActive, x.Lines.Count)).ToArray(), page.TotalCount, offset, limit);
+            x.GenerationMode, x.StartsOn, x.EndsOn, x.IsActive, x.Lines.Count, x.Revision, x.LastModifiedAt)).ToArray(), page.TotalCount, offset, limit);
     }
     public async Task<Page<RecurringJournalGeneration>> ListRecurringGenerations(Guid cid, Guid id, Actor actor, int offset, int limit, CancellationToken ct)
     {

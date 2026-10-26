@@ -11,13 +11,15 @@ public sealed class RecurringJournalTemplate : CompanyEntity
     public bool IsActive { get; private set; } = true;
     public string CreatedBy { get; private set; } = "";
     public DateTimeOffset CreatedAt { get; private set; }
+    public int Revision { get; private set; } = 1;
+    public DateTimeOffset LastModifiedAt { get; private set; }
     public List<RecurringJournalLine> Lines { get; private set; } = new();
     private RecurringJournalTemplate() { }
     public RecurringJournalTemplate(Guid companyId, Guid branchId, string name, RecurringFrequency frequency,
         RecurringGenerationMode mode, DateOnly startsOn, DateOnly endsOn, string actor, DateTimeOffset now) : base(companyId)
     {
         Check.That(branchId != Guid.Empty, "branch_required", "الفرع مطلوب.");
-        BranchId = branchId; CreatedBy = Check.Text(actor, "المنشئ"); CreatedAt = now;
+        BranchId = branchId; CreatedBy = Check.Text(actor, "المنشئ"); CreatedAt = now; LastModifiedAt = now;
         Configure(name, frequency, mode, startsOn, endsOn);
     }
     public void Configure(string name, RecurringFrequency frequency, RecurringGenerationMode mode, DateOnly startsOn, DateOnly endsOn)
@@ -37,6 +39,15 @@ public sealed class RecurringJournalTemplate : CompanyEntity
         Lines = result; Touch();
     }
     public void SetActive(bool active) { IsActive = active; Touch(); }
+
+    // Business revision increments once per accepted edit/status operation.
+    // Version remains a separate optimistic-concurrency UUID.
+    public void AdvanceRevision(DateTimeOffset now)
+    {
+        Check.That(Revision < int.MaxValue, "recurring_revision_exhausted", "لا يمكن زيادة إصدار القالب بعد الحد الأقصى.");
+        Check.That(now >= CreatedAt, "invalid_revision_time", "وقت تعديل القالب يسبق إنشاؤه.");
+        Revision++; LastModifiedAt = now; Touch();
+    }
 
     public DateOnly? DueDateFor(DateOnly periodStartsOn, DateOnly periodEndsOn)
     {

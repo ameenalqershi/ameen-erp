@@ -324,6 +324,12 @@ def main():
         path = OUT / name
         if args.check:
             if not path.exists() or path.read_text() != content:
+                import difflib
+                actual = path.read_text() if path.exists() else ""
+                lines = list(difflib.unified_diff(actual.splitlines(), content.splitlines(),
+                    fromfile=str(path.relative_to(ROOT)) + " (tracked)", tofile="expected from analysis", lineterm=""))
+                for line in lines[:70]:
+                    print(line)
                 raise SystemExit("Traceability stale: " + str(path.relative_to(ROOT)))
         else:
             path.write_text(content)
