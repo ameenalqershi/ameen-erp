@@ -31,3 +31,8 @@ GL01=5، GL04=7، GL05=4، GL06=4. [الجدول الجديد](notion-next20-tas
 - [CI #40414352534](https://github.com/ameenalqershi/ameen-erp/actions/runs/40414352534) على SHA `d571bcd2f3a6c68d45526c378bd5db9faa87dfba`: **282/282 ناجحة، 0 فشل** مع SQL Server وHTTPS/JWT وOpenAPI والتحليل الأصلي دون تعديل. [تطوير](https://github.com/ameenalqershi/ameen-erp/commit/10f0ee812e10896c5afac0610f130af44bd1f16c) و[تصحيح اختبار السعر القديم](https://github.com/ameenalqershi/ameen-erp/commit/d571bcd2f3a6c68d45526c378bd5db9faa87dfba).
 - أغلقت الفجوة الدقيقة GL02-GP01 وحقلي GL02-F08 وF09، لا الشاشة كلها؛ الطباعة SYS12 والاستيراد SYS13 والتسويات SAL03/PUR03 وGL10 لا تزال اعتماديات.
 
+
+## تسليم دفعة GL الثالثة: 20 مهمة دقيقة (27 أكتوبر 2026)
+
+[جدول اعتماد 20 مهمة](gl-third20-task-acceptance-2026-10-27.md): GL02=4، GL05=5، GL06=4، GL07=7، مختلفة عن جولتي العشرين السابقتين. **كود جديد في هذه الجولة:** GL02-GP01 افتتـاح أجنبي وفق أحدث سعر نافذ، ترقية SQL 018 دون تعديل قيم التاريخ؛ واختبار دورة GL07 المضافة في [commit 595b7dc](https://github.com/ameenalqershi/ameen-erp/commit/595b7dc3632bde7dd71ea55d4f9326c70127c9ea). 19 مهمة أفعالها أو اختباراتها موجودة قبل الجولة وتم تدقيقها والقبول وفق نطاقها. [CI 40415280131](https://github.com/ameenalqershi/ameen-erp/actions/runs/40415280131) **283/283 نجاح**. بقية الاعتماديات وموانع الإغلاق في التقرير؛ لا إعلان اكتمال أي شاشة.
+

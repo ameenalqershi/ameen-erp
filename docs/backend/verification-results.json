@@ -342,15 +342,15 @@
     "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40381093687"
   },
   "latestGithubActions": {
-    "runId": 40414352534,
-    "headSha": "d571bcd2f3a6c68d45526c378bd5db9faa87dfba",
+    "runId": 40415280131,
+    "headSha": "595b7dc3632bde7dd71ea55d4f9326c70127c9ea",
     "result": "passed",
-    "passed": 282,
-    "total": 282,
+    "passed": 283,
+    "total": 283,
     "failed": 0,
     "liveSql": true,
     "httpsJwt": true,
-    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40414352534",
-    "note": "New GL02 GP01 FX and schema 018 code. Local historical reports retained."
+    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40415280131",
+    "note": "GL02 FX schema 018 + GL07 reversal lifecycle regression, original local evidence preserved."
   }
 }
