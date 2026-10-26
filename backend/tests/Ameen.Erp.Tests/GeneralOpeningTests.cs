@@ -118,7 +118,7 @@ public static class GeneralOpeningTests
             var changedLines = lines.Select(x => x with { Debit = x.Debit * 2, Credit = x.Credit * 2 }).ToArray();
             created = await f.Service.Journal.EditGeneralOpening(f.CompanyId, created.ResourceId, f.Clerk,
                 Fixture.Key(), new(created.Version, "تصحيح افتتاح أجنبي", "TB-USD-CORRECT", changedLines), default);
-            await Error("opening_rate_mismatch", () => f.Service.Journal.EditGeneralOpening(f.CompanyId, created.ResourceId,
+            await Error("stale_exchange_rate", () => f.Service.Journal.EditGeneralOpening(f.CompanyId, created.ResourceId,
                 f.Clerk, Fixture.Key(), new(created.Version, "سعر غير متطابق", "TB", changedLines.Select(x =>
                     x with { ExchangeRateId = old.ResourceId }).ToArray()), default));
             var posted = await f.Post(created);
