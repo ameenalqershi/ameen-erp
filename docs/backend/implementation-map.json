@@ -6,10 +6,10 @@
   "partially_implemented_screens": 31,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 298,
-    "audit": 53,
+    "implemented": 297,
+    "audit": 52,
     "derived": 5,
-    "partial": 41,
+    "partial": 43,
     "pending": 2362
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -782,16 +782,16 @@
     },
     "GL04": {
       "api": "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
-      "implemented": "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ إصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
-      "remaining": "الفرع العام الشرطي غير محسوم؛ تخصيص دوريات غير الشهرية وربع السنوية والسنوية إذا اعتمدت ضمن خيارات الشاشة؛ يلزم إعداد هوية المشغل وخدمة الإنتاج",
+      "implemented": "قالب شهري أو ربع سنوي أو سنوي؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ رقم إصدار تعديل صحيح وآخر تعديل خادمي؛ مصدر وإصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
+      "remaining": "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ تاريخ النهاية اختياري بالمخطط لكن العقد الحالي يتطلبه (GL04-F07)؛ خيارات دورية أخرى غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",
       "fields": {
         "GL04-F01": {
           "status": "implemented",
           "binding": "CompanyId"
         },
         "GL04-F02": {
-          "status": "implemented",
-          "binding": "BranchId"
+          "status": "partial",
+          "binding": "BranchId required; analysis marks branch conditional, no company-wide template policy yet"
         },
         "GL04-F03": {
           "status": "implemented",
@@ -810,8 +810,8 @@
           "binding": "StartsOn"
         },
         "GL04-F07": {
-          "status": "implemented",
-          "binding": "EndsOn"
+          "status": "partial",
+          "binding": "EndsOn required; analysis marks end date optional, open-ended template not yet supported"
         },
         "GL04-F09": {
           "status": "implemented",
@@ -839,11 +839,11 @@
         },
         "GL04-F15": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "Revision: integer (Version UUID is a separate concurrency token)"
         },
         "GL04-F16": {
-          "status": "audit",
-          "binding": "AuditEvent.OccurredAt: recurring.edited / recurring.status-changed; scoped /audit-events"
+          "status": "implemented",
+          "binding": "LastModifiedAt server datetimeoffset; audit changes retained"
         },
         "GL04-F08": {
           "status": "implemented",
