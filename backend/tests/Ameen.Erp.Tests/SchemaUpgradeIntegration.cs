@@ -305,7 +305,7 @@ public static class SchemaUpgradeIntegration
         }
         Console.WriteLine("  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications");
         db.ChangeTracker.Clear();
-        foreach (var table in new[] { "JournalLines", "Journals", "Accounts", "CostCenters", "FiscalPeriods", "FiscalYears", "Branches", "Currencies" })
+        foreach (var table in new[] { "RecurringJournalLines", "RecurringJournalGenerations", "RecurringJournalTemplates", "JournalLines", "Journals", "Accounts", "CostCenters", "FiscalPeriods", "FiscalYears", "Branches", "Currencies" })
         {
             // Table identifiers come only from this fixed test list; values remain parameters.
             var sql = "DELETE FROM [" + table + "] WHERE [CompanyId]=@company";
