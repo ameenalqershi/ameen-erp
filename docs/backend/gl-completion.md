@@ -56,4 +56,4 @@ GL01=5، GL04=7، GL05=4، GL06=4. [الجدول الجديد](notion-next20-tas
 
 ## GL03-FG08 — تدقيق اليومية
 
-Revision عدد صحيح مستقل عن Version UUID، وLastModifiedAt خادمي، وترقية 022 لحفظ تاريخ التعديل والحالات وروابط العكس. 291/291 محليًا، وبوابة SQL وHTTPS/JWT قيد التحقق قبل قبول المهمة؛ [العقد](gl03-audit-fields.md). تبقى بقية فجوات GL03 مفتوحة.
+Revision عدد صحيح مستقل عن Version UUID، وLastModifiedAt خادمي، وترقية 022 لحفظ تاريخ التعديل والحالات وروابط العكس. 291/291 محليًا ثم **292/292** على [CI #40424701950](https://github.com/ameenalqershi/ameen-erp/actions/runs/40424701950)، وقُبلت المهمة في Notion؛ [العقد](gl03-audit-fields.md). تبقى بقية فجوات GL03 مفتوحة.
