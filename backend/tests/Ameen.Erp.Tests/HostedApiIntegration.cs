@@ -834,7 +834,8 @@ public static class HostedApiIntegration
                 using(var search=await client.GetAsync(mapPath+"?search=HTTP-MAP-EDIT&isActive=false&statementKind=FinancialPosition"))
                 using(var json=JsonDocument.Parse(await search.Content.ReadAsStringAsync()))
                     Ensure(search.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==1,"GL13 HTTP search filters differ");
-                Authenticate(Token("sql-clerk"));
+                await Command(client,$"/api/v1/companies/{companyId}/memberships",new GrantMembershipRequest("http-map-reader",new[]{Permissions.Read},true,Array.Empty<Guid>(),null));
+                Authenticate(Token("http-map-reader"));
                 using(var denyRequest=new HttpRequestMessage(HttpMethod.Post,mapPath))
                 {
                     denyRequest.Headers.Add("Idempotency-Key",Fixture.Key());denyRequest.Content=new StringContent(JsonSerializer.Serialize(mapRequest,JsonDefaults.Options),Encoding.UTF8,"application/json");

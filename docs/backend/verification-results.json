@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-27T02:01:14.043887+00:00",
+  "startedAtUtc": "2026-10-27T02:08:26.903886+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -46,7 +46,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "93a99700d74d777b90863bd1d9fb2ae598b408067a2c2282b691d7ff4d392ff5",
+  "sourceSha256": "ec6c488a9c2dcf75c6a2953299303ae1159009f8ef05afeee68d681b6d923ccf",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -371,5 +371,5 @@
   "passed": 319,
   "total": 319,
   "failed": 0,
-  "finishedAtUtc": "2026-10-27T02:01:32.329996+00:00"
+  "finishedAtUtc": "2026-10-27T02:08:44.787903+00:00"
 }
