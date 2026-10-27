@@ -142,17 +142,17 @@ SYS09,SYS09-F12,أنشأه,system,pending,,
 SYS09,SYS09-F13,وقت الإنشاء,system,pending,,
 SYS09,SYS09-F14,رقم إصدار التعديل,system,pending,,
 SYS09,SYS09-F15,آخر تعديل,system,pending,,
-SYS10,SYS10-F01,الشركة,system,implemented,CompanyId,internal: NumberSequence; POST /companies/{companyId}/journals
-SYS10,SYS10-F02,الفرع,conditional,pending,,
-SYS10,SYS10-F03,الحالة,system,pending,,
-SYS10,SYS10-F04,نوع المستند,required,pending,,
-SYS10,SYS10-F05,السنة,required,derived,scope JV:FiscalYear.Id,internal: NumberSequence; POST /companies/{companyId}/journals
-SYS10,SYS10-F06,البادئة,optional,partial,fixed JV-{yearCode}-,internal: NumberSequence; POST /companies/{companyId}/journals
-SYS10,SYS10-F07,الرقم التالي,required,partial,NumberSequence.LastNumber + 1; internal only,internal: NumberSequence; POST /companies/{companyId}/journals
-SYS10,SYS10-F08,أنشأه,system,pending,,
-SYS10,SYS10-F09,وقت الإنشاء,system,pending,,
-SYS10,SYS10-F10,رقم إصدار التعديل,system,pending,,
-SYS10,SYS10-F11,آخر تعديل,system,pending,,
+SYS10,SYS10-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F02,الفرع,conditional,implemented,"BranchId: optional company-wide or explicit branch, global configuration/read requires all branches",GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F03,الحالة,system,implemented,IsActive,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F04,نوع المستند,required,implemented,DocumentKind: Journal/InventoryOpening; TaxInvoice guarded by country prerequisite,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F05,السنة,required,derived,scope JV:FiscalYear.Id,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F06,البادئة,optional,partial,fixed JV-{yearCode}-,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F07,الرقم التالي,required,partial,NumberSequence.LastNumber + 1; internal only,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F08,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F09,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F10,رقم إصدار التعديل,system,implemented,Revision: integer separate from Version UUID,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F11,آخر تعديل,system,implemented,LastModifiedAt,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS11,SYS11-F01,الشركة,system,pending,,
 SYS11,SYS11-F02,الفرع,conditional,pending,,
 SYS11,SYS11-F03,الحالة,system,pending,,

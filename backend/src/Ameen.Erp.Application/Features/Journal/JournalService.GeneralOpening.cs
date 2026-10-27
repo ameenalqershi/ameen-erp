@@ -36,9 +36,10 @@ public sealed partial class JournalService
         {
             var company = await Company(cid, token); await branchService.ActiveBranch(cid, request.BranchId, token);
             await ValidateOpeningRate(company, Check.Currency(request.CurrencyCode), request.ExchangeRate, request.AccountingDate, token);
-            var period = await OpenPeriod(cid, request.AccountingDate, token); var number = await NextNumber(cid, period.Id, token);
+            var period = await OpenPeriod(cid, request.AccountingDate, token); var number = await NextNumber(cid, period.Id, request.BranchId, actor.Subject, token);
             var journal = new JournalEntry(cid, request.BranchId, period.Id, number.Number, number.Sequence, request.DocumentDate,
                 request.AccountingDate, request.Description, request.ExternalReference, actor.Subject, clock.UtcNow);
+            number.Allocation?.BindDocument(journal.Id);
             journal.SetGeneralOpeningSource(request.OperationStartsOn, request.PreviousTrialBalanceReference, request.CurrencyCode, request.ExchangeRate, clock.UtcNow);
             journal.SetLines(await PrepareLines(company, journal, request.Lines, token));
             store.Add(journal);
@@ -59,7 +60,7 @@ public sealed partial class JournalService
             Check.That(journal.Source == JournalSource.GeneralOpening, "general_opening_required", "القيد ليس افتتاحًا عامًا.");
             journal.RequireState(JournalState.Draft); await OpenPeriod(cid, journal.AccountingDate, token);
             var before = new { Header = HeaderSnapshot(journal), journal.Description, journal.PreviousTrialBalanceReference, Lines = journal.Lines.ToArray() };
-            await ReplaceDraftHeader(journal, request.Header, token);
+            await ReplaceDraftHeader(journal, request.Header, actor, token);
             var lines = await PrepareLines(await Company(cid, token), journal, request.Lines, token);
             journal.EditOpeningReference(request.PreviousTrialBalanceReference); journal.EditDescription(request.Description);
             store.RemoveLines(journal.Lines.ToArray()); journal.SetLines(lines); journal.AdvanceRevision(clock.UtcNow);

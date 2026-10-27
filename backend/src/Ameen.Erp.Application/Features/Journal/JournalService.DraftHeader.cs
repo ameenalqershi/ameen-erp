@@ -10,7 +10,7 @@ public sealed partial class JournalService
         if (header is not null) await Authorize(cid, actor, Permissions.Draft, header.BranchId, ct);
     }
 
-    private async Task ReplaceDraftHeader(JournalEntry journal, DraftJournalHeaderRequest? header, CancellationToken ct)
+    private async Task ReplaceDraftHeader(JournalEntry journal, DraftJournalHeaderRequest? header, Actor actor, CancellationToken ct)
     {
         if (header is null) return;
         journal.RequireState(JournalState.Draft);
@@ -20,8 +20,9 @@ public sealed partial class JournalService
         var previous = await OpenPeriod(journal.CompanyId, journal.AccountingDate, ct);
         var target = await OpenPeriod(journal.CompanyId, header.AccountingDate, ct);
         var number = previous.FiscalYearId == target.FiscalYearId
-            ? (journal.Sequence, journal.Number)
-            : await NextNumber(journal.CompanyId, target.Id, ct);
+            ? (journal.Sequence, journal.Number, (DocumentNumberAllocation?)null)
+            : await NextNumber(journal.CompanyId, target.Id, header.BranchId, actor.Subject, ct);
+        number.Item3?.BindDocument(journal.Id);
         journal.ReplaceDraftHeader(header.BranchId, target.Id, number.Item2, number.Item1,
             header.DocumentDate, header.AccountingDate, header.ExternalReference, header.OperationStartsOn);
     }

@@ -111,9 +111,10 @@ public sealed class RecurringJournalService : ApplicationService
                 Check.That(rate is not null, "exchange_rate_required", "لا يوجد سعر صرف نافذ لعملة القالب في تاريخ الموعد.");
                 rates[code] = rate!.Id;
             }
-            var number = await journalService.NextNumber(cid, period.Id, token);
+            var number = await journalService.NextNumber(cid, period.Id, template.BranchId, actor.Subject, token);
             var journal = new JournalEntry(cid, template.BranchId, period.Id, number.Number, number.Sequence, due.Value, due.Value,
                 template.Name + " - " + period.Code, null, actor.Subject, clock.UtcNow);
+            number.Allocation?.BindDocument(journal.Id);
             journal.SetRecurringSource(template.Id, template.Version);
             var lines = template.Lines.OrderBy(x => x.Position).Select(x => new JournalLineRequest(x.AccountId, x.CostCenterId,
                 x.Description, x.CurrencyCode, rates[x.CurrencyCode], x.Debit, x.Credit)).ToArray();

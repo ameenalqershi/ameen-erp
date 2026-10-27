@@ -776,6 +776,36 @@ public static class HostedApiIntegration
                             x.GetProperty("exchangeRate").GetString() == "1.25"),
                         "GL02 reversal unexpectedly repriced posted opening");
                 Console.WriteLine("  HOST PASS GL02-GP01 dated FX opening and historical inverse over HTTPS/JWT/SQL");
+                Authenticate(Token("sql-owner"));
+                var numBranch=await Command(client,$"/api/v1/companies/{companyId}/branches",new CreateBranchRequest("NUM-HTTP","فرع الترقيم","مدينة","عنوان"));
+                var numPath=$"/api/v1/companies/{companyId}/number-series";
+                var numRequest=new CreateNumberSeriesRequest(NumberingDocumentKind.Journal,yearId,40,"HTTPNUM-",numBranch.ResourceId);
+                var numKey=Fixture.Key();var numCard=await Command(client,numPath,numRequest,numKey);
+                Ensure(numCard==await Command(client,numPath,numRequest,numKey),"HTTP numbering create replay differs");
+                var numEdit=new EditNumberSeriesRequest(numCard.Version,42,"HTTPNUM-");
+                numCard=await Command(client,numPath+$"/{numCard.ResourceId}",numEdit,method:HttpMethod.Put);
+                using(var detail=await client.GetAsync(numPath+$"/{numCard.ResourceId}"))
+                using(var json=JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                    Ensure(detail.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("nextNumber").GetInt64()==42 &&
+                        json.RootElement.GetProperty("revision").GetInt32()==2 && json.RootElement.GetProperty("createdBy").GetString()=="sql-owner",
+                        "SYS10 HTTP configuration fields differ");
+                var reserved=await Command(client,numPath+$"/{numCard.ResourceId}/reserve",new ReserveDocumentNumberRequest(numCard.Version,numBranch.ResourceId));
+                Ensure(reserved.Number=="HTTPNUM-000042","SYS10 HTTP reserve failed");
+                using(var detail=await client.GetAsync(numPath+$"/{numCard.ResourceId}"))
+                using(var json=JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                    numCard=numCard with {Version=json.RootElement.GetProperty("version").GetGuid()};
+                numCard=await Command(client,numPath+$"/{numCard.ResourceId}/status",new SetNumberSeriesStatusRequest(numCard.Version,false,"تعطيل مفحوص"));
+                using(var usage=await client.GetAsync(numPath+$"/{numCard.ResourceId}/usage"))
+                using(var json=JsonDocument.Parse(await usage.Content.ReadAsStringAsync()))
+                    Ensure(usage.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==1,"SYS10 HTTP immutable usage missing");
+                using(var changes=await client.GetAsync(numPath+$"/{numCard.ResourceId}/audit-events"))
+                using(var json=JsonDocument.Parse(await changes.Content.ReadAsStringAsync()))
+                    Ensure(changes.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==4,"SYS10 HTTP audit chain differs");
+                using(var search=await client.GetAsync(numPath+"?search=HTTPNUM-&isActive=false"))
+                using(var json=JsonDocument.Parse(await search.Content.ReadAsStringAsync()))
+                    Ensure(search.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==1,"SYS10 HTTP search/status filter differs");
+                Console.WriteLine("  HOST PASS SYS10 create/edit/reserve/status/search/usage/audit with exact field types over HTTPS/JWT/SQL");
+
             }
             finally { await api.StopAsync(); }
         }

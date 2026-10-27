@@ -6,11 +6,11 @@
   "partially_implemented_screens": 31,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 299,
+    "implemented": 306,
     "audit": 51,
     "derived": 5,
     "partial": 42,
-    "pending": 2362
+    "pending": 2355
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -451,13 +451,25 @@
       }
     },
     "SYS10": {
-      "api": "internal: NumberSequence; POST /companies/{companyId}/journals",
-      "implemented": "تسلسل JV لكل شركة وسنة داخل معاملة؛ لا إعادة استخدام للملغى",
-      "remaining": "واجهة إعداد البوادئ والتسلسلات لكل أنواع المستندات والفروع",
+      "api": "GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events",
+      "implemented": "سلاسل عامة أو لفرع وسنة ونوع مستند وبادئة ورقم تال قابل للإعداد؛ حجز ذري موثق لا يعاد بعد الإلغاء؛ ربط اليومية والافتتاحات؛ تعديل وتعطيل وبحث واستخدام وإصدار وتدقيق مع حماية السجلات التاريخية",
+      "remaining": "أنواع التشغيل الحالية Journal وInventoryOpening؛ الترقيم الضريبي مرفوض حتى TAX05 وملف الدولة؛ باقي أنواع المستندات تربط عند تنفيذ مصادرها ولا تدعى جاهزيتها",
       "fields": {
         "SYS10-F01": {
           "status": "implemented",
           "binding": "CompanyId"
+        },
+        "SYS10-F02": {
+          "status": "implemented",
+          "binding": "BranchId: optional company-wide or explicit branch, global configuration/read requires all branches"
+        },
+        "SYS10-F03": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "SYS10-F04": {
+          "status": "implemented",
+          "binding": "DocumentKind: Journal/InventoryOpening; TaxInvoice guarded by country prerequisite"
         },
         "SYS10-F05": {
           "status": "derived",
@@ -470,8 +482,25 @@
         "SYS10-F07": {
           "status": "partial",
           "binding": "NumberSequence.LastNumber + 1; internal only"
+        },
+        "SYS10-F08": {
+          "status": "implemented",
+          "binding": "CreatedBy"
+        },
+        "SYS10-F09": {
+          "status": "implemented",
+          "binding": "CreatedAt"
+        },
+        "SYS10-F10": {
+          "status": "implemented",
+          "binding": "Revision: integer separate from Version UUID"
+        },
+        "SYS10-F11": {
+          "status": "implemented",
+          "binding": "LastModifiedAt"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/NumberingTests.cs; backend/tests/Ameen.Erp.Tests/NumberingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS14": {
       "api": "GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}",

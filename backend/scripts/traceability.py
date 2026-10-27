@@ -70,9 +70,12 @@ screen("SYS08", "GET/POST /companies/{companyId}/memberships",
 screen("SYS09", "internal: Company.RequireSeparateApprover; /journals/{id}/approve",
        "فصل إلزامي بين منشئ القيد ومعتمده", "شاشة إعداد المسارات متعددة المراحل والحدود والتنبيهات",
        {1: "CompanyId"})
-screen("SYS10", "internal: NumberSequence; POST /companies/{companyId}/journals",
-       "تسلسل JV لكل شركة وسنة داخل معاملة؛ لا إعادة استخدام للملغى", "واجهة إعداد البوادئ والتسلسلات لكل أنواع المستندات والفروع",
-       {1: "CompanyId"})
+screen("SYS10", "GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events",
+       "سلاسل عامة أو لفرع وسنة ونوع مستند وبادئة ورقم تال قابل للإعداد؛ حجز ذري موثق لا يعاد بعد الإلغاء؛ ربط اليومية والافتتاحات؛ تعديل وتعطيل وبحث واستخدام وإصدار وتدقيق مع حماية السجلات التاريخية",
+       "أنواع التشغيل الحالية Journal وInventoryOpening؛ الترقيم الضريبي مرفوض حتى TAX05 وملف الدولة؛ باقي أنواع المستندات تربط عند تنفيذ مصادرها ولا تدعى جاهزيتها",
+       {1:"CompanyId",2:"BranchId: optional company-wide or explicit branch, global configuration/read requires all branches",3:"IsActive",4:"DocumentKind: Journal/InventoryOpening; TaxInvoice guarded by country prerequisite",5:"FiscalYearId",6:"Prefix: optional user text",7:"NextNumber: monotonic server allocation and explicit forward edit",8:"CreatedBy",9:"CreatedAt",10:"Revision: integer separate from Version UUID",11:"LastModifiedAt"})
+MAP["SYS10"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in ["NumberingTests.cs","NumberingSqlIntegration.cs","SchemaUpgradeIntegration.cs","HostedApiIntegration.cs"])
+
 screen("SYS14", "GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}",
        "قراءة سجل أحداث غير قابل للتعديل وتفاصيل الحدث؛ مرشحات UTC والمستخدم التاريخي ونوع الحدث والمرجع وصفحات؛ مقارنة هوية وحدث حساسة للحالة",
        "مرشح الشاشة ورقم المستند ونطاق الفروع المستقل والتصدير وتدقيق القراءة غير منفذة؛ التاريخ اختياري للتوافق؛ المستخدم هو OIDC sub التاريخي ونوع الحدث مفتاح محفوظ دون كتالوج شاشة معتمد",

@@ -37,6 +37,18 @@ public sealed partial class ErpDbContext
                     x.OriginalValues.GetValue<InventoryOpeningState>(nameof(InventoryOpening.State)) == InventoryOpeningState.Approved),
                     "stock_posting_owner_required", "الحركة تتطلب ترحيل مصدر معتمد ضمن المعاملة.");
         }
+        foreach (var entry in ChangeTracker.Entries<DocumentNumberAllocation>())
+        {
+            Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted),"number_allocation_immutable","حجز الرقم سجل تاريخي لا يعدل أو يحذف.");
+            if(entry.State==EntityState.Added && entry.Entity.DocumentId is Guid id)
+            {
+                var a=entry.Entity;
+                var linked=a.DocumentKind==NumberingDocumentKind.Journal
+                    ? ChangeTracker.Entries<JournalEntry>().Any(x=>x.Entity.CompanyId==a.CompanyId && x.Entity.Id==id && x.Entity.Number==a.Number && x.Entity.BranchId==a.BranchId && x.State is EntityState.Added or EntityState.Modified)
+                    : ChangeTracker.Entries<InventoryOpening>().Any(x=>x.Entity.CompanyId==a.CompanyId && x.Entity.Id==id && x.Entity.Number==a.Number && x.Entity.BranchId==a.BranchId && x.State==EntityState.Added);
+                Check.That(linked,"number_document_owner_required","ربط الحجز يتطلب مستنده ضمن معاملة الإنشاء أو نقل سنة المسودة.");
+            }
+        }
         foreach (var entry in ChangeTracker.Entries<AuditEvent>())
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "audit_immutable", "سجل التدقيق غير قابل للتعديل أو الحذف.");
         foreach (var entry in ChangeTracker.Entries<ExchangeRate>())

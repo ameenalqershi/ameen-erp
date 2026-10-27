@@ -76,9 +76,10 @@ public sealed partial class InventoryOpeningService
             await ValidateSnapshot(opening, token); var plan = await PlanPosting(opening, token);
             Check.That(plan.SettingsVersion == request.ExpectedSettingsVersion && plan.WarehouseVersion == request.ExpectedWarehouseVersion,
                 "opening_posting_plan_changed", "تغير إعداد الترحيل أو المخزن؛ أعد المعاينة.", ErrorKind.Conflict);
-            var company = await Company(cid, token); var number = await journals.NextNumber(cid, opening.FiscalPeriodId, token);
+            var company = await Company(cid, token); var number = await journals.NextNumber(cid, opening.FiscalPeriodId, opening.BranchId, actor.Subject, token);
             var journal = new JournalEntry(cid, opening.BranchId, opening.FiscalPeriodId, number.Number, number.Sequence,
                 opening.DocumentDate, opening.AccountingDate, "افتتاح مخزون " + opening.Number, opening.Number, opening.CreatedBy, opening.CreatedAt);
+            number.Allocation?.BindDocument(journal.Id);
             journal.SetInventoryOpeningSource(opening.Id);
             journal.SetLines(new[] {
                 new JournalLine(cid, journal.Id, 1, plan.InventoryAccountId, null, "رقابة المخزون", opening.CurrencyCode, null, 1, plan.Debit, 0, company.CurrencyScale, company.CurrencyScale),

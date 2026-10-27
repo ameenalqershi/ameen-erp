@@ -77,9 +77,10 @@ public sealed partial class InventoryOpeningService
             Check.That(reversal.State == InventoryOpeningState.Approved, "opening_state_conflict", "العكس غير معتمد.", ErrorKind.Conflict);
             await ValidateReversal(reversal, token);
             var (source, originalJournal, movements) = await ReversibleSource(cid, reversal.ReversesOpeningId!.Value, token);
-            var number = await journals.NextNumber(cid, reversal.FiscalPeriodId, token);
+            var number = await journals.NextNumber(cid, reversal.FiscalPeriodId, reversal.BranchId, actor.Subject, token);
             var journal = new JournalEntry(cid, reversal.BranchId, reversal.FiscalPeriodId, number.Number, number.Sequence,
                 reversal.DocumentDate, reversal.AccountingDate, reversal.Description, reversal.Number, reversal.CreatedBy, reversal.CreatedAt);
+            number.Allocation?.BindDocument(journal.Id);
             journal.SetInventoryOpeningSource(reversal.Id, originalJournal.Id); journal.SetLines(originalJournal.Lines.Select(x => x.Opposite(journal.Id)));
             journal.Submit(); journal.Approve(reversal.ApprovedBy!, true); journal.Post(clock.UtcNow); store.Add(journal);
             originalJournal.ReserveReversal(journal.Id); originalJournal.LinkReversal(journal.Id); originalJournal.AdvanceRevision(clock.UtcNow);

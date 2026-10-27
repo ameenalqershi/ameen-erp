@@ -20,6 +20,7 @@ public static class Endpoints
         CostCentersEndpoints.Map(app);
         MembershipsEndpoints.Map(app);
         AccountsEndpoints.Map(app);
+        NumberingEndpoints.Map(app);
         JournalsEndpoints.Map(app);
         GeneralOpeningsEndpoints.Map(app);
         ReportsEndpoints.Map(app);

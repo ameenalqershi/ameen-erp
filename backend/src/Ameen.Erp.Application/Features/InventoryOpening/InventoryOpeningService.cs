@@ -7,9 +7,10 @@ public sealed partial class InventoryOpeningService : ApplicationService
     private readonly ItemService items;
     private readonly JournalService journals;
     private readonly CurrencyService currencies;
+    private readonly NumberingService numbering;
     public InventoryOpeningService(IErpStore store, ITransactionRunner transactions, IClock clock,
-        BranchService branches, ItemService items, JournalService journals, CurrencyService currencies) : base(store, transactions, clock)
-    { this.branches = branches; this.items = items; this.journals = journals; this.currencies = currencies; }
+        BranchService branches, ItemService items, JournalService journals, CurrencyService currencies, NumberingService numbering) : base(store, transactions, clock)
+    { this.numbering = numbering; this.branches = branches; this.items = items; this.journals = journals; this.currencies = currencies; }
 
     private async Task AuthorizeOpening(Guid cid, Guid id, Actor actor, string permission, CancellationToken ct)
     {
@@ -81,13 +82,22 @@ public sealed partial class InventoryOpeningService : ApplicationService
             Check.That(Check.Currency(request.CurrencyCode) == company.FunctionalCurrency && request.ExchangeRate == 1,
                 "opening_functional_currency_only", "الافتتاح يدعم العملة الوظيفية وسعر 1 حاليًا.");
             var period = await journals.OpenPeriod(cid, request.AccountingDate, token);
-            var year = await Required<FiscalYear>(cid, period.FiscalYearId, token); var scope = "IO:" + year.Id;
-            var sequence = (await store.Find<NumberSequence>(cid, x => x.Scope == scope, token)).SingleOrDefault();
-            if (sequence is null) { sequence = new NumberSequence(cid, scope); store.Add(sequence); }
-            var opening = new InventoryOpening(cid, request.BranchId, request.WarehouseId, period, $"IO-{year.Code}-{sequence.Next():000000}",
+            var year = await Required<FiscalYear>(cid, period.FiscalYearId, token);
+            var configured = await numbering.TryAllocate(cid,NumberingDocumentKind.InventoryOpening,year.Id,request.BranchId,actor.Subject,token);
+            string number;
+            if(configured is not null) number=configured.Value.Number;
+            else
+            {
+                var scope="IO:"+year.Id;
+                var sequence=(await store.Find<NumberSequence>(cid,x=>x.Scope==scope,token)).SingleOrDefault();
+                if(sequence is null){sequence=new NumberSequence(cid,scope);store.Add(sequence);}
+                number=$"IO-{year.Code}-{sequence.Next():000000}";
+            }
+            var opening = new InventoryOpening(cid, request.BranchId, request.WarehouseId, period, number,
                 request.DocumentDate, request.AccountingDate, request.CutoffDate, request.CurrencyCode, request.CountReference,
                 request.Description, request.ExternalReference, actor.Subject, clock.UtcNow);
             await ValidateHeader(opening, token); opening.Edit(request.Description, await Prepare(opening, request.Lines, token), clock.UtcNow);
+            configured?.Allocation.BindDocument(opening.Id);
             store.Add(opening); Audit(cid, actor, "inventory-opening.created", opening, opening);
             return Receipt(opening, opening.State.ToString(), opening.Number);
         }, ct);

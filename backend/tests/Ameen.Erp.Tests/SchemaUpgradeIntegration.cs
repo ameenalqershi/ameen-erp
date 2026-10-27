@@ -347,6 +347,16 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(journalRevisionScript);
         Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=22").SingleAsync() == 1, "Journal revision migration was not idempotent");
         db.ChangeTracker.Clear();
+        var numberingScript=await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory,"database","023_document_numbering.sql"));
+        await db.Database.ExecuteSqlRawAsync("CREATE TABLE [DocumentNumberAllocations] ([TestOnly] int NULL)");
+        try{await db.Database.ExecuteSqlRawAsync(numberingScript);throw new Exception("Expected numbering DDL conflict");}
+        catch(SqlException ex)when(ex.Errors.Cast<SqlError>().Any(x=>x.Number==2714)){}
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=23").AnyAsync(),"Failed numbering upgrade saved version");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='DocumentNumberSeries'").SingleAsync()==0,"Failed numbering upgrade leaked DDL");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE [DocumentNumberAllocations]");
+        await db.Database.ExecuteSqlRawAsync(numberingScript);await db.Database.ExecuteSqlRawAsync(numberingScript);
+        Ensure(await db.Set<DocumentNumberSeries>().CountAsync()==0 && await db.Set<DocumentNumberAllocation>().CountAsync()==0,"Numbering upgrade invented configuration or reservations");
+        Console.WriteLine("  SQL PASS SYS10 atomic/idempotent schema 022→023 preserves legacy numbering and creates empty configuration");
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

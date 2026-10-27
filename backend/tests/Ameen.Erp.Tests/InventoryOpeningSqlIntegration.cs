@@ -182,6 +182,13 @@ public static class InventoryOpeningSqlIntegration
         var reconciled = await Call(s => s.PeriodClose.PreviewPeriodClose(cid, periodId, reviewer, 0, 10, default));
         Ensure(reconciled.Checks.Single(x => x.Code == "inventory_openings_reconciled").Passed, "Reversed opening fails reconciliation");
         Console.WriteLine("  SQL PASS INV06 reversal draft/post replay, unique source, atomic Outbox rollback, runtime posting, negative movement and linked historical journal reconciliation");
+        Guid numberYear;await using(var db=Context())numberYear=(await db.Set<FiscalPeriod>().SingleAsync(x=>x.CompanyId==cid && x.Id==periodId)).FiscalYearId;
+        var numberSeries=await Call(s=>s.Numbering.Create(cid,owner,Fixture.Key(),new(NumberingDocumentKind.InventoryOpening,numberYear,777,"CFGIO-"),default));
+        var numbered=await Call(s=>s.InventoryOpening.Create(cid,writer,Fixture.Key(),request with {CountReference="SYS10-IO"},default));
+        var numberUsage=await Call(s=>s.Numbering.Usage(cid,numberSeries.ResourceId,owner,0,20,default));
+        Ensure(numbered.Number=="CFGIO-000777" && numberUsage.Items.Single().DocumentId==numbered.ResourceId,"Configured inventory number lost SQL source FK or identity");
+        Console.WriteLine("  SQL PASS SYS10 configured inventory opening allocation and composite source FK");
+
 
 
     }

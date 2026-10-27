@@ -183,6 +183,7 @@ public static class SqlIntegration
             await AuditSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await HostedApiIntegration.Run(options.ConnectionString, f.CompanyId, f.Request());
             await InventoryOpeningSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.BranchId, f.Owner, f.Clerk, f.Approver);
+            await NumberingSqlIntegration.Run(options.ConnectionString,f.CompanyId,f.Owner,f.Request());
         }
         finally
         {

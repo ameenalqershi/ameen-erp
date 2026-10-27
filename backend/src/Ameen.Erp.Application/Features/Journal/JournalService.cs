@@ -7,8 +7,10 @@ public sealed partial class JournalService : ApplicationService
 {
     private readonly BranchService branchService;
     private readonly CurrencyService currencyService;
-    public JournalService(IErpStore store, ITransactionRunner transactions, IClock clock, BranchService branchService, CurrencyService currencyService) : base(store, transactions, clock)
+    private readonly NumberingService numbering;
+    public JournalService(IErpStore store, ITransactionRunner transactions, IClock clock, BranchService branchService, CurrencyService currencyService, NumberingService numbering) : base(store, transactions, clock)
     {
+        this.numbering = numbering;
         this.branchService = branchService;
         this.currencyService = currencyService;
     }
@@ -23,15 +25,17 @@ public sealed partial class JournalService : ApplicationService
         return period;
     }
 
-    internal async Task<(long Sequence, string Number)> NextNumber(Guid cid, Guid periodId, CancellationToken ct)
+    internal async Task<(long Sequence, string Number, DocumentNumberAllocation? Allocation)> NextNumber(Guid cid, Guid periodId, Guid branchId, string actor, CancellationToken ct)
     {
         var period = await Required<FiscalPeriod>(cid, periodId, ct);
         var year = await Required<FiscalYear>(cid, period.FiscalYearId, ct);
+        var configured = await numbering.TryAllocate(cid,NumberingDocumentKind.Journal,year.Id,branchId,actor,ct);
+        if(configured is not null) return configured.Value;
         var scope = "JV:" + year.Id;
         var sequence = (await store.Find<NumberSequence>(cid, x => x.Scope == scope, ct)).SingleOrDefault();
         if (sequence is null) { sequence = new NumberSequence(cid, scope); store.Add(sequence); }
         var number = sequence.Next();
-        return (number, $"JV-{year.Code}-{number:000000}");
+        return (number, $"JV-{year.Code}-{number:000000}", null);
     }
 
     internal async Task<List<JournalLine>> PrepareLines(Company company, JournalEntry journal, JournalLineRequest[]? requests, CancellationToken ct)
@@ -106,9 +110,10 @@ public sealed partial class JournalService : ApplicationService
         {
             var company = await Company(cid, token); await branchService.ActiveBranch(cid, request.BranchId, token);
             var period = await OpenPeriod(cid, request.AccountingDate, token);
-            var number = await NextNumber(cid, period.Id, token);
+            var number = await NextNumber(cid, period.Id, request.BranchId, actor.Subject, token);
             var journal = new JournalEntry(cid, request.BranchId, period.Id, number.Number, number.Sequence,
                 request.DocumentDate, request.AccountingDate, request.Description, request.ExternalReference, actor.Subject, clock.UtcNow);
+            number.Allocation?.BindDocument(journal.Id);
             journal.SetLines(await PrepareLines(company, journal, request.Lines, token));
             // An unbalanced draft is allowed; submission/approval/posting require exact balance.
             store.Add(journal);
@@ -126,7 +131,7 @@ public sealed partial class JournalService : ApplicationService
             await OpenPeriod(cid, journal.AccountingDate, token);
             var company = await Company(cid, token);
             var before = new { Header = HeaderSnapshot(journal), journal.Description, Lines = journal.Lines.ToArray() };
-            await ReplaceDraftHeader(journal, request.Header, token);
+            await ReplaceDraftHeader(journal, request.Header, actor, token);
             var newLines = await PrepareLines(company, journal, request.Lines, token);
             store.RemoveLines(journal.Lines.ToArray());
             journal.EditDescription(request.Description); journal.SetLines(newLines); journal.AdvanceRevision(clock.UtcNow);
@@ -203,9 +208,10 @@ public sealed partial class JournalService : ApplicationService
             Check.That(request.AccountingDate >= original.AccountingDate, "reversal_before_original", "تاريخ العكس لا يسبق تاريخ الأصل.");
             var reason = Check.Text(request.Reason, "سبب العكس", 500);
             var period = await OpenPeriod(cid, request.AccountingDate, token);
-            var number = await NextNumber(cid, period.Id, token);
+            var number = await NextNumber(cid, period.Id, original.BranchId, actor.Subject, token);
             var reversal = new JournalEntry(cid, original.BranchId, period.Id, number.Number, number.Sequence,
                 request.AccountingDate, request.AccountingDate, "عكس القيد " + original.Number, original.Number, actor.Subject, clock.UtcNow);
+            number.Allocation?.BindDocument(reversal.Id);
             reversal.SetReversalSource(original.Id, reason);
             reversal.SetLines(original.Lines.Select(x => x.Opposite(reversal.Id)));
             original.ReserveReversal(reversal.Id); store.Add(reversal);

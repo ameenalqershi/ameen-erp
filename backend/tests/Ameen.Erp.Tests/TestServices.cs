@@ -18,6 +18,7 @@ public sealed class TestServices
     public InventoryIdentityService InventoryIdentity { get; }
     public ItemService Item { get; }
     public JournalService Journal { get; }
+    public NumberingService Numbering { get; }
     public MembershipService Membership { get; }
     public PeriodCloseService PeriodClose { get; }
     public RecurringJournalService RecurringJournal { get; }
@@ -38,8 +39,9 @@ public sealed class TestServices
         FiscalCalendar = new FiscalCalendarService(store, transactions, clock);
         ItemGroup = new ItemGroupService(store, transactions, clock);
         Item = new ItemService(store, transactions, clock, ItemGroup);
-        Journal = new JournalService(store, transactions, clock, Branch, Currency);
-        InventoryOpening = new InventoryOpeningService(store, transactions, clock, Branch, Item, Journal, Currency);
+        Numbering = new NumberingService(store, transactions, clock);
+        Journal = new JournalService(store, transactions, clock, Branch, Currency, Numbering);
+        InventoryOpening = new InventoryOpeningService(store, transactions, clock, Branch, Item, Journal, Currency, Numbering);
         Membership = new MembershipService(store, transactions, clock, Branch);
         PeriodClose = new PeriodCloseService(store, transactions, clock);
         RecurringJournal = new RecurringJournalService(store, transactions, clock, Branch, Currency, ExchangeRate, Journal);

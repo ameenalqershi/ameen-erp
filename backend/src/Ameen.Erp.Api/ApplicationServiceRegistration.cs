@@ -18,6 +18,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<InventoryIdentityService>();
         services.AddScoped<InventoryOpeningService>();
         services.AddScoped<ItemService>();
+        services.AddScoped<NumberingService>();
         services.AddScoped<JournalService>();
         services.AddScoped<MembershipService>();
         services.AddScoped<PeriodCloseService>();

@@ -56,41 +56,18 @@ public sealed partial class JournalService
         Check.That(source is null || Enum.IsDefined(source.Value), "invalid_source", "مصدر غير معروف.");
         Check.That((sequenceFrom is null || sequenceFrom > 0) && (sequenceTo is null || sequenceTo > 0) &&
             (sequenceFrom is null || sequenceTo is null || sequenceFrom <= sequenceTo), "invalid_sequence_range", "نطاق أرقام غير صالح.");
-        if (numberRange is not null)
+        var branches=await AllowedBranches(cid,member,branchId,ct);
+        string[]? includedNumbers=null;var excludedNumbers=Array.Empty<string>();
+        if(numberRange is not null)
         {
-            Check.That(sequenceFrom is null && sequenceTo is null, "ambiguous_number_range",
-                "لا تجمع بين نطاق الأرقام النصي وحدود التسلسل الرقمية.");
-            Check.That(numberRange.Length is > 0 and <= 200, "invalid_journal_number_range",
-                "نطاق أرقام القيود غير صالح.");
-            var year = await Required<FiscalYear>(cid, selectedPeriod.FiscalYearId, ct);
-            var prefix = $"JV-{year.Code}-";
-            var parts = numberRange.Split("..", StringSplitOptions.None);
-            Check.That(parts.Length is 1 or 2, "invalid_journal_number_range",
-                "أدخل رقم قيد واحدًا أو نطاقًا من رقمين مفصولين بـ ..");
-            long ParseNumber(string value)
-            {
-                var part = value.Trim();
-                if (part.StartsWith("JV-", StringComparison.Ordinal))
-                {
-                    Check.That(part.StartsWith(prefix, StringComparison.Ordinal), "invalid_journal_number_range",
-                        "رقم القيد لا يخص السنة المالية المختارة.");
-                    part = part[prefix.Length..];
-                }
-                Check.That(part.Length > 0, "invalid_journal_number_range", "رقم قيد فارغ ضمن النطاق.");
-                Check.That(long.TryParse(part, NumberStyles.None, CultureInfo.InvariantCulture, out var sequence) && sequence > 0,
-                    "invalid_journal_number_range", "رقم قيد غير صالح ضمن النطاق.");
-                return sequence;
-            }
-            sequenceFrom = ParseNumber(parts[0]);
-            sequenceTo = parts.Length == 2 ? ParseNumber(parts[1]) : sequenceFrom;
-            Check.That(sequenceFrom <= sequenceTo, "invalid_journal_number_range",
-                "بداية نطاق القيود بعد نهايته.");
+            Check.That(sequenceFrom is null && sequenceTo is null,"ambiguous_number_range","لا تجمع بين النطاق النصي وحدود التسلسل الرقمية.");
+            var range=await ResolveNumberRange(cid,selectedPeriod,numberRange,branches,ct);
+            sequenceFrom=range.From;sequenceTo=range.To;includedNumbers=range.Included;excludedNumbers=range.Excluded;
         }
-        var branches = await AllowedBranches(cid, member, branchId, ct);
         state ??= action == "post" ? JournalState.Approved : JournalState.Submitted;
         var page = await store.ReadPage<JournalEntry>(cid, x => x.FiscalPeriodId == periodId && branches.Contains(x.BranchId) &&
             x.State == state && (source == null || x.Source == source) && (sequenceFrom == null || x.Sequence >= sequenceFrom) &&
-            (sequenceTo == null || x.Sequence <= sequenceTo), q => q.OrderBy(x => x.Sequence).ThenBy(x => x.Id), offset, limit, ct);
+            (sequenceTo == null || x.Sequence <= sequenceTo) && (includedNumbers==null || includedNumbers.Contains(x.Number)) && !excludedNumbers.Contains(x.Number), q => q.OrderBy(x => x.Sequence).ThenBy(x => x.Id), offset, limit, ct);
         var rows = new List<JournalProcessingPreview>();
         foreach (var j in page.Items) rows.Add(await PreviewProcessing(j, actor, action, null, ct));
         return new(rows, page.TotalCount, offset, limit);
