@@ -456,23 +456,23 @@ GL12,GL12-F08,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{compan
 GL12,GL12-F09,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/reopen
 GL12,GL12-F10,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/periods/{id}/reopen
 GL12,GL12-F11,آخر تعديل,system,pending,,
-GL13,GL13-F01,الشركة,system,pending,,
-GL13,GL13-F02,الفرع,conditional,pending,,
-GL13,GL13-F03,الحالة,system,pending,,
-GL13,GL13-F04,اسم النموذج,required,pending,,
-GL13,GL13-F05,نوع القائمة,required,pending,,
-GL13,GL13-F06,الإصدار,required,pending,,
-GL13,GL13-F07,من تاريخ,required,pending,,
-GL13,GL13-F08,رمز البند,required,pending,,
-GL13,GL13-F09,البند الأب,optional,pending,,
-GL13,GL13-F10,عنوان البند,required,pending,,
-GL13,GL13-F11,الحساب أو المجموعة,conditional,pending,,
-GL13,GL13-F12,إشارة العرض,required,pending,,
-GL13,GL13-F13,معادلة تجميع,conditional,pending,,
-GL13,GL13-F14,أنشأه,system,pending,,
-GL13,GL13-F15,وقت الإنشاء,system,pending,,
-GL13,GL13-F16,رقم إصدار التعديل,system,pending,,
-GL13,GL13-F17,آخر تعديل,system,pending,,
+GL13,GL13-F01,الشركة,system,implemented,CompanyId from route,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F02,الفرع,conditional,implemented,BranchId: optional company-wide or explicit active branch,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F03,الحالة,system,implemented,IsActive: server state,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F04,اسم النموذج,required,implemented,Name,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F05,نوع القائمة,required,implemented,StatementKind: FinancialPosition/ProfitLoss/ChangesInEquity/CashFlow,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F06,الإصدار,required,implemented,VersionCode: explicit text code,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F07,من تاريخ,required,implemented,EffectiveFrom,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F08,رمز البند,required,implemented,Lines.Code,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F09,البند الأب,optional,implemented,Lines.ParentCode: optional,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F10,عنوان البند,required,implemented,Lines.Title,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F11,الحساب أو المجموعة,conditional,implemented,Lines.AccountId: posting account or group with posting descendants,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F12,إشارة العرض,required,implemented,Lines.DisplaySign: Normal/Reverse required,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F13,معادلة تجميع,conditional,implemented,Lines.Formula: optional explicit safe aggregation; no account on formula row,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F14,أنشأه,system,implemented,CreatedBy: server actor,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F15,وقت الإنشاء,system,implemented,CreatedAt: server clock,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F16,رقم إصدار التعديل,system,implemented,Revision: server integer distinct from Version UUID,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
+GL13,GL13-F17,آخر تعديل,system,implemented,LastModifiedAt: server clock,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
 GL14,GL14-F01,الشركة,system,pending,,
 GL14,GL14-F02,الفرع,conditional,pending,,
 GL14,GL14-F03,الحالة,system,pending,,

@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 31,
+  "partially_implemented_screens": 32,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 306,
+    "implemented": 323,
     "audit": 51,
     "derived": 5,
     "partial": 42,
-    "pending": 2355
+    "pending": 2338
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -501,6 +501,82 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/NumberingTests.cs; backend/tests/Ameen.Erp.Tests/NumberingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "GL13": {
+      "api": "GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}",
+      "implemented": "حقول رأس وبنود الربط كاملة؛ صيغ آمنة + و- ومراجع بنود مع منع الدورات والتكرار وتداخل المجموعات؛ مراجعة غير المصنف؛ لقطات أرصدة وظيفية مرحّلة ثابتة وبحث وتعطيل واستخدام وتدقيق ذري",
+      "remaining": "GL13 خريطة ومراجعة لا تنفيذ تقارير RPT03/RPT04 كاملة؛ النطاق الاختياري للفرع مرشح للأستاذ ويتطلب تفويض جميع الفروع لدليل الحسابات؛ ParentCode للعرض فقط والتجميع بمعادلة صريحة؛ لا لغة ضرب/قسمة أو قواعد تدفق نقدي مفترضة",
+      "fields": {
+        "GL13-F01": {
+          "status": "implemented",
+          "binding": "CompanyId from route"
+        },
+        "GL13-F02": {
+          "status": "implemented",
+          "binding": "BranchId: optional company-wide or explicit active branch"
+        },
+        "GL13-F03": {
+          "status": "implemented",
+          "binding": "IsActive: server state"
+        },
+        "GL13-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "GL13-F05": {
+          "status": "implemented",
+          "binding": "StatementKind: FinancialPosition/ProfitLoss/ChangesInEquity/CashFlow"
+        },
+        "GL13-F06": {
+          "status": "implemented",
+          "binding": "VersionCode: explicit text code"
+        },
+        "GL13-F07": {
+          "status": "implemented",
+          "binding": "EffectiveFrom"
+        },
+        "GL13-F08": {
+          "status": "implemented",
+          "binding": "Lines.Code"
+        },
+        "GL13-F09": {
+          "status": "implemented",
+          "binding": "Lines.ParentCode: optional"
+        },
+        "GL13-F10": {
+          "status": "implemented",
+          "binding": "Lines.Title"
+        },
+        "GL13-F11": {
+          "status": "implemented",
+          "binding": "Lines.AccountId: posting account or group with posting descendants"
+        },
+        "GL13-F12": {
+          "status": "implemented",
+          "binding": "Lines.DisplaySign: Normal/Reverse required"
+        },
+        "GL13-F13": {
+          "status": "implemented",
+          "binding": "Lines.Formula: optional explicit safe aggregation; no account on formula row"
+        },
+        "GL13-F14": {
+          "status": "implemented",
+          "binding": "CreatedBy: server actor"
+        },
+        "GL13-F15": {
+          "status": "implemented",
+          "binding": "CreatedAt: server clock"
+        },
+        "GL13-F16": {
+          "status": "implemented",
+          "binding": "Revision: server integer distinct from Version UUID"
+        },
+        "GL13-F17": {
+          "status": "implemented",
+          "binding": "LastModifiedAt: server clock"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/FinancialMappingTests.cs; backend/tests/Ameen.Erp.Tests/FinancialMappingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS14": {
       "api": "GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}",

@@ -49,6 +49,11 @@ public sealed partial class ErpDbContext
                 Check.That(linked,"number_document_owner_required","ربط الحجز يتطلب مستنده ضمن معاملة الإنشاء أو نقل سنة المسودة.");
             }
         }
+        foreach(var entry in ChangeTracker.Entries<FinancialMappingReview>())
+            Check.That(entry.State is not(EntityState.Modified or EntityState.Deleted),"mapping_review_immutable","لقطة مراجعة الربط لا تعدل أو تحذف.");
+        foreach(var entry in ChangeTracker.Entries<FinancialMappingLine>().Where(x=>x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            Check.That(ChangeTracker.Entries<FinancialMapping>().Any(x=>x.Entity.CompanyId==entry.Entity.CompanyId && x.Entity.Id==entry.Entity.MappingId &&
+                (x.State==EntityState.Added || x.State==EntityState.Modified && x.Property(a=>a.Version).IsModified)),"mapping_lines_owner_required","تعديل البنود يتطلب النموذج ضمن المعاملة.");
         foreach (var entry in ChangeTracker.Entries<AuditEvent>())
             Check.That(entry.State is not (EntityState.Modified or EntityState.Deleted), "audit_immutable", "سجل التدقيق غير قابل للتعديل أو الحذف.");
         foreach (var entry in ChangeTracker.Entries<ExchangeRate>())

@@ -439,6 +439,7 @@ AccountTests.Register(Test);
 RecurringTests.Register(Test);
 JournalAuditTests.Register(Test);
 NumberingTests.Register(Test);
+FinancialMappingTests.Register(Test);
 tests.Add(("HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON", HttpIntegration.Run));
 tests.Add(("OpenAPI: production routes expose optional draft headers without SQL dependency", OpenApiSnapshotTests.Run));
 if (args.Contains("--sql", StringComparer.Ordinal)) tests.Add(("SQL Server integration", SqlIntegration.Run));

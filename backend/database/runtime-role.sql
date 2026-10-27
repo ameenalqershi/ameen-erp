@@ -20,3 +20,6 @@ DENY INSERT, UPDATE, DELETE ON OBJECT::dbo.__AmeenSchemaVersions TO [ameen_runti
 DENY UPDATE, DELETE ON OBJECT::dbo.StockMovements TO [ameen_runtime];
 
 DENY UPDATE, DELETE ON OBJECT::dbo.DocumentNumberAllocations TO [ameen_runtime];
+
+GRANT DELETE ON OBJECT::dbo.FinancialMappingLines TO [ameen_runtime];
+DENY UPDATE, DELETE ON OBJECT::dbo.FinancialMappingReviews TO [ameen_runtime];

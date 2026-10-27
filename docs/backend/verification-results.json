@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-10-27T01:35:47.207203+00:00",
+  "startedAtUtc": "2026-10-27T02:01:14.043887+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -46,7 +46,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "71a143d62c8ea4d7fac192389ae97c9fe635a3ab1946f8b664db322cd4ca5a8f",
+  "sourceSha256": "93a99700d74d777b90863bd1d9fb2ae598b408067a2c2282b691d7ff4d392ff5",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -349,19 +349,27 @@
     "PASS SYS10 traceability: renumbering a draft into a new year retains its immutable old allocation link",
     "PASS SYS10 inventory dependency: configured opening number is linked without granting journal/configuration privileges",
     "PASS SYS10 allocation history is immutable in persistence",
+    "PASS GL13 fields: header, optional branch, lines and server audit preserve source types",
+    "PASS GL13 acceptance: groups, signs, nested formulas and posted ledger produce exact auditable rows",
+    "PASS GL13 review: as-of, branch scope and posted reversal keep historical balances",
+    "PASS GL13 control: unclassified active or historical inactive account is an explicit review error",
+    "PASS GL13 control: direct, group-child and nested formula double counting rejected atomically",
+    "PASS GL13 control: parent/formula cycles, self-reference and missing references reject",
+    "PASS GL13 formulas: safe grammar rejects arbitrary expressions and excessive parentheses",
+    "PASS GL13 writes: concurrent replay, version conflicts, line replacement and numeric revision",
+    "PASS GL13 history: immutable reviews retain original definition and amounts after map edit/disable",
+    "PASS GL13 atomicity: failed edit/review rolls back definition, revision, snapshots, audits and receipt",
+    "PASS GL13 authorization: global catalog requires all branches, configure writes and audit permission",
+    "PASS GL13 references: inactive/foreign accounts, invalid signs/dates and ambiguous lines reject",
+    "PASS GL13 query: search/type/branch/status and usage pagination expose only actual snapshots",
+    "PASS GL13 dependency: mapped group descendants lock GL01 structure and appear in account usage",
+    "PASS GL13 wire contract: all mandatory fields required and client audit spoofing rejected",
+    "PASS GL13 persistence: frozen review and detached line mutation are rejected before SQL",
     "PASS HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON",
     "PASS OpenAPI: production routes expose optional draft headers without SQL dependency"
   ],
-  "passed": 303,
-  "total": 303,
+  "passed": 319,
+  "total": 319,
   "failed": 0,
-  "finishedAtUtc": "2026-10-27T01:36:04.396005+00:00",
-  "previousGithubActions": {
-    "runId": 40424701950,
-    "headSha": "e0db6cb3c2b83e3b42f63aeed251fbc2b0828365",
-    "passed": 292,
-    "total": 292,
-    "liveSql": true,
-    "url": "https://github.com/ameenalqershi/ameen-erp/actions/runs/40424701950"
-  }
+  "finishedAtUtc": "2026-10-27T02:01:32.329996+00:00"
 }

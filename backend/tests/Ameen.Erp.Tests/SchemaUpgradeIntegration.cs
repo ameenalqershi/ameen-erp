@@ -357,6 +357,17 @@ public static class SchemaUpgradeIntegration
         await db.Database.ExecuteSqlRawAsync(numberingScript);await db.Database.ExecuteSqlRawAsync(numberingScript);
         Ensure(await db.Set<DocumentNumberSeries>().CountAsync()==0 && await db.Set<DocumentNumberAllocation>().CountAsync()==0,"Numbering upgrade invented configuration or reservations");
         Console.WriteLine("  SQL PASS SYS10 atomic/idempotent schema 022→023 preserves legacy numbering and creates empty configuration");
+        var mappingScript=await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory,"database","024_financial_mappings.sql"));
+        await db.Database.ExecuteSqlRawAsync("CREATE TABLE [FinancialMappingReviews] ([TestOnly] int NULL)");
+        try{await db.Database.ExecuteSqlRawAsync(mappingScript);throw new Exception("Expected financial map DDL conflict");}
+        catch(SqlException ex)when(ex.Errors.Cast<SqlError>().Any(x=>x.Number==2714)){}
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=24").AnyAsync(),"Failed map upgrade saved version");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name IN ('FinancialMappings','FinancialMappingLines')").SingleAsync()==0,"Failed map upgrade retained DDL");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE [FinancialMappingReviews]");
+        await db.Database.ExecuteSqlRawAsync(mappingScript);await db.Database.ExecuteSqlRawAsync(mappingScript);
+        Ensure(await db.Set<FinancialMapping>().CountAsync()==0 && await db.Set<FinancialMappingReview>().CountAsync()==0,"Map upgrade inferred financial policy");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=24").SingleAsync()==1,"Map upgrade not idempotent");
+        Console.WriteLine("  SQL PASS GL13 atomic/idempotent schema 023→024 preserves all financial history and creates empty maps");
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

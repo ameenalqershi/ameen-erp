@@ -29,7 +29,15 @@ public sealed class AccountService : ApplicationService
         return visited.ToArray();
     }
 
+    private async Task<FinancialMapping[]> MappingUsage(Guid cid, Guid[] ids, CancellationToken ct)
+    {
+        var maps=await store.Find<FinancialMapping>(cid,x=>true,ct);
+        var accounts=await store.Find<Account>(cid,x=>true,ct);
+        return maps.Where(m=>m.Lines.Any(l=>l.AccountId is Guid aid && AccountSubtree(aid,accounts).Any(ids.Contains))).ToArray();
+    }
+
     private async Task<bool> HasAccountUsage(Guid cid, Guid[] ids, CancellationToken ct) =>
+        (await MappingUsage(cid, ids, ct)).Length > 0 ||
         (await store.Find<InventoryOpeningPostingSettings>(cid, x => ids.Contains(x.ClearingAccountId), ct)).Count > 0 ||
         (await store.Find<Warehouse>(cid, x => ids.Contains(x.InventoryAccountId), ct)).Count > 0 ||
         (await store.Find<JournalEntry>(cid, x => x.Lines.Any(l => ids.Contains(l.AccountId)), ct)).Count > 0 ||
@@ -71,7 +79,7 @@ public sealed class AccountService : ApplicationService
                 if (candidate.CurrencyCode is not null) await currencyService.RequireCurrency(cid, candidate.CurrencyCode, token);
                 // Preserve historical report grouping and the meaning of pending/cancelled documents and templates.
                 Check.That(!await HasAccountUsage(cid, AccountSubtree(id, accounts), token),
-                    "account_structure_in_use", "الحساب أو أحد فروعه مستخدم في قيود أو قوالب أو مجموعات أصناف؛ يلزم مسار تحويل معتمد لتغيير بنيته.", ErrorKind.Conflict);
+                    "account_structure_in_use", "الحساب أو أحد فروعه مستخدم في قيود أو قوالب أو ربط قوائم أو مجموعات أصناف؛ يلزم مسار تحويل معتمد لتغيير بنيته.", ErrorKind.Conflict);
             }
             var before = AccountSnapshot(account);
             account.Configure(candidate.Code, candidate.Name, candidate.Type, candidate.ParentId, candidate.IsPosting,
@@ -93,8 +101,10 @@ public sealed class AccountService : ApplicationService
         var accounts = await store.Find<Account>(cid, x => true, ct);
         var journals = await store.Find<JournalEntry>(cid, x => x.Lines.Any(l => l.AccountId == id), ct);
         var templates = await store.Find<RecurringJournalTemplate>(cid, x => x.Lines.Any(l => l.AccountId == id), ct);
+        var maps = await MappingUsage(cid, new[]{id}, ct);
         var references = journals.Select(x => new AccountUsageReference("Journal", x.Id, x.BranchId, x.Number, x.State.ToString()))
             .Concat(templates.Select(x => new AccountUsageReference("RecurringTemplate", x.Id, x.BranchId, x.Name, x.IsActive ? "Active" : "Inactive")))
+            .Concat(maps.Select(x=>new AccountUsageReference("FinancialMapping",x.Id,x.BranchId,x.Name+"/"+x.VersionCode,x.IsActive?"Active":"Inactive")))
             .OrderBy(x => x.Kind, StringComparer.Ordinal).ThenBy(x => x.NumberOrName, StringComparer.Ordinal).ThenBy(x => x.ResourceId).ToArray();
         return new(id, accounts.Count(x => x.ParentId == id), journals.Count, journals.Sum(x => x.Lines.Count(l => l.AccountId == id)),
             templates.Count, await HasAccountUsage(cid, AccountSubtree(id, accounts), ct),

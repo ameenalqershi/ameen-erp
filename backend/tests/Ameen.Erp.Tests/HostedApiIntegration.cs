@@ -805,6 +805,43 @@ public static class HostedApiIntegration
                 using(var json=JsonDocument.Parse(await search.Content.ReadAsStringAsync()))
                     Ensure(search.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==1,"SYS10 HTTP search/status filter differs");
                 Console.WriteLine("  HOST PASS SYS10 create/edit/reserve/status/search/usage/audit with exact field types over HTTPS/JWT/SQL");
+                var mapPath=$"/api/v1/companies/{companyId}/financial-mappings";
+                var mapLines=new FinancialMappingLineRequest[]{new("ROOT","عنوان",FinancialDisplaySign.Normal),new("CASH","نقدية",FinancialDisplaySign.Normal,journalRequest.Lines[0].AccountId,"ROOT"),new("TOTAL","المجموع",FinancialDisplaySign.Normal,null,"ROOT","[CASH]")};
+                var mapRequest=new CreateFinancialMappingRequest("HTTP-MAP",FinancialStatementKind.FinancialPosition,"V1",new(2026,1,1),mapLines);
+                var mapKey=Fixture.Key();var mapCard=await Command(client,mapPath,mapRequest,mapKey);
+                Ensure(mapCard==await Command(client,mapPath,mapRequest,mapKey),"GL13 HTTP create replay differs");
+                using(var detail=await client.GetAsync(mapPath+$"/{mapCard.ResourceId}"))
+                using(var json=JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                    Ensure(detail.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("branchId").ValueKind==JsonValueKind.Null && json.RootElement.GetProperty("revision").GetInt32()==1 && json.RootElement.GetProperty("createdBy").GetString()=="sql-owner" && json.RootElement.GetProperty("statementKind").GetString()=="FinancialPosition","GL13 HTTP source/audit fields differ");
+                using(var forged=new HttpRequestMessage(HttpMethod.Post,mapPath))
+                {
+                    forged.Headers.Add("Idempotency-Key",Fixture.Key());var json=JsonSerializer.Serialize(mapRequest,JsonDefaults.Options);
+                    forged.Content=new StringContent(json[..^1]+",\"revision\":99}",Encoding.UTF8,"application/json");
+                    using var rejected=await client.SendAsync(forged);Ensure(rejected.StatusCode==HttpStatusCode.BadRequest,"GL13 HTTP audit spoof accepted");
+                }
+                var mapReview=await Command(client,mapPath+$"/{mapCard.ResourceId}/review",new ReviewFinancialMappingRequest(mapCard.Version,Fixture.Date));
+                using(var review=await client.GetAsync(mapPath+$"/reviews/{mapReview.ResourceId}"))
+                using(var json=JsonDocument.Parse(await review.Content.ReadAsStringAsync()))
+                    Ensure(review.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("mappingVersion").GetGuid()==mapCard.Version && json.RootElement.GetProperty("evaluation").GetProperty("issues").GetArrayLength()>0,"GL13 HTTP unclassified review issue/snapshot missing");
+                mapCard=await Command(client,mapPath+$"/{mapCard.ResourceId}",new EditFinancialMappingRequest(mapCard.Version,"HTTP-MAP-EDIT",FinancialStatementKind.FinancialPosition,"V2",new(2026,1,1),mapLines.Reverse().ToArray()),method:HttpMethod.Put);
+                mapCard=await Command(client,mapPath+$"/{mapCard.ResourceId}/status",new SetFinancialMappingStatusRequest(mapCard.Version,false,"تعطيل مفحوص"));
+                using(var usage=await client.GetAsync(mapPath+$"/{mapCard.ResourceId}/usage"))
+                using(var json=JsonDocument.Parse(await usage.Content.ReadAsStringAsync()))
+                    Ensure(usage.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==1,"GL13 HTTP snapshot usage missing");
+                using(var audit=await client.GetAsync(mapPath+$"/{mapCard.ResourceId}/audit-events"))
+                using(var json=JsonDocument.Parse(await audit.Content.ReadAsStringAsync()))
+                    Ensure(audit.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==4,"GL13 HTTP audit chain differs");
+                using(var search=await client.GetAsync(mapPath+"?search=HTTP-MAP-EDIT&isActive=false&statementKind=FinancialPosition"))
+                using(var json=JsonDocument.Parse(await search.Content.ReadAsStringAsync()))
+                    Ensure(search.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==1,"GL13 HTTP search filters differ");
+                Authenticate(Token("sql-clerk"));
+                using(var denyRequest=new HttpRequestMessage(HttpMethod.Post,mapPath))
+                {
+                    denyRequest.Headers.Add("Idempotency-Key",Fixture.Key());denyRequest.Content=new StringContent(JsonSerializer.Serialize(mapRequest,JsonDefaults.Options),Encoding.UTF8,"application/json");
+                    using var mapDenied=await client.SendAsync(denyRequest);Ensure(mapDenied.StatusCode==HttpStatusCode.Forbidden,"GL13 HTTP unauthorized configuration accepted");
+                }
+                Console.WriteLine("  HOST PASS GL13 create/edit/status/search/usage/audit/review, server field types, spoof rejection and unclassified errors over HTTPS/JWT/SQL");
+
 
             }
             finally { await api.StopAsync(); }

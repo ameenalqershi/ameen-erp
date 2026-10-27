@@ -21,6 +21,7 @@ public static class Endpoints
         MembershipsEndpoints.Map(app);
         AccountsEndpoints.Map(app);
         NumberingEndpoints.Map(app);
+        FinancialMappingsEndpoints.Map(app);
         JournalsEndpoints.Map(app);
         GeneralOpeningsEndpoints.Map(app);
         ReportsEndpoints.Map(app);

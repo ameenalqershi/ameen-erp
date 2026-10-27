@@ -37,6 +37,7 @@ public sealed class MemoryStore : IErpStore, ITransactionRunner
             (filter.ResourceId == null || x.ResourceId == filter.ResourceId),
             q => q.OrderByDescending(x => x.OccurredAt).ThenBy(x => x.Id), offset, limit, ct);
     public void RemoveInventoryOpeningLines(IEnumerable<InventoryOpeningLine> lines) { /* Owned by opening aggregate. */ }
+    public void RemoveFinancialMappingLines(IEnumerable<FinancialMappingLine> lines) { /* Owned aggregate. */ }
     public void RemoveLines(IEnumerable<JournalLine> lines) { /* Lines are owned by the test aggregate. */ }
     public void RemoveWarehouseLocations(IEnumerable<WarehouseLocation> locations) { /* Owned by warehouse aggregate. */ }
     public void RemoveItemUnits(IEnumerable<ItemUnit> units) { /* Owned by the item aggregate. */ }
