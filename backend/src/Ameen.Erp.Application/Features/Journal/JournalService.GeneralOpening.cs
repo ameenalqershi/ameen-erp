@@ -4,10 +4,10 @@ public sealed partial class JournalService
 {
     private void TrackOpeningReversal(JournalEntry original, Guid reversalId, Actor actor, string action)
     {
+        original.AdvanceRevision(clock.UtcNow);
         if (original.Source != JournalSource.GeneralOpening) return;
-        original.AdvanceOpening(clock.UtcNow);
         Audit(original.CompanyId, actor, "general-opening.reversal-" + action, original,
-            new { ReversalId = reversalId, original.OpeningRevision, original.OpeningModifiedAt,
+            new { ReversalId = reversalId, original.Revision, original.LastModifiedAt, original.OpeningRevision, original.OpeningModifiedAt,
                 original.PendingReversalJournalId, original.ReversalJournalId, original.State });
     }
 
@@ -62,7 +62,7 @@ public sealed partial class JournalService
             await ReplaceDraftHeader(journal, request.Header, token);
             var lines = await PrepareLines(await Company(cid, token), journal, request.Lines, token);
             journal.EditOpeningReference(request.PreviousTrialBalanceReference); journal.EditDescription(request.Description);
-            store.RemoveLines(journal.Lines.ToArray()); journal.SetLines(lines); journal.AdvanceOpening(clock.UtcNow);
+            store.RemoveLines(journal.Lines.ToArray()); journal.SetLines(lines); journal.AdvanceRevision(clock.UtcNow);
             Audit(cid, actor, "general-opening.edited", journal, new { before, after = new { Header = HeaderSnapshot(journal), journal.Description, journal.PreviousTrialBalanceReference, journal.Lines } });
             return Receipt(journal, journal.State.ToString(), journal.Number);
         }, ct);

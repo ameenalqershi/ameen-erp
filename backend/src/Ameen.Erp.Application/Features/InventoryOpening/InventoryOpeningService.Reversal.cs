@@ -82,7 +82,7 @@ public sealed partial class InventoryOpeningService
                 reversal.DocumentDate, reversal.AccountingDate, reversal.Description, reversal.Number, reversal.CreatedBy, reversal.CreatedAt);
             journal.SetInventoryOpeningSource(reversal.Id, originalJournal.Id); journal.SetLines(originalJournal.Lines.Select(x => x.Opposite(journal.Id)));
             journal.Submit(); journal.Approve(reversal.ApprovedBy!, true); journal.Post(clock.UtcNow); store.Add(journal);
-            originalJournal.ReserveReversal(journal.Id); originalJournal.LinkReversal(journal.Id);
+            originalJournal.ReserveReversal(journal.Id); originalJournal.LinkReversal(journal.Id); originalJournal.AdvanceRevision(clock.UtcNow);
             foreach (var movement in movements) store.Add(movement.Opposite(reversal, journal.Id, clock.UtcNow));
             reversal.Post(journal.Id, source.InventoryAccountId!.Value, source.ClearingAccountId!.Value, source.PostingSettingsVersion!.Value, actor.Subject, clock.UtcNow);
             Audit(cid, actor, "inventory-opening.reversal-posted", reversal, new { reversal.ReversesOpeningId, reversal.JournalId, reversal.ReversalReason });

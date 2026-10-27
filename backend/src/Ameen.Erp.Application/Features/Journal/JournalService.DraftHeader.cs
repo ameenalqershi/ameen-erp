@@ -28,7 +28,7 @@ public sealed partial class JournalService
 
     private static object HeaderSnapshot(JournalEntry journal) => new
     {
-        journal.BranchId, journal.FiscalPeriodId, journal.Number, journal.Sequence,
+        journal.Revision, journal.LastModifiedAt, journal.BranchId, journal.FiscalPeriodId, journal.Number, journal.Sequence,
         journal.DocumentDate, journal.AccountingDate, journal.ExternalReference, journal.OperationStartsOn
     };
 }

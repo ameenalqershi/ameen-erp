@@ -24,6 +24,8 @@ public sealed class JournalEntry : CompanyEntity
     public string CreatedBy { get; private set; } = "";
     public string? ApprovedBy { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+    public int Revision { get; private set; } = 1;
+    public DateTimeOffset LastModifiedAt { get; private set; }
     public DateTimeOffset? PostedAt { get; private set; }
     public Guid? ReversesJournalId { get; private set; }
     public Guid? ReversalJournalId { get; private set; }
@@ -39,7 +41,7 @@ public sealed class JournalEntry : CompanyEntity
         DocumentDate = documentDate; AccountingDate = accountingDate;
         Description = Check.Text(description, "بيان القيد", 500);
         ExternalReference = reference is null ? null : Check.Text(reference, "المرجع", 100);
-        CreatedBy = actor; CreatedAt = now;
+        CreatedBy = actor; CreatedAt = now; LastModifiedAt = now;
     }
     public void SetLines(IEnumerable<JournalLine> lines)
     {
@@ -74,7 +76,7 @@ public sealed class JournalEntry : CompanyEntity
     public void Post(DateTimeOffset now)
     {
         RequireState(JournalState.Approved); ValidateBalance(); State = JournalState.Posted;
-        PostedAt = now; Touch();
+        PostedAt = now; LastModifiedAt = now; Touch();
     }
     public void Cancel()
     {
@@ -155,6 +157,14 @@ public sealed class JournalEntry : CompanyEntity
         RequireState(JournalState.Draft);
         Check.That(Source == JournalSource.GeneralOpening, "general_opening_required", "القيد ليس افتتاحًا عامًا.");
         PreviousTrialBalanceReference = Check.Text(previousReference, "مرجع الميزان السابق", 500); Touch();
+    }
+    // One business revision per accepted command; Version remains the concurrency UUID.
+    public void AdvanceRevision(DateTimeOffset now)
+    {
+        Check.That(Revision < int.MaxValue, "journal_revision_exhausted", "بلغ إصدار القيد الحد الأقصى.");
+        Check.That(now >= CreatedAt, "invalid_revision_time", "وقت تعديل القيد يسبق إنشاؤه.");
+        Revision++; LastModifiedAt = now; Touch();
+        AdvanceOpening(now);
     }
     public void AdvanceOpening(DateTimeOffset now)
     {

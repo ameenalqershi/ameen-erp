@@ -100,6 +100,14 @@ public sealed partial class ErpDbContext
                     "opening_revision_required", "تغيير رابط عكس الافتتاح يتطلب تحديث إصداره ووقت تعديله.");
                 allowed = [.. allowed, nameof(JournalEntry.OpeningRevision), nameof(JournalEntry.OpeningModifiedAt)];
             }
+            if (entry.Property(x => x.ReversalJournalId).IsModified || entry.Property(x => x.PendingReversalJournalId).IsModified)
+            {
+                Check.That(entry.OriginalValues.GetValue<int>(nameof(JournalEntry.Revision)) < int.MaxValue &&
+                    entry.Entity.Revision == entry.OriginalValues.GetValue<int>(nameof(JournalEntry.Revision)) + 1 &&
+                    entry.Entity.LastModifiedAt >= entry.Entity.CreatedAt,
+                    "journal_revision_required", "تغيير رابط العكس يتطلب زيادة إصدار القيد مرة واحدة ووقت تعديل خادمي.");
+                allowed = [.. allowed, nameof(JournalEntry.Revision), nameof(JournalEntry.LastModifiedAt)];
+            }
             Check.That(!entry.Properties.Any(p => p.IsModified && !allowed.Contains(p.Metadata.Name)),
                 "posted_journal_immutable", "لا يمكن تعديل المحتوى المالي لقيد مرحل.");
         }

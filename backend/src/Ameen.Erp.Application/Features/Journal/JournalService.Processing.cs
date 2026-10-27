@@ -30,7 +30,7 @@ public sealed partial class JournalService
         }
     }
     private static JournalSummary Summary(JournalEntry j) => new(j.Id, j.Version, j.Number, j.BranchId, j.AccountingDate,
-        j.Description, j.State, j.Lines.Sum(x => x.FunctionalDebit), j.Lines.Sum(x => x.FunctionalCredit), j.Source, j.RecurringTemplateId);
+        j.Description, j.State, j.Lines.Sum(x => x.FunctionalDebit), j.Lines.Sum(x => x.FunctionalCredit), j.Source, j.RecurringTemplateId, j.Revision, j.LastModifiedAt);
     private async Task<JournalProcessingPreview> PreviewProcessing(JournalEntry journal, Actor actor, string action, string? reason, CancellationToken ct)
     {
         string? error = null;

@@ -96,8 +96,11 @@ for n, binding, status in [(4, "FiscalPeriod.FiscalYearId via settlement-preview
     MAP["GL02"]["fields"][f"GL02-F{n:02}"] = dict(status=status, binding=binding)
 screen("GL03", "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}",
        "قيد يدوي متعدد العملات والمراكز بدورة مستقلة وأرقام وسعر تاريخي؛ تعديل رأس المسودة والسطور مع إعادة ربط الفترة وترقيم السنة والتحقق من السعر النافذ", "المشروع والطرف والمرفقات وأنواع القيود والعكس المجدول",
-       {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 16: "Lines[].AccountId", 17: "Lines[].Debit", 18: "Lines[].Credit", 19: "Lines[].CurrencyCode", 20: "Lines[].ExchangeRate (ExchangeRateId on input)", 21: "Lines[].CostCenterId", 24: "Lines[].Description", 25: "CreatedBy", 26: "CreatedAt", 27: "Version"},
+       {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 16: "Lines[].AccountId", 17: "Lines[].Debit", 18: "Lines[].Credit", 19: "Lines[].CurrencyCode", 20: "Lines[].ExchangeRate (ExchangeRateId on input)", 21: "Lines[].CostCenterId", 24: "Lines[].Description", 25: "CreatedBy", 26: "CreatedAt", 27: "Revision: server integer; Version UUID is a separate concurrency token"},
        [(28, "AuditEvent.OccurredAt: journal.edited")])
+MAP["GL03"]["fields"]["GL03-F28"] = dict(status="implemented", binding="LastModifiedAt server datetimeoffset; successful edit/workflow/reversal link mutation; atomic with audit and receipt")
+MAP["GL03"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["JournalAuditTests.cs", "DraftJournalHeaderTests.cs", "DraftHeaderSqlIntegration.cs", "SqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs", "OpenApiSnapshotTests.cs"])
 screen("GL04", "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
        "قالب شهري أو ربع سنوي أو سنوي بتاريخ نهاية اختياري دون تاريخ مصطنع؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ رقم إصدار تعديل صحيح وآخر تعديل خادمي؛ مصدر وإصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
        "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ خيارات دورية أخرى غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",

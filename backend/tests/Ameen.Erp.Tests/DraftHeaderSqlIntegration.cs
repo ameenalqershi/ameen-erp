@@ -46,11 +46,11 @@ public static class DraftHeaderSqlIntegration
             await using var db = Context(); await db.Database.ExecuteSqlRawAsync("ALTER TABLE [AuditEvents] DROP CONSTRAINT [CK_Test_HeaderAudit]");
         }
         var unchanged = await Call(s => s.Journal.GetGeneralOpening(cid, draft.ResourceId, clerk, default));
-        Ensure(unchanged.Version == draft.Version && unchanged.AccountingDate == request.AccountingDate && unchanged.OpeningRevision == 1, "Failed header edit left changes");
+        Ensure(unchanged.Version == draft.Version && unchanged.AccountingDate == request.AccountingDate && unchanged.OpeningRevision == 1 && unchanged.Revision == 1 && unchanged.LastModifiedAt == unchanged.CreatedAt, "Failed header edit left changes");
         var edits = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s => s.Journal.EditGeneralOpening(cid, draft.ResourceId, clerk, key, edit, default))));
         Ensure(edits.Distinct().Count() == 1, "Concurrent header edit differs");
         var updated = await Call(s => s.Journal.GetGeneralOpening(cid, draft.ResourceId, clerk, default));
-        Ensure(updated.AccountingDate == date && updated.DocumentDate == header.DocumentDate && updated.OperationStartsOn == header.OperationStartsOn && updated.ExternalReference == header.ExternalReference && updated.Number == draft.Number && updated.OpeningRevision == 2, "SQL header replacement differs");
+        Ensure(updated.AccountingDate == date && updated.DocumentDate == header.DocumentDate && updated.OperationStartsOn == header.OperationStartsOn && updated.ExternalReference == header.ExternalReference && updated.Number == draft.Number && updated.OpeningRevision == 2 && updated.Revision == 2 && updated.LastModifiedAt >= updated.CreatedAt, "SQL header replacement differs");
         await using (var db = Context())
         {
             var period = await db.Set<FiscalPeriod>().SingleAsync(x => x.Id == updated.FiscalPeriodId);

@@ -15,6 +15,7 @@ public sealed partial class ErpDbContext
         journal.Property(x => x.Number).HasMaxLength(64); journal.Property(x => x.Description).HasMaxLength(500);
         journal.Property(x => x.ExternalReference).HasMaxLength(100).UseCollation("Latin1_General_100_BIN2");
         journal.Property(x => x.CreatedBy).HasMaxLength(200);
+        Constraint(journal, "CK_Journal_Revision", "[Revision] > 0 AND [LastModifiedAt] >= [CreatedAt]");
         journal.Property(x => x.ApprovedBy).HasMaxLength(200); journal.Property(x => x.ReversalReason).HasMaxLength(500);
         journal.HasIndex(x => new { x.CompanyId, x.Number }).IsUnique();
         journal.HasIndex(x => new { x.CompanyId, x.BranchId, x.AccountingDate, x.State });

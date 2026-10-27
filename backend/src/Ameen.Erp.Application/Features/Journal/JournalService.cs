@@ -112,7 +112,7 @@ public sealed partial class JournalService : ApplicationService
             journal.SetLines(await PrepareLines(company, journal, request.Lines, token));
             // An unbalanced draft is allowed; submission/approval/posting require exact balance.
             store.Add(journal);
-            Audit(cid, actor, "journal.created", journal, new { journal.Number, journal.AccountingDate, journal.BranchId, journal.Lines });
+            Audit(cid, actor, "journal.created", journal, new { journal.Revision, journal.LastModifiedAt, journal.Number, journal.AccountingDate, journal.BranchId, journal.Lines });
             return Receipt(journal, journal.State.ToString(), journal.Number);
         }, ct);
 
@@ -129,7 +129,7 @@ public sealed partial class JournalService : ApplicationService
             await ReplaceDraftHeader(journal, request.Header, token);
             var newLines = await PrepareLines(company, journal, request.Lines, token);
             store.RemoveLines(journal.Lines.ToArray());
-            journal.EditDescription(request.Description); journal.SetLines(newLines); journal.AdvanceOpening(clock.UtcNow);
+            journal.EditDescription(request.Description); journal.SetLines(newLines); journal.AdvanceRevision(clock.UtcNow);
             Audit(cid, actor, "journal.edited", journal, new { before, after = new { Header = HeaderSnapshot(journal), journal.Description, journal.Lines } });
             return Receipt(journal, journal.State.ToString(), journal.Number);
         }, ct);
@@ -188,8 +188,8 @@ public sealed partial class JournalService : ApplicationService
                         JsonSerializer.Serialize(new { journal.Id, journal.Number, journal.BranchId, journal.AccountingDate, journal.ReversesJournalId }, JsonDefaults.Options)));
                     break;
             }
-            journal.AdvanceOpening(clock.UtcNow);
-            Audit(cid, actor, "journal." + action, journal, new { before, after = journal.State, request.Reason });
+            journal.AdvanceRevision(clock.UtcNow);
+            Audit(cid, actor, "journal." + action, journal, new { before, after = journal.State, journal.Revision, journal.LastModifiedAt, request.Reason });
             return Receipt(journal, journal.State.ToString(), journal.Number);
     }
 
@@ -233,6 +233,6 @@ public sealed partial class JournalService : ApplicationService
                  (x.PreviousTrialBalanceReference != null && x.PreviousTrialBalanceReference.Contains(search))),
             q => q.OrderByDescending(x => x.AccountingDate).ThenByDescending(x => x.Sequence).ThenBy(x => x.Id), offset, limit, ct);
         return new(page.Items.Select(x => new JournalSummary(x.Id, x.Version, x.Number, x.BranchId, x.AccountingDate,
-                x.Description, x.State, x.Lines.Sum(l => l.FunctionalDebit), x.Lines.Sum(l => l.FunctionalCredit), x.Source, x.RecurringTemplateId)).ToArray(), page.TotalCount, offset, limit);
+                x.Description, x.State, x.Lines.Sum(l => l.FunctionalDebit), x.Lines.Sum(l => l.FunctionalCredit), x.Source, x.RecurringTemplateId, x.Revision, x.LastModifiedAt)).ToArray(), page.TotalCount, offset, limit);
     }
 }

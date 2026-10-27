@@ -315,8 +315,8 @@ GL03,GL03-F23,الطرف,conditional,pending,,
 GL03,GL03-F24,بيان السطر,required,implemented,Lines[].Description,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL03,GL03-F25,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL03,GL03-F26,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
-GL03,GL03-F27,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
-GL03,GL03-F28,آخر تعديل,system,audit,AuditEvent.OccurredAt: journal.edited,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
+GL03,GL03-F27,رقم إصدار التعديل,system,implemented,Revision: server integer; Version UUID is a separate concurrency token,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
+GL03,GL03-F28,آخر تعديل,system,implemented,LastModifiedAt server datetimeoffset; successful edit/workflow/reversal link mutation; atomic with audit and receipt,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
 GL04,GL04-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events
 GL04,GL04-F02,الفرع,conditional,partial,"BranchId required; analysis marks branch conditional, no company-wide template policy yet",GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events
 GL04,GL04-F03,الحالة,system,implemented,IsActive,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events

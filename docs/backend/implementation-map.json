@@ -6,8 +6,8 @@
   "partially_implemented_screens": 31,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 298,
-    "audit": 52,
+    "implemented": 299,
+    "audit": 51,
     "derived": 5,
     "partial": 42,
     "pending": 2362
@@ -756,11 +756,11 @@
         },
         "GL03-F27": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "Revision: server integer; Version UUID is a separate concurrency token"
         },
         "GL03-F28": {
-          "status": "audit",
-          "binding": "AuditEvent.OccurredAt: journal.edited"
+          "status": "implemented",
+          "binding": "LastModifiedAt server datetimeoffset; successful edit/workflow/reversal link mutation; atomic with audit and receipt"
         },
         "GL03-F04": {
           "status": "derived",
@@ -778,7 +778,8 @@
           "status": "partial",
           "binding": "Source: Manual / Recurring / Reversal provenance; configurable journal-type catalog is pending"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/JournalAuditTests.cs; backend/tests/Ameen.Erp.Tests/DraftJournalHeaderTests.cs; backend/tests/Ameen.Erp.Tests/DraftHeaderSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
     },
     "GL04": {
       "api": "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",

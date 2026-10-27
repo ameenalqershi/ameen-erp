@@ -69,7 +69,9 @@ public static class GeneralOpeningReversalTests
 
             inverse = await service.ReverseJournal(f.CompanyId, source.ResourceId, f.Clerk, Fixture.Key(), new(releasedVersion, Fixture.Date, "تصحيح بديل"), default);
             Ensure((await f.Journal(source.ResourceId)).OpeningRevision == 7);
-            inverse = await f.Action(inverse, "submit"); inverse = await f.Action(inverse, "approve", f.Approver);
+            // Keep this scenario on its advancing clock rather than moving time back to the fixture clock.
+            inverse = await service.TransitionJournal(f.CompanyId, inverse.ResourceId, f.Clerk, Fixture.Key(), new(inverse.Version), "submit", default);
+            inverse = await service.TransitionJournal(f.CompanyId, inverse.ResourceId, f.Approver, Fixture.Key(), new(inverse.Version), "approve", default);
             clock.UtcNow = clock.UtcNow.AddMinutes(1);
             var postKey = Fixture.Key(); var post = new TransitionRequest(inverse.Version);
             var receipt = await service.TransitionJournal(f.CompanyId, inverse.ResourceId, f.Clerk, postKey, post, "post", default);

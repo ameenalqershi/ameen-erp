@@ -28,6 +28,9 @@ public static class SchemaUpgradeIntegration
             .Concat(f.Store.All<Account>().OrderBy(x => x.ParentId is null ? 0 : 1)).Concat(legacyJournals)
             .Concat(legacyJournals.SelectMany(x => x.Lines));
         foreach (var entity in rows) await InsertLegacy(db, entity);
+        var legacyIds = legacyJournals.Select(x => x.Id).ToArray();
+        foreach (var audit in f.Store.All<AuditEvent>().Where(x => legacyIds.Contains(x.ResourceId)))
+            await InsertLegacy(db, audit);
         var script = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "002_recurring_journals.sql"));
 
         // A conflicting object forces a mid-upgrade error; every preceding DDL change must roll back.
@@ -333,10 +336,23 @@ public static class SchemaUpgradeIntegration
             "Optional-end migration did not persist nullable column");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 020→021 makes end date optional and preserves old dates, revision and UUID");
 
+        var journalRevisionScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "022_journal_audit_revision.sql"));
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Journals] ADD CONSTRAINT [CK_Journal_Revision] CHECK ([Sequence]>0)");
+        try { await db.Database.ExecuteSqlRawAsync(journalRevisionScript); throw new Exception("Conflicting journal revision migration accepted"); }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=22").AnyAsync(), "Failed journal revision migration recorded version");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('Journals') AND name IN ('Revision','LastModifiedAt')").SingleAsync() == 0, "Failed journal revision migration retained columns");
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Journals] DROP CONSTRAINT [CK_Journal_Revision]");
+        await db.Database.ExecuteSqlRawAsync(journalRevisionScript);
+        await db.Database.ExecuteSqlRawAsync(journalRevisionScript);
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=22").SingleAsync() == 1, "Journal revision migration was not idempotent");
+        db.ChangeTracker.Clear();
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {
             var current = loaded.Single(x => x.Id == previous.Id);
+            Ensure(current.Revision == previous.Revision && current.LastModifiedAt == previous.LastModifiedAt &&
+                current.CreatedBy == previous.CreatedBy && current.CreatedAt == previous.CreatedAt, "Journal audit backfill differs from lifecycle/reversal history");
             Ensure(current.Source == (previous.ReversesJournalId is null ? JournalSource.Manual : JournalSource.Reversal), "Legacy source backfill differs");
             Ensure(current.Lines.OrderBy(x => x.Position).Select(x => x.CostCenterId)
                 .SequenceEqual(previous.Lines.OrderBy(x => x.Position).Select(x => x.CostCenterId)), "Upgrade changed journal cost-center dimensions");
@@ -344,6 +360,7 @@ public static class SchemaUpgradeIntegration
             Ensure(current.Lines.Sum(x => x.FunctionalDebit) == previous.Lines.Sum(x => x.FunctionalDebit) &&
                 current.Lines.Sum(x => x.FunctionalCredit) == previous.Lines.Sum(x => x.FunctionalCredit), "Upgrade changed financial amounts");
         }
+        Console.WriteLine("  SQL PASS GL03-FG08 atomic/idempotent schema 021→022 reconstructs lifecycle/reversal audit without rewriting financial history");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications");
         db.ChangeTracker.Clear();
         foreach (var table in new[] { "RecurringJournalLines", "RecurringJournalGenerations", "JournalLines", "Journals", "RecurringJournalTemplates", "AuditEvents", "Accounts", "CostCenters", "FiscalPeriods", "FiscalYears", "Branches", "Currencies" })

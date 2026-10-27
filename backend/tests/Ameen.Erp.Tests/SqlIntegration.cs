@@ -53,6 +53,8 @@ public static class SqlIntegration
                 Ensure(await db.Set<OutboxEvent>().CountAsync() == 1, "Duplicate SQL outbox");
                 var entry = await db.Set<JournalEntry>().SingleAsync();
                 Ensure(entry.Lines.Count == 2 && entry.Lines.Sum(x => x.FunctionalDebit) == 125, "Draft replacement did not persist");
+                Ensure(entry.Revision == 5 && entry.CreatedBy == f.Clerk.Subject && entry.LastModifiedAt >= entry.CreatedAt,
+                    "GL03-FG08 SQL edit/submit/approve/concurrent post did not advance revision once");
             }
             Console.WriteLine("  SQL PASS draft replacement, materialization, posting replay and one outbox");
 

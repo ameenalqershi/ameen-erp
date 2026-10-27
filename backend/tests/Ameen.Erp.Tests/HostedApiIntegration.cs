@@ -148,6 +148,19 @@ public static class HostedApiIntegration
                         result.RootElement.GetProperty("items").EnumerateArray().Any(x => x.GetProperty("id").GetGuid() == receipt.ResourceId),
                         "GL03 list/search must find a manual journal by number over HTTPS/JWT/SQL");
                 }
+                using (var detail = await client.GetAsync(path + $"/{receipt.ResourceId}"))
+                using (var json = JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("revision").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("createdBy").GetString() == "sql-clerk" &&
+                        json.RootElement.GetProperty("lastModifiedAt").GetDateTimeOffset() == json.RootElement.GetProperty("createdAt").GetDateTimeOffset(),
+                        "GL03 creation audit fields differ over HTTPS/JWT/SQL");
+                using (var forgedRevision = new HttpRequestMessage(HttpMethod.Post, path))
+                {
+                    forgedRevision.Headers.Add("Idempotency-Key", Fixture.Key());
+                    forgedRevision.Content = new StringContent(body[..^1] + ",\"revision\":999}", Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(forgedRevision);
+                    Ensure(rejected.StatusCode == HttpStatusCode.BadRequest, "GL03 accepted forged numeric revision");
+                }
                 var replay = await Command(client, path, journalRequest, requestKey);
                 Ensure(receipt == replay, "Production HTTP/SQL replay differs");
                 receipt = await Command(client, path + $"/{receipt.ResourceId}/submit", new TransitionRequest(receipt.Version));
@@ -155,6 +168,12 @@ public static class HostedApiIntegration
                 receipt = await Command(client, path + $"/{receipt.ResourceId}/approve", new TransitionRequest(receipt.Version));
                 receipt = await Command(client, path + $"/{receipt.ResourceId}/post", new TransitionRequest(receipt.Version));
                 Ensure(receipt.Status == "Posted", "Production HTTP posting failed");
+                using (var detail = await client.GetAsync(path + $"/{receipt.ResourceId}"))
+                using (var json = JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                    Ensure(json.RootElement.GetProperty("revision").GetInt32() == 4 &&
+                        json.RootElement.GetProperty("lastModifiedAt").GetDateTimeOffset() >= json.RootElement.GetProperty("createdAt").GetDateTimeOffset(),
+                        "GL03 HTTPS workflow revision was not persisted");
+                Console.WriteLine("  HOST PASS GL03-FG08 server audit identity, integer revision, forged-input rejection and workflow over HTTPS/JWT/SQL");
                 using var hierarchy = await client.GetAsync($"/api/v1/companies/{companyId}/reports/trial-balance?from=2026-01-01&to=2026-12-31&accountLevel=1&showZero=false");
                 Ensure(hierarchy.StatusCode == HttpStatusCode.OK, "Production report filters failed");
                 using (var report = JsonDocument.Parse(await hierarchy.Content.ReadAsStringAsync()))

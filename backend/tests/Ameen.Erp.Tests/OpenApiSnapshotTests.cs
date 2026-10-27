@@ -45,6 +45,16 @@ public static class OpenApiSnapshotTests
                     schema.GetProperty("required").EnumerateArray().Any(x => x.GetString() == "header"))
                     throw new Exception("Draft header must be optional for legacy clients");
             }
+            foreach (var name in new[] { "JournalEntry", "JournalSummary" })
+            {
+                var properties = schemas.GetProperty(name).GetProperty("properties");
+                var revisionType = properties.GetProperty("revision").GetProperty("type");
+                var integer = revisionType.ValueKind == JsonValueKind.String ? revisionType.GetString() == "integer" :
+                    revisionType.EnumerateArray().Any(x => x.GetString() == "integer");
+                if (!integer ||
+                    properties.GetProperty("lastModifiedAt").GetProperty("format").GetString() != "date-time")
+                    throw new Exception("GL03 audit field types must match integer/date-time, separate from UUID Version");
+            }
             var artifacts = Environment.GetEnvironmentVariable("AMEEN_TEST_ARTIFACTS");
             foreach (var name in new[] { "CreateRecurringJournalRequest", "EditRecurringJournalRequest" })
             {
