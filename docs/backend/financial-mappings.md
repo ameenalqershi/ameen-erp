@@ -45,3 +45,7 @@
 `024_financial_mappings.sql` بعد 023، ذرية بقفل مخطط وسجل إصدار، قابلة لإعادة التطبيق، لا تنشئ نموذجًا أو تصنيفًا أو أثرًا ماليًا. مفاتيح شركة مركبة ومراجع أب داخل نفس النموذج؛ فهارس فريدة للاسم/النوع/الإصدار/النطاق ولأكواد وترتيب البنود. دور التشغيل يسمح باستبدال البنود وينفي تعديل/حذف المراجعات. لا يطبق API ترقية تلقائية عند التشغيل.
 
 التحقق: FinancialMappingTests.cs للحقول والموجبات/السلبيات والأستاذ والعكس والمجموعة والصيغ والأمان والذرية؛ FinancialMappingSqlIntegration.cs للتزامن والقيود واستبدال البنود والصلاحيات والتراجع وإعادة المحاولة؛ SchemaUpgradeIntegration.cs لفشل DDL/تراجع/إعادة 023→024 مع بقاء التاريخ؛ HostedApiIntegration.cs لواجهات الإنتاج عبر HTTPS/JWT/SQL. دليل CI النهائي يسجل في PROGRESS.md وtwenty-numbering-mapping-tasks.md؛ لا تكتمل مهام القبول قبل نجاحه.
+
+## دليل القبول الفعلي
+
+[CI #40436818618](https://github.com/ameenalqershi/ameen-erp/actions/runs/40436818618) على [8a987d0](https://github.com/ameenalqershi/ameen-erp/commit/8a987d07bb3e4c7edff22222c70d3044be34902d): **320/320 ناجح، صفر فشل** مع SQL Server وHTTPS/JWT وOpenAPI وترقية 023→024 ذرية وقابلة للإعادة. أغلقت مهام GL13-FG01–FG05 وA01–A03 وC01 وT01–T02 بعد هذا النجاح؛ اختبارات المحلي 319/319. تقرير CI محفوظ في verification-results.json والعقد مولد من حزمة التشغيل نفسها.
