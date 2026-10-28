@@ -126,10 +126,12 @@ screen("GL05", "POST /companies/{companyId}/journals/{id}/submit|approve|return;
        "قائمة مراجعة حسب الفترة والفرع والحالة والمصدر والتسلسل؛ معاينة موانع كل قيد واعتماد أو إعادة جماعية بمعاملة لكل مستند وسجل قرار محفوظ وإعادة آمنة", "مراجع مستقل عن المعتمد ومراحل اعتماد متعددة؛ حالة مراجعة مستقلة عن حالة القيد وإصدار عددي للإجراء",
        {1: "route.companyId", 2: "JournalEntry.BranchId", 3: "JournalEntry.State", 7: "JournalEntry.Number", 13: "Version"},
        [(6, "AuditEvent.ActorId: journal.approve / journal.return"), (8, "AuditEvent.Action / Details.after"), (9, "AuditEvent.Details.reason: journal.return"), (11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
-screen("GL06", "POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch",
-       "ترحيل جماعي مستقل لكل قيد مع إيصال ومفتاح مستند وتدقيق وOutbox؛ نتائج نجاح وفشل صريحة ومعاينة وسجل رفض التحقق؛ إعادة الناجح دون تكرار وتراجع الفاشل", "توجيه مستندات المصادر الأخرى وعامل Outbox؛ سجل فشل تقني خارجي دائم ورأس دفعة مستقل وإصدار عددي للإجراء",
-       {1: "route.companyId", 2: "JournalEntry.BranchId", 3: "State", 6: "PostedAt", 7: "route.id", 9: "CommandReceipt.ResourceId / Number", 12: "Version"},
-       [(10, "AuditEvent.ActorId: journal.post"), (11, "AuditEvent.OccurredAt: journal.post")])
+screen("GL06", "POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}",
+       "ترحيل جماعي مستقل لكل قيد مع إيصال ومفتاح مستند وتدقيق وOutbox؛ نتائج نجاح وفشل صريحة ومعاينة وسجل رفض التحقق؛ إعادة الناجح دون تكرار وتراجع الفاشل؛ رأس دفعة دائم برقم إصدار وتوقيت خادمي وسجل إخفاق تقني خارج معاملة المستند مع استئناف آمن", "توجيه مستندات المصادر الأخرى وعامل Outbox وتشغيله في الإنتاج؛ ربط سياسة مسارات الاعتماد متعددة المراحل مع SYS09 غير مكتمل؛ ملف الدولة والمصادر الخارجية لم تُنفذ",
+       {1: "route.companyId", 2: "JournalEntry.BranchId", 3: "State", 6: "PostedAt", 7: "route.id", 9: "CommandReceipt.ResourceId / Number",
+        10: "JournalProcessingBatch.ActorId: actor of durable batch", 11: "JournalProcessingBatch.CreatedAt: server time",
+        12: "JournalProcessingBatch.Revision: integer independent of Version UUID",
+        13: "JournalProcessingBatch.LastModifiedAt: server time; recorded per-item audit"})
 for code in ["GL05", "GL06"]:
     MAP[code]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["JournalProcessingTests.cs", "JournalProcessingSqlIntegration.cs", "HostedApiIntegration.cs", "Program.cs"])
 MAP["GL05"]["fields"]["GL05-F04"] = dict(status="implemented", binding="processing-queue.periodId: required")

@@ -6,11 +6,11 @@
   "partially_implemented_screens": 32,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 323,
-    "audit": 51,
+    "implemented": 326,
+    "audit": 49,
     "derived": 5,
     "partial": 42,
-    "pending": 2338
+    "pending": 2337
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -1011,9 +1011,9 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/JournalProcessingTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/Program.cs"
     },
     "GL06": {
-      "api": "POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch",
-      "implemented": "ترحيل جماعي مستقل لكل قيد مع إيصال ومفتاح مستند وتدقيق وOutbox؛ نتائج نجاح وفشل صريحة ومعاينة وسجل رفض التحقق؛ إعادة الناجح دون تكرار وتراجع الفاشل",
-      "remaining": "توجيه مستندات المصادر الأخرى وعامل Outbox؛ سجل فشل تقني خارجي دائم ورأس دفعة مستقل وإصدار عددي للإجراء",
+      "api": "POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}",
+      "implemented": "ترحيل جماعي مستقل لكل قيد مع إيصال ومفتاح مستند وتدقيق وOutbox؛ نتائج نجاح وفشل صريحة ومعاينة وسجل رفض التحقق؛ إعادة الناجح دون تكرار وتراجع الفاشل؛ رأس دفعة دائم برقم إصدار وتوقيت خادمي وسجل إخفاق تقني خارج معاملة المستند مع استئناف آمن",
+      "remaining": "توجيه مستندات المصادر الأخرى وعامل Outbox وتشغيله في الإنتاج؛ ربط سياسة مسارات الاعتماد متعددة المراحل مع SYS09 غير مكتمل؛ ملف الدولة والمصادر الخارجية لم تُنفذ",
       "fields": {
         "GL06-F01": {
           "status": "implemented",
@@ -1041,15 +1041,15 @@
         },
         "GL06-F12": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "JournalProcessingBatch.Revision: integer independent of Version UUID"
         },
         "GL06-F10": {
-          "status": "audit",
-          "binding": "AuditEvent.ActorId: journal.post"
+          "status": "implemented",
+          "binding": "JournalProcessingBatch.ActorId: actor of durable batch"
         },
         "GL06-F11": {
-          "status": "audit",
-          "binding": "AuditEvent.OccurredAt: journal.post"
+          "status": "implemented",
+          "binding": "JournalProcessingBatch.CreatedAt: server time"
         },
         "GL06-F04": {
           "status": "partial",
@@ -1062,6 +1062,10 @@
         "GL06-F08": {
           "status": "implemented",
           "binding": "JournalProcessingPreview.CanExecute/ErrorCode; JournalProcessingRow.ErrorCode/Receipt/RejectionRecorded"
+        },
+        "GL06-F13": {
+          "status": "implemented",
+          "binding": "JournalProcessingBatch.LastModifiedAt: server time; recorded per-item audit"
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/JournalProcessingTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/Program.cs"
