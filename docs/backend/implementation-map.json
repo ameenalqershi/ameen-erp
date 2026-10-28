@@ -1039,10 +1039,6 @@
           "status": "implemented",
           "binding": "CommandReceipt.ResourceId / Number"
         },
-        "GL06-F12": {
-          "status": "implemented",
-          "binding": "JournalProcessingBatch.Revision: integer independent of Version UUID"
-        },
         "GL06-F10": {
           "status": "implemented",
           "binding": "JournalProcessingBatch.ActorId: actor of durable batch"
@@ -1050,6 +1046,14 @@
         "GL06-F11": {
           "status": "implemented",
           "binding": "JournalProcessingBatch.CreatedAt: server time"
+        },
+        "GL06-F12": {
+          "status": "implemented",
+          "binding": "JournalProcessingBatch.Revision: integer independent of Version UUID"
+        },
+        "GL06-F13": {
+          "status": "implemented",
+          "binding": "JournalProcessingBatch.LastModifiedAt: server time; recorded per-item audit"
         },
         "GL06-F04": {
           "status": "partial",
@@ -1062,10 +1066,6 @@
         "GL06-F08": {
           "status": "implemented",
           "binding": "JournalProcessingPreview.CanExecute/ErrorCode; JournalProcessingRow.ErrorCode/Receipt/RejectionRecorded"
-        },
-        "GL06-F13": {
-          "status": "implemented",
-          "binding": "JournalProcessingBatch.LastModifiedAt: server time; recorded per-item audit"
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/JournalProcessingTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/Program.cs"
