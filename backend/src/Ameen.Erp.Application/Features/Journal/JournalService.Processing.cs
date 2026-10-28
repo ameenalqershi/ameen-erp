@@ -123,7 +123,6 @@ public sealed partial class JournalService
                     continue;
                 }
             }
-        {
             ct.ThrowIfCancellationRequested();
             try
             {
