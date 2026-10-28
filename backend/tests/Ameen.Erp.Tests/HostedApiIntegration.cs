@@ -202,13 +202,21 @@ public static class HostedApiIntegration
                             x.GetProperty("journal").GetProperty("id").GetGuid() == processingSubmitted.ResourceId),
                         "GL06 textual number range missing expected journal through HTTPS/JWT/SQL");
                 }
-                var batch = new ProcessJournalsRequest("approve", new[] { new JournalProcessingItem(processingSubmitted.ResourceId, processingSubmitted.Version, Fixture.Key()), new JournalProcessingItem(receipt.ResourceId, receipt.Version, Fixture.Key()) });
+                var durableHttpKey = Fixture.Key();
+                var batch = new ProcessJournalsRequest("approve", new[] { new JournalProcessingItem(processingSubmitted.ResourceId, processingSubmitted.Version, Fixture.Key()), new JournalProcessingItem(receipt.ResourceId, receipt.Version, Fixture.Key()) }, durableHttpKey);
                 for (var attempt = 0; attempt < 2; attempt++)
                 {
                     using var response = await client.PostAsync(path + "/process-batch", new StringContent(JsonSerializer.Serialize(batch, JsonDefaults.Options), Encoding.UTF8, "application/json"));
                     using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
                     Ensure(response.StatusCode == HttpStatusCode.OK && !json.RootElement.GetProperty("allSucceeded").GetBoolean() && json.RootElement.GetProperty("succeededCount").GetInt32() == 1 && json.RootElement.GetProperty("failedCount").GetInt32() == 1, "HTTP mixed processing/replay failed");
                 }
+                using (var response = await client.GetAsync(path + "/processing-batches/by-key/" + durableHttpKey))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        !json.RootElement.GetProperty("allSucceeded").GetBoolean() &&
+                        json.RootElement.GetProperty("rows").GetArrayLength() == 2,
+                        "GL06 durable processing batch not retrievable over HTTPS/JWT/SQL");
                 using (var response = await client.GetAsync(path + $"/{receipt.ResourceId}/processing-history"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP processing history duplicated");

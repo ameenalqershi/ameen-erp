@@ -75,6 +75,33 @@ public static class JournalProcessingTests
             var replay = await Run(f, "post", items); Ensure(replay.Rows.SequenceEqual(result.Rows));
             Ensure(f.Store.Count<OutboxEvent>() == 1 && f.Store.All<AuditEvent>().Count(x => x.Action.StartsWith("journal.processing-")) == 2);
         });
+        test("GL06-GP02: durable processing batch preserves scoped outcomes, numeric revision and replay", async f =>
+        {
+            var approved = await Approved(f); var draft = await f.Draft();
+            var key = Fixture.Key();
+            var request = new ProcessJournalsRequest("post",
+                new[] { Item(approved), Item(draft) }, key);
+            var result = await f.Service.Journal.ProcessJournals(f.CompanyId, f.Approver, request, default);
+            Ensure(!result.AllSucceeded && result.SucceededCount == 1 && result.FailedCount == 1 &&
+                result.Rows[1].RejectionRecorded && result.Rows[1].ErrorCode == "journal_state_conflict");
+            var stored = f.Store.All<JournalProcessingBatch>().Single();
+            Ensure(stored.BatchKey == key && stored.Revision == 3 && stored.Rows().Length == 2 &&
+                stored.FinishedAt != null && stored.Rows()[1].RejectionRecorded);
+            var detail = await f.Service.Journal.DurableBatch(f.CompanyId, f.Approver, key, default);
+            Ensure(detail.BatchId == stored.Id && detail.Revision == 3 &&
+                detail.Rows.SequenceEqual(result.Rows) && !detail.AllSucceeded &&
+                detail.FailedCount == 1);
+            var audits = f.Store.Count<AuditEvent>();
+            var replay = await f.Service.Journal.ProcessJournals(f.CompanyId, f.Approver, request, default);
+            Ensure(replay.Rows.SequenceEqual(result.Rows) && f.Store.Count<AuditEvent>() == audits &&
+                f.Store.Count<JournalProcessingBatch>() == 1);
+            await Error("idempotency_conflict", () => f.Service.Journal.ProcessJournals(
+                f.CompanyId, f.Approver, request with { Items = new[] { Item(approved), Item(draft) } }, default));
+            await Error("processing_batch_not_found", () => f.Service.Journal.DurableBatch(
+                f.CompanyId, f.Owner, key, default));
+            await Error("processing_batch_not_found", () => f.Service.Journal.DurableBatch(
+                f.CompanyId, f.Approver, Fixture.Key(), default));
+        });
         test("GL05: batch approval preserves separate approver and return requires a reason", async f =>
         {
             var submitted = await f.Action(await f.Draft(), "submit");

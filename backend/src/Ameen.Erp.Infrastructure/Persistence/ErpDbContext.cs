@@ -7,7 +7,7 @@ namespace Ameen.Erp.Infrastructure;
 
 public sealed partial class ErpDbContext : DbContext
 {
-    public const int SchemaVersion = 24;
+    public const int SchemaVersion = 25;
     public ErpDbContext(DbContextOptions<ErpDbContext> options) : base(options) { }
 
     private static EntityTypeBuilder<T> Tenant<T>(ModelBuilder model, string table) where T : CompanyEntity
@@ -44,6 +44,7 @@ public sealed partial class ErpDbContext : DbContext
         ConfigureNumberSequence(model);
         ConfigureDocumentNumbering(model);
         ConfigureFinancialMappings(model);
+        ConfigureJournalProcessingBatch(model);
         ConfigureAuditEvent(model);
         ConfigureOutboxEvent(model);
         ConfigureIdempotencyRecord(model);

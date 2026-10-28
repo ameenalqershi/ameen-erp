@@ -1,5 +1,8 @@
 using Ameen.Erp.Domain;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 namespace Ameen.Erp.Application;
 public sealed partial class JournalService
 {
@@ -83,8 +86,43 @@ public sealed partial class JournalService
         Check.That(keys.Distinct(StringComparer.Ordinal).Count() == keys.Length && request.Items.Select(x => x.JournalId).Distinct().Count() == keys.Length,
             "duplicate_processing_item", "لا تكرر القيد أو مفتاحه داخل الدفعة.");
         await Authorize(cid, actor, permission, null, ct);
+        JournalProcessingBatch? batch = null;
+        if (request.BatchKey is not null)
+        {
+            var batchKey = Check.Text(request.BatchKey, "مفتاح الدفعة", 80);
+            var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+                JsonSerializer.Serialize(new { request.Action, request.Items }, JsonDefaults.Options))));
+            var header = await Command(cid, actor, "batch:start:" + batchKey, "journal.processing.batch-start",
+                request, token => Authorize(cid, actor, permission, null, token), token =>
+                {
+                    var b = new JournalProcessingBatch(cid, batchKey, request.Action, actor.Subject,
+                        hash, request.Items.Length, clock.UtcNow);
+                    store.Add(b); Audit(cid, actor, "journal.processing.batch-created", b,
+                        new { b.BatchKey, b.Action, b.ItemCount, b.Revision });
+                    return Task.FromResult(Receipt(b, "Started"));
+                }, ct);
+            batch = await Required<JournalProcessingBatch>(cid, header.ResourceId, ct);
+            Check.That(batch.RequestHash == hash && batch.ActorId == actor.Subject,
+                "idempotency_conflict", "مفتاح الدفعة مستخدم لعملية مختلفة.", ErrorKind.Conflict);
+        }
         var rows = new List<JournalProcessingRow>();
-        foreach (var item in request.Items)
+        for (var index = 0; index < request.Items.Length; index++)
+        {
+            var item = request.Items[index];
+            if (batch is not null && index < batch.Rows().Length)
+            {
+                var previous = batch.Rows()[index];
+                if (previous.Succeeded || previous.RejectionRecorded)
+                {
+                    await AuthorizeJournal(cid, item.JournalId, actor, permission, ct);
+                    rows.Add(new(previous.JournalId, previous.Succeeded, previous.RejectionRecorded,
+                        previous.ReceiptId is Guid rid && previous.ReceiptVersion is Guid version &&
+                        previous.ReceiptStatus is string status
+                            ? new CommandReceipt(rid, version, status, previous.ReceiptNumber) : null,
+                        previous.ErrorCode));
+                    continue;
+                }
+            }
         {
             ct.ThrowIfCancellationRequested();
             try
@@ -117,6 +155,27 @@ public sealed partial class JournalService
             {
                 // Authorization/idempotency/storage conflicts expose no journal data and claim no saved rejection.
                 rows.Add(new(item.JournalId, false, false, null, ex.Code));
+            }
+            if (batch is not null)
+            {
+                var result = rows[^1];
+                var stored = new JournalProcessingStoredRow(result.JournalId, result.Succeeded,
+                    result.RejectionRecorded, result.Receipt?.ResourceId, result.Receipt?.Version,
+                    result.Receipt?.Status, result.Receipt?.Number, result.ErrorCode);
+                // Separate transaction: technical errors outlive rollback of the journal.
+                // Replaying an already posted item with its key recovers from failure to save this row.
+                await Command(cid, actor, Guid.NewGuid().ToString("N"),
+                    "journal.processing.batch-record:" + batch.Id,
+                    new { BatchId = batch.Id, Index = index, Result = stored },
+                    token => AuthorizeJournal(cid, item.JournalId, actor, permission, token), async token =>
+                    {
+                        var current = await Required<JournalProcessingBatch>(cid, batch.Id, token);
+                        var prior = index < current.Rows().Length ? current.Rows()[index] : null;
+                        current.Record(index, stored, clock.UtcNow);
+                        Audit(cid, actor, "journal.processing.batch-item", current,
+                            new { Index = index, Previous = prior, Result = stored, current.Revision });
+                        return Receipt(current, "Recorded");
+                    }, ct);
             }
         }
         var passed = rows.Count(x => x.Succeeded);

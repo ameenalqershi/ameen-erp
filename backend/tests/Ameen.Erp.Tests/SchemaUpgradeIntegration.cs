@@ -368,6 +368,23 @@ public static class SchemaUpgradeIntegration
         Ensure(await db.Set<FinancialMapping>().CountAsync()==0 && await db.Set<FinancialMappingReview>().CountAsync()==0,"Map upgrade inferred financial policy");
         Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=24").SingleAsync()==1,"Map upgrade not idempotent");
         Console.WriteLine("  SQL PASS GL13 atomic/idempotent schema 023→024 preserves all financial history and creates empty maps");
+        var batchScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory,
+            "database", "025_journal_processing_batches.sql"));
+        await db.Database.ExecuteSqlRawAsync("CREATE TABLE [JournalProcessingBatches] ([TestOnly] int NULL)");
+        try { await db.Database.ExecuteSqlRawAsync(batchScript); throw new Exception("Expected batch DDL collision"); }
+        catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(x => x.Number == 2714)) { }
+        Ensure(!await db.Database.SqlQueryRaw<int>(
+            "SELECT [Version] AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=25").AnyAsync(),
+            "Failed batch upgrade persisted version");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE [JournalProcessingBatches]");
+        await db.Database.ExecuteSqlRawAsync(batchScript); await db.Database.ExecuteSqlRawAsync(batchScript);
+        Ensure(await db.Set<JournalProcessingBatch>().CountAsync() == 0,
+            "Processing upgrade fabricated execution history");
+        Ensure(await db.Database.SqlQueryRaw<int>(
+            "SELECT COUNT(*) AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=25").SingleAsync() == 1,
+            "Processing upgrade not idempotent");
+        Console.WriteLine("  SQL PASS GL06 atomic/idempotent schema 024→025 creates no synthetic batch history");
+
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {

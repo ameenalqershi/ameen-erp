@@ -95,16 +95,37 @@ public static class JournalProcessingSqlIntegration
         // DDL cannot parameterize a CHECK literal; the only inserted value is a generated, typed Guid.
         var failureConstraint = "ALTER TABLE [OutboxEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_ProcessingOutbox] CHECK ([ResourceId] <> '" + fail.ResourceId.ToString("D") + "')";
         await using (var db = Context()) await db.Database.ExecuteSqlRawAsync(failureConstraint);
-        var partial = await Call(s => s.Journal.ProcessJournals(cid, approver, new("post", retryItems), default));
+        var durableKey = Fixture.Key();
+        var durableRequest = new ProcessJournalsRequest("post", retryItems, durableKey);
+        var partial = await Call(s => s.Journal.ProcessJournals(cid, approver, durableRequest, default));
         Ensure(partial.Rows[0].ErrorCode == "database_constraint" && !partial.Rows[0].RejectionRecorded && partial.Rows[1].Succeeded, "Failed document prevented independent success");
+        var historical = await Call(s => s.Journal.DurableBatch(cid, approver, durableKey, default));
+        Ensure(historical.Rows.Length == 2 && historical.Rows[0].ErrorCode == "database_constraint" &&
+            !historical.Rows[0].RejectionRecorded && historical.Rows[1].Succeeded &&
+            historical.Revision == 3 && historical.FinishedAt.HasValue,
+            "GL06 batch did not persist technical failure outside rolled-back journal transaction");
         await using (var db = Context())
         {
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE [OutboxEvents] DROP CONSTRAINT [CK_Test_ProcessingOutbox]");
             Ensure(!await db.Set<AuditEvent>().AnyAsync(x => x.ResourceId == fail.ResourceId && x.Action.StartsWith("journal.processing-")), "Failed transaction left history");
             Ensure(!await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == retryItems[0].IdempotencyKey), "Failed transaction consumed key");
         }
-        var retried = await Call(s => s.Journal.ProcessJournals(cid, approver, new("post", retryItems), default));
+        var retried = await Call(s => s.Journal.ProcessJournals(cid, approver, durableRequest, default));
         Ensure(retried.AllSucceeded && retried.Rows[1].Receipt == partial.Rows[1].Receipt, "Retry duplicated successful peer");
+        var recovered = await Call(s => s.Journal.DurableBatch(cid, approver, durableKey, default));
+        Ensure(recovered.AllSucceeded && recovered.Revision == 4 && recovered.Rows.All(x => x.Succeeded) &&
+            recovered.FinishedAt >= historical.FinishedAt,
+            "GL06 batch did not recover failed item or increment numeric action revision");
+        await using (var db = Context())
+        {
+            var batch = await db.Set<JournalProcessingBatch>().SingleAsync(x => x.CompanyId == cid &&
+                x.BatchKey == durableKey);
+            Ensure(batch.Revision == 4 && batch.Rows().Length == 2 &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.ResourceId == batch.Id &&
+                    x.Action == "journal.processing.batch-item") == 3,
+                "GL06 technical-failure attempt/audit history was not immutable across retry");
+        }
+        Console.WriteLine("  SQL PASS GL06-GP02 durable technical errors, independent retry, action revision and audit history");
         // Simulate stale tracked membership/period reads in a reused scoped service, then revoke externally.
         await using (var db = Context())
         {

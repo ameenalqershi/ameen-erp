@@ -17,6 +17,10 @@ internal static class JournalsEndpoints
             Results.Ok(await s.ProcessingPreview(companyId, id, Actor(h), action, reason, ct))).Produces<JournalProcessingPreview>().RequireAuthorization().WithTags("GL05 GL06 Journal processing");
         app.MapPost(p + "/journals/process-batch", async (Guid companyId, ProcessJournalsRequest r, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ProcessJournals(companyId, Actor(h), r, ct))).Produces<JournalProcessingResult>().RequireAuthorization().WithTags("GL05 GL06 Journal processing");
+        app.MapGet(p + "/journals/processing-batches/by-key/{batchKey}", async (Guid companyId, string batchKey,
+            JournalService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.DurableBatch(companyId, Actor(h), batchKey, ct)))
+            .Produces<JournalProcessingDurableResult>().RequireAuthorization().WithTags("GL06 Durable processing");
         app.MapGet(p + "/journals/{id:guid}/processing-history", async (Guid companyId, Guid id, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ProcessingHistory(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("GL05 GL06 Journal processing");
         app.MapGet(p + "/journals", async (Guid companyId, Guid? branchId, JournalState? state, JournalSource? source, string? search, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
