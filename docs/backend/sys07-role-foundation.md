@@ -23,4 +23,4 @@ SYS07 role CRUD, user-role assignments, explicit-deny enforcement across multipl
 
 ## Verification
 
-Local .NET 10 Release, domain/EF, existing HTTP/JWT/OpenAPI and traceability: **342/342 passed, zero failures**. SQL 029 upgrade, rollback, idempotency and tenant FK tests are wired into the disposable SQL CI suite and **must be reported as pending until that CI run passes**. The tests do not touch production databases.
+Local .NET 10 Release, domain/EF, existing HTTP/JWT/OpenAPI and traceability: **342/342 passed, zero failures**. [Branch CI #41400101494](https://github.com/ameenalqershi/ameen-erp/actions/runs/41400101494) on [d3aa045](https://github.com/ameenalqershi/ameen-erp/commit/d3aa045b170183a377769757eb2bef9667dc428a) passed **343/343, zero failures**, including SQL 029 upgrade/rollback/idempotency, negative branch/role FK tests and existing production-host HTTPS/JWT/OpenAPI. Source fingerprint `661549d14ff032b646ffff22a1d8eecab1434f94c03f884dc4068ad91f4b2a6a`. This validates a guarded foundation, not a functional SYS07 API. The tests do not touch production databases.

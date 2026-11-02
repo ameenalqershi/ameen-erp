@@ -5,7 +5,7 @@
 
 On a clean `main=e6a500b`, branch `temp/sys07-role-foundation-20261102` adds the SYS07 `SecurityRole` / `SecurityRoleRule` domain, tenant EF model, atomic SQL 029 and a tenant-scoped FK from SYS09 approval stages to roles. It validates explicit deny and amount/currency caps in the domain but **does not grant permissions**: all role/rule writes remain blocked, and SYS09/GL14 remain blocked. No roles or policies are seeded and the original analysis is unchanged. [Scope and blockers](sys07-role-foundation.md).
 
-Local Release + domain/EF + HTTP/JWT + OpenAPI verification: **342/342 passed, 0 failed**, without live SQL. SQL 029 isolated CI acceptance and final SHA **pending**; no feature completion claim. [Resume](automation-resume.md).
+Local Release + domain/EF + HTTP/JWT + OpenAPI verification: **342/342 passed, 0 failed** without live SQL. [Branch CI #41400101494](https://github.com/ameenalqershi/ameen-erp/actions/runs/41400101494) on [code commit d3aa045](https://github.com/ameenalqershi/ameen-erp/commit/d3aa045b170183a377769757eb2bef9667dc428a) passed **343/343, 0 failed**, including disposable SQL 029 rollback/retry, branch and role FK rejection, HTTP/JWT, OpenAPI and Release. Source SHA256 `661549d14ff032b646ffff22a1d8eecab1434f94c03f884dc4068ad91f4b2a6a`. No SYS07, SYS09 or GL14 functional completion claim. [Resume](automation-resume.md).
 
 ## SYS09-FG01/FG02/FG03/FG04 — أساس اعتمادية GL14، جزئي وغير مقبول (2 نوفمبر 2026)
 
@@ -392,7 +392,7 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 
 الشاشات: 150؛ منفذة جزئيًا: 33؛ لم تبدأ: 117؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
 
-آخر تقرير محفوظ: `2026-11-02T05:33:01.161632+00:00`؛ النتيجة `passed`؛ 340/340، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `3f257d87e69925921d1449bfeaca3c07d220bb3142483a5379dac9f9f6b0fd8a`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
+آخر تقرير محفوظ: `2026-11-02T06:30:31.244509+00:00`؛ النتيجة `passed`؛ 343/343، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `661549d14ff032b646ffff22a1d8eecab1434f94c03f884dc4068ad91f4b2a6a`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
 تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (382/2759)؛ الحقول الجزئية: 77. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
