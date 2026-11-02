@@ -30,6 +30,7 @@ public static class SqlIntegration
                 await db.Database.ExecuteSqlRawAsync(script);
                 await db.Database.ExecuteSqlRawAsync(script); // A second deployment is a no-op.
                 await SchemaUpgradeIntegration.Run(db);
+                await ScheduledReversalSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
 
@@ -170,6 +171,7 @@ public static class SqlIntegration
             await JournalProcessingSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
             await DraftHeaderSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await RecurringSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
+            await ScheduledReversalSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await AccountSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
             await FoundationSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
             await WarehouseSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
