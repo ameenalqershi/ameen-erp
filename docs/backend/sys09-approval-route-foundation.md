@@ -20,3 +20,8 @@ SYS07 has no persistent role catalog or reference with which to validate `Approv
 3. Validate GL14 route activity, company/branch and document-kind compatibility, plus number series; then implement GL14 endpoints and bind GL03 without impersonating automatic sources.
 
 This is a **schema foundation**, not accepted SYS09-FG01 or completed GL14.
+
+
+## Verification
+
+Local .NET 10 Release + domain/model + HTTP/OpenAPI: **339/339**. First isolated SQL CI [#41394192566](https://github.com/ameenalqershi/ameen-erp/actions/runs/41394192566) exposed a missing closing parenthesis in two SQL CHECK constraints; corrected in `temp: 8722f4d`. [CI #41394461191](https://github.com/ameenalqershi/ameen-erp/actions/runs/41394461191) passed **340/340**, including disposable SQL Server rollback/idempotency/tenant FKs/EF write guards and production-host HTTPS/JWT/OpenAPI. Source fingerprint: `3f257d87e69925921d1449bfeaca3c07d220bb3142483a5379dac9f9f6b0fd8a`. No SYS09 HTTP endpoint or end-to-end approval acceptance is claimed.
