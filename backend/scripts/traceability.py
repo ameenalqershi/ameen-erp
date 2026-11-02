@@ -61,15 +61,26 @@ MAP["SYS05"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs;
 screen("SYS06", "POST /companies/{companyId}/memberships/{id}/status",
        "تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC", "شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا",
        {1: "Membership.Id", 2: "CompanyId", 16: "Version"})
-screen("SYS07", "GET/POST /companies/{companyId}/memberships",
-       "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته", "كتالوج أدوار قابل للإدارة وحدود مبالغ وعملات وصلاحيات بقية الأقسام",
+screen("SYS07", "GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only",
+       "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته؛ أساس كتالوج أدوار SYS07 وقواعد السماح/المنع وحد المبلغ/العملة وFK إلى SYS09 دون تفعيل",
+       "إدارة الأدوار وربطها بالعضويات وإنفاذ المنع الصريح ونطاق الفرع والمبلغ والعملة والعمليات المنفصلة والتدقيق وقبول API؛ كتابة الأدوار محجوبة",
        {1: "CompanyId", 7: "GrantedPermissions[]", 13: "Version"}, [(11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
+for n, binding in {
+    2:"SecurityRole.BranchId: tenant FK only", 3:"SecurityRole.IsActive: stored only",
+    4:"SecurityRole.Name: internal model only", 5:"SecurityRole.Responsibility: internal model only",
+    6:"SecurityRoleRule.ScreenCode: internal model only", 8:"SecurityRoleRule.Allowed: no runtime enforcement",
+    9:"SecurityRoleRule.AmountLimit: decimal(20,6), no runtime enforcement",
+    10:"SecurityRoleRule.CurrencyId: tenant FK, no runtime enforcement",
+    14:"SecurityRole.LastModifiedAt: internal server timestamp only"
+}.items():
+    MAP["SYS07"]["fields"][f"SYS07-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["SYS07"]["test_file"] = "backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleSqlIntegration.cs"
 screen("SYS08", "GET/POST /companies/{companyId}/memberships",
        "نطاق الشركة والفروع مطبق على الأوامر والتقارير", "نطاق الحساب والمخزن والصندوق والعملاء ومراكز التكلفة المستقل",
        {1: "CompanyId", 4: "Subject", 6: "AllBranches / BranchIds[]", 13: "Version"}, [(11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
 screen("SYS09", "internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent",
        "SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; all unvalidated writes blocked",
-       "SYS07 role catalog and FK, document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented",
+       "SYS07 role FK exists but membership/active/scope/deny enforcement is absent; document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented",
        {1: "CompanyId: existing company boundary"})
 for n, binding in {
     2:"ApprovalRoute.BranchId: optional tenant FK only", 3:"IsActive: stored state only",
@@ -77,7 +88,7 @@ for n, binding in {
     6:"MaximumAmount: nullable decimal(20,6) only", 7:"CurrencyId: tenant FK only",
     8:"SeparateCreatorAndApprover: stored flag, not wired to approval engine",
     9:"ApprovalRouteStage.StageNumber: positive, unique per route",
-    10:"ApproverRoleId: required GUID, no SYS07 role FK; persistence blocked",
+    10:"ApproverRoleId: required tenant SYS07 role FK via SQL 029; role policy not validated; persistence blocked",
     11:"AlertAfterMinutes: nullable nonnegative; no automatic approval",
     12:"CreatedBy: actor field, no API", 13:"CreatedAt: datetimeoffset",
     14:"Revision: server integer in domain only", 15:"LastModifiedAt: datetimeoffset"

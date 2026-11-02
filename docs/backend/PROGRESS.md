@@ -1,6 +1,12 @@
 # سجل تقدم وتسليم الباك إند
 
 
+## SYS07 dependency for SYS09/GL14 — structural role catalog, partial (2 November 2026)
+
+On a clean `main=e6a500b`, branch `temp/sys07-role-foundation-20261102` adds the SYS07 `SecurityRole` / `SecurityRoleRule` domain, tenant EF model, atomic SQL 029 and a tenant-scoped FK from SYS09 approval stages to roles. It validates explicit deny and amount/currency caps in the domain but **does not grant permissions**: all role/rule writes remain blocked, and SYS09/GL14 remain blocked. No roles or policies are seeded and the original analysis is unchanged. [Scope and blockers](sys07-role-foundation.md).
+
+Local Release + domain/EF + HTTP/JWT + OpenAPI verification: **342/342 passed, 0 failed**, without live SQL. SQL 029 isolated CI acceptance and final SHA **pending**; no feature completion claim. [Resume](automation-resume.md).
+
 ## SYS09-FG01/FG02/FG03/FG04 — أساس اعتمادية GL14، جزئي وغير مقبول (2 نوفمبر 2026)
 
 بعد التحقق من `main=f00510e` ونظافة شجرة العمل وعدم وجود عمليات Git نشطة، بدأ فرع `temp/sys09-approval-route-foundation-20261102` لتقليل مانع GL14 دون إعادة عمل GL14-01. أُضيف كيان `ApprovalRoute` وبنوده `ApprovalRouteStage` وتهيئة EF وترقية `028_approval_route_foundation.sql`: حدود `decimal(20,6)`، فرع وعملة بمراجع مركبة للشركة، مرحلة فريدة، رقم إصدار وتدقيق، وFK حقيقي من GL14 إلى SYS09. لا بيانات ابتدائية ولا تعديل للمخططات الأصلية. [التفصيل والمانع](sys09-approval-route-foundation.md).
@@ -388,7 +394,7 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 
 آخر تقرير محفوظ: `2026-11-02T05:33:01.161632+00:00`؛ النتيجة `passed`؛ 340/340، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `3f257d87e69925921d1449bfeaca3c07d220bb3142483a5379dac9f9f6b0fd8a`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (382/2759)؛ الحقول الجزئية: 68. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (382/2759)؛ الحقول الجزئية: 77. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -417,8 +423,8 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 | audit | 49 |
 | derived | 5 |
 | implemented | 328 |
-| partial | 68 |
-| pending | 2309 |
+| partial | 77 |
+| pending | 2300 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 
@@ -432,9 +438,9 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | SYS04 | العملات | partial | بطاقة عملة بأسماء ورمز عرض واسم جزء وإصدار عددي؛ تحرير وحالة وبحث وتدقيق؛ قفل الدقة بعد الاستخدام وفحص التعطيل عند الترحيل | الرمز الداخلي موحد مع رمز العملة ولا يربط بقائمة ISO خارجية وغير قابل لإعادة التسمية؛ أسماء العملة الوظيفية والبطاقات القديمة تبدأ برمز ISO وتحتاج تحريرًا؛ تحويل الدقة التاريخية غير متاح |
 | SYS05 | أسعار الصرف | partial | سعر موجب مؤرخ غير قابل للتعديل؛ بحث بالتاريخ والعملة والمصدر وصفحات؛ سعر نافذ باتجاه صريح؛ استخدام وتدقيق؛ اختيار مشترك مع التوليد الدوري | نوع السعر وقيمه ونطاق الفرع وحالة تعطيل السعر وإصداره العددي غير منفذة؛ لا تحويل تاريخي ولا إعادة تقييم أرصدة؛ المعاينة ليست حجزًا للسعر |
 | SYS06 | المستخدمون | partial | تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC | شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا |
-| SYS07 | الأدوار والصلاحيات | partial | منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته | كتالوج أدوار قابل للإدارة وحدود مبالغ وعملات وصلاحيات بقية الأقسام |
+| SYS07 | الأدوار والصلاحيات | partial | منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته؛ أساس كتالوج أدوار SYS07 وقواعد السماح/المنع وحد المبلغ/العملة وFK إلى SYS09 دون تفعيل | إدارة الأدوار وربطها بالعضويات وإنفاذ المنع الصريح ونطاق الفرع والمبلغ والعملة والعمليات المنفصلة والتدقيق وقبول API؛ كتابة الأدوار محجوبة |
 | SYS08 | نطاقات بيانات المستخدم | partial | نطاق الشركة والفروع مطبق على الأوامر والتقارير | نطاق الحساب والمخزن والصندوق والعملاء ومراكز التكلفة المستقل |
-| SYS09 | مسارات الاعتماد | partial | SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; all unvalidated writes blocked | SYS07 role catalog and FK, document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented |
+| SYS09 | مسارات الاعتماد | partial | SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; all unvalidated writes blocked | SYS07 role FK exists but membership/active/scope/deny enforcement is absent; document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented |
 | SYS10 | ترقيم المستندات | partial | سلاسل عامة أو لفرع وسنة ونوع مستند وبادئة ورقم تال قابل للإعداد؛ حجز ذري موثق لا يعاد بعد الإلغاء؛ ربط اليومية والافتتاحات؛ تعديل وتعطيل وبحث واستخدام وإصدار وتدقيق مع حماية السجلات التاريخية | أنواع التشغيل الحالية Journal وInventoryOpening؛ الترقيم الضريبي مرفوض حتى TAX05 وملف الدولة؛ باقي أنواع المستندات تربط عند تنفيذ مصادرها ولا تدعى جاهزيتها |
 | SYS11 | الخيارات العامة والربط المحاسبي | not-started | — | الشاشة كاملة |
 | SYS12 | قوالب الطباعة | not-started | — | الشاشة كاملة |

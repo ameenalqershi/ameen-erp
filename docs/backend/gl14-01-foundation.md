@@ -32,3 +32,7 @@
 ## تحديث الاعتمادية SYS09 — 2 نوفمبر 2026
 
 ترقية SQL 028 تضيف جداول مسارات الاعتماد ومراحلها وFK مركبًا من `JournalDocumentTypes.ApprovalRouteId` إلى المسار ضمن الشركة. لا يزيل ذلك مانع حفظ GL14: لا يوجد بعد كتالوج أدوار SYS07 ولا سياسة نطاق/مبلغ/نوع مستند متحقق منها، ولذلك تبقى كل أوامر كتابة SYS09 وGL14 محجوبة. [تفاصيل SYS09](sys09-approval-route-foundation.md).
+
+## Dependency update: SQL 029
+
+SYS07 role and rule tables plus a tenant-scoped SYS09 approver-role FK now exist structurally. Role authorization, branch compatibility, document-kind policy and conflict checks remain unimplemented, so GL14 writes are still blocked. See [SYS07 foundation](sys07-role-foundation.md).

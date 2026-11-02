@@ -25,7 +25,8 @@ public sealed partial class ErpDbContext
         var stage = Tenant<ApprovalRouteStage>(model, "ApprovalRouteStages");
         stage.HasIndex(x => new { x.CompanyId, x.ApprovalRouteId, x.StageNumber }).IsUnique();
         Constraint(stage, "CK_ApprovalRouteStage_Number", "[StageNumber]>0 AND ([AlertAfterMinutes] IS NULL OR [AlertAfterMinutes]>=0)");
-        // SYS07 currently grants permissions to memberships, but has no persisted role catalog.
-        // ApproverRoleId is structurally required; no role FK or activation is claimed.
+        stage.HasOne<SecurityRole>().WithMany().HasForeignKey(x => new { x.CompanyId, x.ApproverRoleId })
+            .OnDelete(DeleteBehavior.NoAction);
+        // Role FK alone does not validate branch, active status, user membership or approval policy.
     }
 }

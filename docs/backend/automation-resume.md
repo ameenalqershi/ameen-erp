@@ -1,21 +1,27 @@
-# نقطة استئناف تطوير AMEEN ERP — 2026-11-02، SYS09 dependency foundation
+# AMEEN ERP resumable development checkpoint — SYS07 dependency (2026-11-02)
 
-## الحالة الأساسية التي فُحصت قبل العمل
+## Preflight (verified before changes)
 
-- المستودع `ameenalqershi/ameen-erp`، `main` المحلي و`origin/main` متطابقان عند `f00510e1ca7f32548872001be504022a7b8ec17e`، شجرة العمل نظيفة، لا أقفال Git ولا عمليات build/git نشطة. GL14-01 السابقة جزئية، وCI الرئيسي السابق `41389554177` ناجح 337/337.
-- **الفرع الجاري:** `temp/sys09-approval-route-foundation-20261102`. لا تُعد تنفيذ أو ترحيل SQL 027 أو GL14-01، ولا تفترض أن `main` بقي عند SHA السابق. افحص `git status --short --branch` و`git fetch origin main` وCI أولًا.
+- Repository: `ameenalqershi/ameen-erp`, private GitHub origin. `main` and `origin/main` both `e6a500b1309f4fa1a3af2dc86e26711a28f352e3` after fetch. Working tree clean; no active dotnet/git process or uncommitted work. `AGENTS.md`, `PROGRESS.md`, SYS07 original source and SYS09/GL14 prior handoff read.
+- Existing accepted work: SQL 028 SYS09 foundation CI #41395016694 340/340 on main; GL14 and SYS09 remain partial. Do not rerun SQL 027/028 or reopen prior tasks.
+- Current branch: `temp/sys07-role-foundation-20261102` created from main; only this branch is edited.
 
-## المهمة والملفات
+## Current task and scope
 
-- **المهمة:** `SYS09-FG01/FG02/FG03/FG04` بنية اعتماد ضرورية لـ `GL14-01`، **جزئية غير مقبولة**. لا تعلن اكتمال SYS09 أو GL14.
-- **ملفات جديدة:** `backend/src/Ameen.Erp.Domain/Accounting/ApprovalRoute.cs`، `backend/src/Ameen.Erp.Infrastructure/Persistence/Configurations/ApprovalRouteModel.cs`، `backend/database/028_approval_route_foundation.sql`، `backend/tests/Ameen.Erp.Tests/ApprovalRouteFoundationTests.cs`، `ApprovalRouteSqlIntegration.cs`، `docs/backend/sys09-approval-route-foundation.md`.
-- **ملفات معدلة:** `ErpDbContext.cs` (`SchemaVersion=28`)، `ErpDbContext.Validation.cs`، `JournalDocumentTypeModel.cs`، `Program.cs`، `SqlIntegration.cs`، `traceability.py`، `docs/backend/PROGRESS.md`، `gl-completion.md`، `gl14-01-foundation.md`، ومصفوفات التتبع المولدة.
-- **اختبار محلي:** `python3 backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts backend/.artifacts/sys09-foundation-20261102` نجح `339/339` دون SQL حي، Release بلا أخطاء، HTTP/JWT وOpenAPI وtraceability. بصمة المصادر `3f257d87e69925921d1449bfeaca3c07d220bb3142483a5379dac9f9f6b0fd8a`.
-- **اختبار SQL:** نجح على CI `41394461191` (340/340)، ترقية 027→028 مع فشل DDL ثم تراجع وإعادة وتفرد المراحل وFK مركب وعزل، وحارس EF؛ HTTP/JWT/OpenAPI/Release نجحت. CI الأول `41394192566` فشل بسبب قوس CHECK ناقص وصُحح، لا تعِد تنفيذ الدفعة الأولى.
-- **SHA/CI المتحققان:** كود `8722f4d72a521afcd7c1ce803728dc4475885e2d`، [CI #41394461191](https://github.com/ameenalqershi/ameen-erp/actions/runs/41394461191) ناجح 340/340 على SHA نفسه. نسخت `verification.json` من artifact CI إلى `docs/backend/verification-results.json`. **الخطوة الحالية:** commit توثيق `temp:` على الفرع، ثم CI على SHA التوثيق، ثم fast-forward main مع التحقق من SHA وCI النهائي؛ حدّث Notion برابط main. لا تكرر الترقية أو الاختبارات المنجزة ما لم يتغير المصدر.
+- Task: `SYS07-01 / SYS07-GAP01` prerequisite for SYS09/GL14. **Partial structural foundation, not accepted role administration**.
+- Added: `backend/src/Ameen.Erp.Domain/Organization/SecurityRole.cs`, `backend/src/Ameen.Erp.Infrastructure/Persistence/Configurations/SecurityRoleModel.cs`, `backend/database/029_security_role_foundation.sql`, `backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs`, `SecurityRoleSqlIntegration.cs`, `docs/backend/sys07-role-foundation.md`.
+- Modified: `ErpDbContext.cs` (SchemaVersion 29), `ErpDbContext.Validation.cs` (SYS07 write guard), `ApprovalRouteModel.cs` (role FK), `Program.cs`, `SqlIntegration.cs`, `backend/scripts/traceability.py`, generated `docs/backend/{implementation-map.json,fields-implementation.csv,screens-implementation.csv,PROGRESS.md}`, `sys09-approval-route-foundation.md`, `gl14-01-foundation.md`.
+- Design: tenant/branch and currency FKs, role/rule version/audit fields, explicit-deny-first pure evaluation, capped grants with currency, SQL 029 transaction and idempotency, SYS09 role FK; EF blocks role/SYS09/GL14 writes pending full policy. No seed, no public endpoints, no original diagram or analysis modifications.
+- Local verification before final SQL-negative-test addition: **342/342** .NET 10 Release, domain/EF, HTTP/JWT/OpenAPI, traceability; SQL not available locally. Final verification: check `backend/.artifacts/sys07-role-final-20261102/verification.json` and `/tmp/ameen-sys07-final.log` (if present). No live SQL test result may be claimed until GitHub CI completes.
+- Git commit SHA: **pending** until local final verification; GitHub branch CI SHA and main SHA **pending**. Do not push to main until disposable SQL CI is green.
 
-## المانع وخطوة الاستئناف الدقيقة
+## Blockers and exact next action
 
-- `SYS07` لا يملك كتالوج أدوار دائمًا؛ `ApproverRoleId` لا يمكن التحقق منه. قيم `DocumentType` محددة بسياسة لم تُعتمد بعد، وSYS09 يمنع تداخل المسارات حسب المستند والنطاق والمبلغ. لا تفترض نوع مستند أو سياسة عملة أو فرع. لذلك **كل حفظ SYS09/GL14 محجوب**؛ لم يُفتح API أو اعتماد متعدد المراحل أو تصعيد مهلة.
-- **التالي:** بعد قبول CI 028 وتحديث الأدلة، ابدأ SYS07 role catalog وفق `muhaseb-erp-analysis` والاعتماديات؛ ثم FK الدور والتحقق من نطاقه والصلاحيات ومنع التعارض ضمن معاملة، ثم إتاحة SYS09 وGL14 تدريجيًا باختبارات قبول موجبة وسالبة. أبقِ `GL14-01` في Notion قيد التنفيذ.
-- لا تمس أسرارًا أو قواعد إنتاج أو ملفات `muhaseb-erp-analysis/`؛ ولا ترفع فشلًا إلى `main`.
+1. Check `git status --short --branch`, `git fetch origin main`, `git rev-parse HEAD origin/main` and active sessions; if another actor has modified the worktree, reconcile rather than overwrite.
+2. Confirm final local `verify.py` is **342/342**, `progress.py --check`, no `muhaseb-erp-analysis` diff. If failing, fix only failed tests.
+3. Commit with prefix `temp:`, push `temp/sys07-role-foundation-20261102`, wait for GitHub CI disposable SQL 029. If SQL fails, fix on the branch and repeat CI; never merge failure to main.
+4. On successful CI for code SHA, update `docs/backend/verification-results.json` with verified CI artifact, record CI run/SHA and final test count in PROGRESS and this checkpoint, commit `temp:`, rerun CI on documentation SHA, fast-forward main only if both code and final CI are green; verify remote SHA.
+5. Update Notion `SYS07-01` and `SYS07-GAP01` to **قيد التنفيذ** (not مكتمل), with commit/CI links and blockers. Update SYS09 dependency note. Do not mark SYS07-FG tasks accepted.
+6. Next functional work: user-to-role assignment, explicit deny and branch/amount/currency authorization, independent cost/export/post rights, audit/concurrency, then SYS09 active-role scope and route overlap/document-kind policy, then GL14/GL03. Preserve current membership grants until replacement is accepted.
+
+No production data, credentials or original analysis may be changed. On interruption preserve exact failed test, SHA, branch, CI URL, changed files and next command here.

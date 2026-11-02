@@ -99,20 +99,20 @@ SYS06,SYS06-F14,أنشأه,system,pending,,
 SYS06,SYS06-F15,وقت الإنشاء,system,pending,,
 SYS06,SYS06-F16,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/memberships/{id}/status
 SYS06,SYS06-F17,آخر تعديل,system,pending,,
-SYS07,SYS07-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/memberships
-SYS07,SYS07-F02,الفرع,conditional,pending,,
-SYS07,SYS07-F03,الحالة,system,pending,,
-SYS07,SYS07-F04,الدور,required,pending,,
-SYS07,SYS07-F05,وصف المسؤولية,required,pending,,
-SYS07,SYS07-F06,الشاشة,required,pending,,
-SYS07,SYS07-F07,العملية,required,implemented,GrantedPermissions[],GET/POST /companies/{companyId}/memberships
-SYS07,SYS07-F08,مسموح,required,pending,,
-SYS07,SYS07-F09,حد المبلغ,conditional,pending,,
-SYS07,SYS07-F10,عملة الحد,conditional,pending,,
-SYS07,SYS07-F11,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{companyId}/memberships
-SYS07,SYS07-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/memberships
-SYS07,SYS07-F13,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/memberships
-SYS07,SYS07-F14,آخر تعديل,system,pending,,
+SYS07,SYS07-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F02,الفرع,conditional,partial,SecurityRole.BranchId: tenant FK only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F03,الحالة,system,partial,SecurityRole.IsActive: stored only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F04,الدور,required,partial,SecurityRole.Name: internal model only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F05,وصف المسؤولية,required,partial,SecurityRole.Responsibility: internal model only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F06,الشاشة,required,partial,SecurityRoleRule.ScreenCode: internal model only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F07,العملية,required,implemented,GrantedPermissions[],GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F08,مسموح,required,partial,SecurityRoleRule.Allowed: no runtime enforcement,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F09,حد المبلغ,conditional,partial,"SecurityRoleRule.AmountLimit: decimal(20,6), no runtime enforcement",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F10,عملة الحد,conditional,partial,"SecurityRoleRule.CurrencyId: tenant FK, no runtime enforcement",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F11,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F13,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F14,آخر تعديل,system,partial,SecurityRole.LastModifiedAt: internal server timestamp only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS08,SYS08-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/memberships
 SYS08,SYS08-F02,الفرع,conditional,pending,,
 SYS08,SYS08-F03,الحالة,system,pending,,
@@ -136,7 +136,7 @@ SYS09,SYS09-F06,حد النهاية,optional,partial,"MaximumAmount: nullable de
 SYS09,SYS09-F07,عملة الحد,required,partial,CurrencyId: tenant FK only,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F08,فصل المنشئ والمعتمد,required,partial,Company.RequireSeparateApprover always true; no configuration API,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F09,المرحلة,required,partial,"ApprovalRouteStage.StageNumber: positive, unique per route",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
-SYS09,SYS09-F10,الدور المعتمد,required,partial,"ApproverRoleId: required GUID, no SYS07 role FK; persistence blocked",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F10,الدور المعتمد,required,partial,ApproverRoleId: required tenant SYS07 role FK via SQL 029; role policy not validated; persistence blocked,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F11,مهلة التنبيه,optional,partial,AlertAfterMinutes: nullable nonnegative; no automatic approval,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F12,أنشأه,system,partial,"CreatedBy: actor field, no API",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F13,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent

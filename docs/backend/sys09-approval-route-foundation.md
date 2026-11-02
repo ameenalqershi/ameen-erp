@@ -25,3 +25,7 @@ This is a **schema foundation**, not accepted SYS09-FG01 or completed GL14.
 ## Verification
 
 Local .NET 10 Release + domain/model + HTTP/OpenAPI: **339/339**. First isolated SQL CI [#41394192566](https://github.com/ameenalqershi/ameen-erp/actions/runs/41394192566) exposed a missing closing parenthesis in two SQL CHECK constraints; corrected in `temp: 8722f4d`. [CI #41394461191](https://github.com/ameenalqershi/ameen-erp/actions/runs/41394461191) passed **340/340**, including disposable SQL Server rollback/idempotency/tenant FKs/EF write guards and production-host HTTPS/JWT/OpenAPI. Source fingerprint: `3f257d87e69925921d1449bfeaca3c07d220bb3142483a5379dac9f9f6b0fd8a`. No SYS09 HTTP endpoint or end-to-end approval acceptance is claimed.
+
+## Update: SYS07 role FK in SQL 029 (2 November 2026)
+
+A persistent structural SYS07 role table and tenant FK for `ApproverRoleId` are introduced by [SYS07 foundation](sys07-role-foundation.md). This supersedes the earlier *no role FK* blocker only. No role assignment, active/scope policy or document-kind/overlap policy has been accepted. All SYS09 and GL14 writes remain blocked; no approval workflow is enabled.

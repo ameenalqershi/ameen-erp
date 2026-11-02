@@ -8,7 +8,11 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
-        // SYS09 has no persistent SYS07 role catalog or overlap/amount approval policy yet.
+        // SYS07 roles have structural references only; no membership/permission enforcement yet.
+        Check.That(!ChangeTracker.Entries<SecurityRole>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<SecurityRoleRule>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "security_role_policy_unavailable", "لا يمكن حفظ أدوار قبل تنفيذ الصلاحيات والنطاقات ومنع التعارض.", ErrorKind.Conflict);
+        // SYS09 has a SYS07 role FK but no verified active/scope or overlap/amount approval policy yet.
         // Refuse all writes (including stage-only writes) rather than accepting invented roles.
         Check.That(!ChangeTracker.Entries<ApprovalRoute>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
             !ChangeTracker.Entries<ApprovalRouteStage>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),

@@ -9,8 +9,8 @@
     "implemented": 328,
     "audit": 49,
     "derived": 5,
-    "partial": 68,
-    "pending": 2309
+    "partial": 77,
+    "pending": 2300
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -378,9 +378,9 @@
       }
     },
     "SYS07": {
-      "api": "GET/POST /companies/{companyId}/memberships",
-      "implemented": "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته",
-      "remaining": "كتالوج أدوار قابل للإدارة وحدود مبالغ وعملات وصلاحيات بقية الأقسام",
+      "api": "GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only",
+      "implemented": "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته؛ أساس كتالوج أدوار SYS07 وقواعد السماح/المنع وحد المبلغ/العملة وFK إلى SYS09 دون تفعيل",
+      "remaining": "إدارة الأدوار وربطها بالعضويات وإنفاذ المنع الصريح ونطاق الفرع والمبلغ والعملة والعمليات المنفصلة والتدقيق وقبول API؛ كتابة الأدوار محجوبة",
       "fields": {
         "SYS07-F01": {
           "status": "implemented",
@@ -401,8 +401,45 @@
         "SYS07-F12": {
           "status": "audit",
           "binding": "AuditEvent.OccurredAt"
+        },
+        "SYS07-F02": {
+          "status": "partial",
+          "binding": "SecurityRole.BranchId: tenant FK only"
+        },
+        "SYS07-F03": {
+          "status": "partial",
+          "binding": "SecurityRole.IsActive: stored only"
+        },
+        "SYS07-F04": {
+          "status": "partial",
+          "binding": "SecurityRole.Name: internal model only"
+        },
+        "SYS07-F05": {
+          "status": "partial",
+          "binding": "SecurityRole.Responsibility: internal model only"
+        },
+        "SYS07-F06": {
+          "status": "partial",
+          "binding": "SecurityRoleRule.ScreenCode: internal model only"
+        },
+        "SYS07-F08": {
+          "status": "partial",
+          "binding": "SecurityRoleRule.Allowed: no runtime enforcement"
+        },
+        "SYS07-F09": {
+          "status": "partial",
+          "binding": "SecurityRoleRule.AmountLimit: decimal(20,6), no runtime enforcement"
+        },
+        "SYS07-F10": {
+          "status": "partial",
+          "binding": "SecurityRoleRule.CurrencyId: tenant FK, no runtime enforcement"
+        },
+        "SYS07-F14": {
+          "status": "partial",
+          "binding": "SecurityRole.LastModifiedAt: internal server timestamp only"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleSqlIntegration.cs"
     },
     "SYS08": {
       "api": "GET/POST /companies/{companyId}/memberships",
@@ -438,7 +475,7 @@
     "SYS09": {
       "api": "internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent",
       "implemented": "SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; all unvalidated writes blocked",
-      "remaining": "SYS07 role catalog and FK, document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented",
+      "remaining": "SYS07 role FK exists but membership/active/scope/deny enforcement is absent; document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented",
       "fields": {
         "SYS09-F01": {
           "status": "implemented",
@@ -478,7 +515,7 @@
         },
         "SYS09-F10": {
           "status": "partial",
-          "binding": "ApproverRoleId: required GUID, no SYS07 role FK; persistence blocked"
+          "binding": "ApproverRoleId: required tenant SYS07 role FK via SQL 029; role policy not validated; persistence blocked"
         },
         "SYS09-F11": {
           "status": "partial",
