@@ -73,6 +73,7 @@ public static class ScheduledReversalSqlIntegration
         Ensure((await Call(s => s.Journal.RunScheduledReversals(cid, clerk, request.ReversalDate.Value, 100, default))).SelectedCount == 0,
             "Cancelled SQL scheduled reversal regenerated");
         Console.WriteLine("  SQL PASS GL03-GP05 concurrent due runs, filtered index, draft reservation, replay and cancellation suppression");
+        await ScheduledReversalHostedIntegration.Run(connection, cid, example);
     }
 
     private static void Ensure(bool value, string message) { if (!value) throw new Exception(message); }
