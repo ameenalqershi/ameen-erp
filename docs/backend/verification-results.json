@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-11-02T09:04:43.277656+00:00",
+  "startedAtUtc": "2026-11-02T09:37:43.521623+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "a47d5d1c3322248597fc5314fe8d5793a3d66821d981723c1a91454647d46e06",
+  "sourceSha256": "bb90be5e2d8f79dc0a30cee30d4663a98e02f7572c3350083a532bc7f19c59d9",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -388,6 +388,7 @@
     "PASS SYS09 foundation: tenant FKs, stage uniqueness, GL14 route FK and guarded EF writes",
     "PASS SYS07 foundation: role header, rule dimensions, explicit deny and amount cap",
     "PASS SYS07 foundation: invalid policy, duplicate rule and stale revision are atomic",
+    "PASS SYS07: atomic role rule replacement, revision conflicts and operation isolation",
     "PASS SYS07/SYS08: assigned roles enforce tenant, branch, explicit deny and caps",
     "PASS SYS07/SYS08: assignment FK model and EF guard reject unverified writes",
     "PASS SYS07 foundation: tenant role, currency and SYS09 approver FKs; writes fail closed",
@@ -507,8 +508,8 @@
     "  SQL PASS GL13 concurrent replay, parent-line replacement under runtime role, posted ledger review, immutable snapshots, tenant FKs, audit rollback and retry",
     "PASS SQL Server integration"
   ],
-  "passed": 345,
-  "total": 345,
+  "passed": 346,
+  "total": 346,
   "failed": 0,
-  "finishedAtUtc": "2026-11-02T09:06:14.034089+00:00"
+  "finishedAtUtc": "2026-11-02T09:39:12.273752+00:00"
 }
