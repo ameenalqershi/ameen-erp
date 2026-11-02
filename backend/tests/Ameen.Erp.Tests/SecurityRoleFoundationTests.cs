@@ -232,6 +232,37 @@ public static class SecurityRoleFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS07 security: deny-first prevents cross-role privilege escalation across independent operations", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 10, 0, 0, TimeSpan.Zero);
+            var member = new Membership(f.CompanyId, f.Owner.Subject,
+                new[] { Permissions.Read }, false, new[] { f.BranchId });
+            var currency = Guid.NewGuid();
+            var permitted = new SecurityRole(f.CompanyId, f.BranchId, "Operator", "Separate actions", f.Owner.Subject, now);
+            permitted.AddRule("GL03", "POST", true, 25m, currency, now);
+            permitted.AddRule("GL03", "COST", true, null, null, now);
+            permitted.AddRule("GL03", "EXPORT", true, null, null, now);
+            var denied = new SecurityRole(f.CompanyId, null, "Restricted", "No export", f.Owner.Subject, now);
+            denied.AddRule("GL03", "EXPORT", false, null, null, now);
+            var links = new[] {
+                new SecurityRoleAssignment(f.CompanyId, member.Id, permitted.Id),
+                new SecurityRoleAssignment(f.CompanyId, member.Id, denied.Id)
+            };
+            bool Allows(string action, decimal? amount = null, Guid? money = null) =>
+                SecurityRolePolicyEvaluator.Permits(member, links, new[] { permitted, denied },
+                    f.CompanyId, f.BranchId, "GL03", action, amount, money);
+            Ensure(Allows("POST", 25m, currency) && Allows("COST"),
+                "Independent approved operations must remain permitted");
+            Ensure(!Allows("EXPORT") && !Allows("POST", 25.000001m, currency) &&
+                !Allows("POST", 1m, Guid.NewGuid()) && !Allows("POST", null, currency) &&
+                !Allows("APPROVE"), "Deny, cap, currency or missing permission escalated privileges");
+            denied.SetActive(false, now.AddSeconds(1));
+            Ensure(Allows("EXPORT"), "Disabled deny role unexpectedly blocked independent permission");
+            denied.SetActive(true, now.AddSeconds(2));
+            Ensure(!Allows("EXPORT"), "Reactivated explicit deny failed to take precedence");
+            return Task.CompletedTask;
+        });
+
         test("SYS07/SYS08: assignment FK model and EF guard reject unverified writes", async f =>
         {
             Expect("invalid_role_assignment", () => new SecurityRoleAssignment(f.CompanyId,
