@@ -32,6 +32,13 @@ public static class ApiHost
                 throw new InvalidOperationException("RecurringScheduler requires a pre-provisioned ActorSubject with company membership, RecurringGenerate and Draft permissions.");
             builder.Services.AddHostedService<RecurringDraftScheduler>();
         }
+        if (builder.Configuration.GetValue<bool>("ReversalScheduler:Enabled"))
+        {
+            var schedulerActor = builder.Configuration["ReversalScheduler:ActorSubject"];
+            if (string.IsNullOrWhiteSpace(schedulerActor) || schedulerActor.Length > 200)
+                throw new InvalidOperationException("ReversalScheduler requires a pre-provisioned ActorSubject with company membership, Reverse and Draft permissions.");
+            builder.Services.AddHostedService<ReversalDraftScheduler>();
+        }
         builder.Services.ConfigureHttpJsonOptions(options => JsonDefaults.Configure(options.SerializerOptions));
         builder.Services.Configure<Microsoft.AspNetCore.Routing.RouteHandlerOptions>(options => options.ThrowOnBadRequest = true);
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
