@@ -228,8 +228,8 @@ Test("RPT01 RPT02: opening, movement, closing and running page balances reconcil
     await f.Draft(f.Request(999, 999));
     var report = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, default);
     Assert(report.TotalOpeningDebit == 100 && report.TotalPeriodDebit == 75 && report.TotalClosingCredit == 175);
-    var ledger = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 12, 31), null, 1, 1, default);
-    Assert(ledger.OpeningBalance == 100 && ledger.ClosingBalance == 175 && ledger.Entries.Items.Single().RunningBalance == 100 && ledger.Entries.TotalCount == 2);
+    var ledger = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, 1, 1, default);
+    Assert(ledger.OpeningBalance == 100 && ledger.ClosingBalance == 175 && ledger.Entries.Items.Single().RunningBalance == 175 && ledger.Entries.TotalCount == 2);
 });
 Test("RPT01: historical report excludes later reversal", async f =>
 {
@@ -247,11 +247,13 @@ Test("RPT01: account level replaces descendants without double counting", async 
     var request = f.Request(25, 25); request.Lines[0] = request.Lines[0] with { AccountId = leaf.ResourceId };
     await f.Post(await f.Draft(request));
     var root = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, accountLevel: 1);
-    Assert(root.Rows.Count == 2 && root.Rows.Sum(x => x.ClosingDebit) == 125 && root.Rows.Sum(x => x.ClosingCredit) == 125);
+    Assert(root.Rows.Count == 2 && root.TotalPeriodDebit == 125 && root.TotalClosingCredit == 125);
+    Assert(root.Rows.Single(x => x.AccountId == f.GroupId).ClosingDebit == 125);
     var second = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default, accountLevel: 2);
-    Assert(second.Rows.Count == 3 && second.Rows.All(x => x.Level == 2));
+    Assert(second.Rows.Count == 3 && second.TotalPeriodDebit == 125);
+    Assert(second.Rows.Single(x => x.AccountId == group.ResourceId) is { Level: 2, IsPosting: false, ClosingDebit: 25 });
     var leaves = await f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, default);
-    Assert(leaves.Rows.All(x => x.IsPosting) && leaves.Rows.Any(x => x.AccountId == leaf.AccountId && x.Level == 3));
+    Assert(leaves.Rows.All(x => x.IsPosting) && leaves.Rows.Any(x => x.AccountId == leaf.ResourceId && x.Level == 3));
 });
 Test("RPT01: hide zero retains accounts with offsetting posted movement", async f =>
 {
@@ -277,30 +279,28 @@ Test("RPT01 RPT02: cost-center filter applies to opening, movement and running b
     await Entry(100, center.ResourceId, new(2026, 1, 1));
     await Entry(50, center.ResourceId, Fixture.Date);
     await Entry(999, other.ResourceId, Fixture.Date);
-    var trial = await f.Service.Report.TrialBalance(f.CompanyId, f.Limited, new(2026, 10, 1), new(2026, 10, 31), null, center.ResourceId);
+    var trial = await f.Service.Report.TrialBalance(f.CompanyId, f.Limited, new(2026, 10, 1), new(2026, 10, 31), null, default, center.ResourceId);
     Assert(trial.TotalOpeningDebit == 100 && trial.TotalPeriodDebit == 50 && trial.TotalClosingCredit == 150);
     var ledger = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Limited, new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default, center.ResourceId);
-    EnsureLedger(ledger);
-    Assert(ledger.OpeningBalance == 50 && ledger.ClosingBalance == 150 && ledger.Entries.Items.Single().RunningBalance == 150 && ledger.Entries.TotalCount == 1);
+    Assert(ledger.OpeningBalance == 100 && ledger.ClosingBalance == 150 && ledger.Entries.Items.Single().RunningBalance == 150);
+    Assert(ledger.CompanyId == f.CompanyId && ledger.BranchIds!.SequenceEqual(new[] { f.BranchId }));
 });
-Test("RPT01: cost-center scope cannot bypass company or branch permissions", async f =>
+Test("RPT01 RPT02: cost-center scope cannot bypass company or branch permissions", async f =>
 {
     var other = await f.Service.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("OTHER", "غير مصرح", f.OtherBranchId), default);
     await Error("branch_access_denied", () => f.Service.Report.TrialBalance(f.CompanyId, f.Limited, Fixture.Date, Fixture.Date, null, default, other.ResourceId));
-    await Error("branch_access_denied", () => f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Limited, Fixture.Date, Fixture.Date, null, default, other.ResourceId));
-    await Error("cost_center_mismatch", () => f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, f.OtherBranchId, default, other.ResourceId));
-    await Error("reference_not_found", () => f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, f.BranchId, default, Guid.NewGuid()));
+    await Error("branch_access_denied", () => f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Limited, Fixture.Date, Fixture.Date, null, 0, 10, default, other.ResourceId));
+    await Error("cost_center_mismatch", () => f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, f.BranchId, default, other.ResourceId));
+    await Error("reference_not_found", () => f.Service.Report.TrialBalance(f.CompanyId, f.Clerk, Fixture.Date, Fixture.Date, null, default, Guid.NewGuid()));
 });
 Test("RPT02: external reference filters opening and movement with exact matching", async f =>
 {
-    await f.Post(await f.Draft(f.Request(100, 100) with { ExternalReference = "REF-A" }));
+    await f.Post(await f.Draft(f.Request(100, 100, date: new(2026, 1, 1)) with { ExternalReference = "REF-A" }));
     await f.Post(await f.Draft(f.Request(50, 50) with { ExternalReference = "REF-A" }));
     await f.Post(await f.Draft(f.Request(999, 999) with { ExternalReference = "REF-B" }));
-    var ledger = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, 0, 10, default, externalReference: "REF-A");
-    EnsureLedger(ledger);
-    Assert(ledger.OpeningBalance == 100 && ledger.ClosingBalance == 150 && ledger.Entries.TotalCount == 2);
-    var missing = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 1, 1), new(2026, 12, 31), null, 0, 10, default, externalReference: "ref-a");
-    EnsureLedger(missing);
+    var ledger = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default, externalReference: "REF-A");
+    Assert(ledger.OpeningBalance == 100 && ledger.ClosingBalance == 150 && ledger.Entries.TotalCount == 1);
+    var missing = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk, new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default, externalReference: "ref-a");
     Assert(missing.OpeningBalance == 0 && missing.Entries.TotalCount == 0);
 });
 Test("RPT01: invalid hierarchy level fails validation", async f =>
@@ -457,5 +457,3 @@ Console.WriteLine(args.Contains("--sql", StringComparer.Ordinal)
     ? "Scope: domain/application, HTTP, live SQL integration and production HTTPS/JWT/OIDC/OpenAPI pipeline."
     : "Scope: domain/application, SQL model and test HTTP host. Run --sql for live SQL and production-host integration.");
 return failures == 0 ? 0 : 1;
-
-static void EnsureLedger<T>(T ledger) { }
