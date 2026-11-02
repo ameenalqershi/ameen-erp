@@ -11,6 +11,25 @@ public static class NumberingTests
     private static Task<CommandReceipt> Create(Fixture f,CreateNumberSeriesRequest? r=null,string? key=null)=>f.Service.Numbering.Create(f.CompanyId,f.Owner,key??Fixture.Key(),r??Request(f),default);
     public static void Register(Action<string,Func<Fixture,Task>> test)
     {
+        test("SYS10 atomicity: invalid edit prefix, audit time and allocation preserve series state",f=>
+        {
+            var now=new DateTimeOffset(2026,11,2,12,0,0,TimeSpan.Zero);
+            var card=new DocumentNumberSeries(f.CompanyId,f.BranchId,NumberingDocumentKind.Journal,
+                Guid.NewGuid(),"OLD-",7,"actor",now);
+            var version=card.Version;
+            try { card.Edit("BAD..",8,now.AddMinutes(1)); throw new Exception("Expected bad prefix"); }
+            catch(BusinessException ex) when(ex.Code=="invalid_number_prefix") { }
+            Ensure(card.Prefix=="OLD-" && card.NextNumber==7 && card.Revision==1 && card.Version==version);
+            try { card.Edit("NEW-",8,now.AddMinutes(-1)); throw new Exception("Expected bad time"); }
+            catch(BusinessException ex) when(ex.Code=="invalid_numbering_revision") { }
+            Ensure(card.Prefix=="OLD-" && card.NextNumber==7 && card.Revision==1 && card.LastModifiedAt==now);
+            try { card.Allocate(now.AddMinutes(-1)); throw new Exception("Expected bad allocation time"); }
+            catch(BusinessException ex) when(ex.Code=="invalid_numbering_revision") { }
+            Ensure(card.NextNumber==7 && card.Revision==1 && card.Version==version);
+            var allocated=card.Allocate(now.AddMinutes(1));
+            Ensure(allocated.Sequence==7 && allocated.Number=="OLD-000007" && card.NextNumber==8 && card.Revision==2);
+            return Task.CompletedTask;
+        });
         test("SYS10 fields: optional scope/prefix, explicit type/year/next and server audit fields match source",async f=>
         {
             var json=$"{{\"documentKind\":\"Journal\",\"fiscalYearId\":\"{Year(f)}\",\"nextNumber\":5}}";
