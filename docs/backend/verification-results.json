@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-11-02T18:32:24.555942+00:00",
+  "startedAtUtc": "2026-11-02T19:35:46.330139+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "7033f16d2f69770db82f556b3769bec15027a9a06196c8664185b7356754e3fc",
+  "sourceSha256": "c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -382,6 +382,8 @@
     "PASS GL13 persistence: frozen review and detached line mutation are rejected before SQL",
     "PASS GL14-01: type fields preserve code, source, references and server audit revision",
     "PASS GL14-01: invalid source, reference, branch and stale timestamp rejected",
+    "PASS GL14-02 partial: structural references fail closed and never authorize GL14",
+    "PASS GL14-02 partial: stale revisions reject edit and activation atomically",
     "PASS GL14-01: EF model has composite tenant FKs, unique code and blocked unvalidated route",
     "PASS SYS09 foundation: amount, stage, branch, currency and audit fields retain exact types",
     "PASS SYS09 foundation: invalid bounds, duplicate stages, role and stale revisions fail closed",
@@ -516,8 +518,8 @@
     "  SQL PASS GL13 concurrent replay, parent-line replacement under runtime role, posted ledger review, immutable snapshots, tenant FKs, audit rollback and retry",
     "PASS SQL Server integration"
   ],
-  "passed": 354,
-  "total": 354,
+  "passed": 356,
+  "total": 356,
   "failed": 0,
-  "finishedAtUtc": "2026-11-02T18:34:05.162145+00:00"
+  "finishedAtUtc": "2026-11-02T19:37:11.777004+00:00"
 }
