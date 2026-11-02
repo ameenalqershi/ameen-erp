@@ -22,7 +22,7 @@ BEGIN TRY
    CONSTRAINT [FK_ApprovalRoute_Company] FOREIGN KEY([CompanyId]) REFERENCES [Companies]([Id]),
    CONSTRAINT [FK_ApprovalRoute_Branch] FOREIGN KEY([CompanyId],[BranchId]) REFERENCES [Branches]([CompanyId],[Id]),
    CONSTRAINT [FK_ApprovalRoute_Currency] FOREIGN KEY([CompanyId],[CurrencyId]) REFERENCES [Currencies]([CompanyId],[Id]),
-   CONSTRAINT [CK_ApprovalRoute_Amount] CHECK([MinimumAmount]>=0 AND ([MaximumAmount] IS NULL OR [MaximumAmount]>=[MinimumAmount]),
+   CONSTRAINT [CK_ApprovalRoute_Amount] CHECK([MinimumAmount]>=0 AND ([MaximumAmount] IS NULL OR [MaximumAmount]>=[MinimumAmount])),
    CONSTRAINT [CK_ApprovalRoute_Revision] CHECK([Revision]>0 AND [LastModifiedAt]>=[CreatedAt])
   );
   CREATE TABLE [ApprovalRouteStages](
@@ -33,7 +33,7 @@ BEGIN TRY
    CONSTRAINT [PK_ApprovalRouteStages] PRIMARY KEY([CompanyId],[Id]),
    CONSTRAINT [FK_ApprovalRouteStage_Company] FOREIGN KEY([CompanyId]) REFERENCES [Companies]([Id]),
    CONSTRAINT [FK_ApprovalRouteStage_Route] FOREIGN KEY([CompanyId],[ApprovalRouteId]) REFERENCES [ApprovalRoutes]([CompanyId],[Id]) ON DELETE CASCADE,
-   CONSTRAINT [CK_ApprovalRouteStage_Number] CHECK([StageNumber]>0 AND ([AlertAfterMinutes] IS NULL OR [AlertAfterMinutes]>=0])
+   CONSTRAINT [CK_ApprovalRouteStage_Number] CHECK([StageNumber]>0 AND ([AlertAfterMinutes] IS NULL OR [AlertAfterMinutes]>=0))
   );
   CREATE UNIQUE INDEX [IX_ApprovalRouteStages_CompanyId_ApprovalRouteId_StageNumber]
    ON [ApprovalRouteStages]([CompanyId],[ApprovalRouteId],[StageNumber]);
