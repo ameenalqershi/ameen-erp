@@ -73,6 +73,9 @@ public static class OpenApiSnapshotTests
             var runDue = json.RootElement.GetProperty("paths").GetProperty("/api/v1/companies/{companyId}/recurring-journals/run-due").GetProperty("post");
             if (runDue.GetProperty("parameters").EnumerateArray().Any(x => x.GetProperty("name").GetString() == "Idempotency-Key"))
                 throw new Exception("Scheduled scan uses per-occurrence command keys and must not require a batch key");
+            var openingImpact = json.RootElement.GetProperty("paths").GetProperty("/api/v1/companies/{companyId}/general-openings/{id}/impact-preview").GetProperty("get");
+            if (openingImpact.GetProperty("security").GetArrayLength() == 0)
+                throw new Exception("GL02-A05 opening impact preview must be authorized");
             var impact = json.RootElement.GetProperty("paths").GetProperty("/api/v1/companies/{companyId}/journals/{id}/impact-preview").GetProperty("get");
             if (impact.GetProperty("security").GetArrayLength() == 0 ||
                 !schemas.GetProperty("JournalImpactPreview").GetProperty("properties").TryGetProperty("lines", out _) ||

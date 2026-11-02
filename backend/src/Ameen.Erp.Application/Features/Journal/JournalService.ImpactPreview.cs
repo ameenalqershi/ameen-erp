@@ -4,14 +4,25 @@ namespace Ameen.Erp.Application;
 
 public sealed partial class JournalService
 {
+    // GL02-A05: a dedicated entrypoint that rejects other journal sources instead
+    // of silently treating a manual or recurring journal as a general opening.
+    public async Task<JournalImpactPreview> OpeningImpactPreview(Guid cid, Guid id, Actor actor, CancellationToken ct)
+    {
+        await AuthorizeJournal(cid, id, actor, Permissions.Read, ct);
+        var journal = await Required<JournalEntry>(cid, id, ct);
+        Check.That(journal.Source == JournalSource.GeneralOpening, "general_opening_required",
+            "المعاينة مخصصة لمستند الافتتاح العام فقط.", ErrorKind.Conflict);
+        return await ImpactPreview(cid, id, actor, ct);
+    }
+
     // GL03-A05: show exact persisted functional amounts before submit without booking a new
     // number, audit row, ledger entry or outbox event. Read scope is checked before returning lines.
     public async Task<JournalImpactPreview> ImpactPreview(Guid cid, Guid id, Actor actor, CancellationToken ct)
     {
         await AuthorizeJournal(cid, id, actor, Permissions.Read, ct);
         var journal = await Required<JournalEntry>(cid, id, ct);
-        Check.That(journal.Source is JournalSource.Manual or JournalSource.Reversal,
-            "source_preview_required", "معاينة قيد المصدر الآلي تتم من مستند المصدر.", ErrorKind.Conflict);
+        Check.That(journal.Source is JournalSource.Manual or JournalSource.Reversal or JournalSource.GeneralOpening,
+            "source_preview_required", "معاينة المستند الآلي تتم من مستند المصدر.", ErrorKind.Conflict);
         var company = await Company(cid, ct);
         var debit = journal.Lines.Sum(x => x.FunctionalDebit);
         var credit = journal.Lines.Sum(x => x.FunctionalCredit);

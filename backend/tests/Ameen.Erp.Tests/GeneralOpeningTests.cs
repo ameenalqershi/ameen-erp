@@ -9,6 +9,29 @@ public static class GeneralOpeningTests
         f.Service.Journal.CreateGeneralOpening(f.CompanyId, f.Clerk, key ?? Fixture.Key(), r ?? Request(f.Request()), default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("GL02-A05: opening impact preview is balanced, scoped and has no accounting writes", async f =>
+        {
+            var created = await Create(f, Request(f.Request(140m, 140m)));
+            var source = await f.Journal(created.ResourceId);
+            var audit = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            var outbox = f.Store.Count<OutboxEvent>();
+            var before = f.Store.Count<JournalEntry>();
+            var preview = await f.Service.Journal.OpeningImpactPreview(f.CompanyId, source.Id, f.Clerk, default);
+            Ensure(preview.JournalId == source.Id && preview.Source == JournalSource.GeneralOpening &&
+                preview.State == JournalState.Draft && preview.CanSubmit && preview.IsBalanced &&
+                preview.FunctionalDebit == 140m && preview.FunctionalCredit == 140m &&
+                preview.Difference == 0m && preview.Lines.Length == source.Lines.Count &&
+                preview.ValidationErrorCode is null && preview.Version == created.Version);
+            Ensure(f.Store.Count<AuditEvent>() == audit && f.Store.Count<IdempotencyRecord>() == receipts &&
+                f.Store.Count<OutboxEvent>() == outbox && f.Store.Count<JournalEntry>() == before);
+            var other = await Create(f, Request(f.Request(branch:f.OtherBranchId)));
+            await Error("branch_access_denied", () => f.Service.Journal.OpeningImpactPreview(
+                f.CompanyId, other.ResourceId, f.Limited, default));
+            var manual = await f.Draft();
+            await Error("general_opening_required", () => f.Service.Journal.OpeningImpactPreview(
+                f.CompanyId, manual.ResourceId, f.Clerk, default));
+        });
         test("GL02-A01: search by document, description and references respects pagination and branch scope", async f =>
         {
             var first = await Create(f, Request(f.Request()) with {

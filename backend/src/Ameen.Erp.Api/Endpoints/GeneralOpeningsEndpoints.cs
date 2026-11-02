@@ -15,6 +15,9 @@ internal static class GeneralOpeningsEndpoints
             Results.Ok(await s.ListJournals(companyId, Actor(h), branchId, state, offset ?? 0, limit ?? 50, ct, JournalSource.GeneralOpening, search))).Produces<Page<JournalSummary>>().RequireAuthorization().WithTags("GL02 General openings");
         app.MapGet(p + "/{id:guid}", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.GetGeneralOpening(companyId, id, Actor(h), ct))).Produces<JournalEntry>().RequireAuthorization().WithTags("GL02 General openings");
+        app.MapGet(p + "/{id:guid}/impact-preview", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.OpeningImpactPreview(companyId, id, Actor(h), ct)))
+            .Produces<JournalImpactPreview>().RequireAuthorization().WithTags("GL02 Opening impact preview");
         app.MapGet(p + "/{id:guid}/settlement-preview", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.OpeningSettlement(companyId, id, Actor(h), ct))).Produces<GeneralOpeningSettlementPreview>().RequireAuthorization().WithTags("GL02 General openings");
     }

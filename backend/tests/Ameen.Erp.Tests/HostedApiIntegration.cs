@@ -240,6 +240,19 @@ public static class HostedApiIntegration
 
                 Authenticate(Token("sql-clerk"));
                 var generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings", GeneralOpeningTests.Request(journalRequest));
+                using (var previewResponse = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}/impact-preview"))
+                using (var preview = JsonDocument.Parse(await previewResponse.Content.ReadAsStringAsync()))
+                {
+                    Ensure(previewResponse.StatusCode == HttpStatusCode.OK &&
+                        preview.RootElement.GetProperty("source").GetString() == "GeneralOpening" &&
+                        preview.RootElement.GetProperty("canSubmit").GetBoolean() &&
+                        preview.RootElement.GetProperty("isBalanced").GetBoolean() &&
+                        preview.RootElement.GetProperty("functionalDebit").GetString() == "100" &&
+                        preview.RootElement.GetProperty("functionalCredit").GetString() == "100" &&
+                        preview.RootElement.GetProperty("difference").GetString() == "0",
+                        "GL02-A05 production opening impact preview failed HTTPS/JWT/SQL");
+                    Console.WriteLine("  HOST PASS GL02-A05 general opening read-only impact preview over HTTPS/JWT/SQL");
+                }
                 generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}",
                     new EditGeneralOpeningRequest(generalOpening.Version, "تعديل رأس HTTP", "TB-HEADER-HTTP", journalRequest.Lines,
                         new(journalRequest.BranchId, Fixture.Date.AddDays(1), Fixture.Date, "HTTP-HEADER", Fixture.Date.AddDays(2))), method: HttpMethod.Put);

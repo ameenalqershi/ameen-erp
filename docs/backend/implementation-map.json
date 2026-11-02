@@ -687,8 +687,8 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/AccountTests.cs; backend/tests/Ameen.Erp.Tests/AccountSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "GL02": {
-      "api": "GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview; journal submit|approve|return|post|cancel|reverse and processing APIs",
-      "implemented": "افتتاح عام مصدره GeneralOpening ومرجع ميزان وتاريخ تشغيل وعملة وظيفية أو أجنبية بسعر تاريخي مثبت؛ قيد متزن ودورة مستقلة واعتماد وترحيل وعكس تاريخي؛ منع الحسابات الرقابية؛ معاينة حسابات التسوية التاريخية للمخزون دون عد القيد مرتين؛ إصدار ووقت تعديل يشملان حجز العكس وإلغاءه وترحيله؛ استبدال رأس المسودة والسطور مع نقل الفرع والفترة وترقيم السنة وإعادة التحقق",
+      "api": "GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs",
+      "implemented": "افتتاح عام مصدره GeneralOpening ومرجع ميزان وتاريخ تشغيل وعملة وظيفية أو أجنبية بسعر تاريخي مثبت؛ قيد متزن ودورة مستقلة واعتماد وترحيل وعكس تاريخي؛ منع الحسابات الرقابية؛ معاينة حسابات التسوية التاريخية للمخزون دون عد القيد مرتين؛ إصدار ووقت تعديل يشملان حجز العكس وإلغاءه وترحيله؛ استبدال رأس المسودة والسطور مع نقل الفرع والفترة وترقيم السنة وإعادة التحقق؛ معاينة الأثر التفصيلية للمدين والدائن وسعر السطر والفرق دون تسجيل حركة أو تغيير القيد",
       "remaining": "الطباعة والاستيراد؛ تصفير حساب التسوية بوابة شاملة غير منفذ؛ الذمم والمصادر غير المنفذة ليست مطابقة",
       "fields": {
         "GL02-F01": {
