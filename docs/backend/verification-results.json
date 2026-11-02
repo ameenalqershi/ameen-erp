@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-11-02T13:34:57.466855+00:00",
+  "startedAtUtc": "2026-11-02T15:33:50.402011+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "1eebf727684c92923e8cea4bfd38519cb293ab8e12f98e6cc6570b00e191e41f",
+  "sourceSha256": "64c9616fb3de2158362fff8c5c827ee51073feddca130ba2ba86565fafdbd88a",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -385,6 +385,9 @@
     "PASS GL14-01: EF model has composite tenant FKs, unique code and blocked unvalidated route",
     "PASS SYS09 foundation: amount, stage, branch, currency and audit fields retain exact types",
     "PASS SYS09 foundation: invalid bounds, duplicate stages, role and stale revisions fail closed",
+    "PASS SYS09: pure route overlap preflight respects inclusive amounts and branch scope",
+    "PASS SYS09: route preflight rejects incomplete tenant snapshots",
+    "PASS SYS09: atomic stage replacement and expected revision fail closed",
     "PASS SYS09 foundation: tenant FKs, stage uniqueness, GL14 route FK and guarded EF writes",
     "PASS SYS07 foundation: role header, rule dimensions, explicit deny and amount cap",
     "PASS SYS07 foundation: invalid policy, duplicate rule and stale revision are atomic",
@@ -510,8 +513,8 @@
     "  SQL PASS GL13 concurrent replay, parent-line replacement under runtime role, posted ledger review, immutable snapshots, tenant FKs, audit rollback and retry",
     "PASS SQL Server integration"
   ],
-  "passed": 348,
-  "total": 348,
+  "passed": 351,
+  "total": 351,
   "failed": 0,
-  "finishedAtUtc": "2026-11-02T13:36:29.433508+00:00"
+  "finishedAtUtc": "2026-11-02T15:35:15.569550+00:00"
 }
