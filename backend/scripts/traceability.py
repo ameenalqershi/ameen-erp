@@ -76,6 +76,22 @@ screen("SYS10", "GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; P
        {1:"CompanyId",2:"BranchId: optional company-wide or explicit branch, global configuration/read requires all branches",3:"IsActive",4:"DocumentKind: Journal/InventoryOpening; TaxInvoice guarded by country prerequisite",5:"FiscalYearId",6:"Prefix: optional user text",7:"NextNumber: monotonic server allocation and explicit forward edit",8:"CreatedBy",9:"CreatedAt",10:"Revision: integer separate from Version UUID",11:"LastModifiedAt"})
 MAP["SYS10"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in ["NumberingTests.cs","NumberingSqlIntegration.cs","SchemaUpgradeIntegration.cs","HostedApiIntegration.cs"])
 
+screen("GL14", "internal EF model and SQL 027 only; no public GL14 API",
+       "GL14-01 structural foundation: JournalDocumentType with tenant-scoped branch/number-series references, unique text code, origin, attachment flag and server audit; SQL 027 atomic and idempotent; persistence rejects unvalidated SYS09 approval routes",
+       "SYS09 approval route cards and active-reference validation are absent; create/edit/disable/search/usage/audit APIs, GL03 binding, manual/automatic origin enforcement and full acceptance remain unimplemented",
+       {})
+for n, binding in {
+    1:"CompanyId: EF/SQL tenant key only", 2:"BranchId: nullable tenant FK only",
+    3:"IsActive: persisted server state only", 4:"Code: nvarchar(32) unique per company only",
+    5:"Name: nvarchar(200) only", 6:"Origin: Manual/Automatic enum only",
+    7:"NumberSeriesId: tenant FK; active/scope checks pending", 8:"ApprovalRouteId: required UUID; SYS09 FK and validation pending",
+    9:"RequiresAttachment: bit only", 10:"CreatedBy: server actor field, no service",
+    11:"CreatedAt: datetimeoffset only", 12:"Revision: int only",
+    13:"LastModifiedAt: datetimeoffset only"
+}.items():
+    MAP["GL14"]["fields"][f"GL14-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["GL14"]["test_file"] = "backend/tests/Ameen.Erp.Tests/JournalDocumentTypeFoundationTests.cs; backend/tests/Ameen.Erp.Tests/JournalDocumentTypeSqlIntegration.cs"
+
 screen("GL13", "GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}",
        "حقول رأس وبنود الربط كاملة؛ صيغ آمنة + و- ومراجع بنود مع منع الدورات والتكرار وتداخل المجموعات؛ مراجعة غير المصنف؛ لقطات أرصدة وظيفية مرحّلة ثابتة وبحث وتعطيل واستخدام وتدقيق ذري",
        "GL13 خريطة ومراجعة لا تنفيذ تقارير RPT03/RPT04 كاملة؛ النطاق الاختياري للفرع مرشح للأستاذ ويتطلب تفويض جميع الفروع لدليل الحسابات؛ ParentCode للعرض فقط والتجميع بمعادلة صريحة؛ لا لغة ضرب/قسمة أو قواعد تدفق نقدي مفترضة",

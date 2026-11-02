@@ -8,6 +8,10 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // GL14 cards require an active SYS09 approval route. Until SYS09 is implemented,
+        // prevent even internal EF callers from persisting an unvalidated route reference.
+        Check.That(!ChangeTracker.Entries<JournalDocumentType>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "document_type_approval_route_unavailable", "مسارات الاعتماد SYS09 غير متاحة بعد؛ لا يمكن حفظ نوع مستند.", ErrorKind.Conflict);
         foreach (var entry in ChangeTracker.Entries<InventoryOpeningLine>().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
         {
             var owner = ChangeTracker.Entries<InventoryOpening>().SingleOrDefault(e => e.Entity.CompanyId == entry.Entity.CompanyId && e.Entity.Id == entry.Entity.OpeningId);

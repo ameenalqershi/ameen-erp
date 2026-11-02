@@ -1,16 +1,21 @@
-# نقطة استئناف تطوير AMEEN ERP — 2026-11-02
+# نقطة استئناف تطوير AMEEN ERP — 2026-11-02 04:30 UTC
 
-## الحالة المثبتة
+## الأساس المتحقق
 
-- المستودع: `ameenalqershi/ameen-erp`، الفرع المستهدف `main`، آخر كود مقبول `713810cdb4e933e824162048aedbd2dea91ce14b` (`temp: verify GL02 positive opening acceptance lifecycle`). فرع العمل المؤقت `temp/gl02-t01-positive-acceptance-20261102`، وقد رُفع الكود نفسه إلى main بتقدم سريع.
-- المهمة `GL02-T01`: مكتملة ومحدثة في Notion؛ اختبار إيجابي في `backend/tests/Ameen.Erp.Tests/GeneralOpeningTests.cs`. لا حاجة لإعادة تنفيذها.
-- التحقق: محلي 333/333 دون SQL؛ [CI #41383316448](https://github.com/ameenalqershi/ameen-erp/actions/runs/41383316448) على SHA المذكور 334/334، SQL Server معزول وHTTP/JWT وOpenAPI وRelease. بصمة المصادر `34435d59b0910ac3bf4a66d92115e2a631be4df3b1a5417363e9248027fddc0f`.
-- التقرير المعتمد: `docs/backend/verification-results.json`، والمصفوفات في `docs/backend/*-implementation.csv`، وقاعدة توليدها `backend/scripts/traceability.py`. `PROGRESS.md` يعاد توليد مقطعه الآلي عبر `backend/scripts/progress.py`.
-- لا يوجد مانع مثبت في GL02-T01. لم تتغير ملفات `muhaseb-erp-analysis` الأصلية. لا تلمس الإنتاج أو الأسرار.
+- المستودع الخاص: `ameenalqershi/ameen-erp`، `main` قبل الدفعة: `f70f80cb29bb7a008ea533cc0cb211cf9464023e`. CI `41383596304` ناجح على SHA نفسه، 334/334. لم تكن هناك تغييرات محلية أو git locks قبل إنشاء الفرع.
+- `GL02-T01` مقبولة مسبقًا في Notion؛ لا تعِد تنفيذها. تبقى `GL02-A07/GP02` (SYS12)، `GP03` (SYS13)، `C01/GP04/GP05` (INV06/SAL03/PUR03/GL10 والسياسة) فجوات.
+- لا توجد مهمة GL صغيرة مفتوحة في Notion بحالة `قيد التنفيذ` أو `قيد التحقق` وقت الفحص. تم اختيار `GL14-01` بوصفها أول مرحلة بيانات مستقلة وفق `gl-completion.md`.
 
-## الاستئناف التالي
+## العمل الحالي القابل للاستئناف
 
-1. قبل التغيير: `git fetch origin main`، افحص `git status --short` و`git branch --show-current` و`git ls-remote origin refs/heads/main`، والجلسات والعمليات النشطة، وأحدث CI وNotion؛ لا تكرر قبول GL02-T01.
-2. داخل GL02 افحص الاعتماديات المفتوحة: GL02-A07/GP02 طباعة تتطلب SYS12؛ GP03 استيراد يتطلب SYS13؛ C01/GP04 بوابة التصفير الشاملة تتطلب سياسة مطابقة واعتماديات INV06/SAL03/PUR03؛ GP05 دفاتر مساعدة غير منفذة. لا تختلق سياسة قطع أو تصفير ولا تعلن اكتمال الشاشة.
-3. اختر أصغر جزء مستقل موثق من GL وفق `docs/backend/gl-completion.md` وNotion؛ ابدأ بالمهمة المقطوعة إن ظهرت. أنشئ فرعًا يبدأ `temp`، نفذ الكود والاختبارات، ثم ارفع إلى main فقط بعد نجاح التحقق، وسجل SHA وCI وNotion والمصفوفات.
-4. إذا كان commit توثيق التحقق أحدث من SHA الكود أعلاه، تأكد من نجاح CI عليه قبل اعتبار تقرير التقدم الحالي معتمدًا؛ لا تعِد إجراء ترحيل SQL أو تنفيذ اختبار على بيانات إنتاج.
+- **المهمة:** `GL14-01` — أساس أنواع القيود والمستندات، **جزئي وغير مقبول بعد**.
+- **الفرع:** `temp/gl14-01-schema-20261102`. لا تُعد تنفيذها من البداية؛ افحص `git status --short --branch` والفرع ورأس `origin/main` أولًا.
+- **الملفات:** `backend/src/Ameen.Erp.Domain/Accounting/JournalDocumentType.cs`؛ `backend/src/Ameen.Erp.Infrastructure/Persistence/Configurations/JournalDocumentTypeModel.cs`؛ `backend/src/Ameen.Erp.Infrastructure/Persistence/ErpDbContext.cs` و`ErpDbContext.Validation.cs`؛ `backend/database/027_journal_document_types.sql`؛ `backend/tests/Ameen.Erp.Tests/JournalDocumentTypeFoundationTests.cs` و`JournalDocumentTypeSqlIntegration.cs` و`Program.cs` و`SqlIntegration.cs`؛ `backend/scripts/traceability.py`؛ `docs/backend/gl14-01-foundation.md`؛ `PROGRESS.md` ومصفوفاتها.
+- **الاختبار المحلي:** `python3 backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts backend/.artifacts/gl14-01-20261102`، 336/336 ناجح دون SQL؛ التحقق بعد تحديث المصفوفات مطلوب قبل الدفع. اختبار SQL معزول متاح في CI فقط حتى الآن.
+- **المانع:** SYS09 لم ينفذ مسارات اعتماد حقيقية؛ `ApprovalRouteId` لا يجوز اعتباره مرجعًا فعالًا، لذا يمنع حارس EF جميع تغييرات GL14. لا API ولا اعتماد GL14 أو GL03 بعد. لا تزيل الحارس دون FK وتحقيق نطاق الشركة والفرع والنشاط والسياسة.
+- **SHA / CI للدفعة:** لم يُعتمد بعد؛ حدّث هذه الفقرة فقط بعد نجاح CI على الفرع نفسه. لا تدفع إلى `main` قبل نجاح SQL المعزول وHTTP/JWT/OpenAPI والبناء وtraceability/progress.
+- **الخطوة التالية الدقيقة:** فحص شجرة العمل والعمليات النشطة؛ إعادة `traceability.py --check` و`progress.py --check` و`verify.py` بعد تحديث التوثيق، دفع فرع `temp` لتشغيل CI؛ إصلاح أي فشل على الفرع دون دفع main؛ بعد نجاح CI وتطابق SHA، fast-forward main، تحديث Notion بوضوح إلى `قيد التنفيذ` لا `مكتمل`، ثم متابعة SYS09 أو مهمة GL مستقلة.
+
+## حدود السلامة
+
+لا تغيّر `muhaseb-erp-analysis/` أو الأسرار أو قاعدة إنتاج؛ لا تكرر ترقية أو مهمة مقبولة، ولا تعلن اكتمال GL14 أو قسم GL. راجع [تفاصيل GL14](gl14-01-foundation.md) و[خطة GL](gl-completion.md).

@@ -31,8 +31,10 @@ public static class SqlIntegration
                 await db.Database.ExecuteSqlRawAsync(script); // A second deployment is a no-op.
                 await SchemaUpgradeIntegration.Run(db);
                 await ScheduledReversalSqlIntegration.Upgrade(db);
+                await JournalDocumentTypeSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
+            await JournalDocumentTypeSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
 
             var key = Fixture.Key(); var request = f.Request();
             var drafts = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>
