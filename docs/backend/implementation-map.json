@@ -9,8 +9,8 @@
     "implemented": 328,
     "audit": 49,
     "derived": 5,
-    "partial": 55,
-    "pending": 2322
+    "partial": 68,
+    "pending": 2309
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -436,19 +436,72 @@
       }
     },
     "SYS09": {
-      "api": "internal: Company.RequireSeparateApprover; /journals/{id}/approve",
-      "implemented": "فصل إلزامي بين منشئ القيد ومعتمده",
-      "remaining": "شاشة إعداد المسارات متعددة المراحل والحدود والتنبيهات",
+      "api": "internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent",
+      "implemented": "SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; all unvalidated writes blocked",
+      "remaining": "SYS07 role catalog and FK, document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented",
       "fields": {
         "SYS09-F01": {
           "status": "implemented",
-          "binding": "CompanyId"
+          "binding": "CompanyId: existing company boundary"
+        },
+        "SYS09-F02": {
+          "status": "partial",
+          "binding": "ApprovalRoute.BranchId: optional tenant FK only"
+        },
+        "SYS09-F03": {
+          "status": "partial",
+          "binding": "IsActive: stored state only"
+        },
+        "SYS09-F04": {
+          "status": "partial",
+          "binding": "DocumentType: text placeholder; allowed list not defined"
+        },
+        "SYS09-F05": {
+          "status": "partial",
+          "binding": "MinimumAmount: decimal(20,6) only"
+        },
+        "SYS09-F06": {
+          "status": "partial",
+          "binding": "MaximumAmount: nullable decimal(20,6) only"
+        },
+        "SYS09-F07": {
+          "status": "partial",
+          "binding": "CurrencyId: tenant FK only"
         },
         "SYS09-F08": {
           "status": "partial",
           "binding": "Company.RequireSeparateApprover always true; no configuration API"
+        },
+        "SYS09-F09": {
+          "status": "partial",
+          "binding": "ApprovalRouteStage.StageNumber: positive, unique per route"
+        },
+        "SYS09-F10": {
+          "status": "partial",
+          "binding": "ApproverRoleId: required GUID, no SYS07 role FK; persistence blocked"
+        },
+        "SYS09-F11": {
+          "status": "partial",
+          "binding": "AlertAfterMinutes: nullable nonnegative; no automatic approval"
+        },
+        "SYS09-F12": {
+          "status": "partial",
+          "binding": "CreatedBy: actor field, no API"
+        },
+        "SYS09-F13": {
+          "status": "partial",
+          "binding": "CreatedAt: datetimeoffset"
+        },
+        "SYS09-F14": {
+          "status": "partial",
+          "binding": "Revision: server integer in domain only"
+        },
+        "SYS09-F15": {
+          "status": "partial",
+          "binding": "LastModifiedAt: datetimeoffset"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/ApprovalRouteFoundationTests.cs; backend/tests/Ameen.Erp.Tests/ApprovalRouteSqlIntegration.cs"
     },
     "SYS10": {
       "api": "GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events",
@@ -505,7 +558,7 @@
     "GL14": {
       "api": "internal EF model and SQL 027 only; no public GL14 API",
       "implemented": "GL14-01 structural foundation: JournalDocumentType with tenant-scoped branch/number-series references, unique text code, origin, attachment flag and server audit; SQL 027 atomic and idempotent; persistence rejects unvalidated SYS09 approval routes",
-      "remaining": "SYS09 approval route cards and active-reference validation are absent; create/edit/disable/search/usage/audit APIs, GL03 binding, manual/automatic origin enforcement and full acceptance remain unimplemented",
+      "remaining": "SYS09 route schema and GL14 tenant FK exist but roles, route activation and policy validation are blocked; create/edit/disable/search/usage/audit APIs, GL03 binding, manual/automatic origin enforcement and full acceptance remain unimplemented",
       "fields": {
         "GL14-F01": {
           "status": "partial",
@@ -537,7 +590,7 @@
         },
         "GL14-F08": {
           "status": "partial",
-          "binding": "ApprovalRouteId: required UUID; SYS09 FK and validation pending"
+          "binding": "ApprovalRouteId: required tenant FK via SQL 028; active route validation pending"
         },
         "GL14-F09": {
           "status": "partial",

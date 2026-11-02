@@ -8,6 +8,11 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // SYS09 has no persistent SYS07 role catalog or overlap/amount approval policy yet.
+        // Refuse all writes (including stage-only writes) rather than accepting invented roles.
+        Check.That(!ChangeTracker.Entries<ApprovalRoute>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<ApprovalRouteStage>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "approval_route_role_policy_unavailable", "لا يمكن حفظ مسار اعتماد قبل تنفيذ الأدوار والسياسات والتحقق من التعارض.", ErrorKind.Conflict);
         // GL14 cards require an active SYS09 approval route. Until SYS09 is implemented,
         // prevent even internal EF callers from persisting an unvalidated route reference.
         Check.That(!ChangeTracker.Entries<JournalDocumentType>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),

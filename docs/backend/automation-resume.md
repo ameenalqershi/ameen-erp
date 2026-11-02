@@ -1,21 +1,21 @@
-# نقطة استئناف تطوير AMEEN ERP — 2026-11-02 04:30 UTC
+# نقطة استئناف تطوير AMEEN ERP — 2026-11-02، SYS09 dependency foundation
 
-## الأساس المتحقق
+## الحالة الأساسية التي فُحصت قبل العمل
 
-- المستودع الخاص: `ameenalqershi/ameen-erp`، `main` قبل الدفعة: `f70f80cb29bb7a008ea533cc0cb211cf9464023e`. CI `41383596304` ناجح على SHA نفسه، 334/334. لم تكن هناك تغييرات محلية أو git locks قبل إنشاء الفرع.
-- `GL02-T01` مقبولة مسبقًا في Notion؛ لا تعِد تنفيذها. تبقى `GL02-A07/GP02` (SYS12)، `GP03` (SYS13)، `C01/GP04/GP05` (INV06/SAL03/PUR03/GL10 والسياسة) فجوات.
-- لا توجد مهمة GL صغيرة مفتوحة في Notion بحالة `قيد التنفيذ` أو `قيد التحقق` وقت الفحص. تم اختيار `GL14-01` بوصفها أول مرحلة بيانات مستقلة وفق `gl-completion.md`.
+- المستودع `ameenalqershi/ameen-erp`، `main` المحلي و`origin/main` متطابقان عند `f00510e1ca7f32548872001be504022a7b8ec17e`، شجرة العمل نظيفة، لا أقفال Git ولا عمليات build/git نشطة. GL14-01 السابقة جزئية، وCI الرئيسي السابق `41389554177` ناجح 337/337.
+- **الفرع الجاري:** `temp/sys09-approval-route-foundation-20261102`. لا تُعد تنفيذ أو ترحيل SQL 027 أو GL14-01، ولا تفترض أن `main` بقي عند SHA السابق. افحص `git status --short --branch` و`git fetch origin main` وCI أولًا.
 
-## العمل الحالي القابل للاستئناف
+## المهمة والملفات
 
-- **المهمة:** `GL14-01` — أساس أنواع القيود والمستندات، **جزئي وغير مقبول بعد**.
-- **الفرع:** `temp/gl14-01-schema-20261102`. لا تُعد تنفيذها من البداية؛ افحص `git status --short --branch` والفرع ورأس `origin/main` أولًا.
-- **الملفات:** `backend/src/Ameen.Erp.Domain/Accounting/JournalDocumentType.cs`؛ `backend/src/Ameen.Erp.Infrastructure/Persistence/Configurations/JournalDocumentTypeModel.cs`؛ `backend/src/Ameen.Erp.Infrastructure/Persistence/ErpDbContext.cs` و`ErpDbContext.Validation.cs`؛ `backend/database/027_journal_document_types.sql`؛ `backend/tests/Ameen.Erp.Tests/JournalDocumentTypeFoundationTests.cs` و`JournalDocumentTypeSqlIntegration.cs` و`Program.cs` و`SqlIntegration.cs`؛ `backend/scripts/traceability.py`؛ `docs/backend/gl14-01-foundation.md`؛ `PROGRESS.md` ومصفوفاتها.
-- **الاختبار المحلي:** `python3 backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts backend/.artifacts/gl14-01-final`، 336/336 ناجح دون SQL. **CI #41389013770 ناجح 337/337** على `a336d36337c0d2ce27943a999b247e4ce5a56104` مع SQL Server معزول (ذرية وإعادة 027 وحارس الحفظ)، HTTP/JWT وOpenAPI وRelease؛ بصمة المصدر `0c091f534aa82c47fd5b583dd98c6971785e35c5f02a12ef3b0b6ba81a3b0a55`.
-- **المانع:** SYS09 لم ينفذ مسارات اعتماد حقيقية؛ `ApprovalRouteId` لا يجوز اعتباره مرجعًا فعالًا، لذا يمنع حارس EF جميع تغييرات GL14. لا API ولا اعتماد GL14 أو GL03 بعد. لا تزيل الحارس دون FK وتحقيق نطاق الشركة والفرع والنشاط والسياسة.
-- **SHA / CI للدفعة:** commit الكود `a336d36337c0d2ce27943a999b247e4ce5a56104` على `temp/gl14-01-schema-20261102`، [CI ناجح #41389013770](https://github.com/ameenalqershi/ameen-erp/actions/runs/41389013770). لم يكن قد رُفع إلى `main` وقت تحديث هذا السجل؛ يجب التأكد من SHA الجديد وCI الخاص بتحديث التوثيق ثم fast-forward main.
-- **الخطوة التالية الدقيقة:** تم تحديث Notion GL14-01 إلى `قيد التنفيذ` و`جزئي`، مع اعتماد SYS09 المانع. تحقق من شجرة العمل؛ سجّل تقرير CI الجديد في `verification-results.json` وشغّل `traceability.py --check` و`progress.py --check`، ثم ادفع commit التوثيق باسم يبدأ `temp` على الفرع الحالي؛ تحقق من CI الجديد قبل fast-forward main، وسجّل SHA النهائي في GitHub وNotion. بعدها تابع SYS09-FG01 ثم FG02/FG03/FG04 وفق الاعتماديات، أو عملًا مستقلًا في GL إذا تعذر القرار.
+- **المهمة:** `SYS09-FG01/FG02/FG03/FG04` بنية اعتماد ضرورية لـ `GL14-01`، **جزئية غير مقبولة**. لا تعلن اكتمال SYS09 أو GL14.
+- **ملفات جديدة:** `backend/src/Ameen.Erp.Domain/Accounting/ApprovalRoute.cs`، `backend/src/Ameen.Erp.Infrastructure/Persistence/Configurations/ApprovalRouteModel.cs`، `backend/database/028_approval_route_foundation.sql`، `backend/tests/Ameen.Erp.Tests/ApprovalRouteFoundationTests.cs`، `ApprovalRouteSqlIntegration.cs`، `docs/backend/sys09-approval-route-foundation.md`.
+- **ملفات معدلة:** `ErpDbContext.cs` (`SchemaVersion=28`)، `ErpDbContext.Validation.cs`، `JournalDocumentTypeModel.cs`، `Program.cs`، `SqlIntegration.cs`، `traceability.py`، `docs/backend/PROGRESS.md`، `gl-completion.md`، `gl14-01-foundation.md`، ومصفوفات التتبع المولدة.
+- **اختبار محلي:** `python3 backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts backend/.artifacts/sys09-foundation-20261102` نجح `339/339` دون SQL حي، Release بلا أخطاء، HTTP/JWT وOpenAPI وtraceability. بصمة المصادر `bb4c1dc882438463a9c59ee6866642c8d94ff383f061aeed517f05da7616055c`.
+- **اختبار SQL:** ترقية 027→028 مع فشل DDL ثم تراجع وإعادة وتفرد المراحل وFK مركب وعزل، وحارس EF؛ الاختبار مكتوب لكنه يحتاج CI على SQL Server معزول. لا تدّع نجاحه حتى نتيجة CI.
+- **SHA/CI الجديد:** لم يثبتا بعد عند كتابة هذا السجل. استخرج SHA من `git rev-parse HEAD` بعد commit `temp:` وراجع CI على SHA نفسه. إذا نجح، حدّث `verification-results.json` من artifact الصحيح، ثم commit توثيق `temp:`، تحقق CI النهائي قبل fast-forward إلى `main`، وحدّث Notion. إذا فشل CI، أصلح على نفس الفرع ولا تدفع إلى main.
 
-## حدود السلامة
+## المانع وخطوة الاستئناف الدقيقة
 
-لا تغيّر `muhaseb-erp-analysis/` أو الأسرار أو قاعدة إنتاج؛ لا تكرر ترقية أو مهمة مقبولة، ولا تعلن اكتمال GL14 أو قسم GL. راجع [تفاصيل GL14](gl14-01-foundation.md) و[خطة GL](gl-completion.md).
+- `SYS07` لا يملك كتالوج أدوار دائمًا؛ `ApproverRoleId` لا يمكن التحقق منه. قيم `DocumentType` محددة بسياسة لم تُعتمد بعد، وSYS09 يمنع تداخل المسارات حسب المستند والنطاق والمبلغ. لا تفترض نوع مستند أو سياسة عملة أو فرع. لذلك **كل حفظ SYS09/GL14 محجوب**؛ لم يُفتح API أو اعتماد متعدد المراحل أو تصعيد مهلة.
+- **التالي:** بعد قبول CI 028 وتحديث الأدلة، ابدأ SYS07 role catalog وفق `muhaseb-erp-analysis` والاعتماديات؛ ثم FK الدور والتحقق من نطاقه والصلاحيات ومنع التعارض ضمن معاملة، ثم إتاحة SYS09 وGL14 تدريجيًا باختبارات قبول موجبة وسالبة. أبقِ `GL14-01` في Notion قيد التنفيذ.
+- لا تمس أسرارًا أو قواعد إنتاج أو ملفات `muhaseb-erp-analysis/`؛ ولا ترفع فشلًا إلى `main`.

@@ -127,21 +127,21 @@ SYS08,SYS08-F11,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{
 SYS08,SYS08-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/memberships
 SYS08,SYS08-F13,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/memberships
 SYS08,SYS08-F14,آخر تعديل,system,pending,,
-SYS09,SYS09-F01,الشركة,system,implemented,CompanyId,internal: Company.RequireSeparateApprover; /journals/{id}/approve
-SYS09,SYS09-F02,الفرع,conditional,pending,,
-SYS09,SYS09-F03,الحالة,system,pending,,
-SYS09,SYS09-F04,نوع المستند,required,pending,,
-SYS09,SYS09-F05,حد البداية,required,pending,,
-SYS09,SYS09-F06,حد النهاية,optional,pending,,
-SYS09,SYS09-F07,عملة الحد,required,pending,,
-SYS09,SYS09-F08,فصل المنشئ والمعتمد,required,partial,Company.RequireSeparateApprover always true; no configuration API,internal: Company.RequireSeparateApprover; /journals/{id}/approve
-SYS09,SYS09-F09,المرحلة,required,pending,,
-SYS09,SYS09-F10,الدور المعتمد,required,pending,,
-SYS09,SYS09-F11,مهلة التنبيه,optional,pending,,
-SYS09,SYS09-F12,أنشأه,system,pending,,
-SYS09,SYS09-F13,وقت الإنشاء,system,pending,,
-SYS09,SYS09-F14,رقم إصدار التعديل,system,pending,,
-SYS09,SYS09-F15,آخر تعديل,system,pending,,
+SYS09,SYS09-F01,الشركة,system,implemented,CompanyId: existing company boundary,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F02,الفرع,conditional,partial,ApprovalRoute.BranchId: optional tenant FK only,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F03,الحالة,system,partial,IsActive: stored state only,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F04,نوع المستند,required,partial,DocumentType: text placeholder; allowed list not defined,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F05,حد البداية,required,partial,"MinimumAmount: decimal(20,6) only",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F06,حد النهاية,optional,partial,"MaximumAmount: nullable decimal(20,6) only",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F07,عملة الحد,required,partial,CurrencyId: tenant FK only,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F08,فصل المنشئ والمعتمد,required,partial,Company.RequireSeparateApprover always true; no configuration API,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F09,المرحلة,required,partial,"ApprovalRouteStage.StageNumber: positive, unique per route",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F10,الدور المعتمد,required,partial,"ApproverRoleId: required GUID, no SYS07 role FK; persistence blocked",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F11,مهلة التنبيه,optional,partial,AlertAfterMinutes: nullable nonnegative; no automatic approval,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F12,أنشأه,system,partial,"CreatedBy: actor field, no API",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F13,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F14,رقم إصدار التعديل,system,partial,Revision: server integer in domain only,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F15,آخر تعديل,system,partial,LastModifiedAt: datetimeoffset,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS10,SYS10-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F02,الفرع,conditional,implemented,"BranchId: optional company-wide or explicit branch, global configuration/read requires all branches",GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F03,الحالة,system,implemented,IsActive,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
@@ -480,7 +480,7 @@ GL14,GL14-F04,رمز النوع,required,partial,Code: nvarchar(32) unique per c
 GL14,GL14-F05,الاسم,required,partial,Name: nvarchar(200) only,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F06,المصدر يدوي أو آلي,required,partial,Origin: Manual/Automatic enum only,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F07,التسلسل,required,partial,NumberSeriesId: tenant FK; active/scope checks pending,internal EF model and SQL 027 only; no public GL14 API
-GL14,GL14-F08,مسار الاعتماد,required,partial,ApprovalRouteId: required UUID; SYS09 FK and validation pending,internal EF model and SQL 027 only; no public GL14 API
+GL14,GL14-F08,مسار الاعتماد,required,partial,ApprovalRouteId: required tenant FK via SQL 028; active route validation pending,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F09,إلزام المرفق,required,partial,RequiresAttachment: bit only,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F10,أنشأه,system,partial,"CreatedBy: server actor field, no service",internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F11,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset only,internal EF model and SQL 027 only; no public GL14 API

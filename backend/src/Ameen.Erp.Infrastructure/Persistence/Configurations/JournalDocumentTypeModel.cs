@@ -17,8 +17,11 @@ public sealed partial class ErpDbContext
         b.HasOne<DocumentNumberSeries>().WithMany()
             .HasForeignKey(x => new { x.CompanyId, x.NumberSeriesId })
             .OnDelete(DeleteBehavior.NoAction);
-        // ApprovalRouteId is required, but SYS09 has no persisted route card yet.
-        // Do not claim a validated route or expose create/edit/activation until SYS09 exists.
+        b.HasOne<ApprovalRoute>().WithMany()
+            .HasForeignKey(x => new { x.CompanyId, x.ApprovalRouteId })
+            .OnDelete(DeleteBehavior.NoAction);
+        // A real FK now exists, but the route still cannot be activated or validated.
+        // Do not expose create/edit/activation until SYS09 role/policy checks exist.
         Constraint(b, "CK_JournalDocumentType_Origin", "[Origin] IN (0,1)");
         Constraint(b, "CK_JournalDocumentType_Revision",
             "[Revision]>0 AND [LastModifiedAt]>=[CreatedAt]");

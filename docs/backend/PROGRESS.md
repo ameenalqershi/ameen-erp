@@ -1,5 +1,13 @@
 # سجل تقدم وتسليم الباك إند
 
+
+## SYS09-FG01/FG02/FG03/FG04 — أساس اعتمادية GL14، جزئي وغير مقبول (2 نوفمبر 2026)
+
+بعد التحقق من `main=f00510e` ونظافة شجرة العمل وعدم وجود عمليات Git نشطة، بدأ فرع `temp/sys09-approval-route-foundation-20261102` لتقليل مانع GL14 دون إعادة عمل GL14-01. أُضيف كيان `ApprovalRoute` وبنوده `ApprovalRouteStage` وتهيئة EF وترقية `028_approval_route_foundation.sql`: حدود `decimal(20,6)`، فرع وعملة بمراجع مركبة للشركة، مرحلة فريدة، رقم إصدار وتدقيق، وFK حقيقي من GL14 إلى SYS09. لا بيانات ابتدائية ولا تعديل للمخططات الأصلية. [التفصيل والمانع](sys09-approval-route-foundation.md).
+
+**لا توجد أدوار SYS07 دائمة ولا قائمة أنواع مستندات معتمدة ولا سياسة تعارض نطاق/مبلغ**؛ لذلك يمنع حارس EF كل كتابة SYS09 ويظل حارس GL14 قائمًا. لا API أو اعتماد متعدد المراحل أو قبول لهذه المهام؛ التقدم **أساس بنيوي فقط**. نجح التحقق المحلي `339/339`، صفر فشل، مع build Release وHTTP/JWT وOpenAPI وtraceability؛ SQL Server المعزول متروك لتشغيل CI، ولا يُدعى نجاحه قبل ظهور نتيجته. بصمة المصادر `bb4c1dc882438463a9c59ee6866642c8d94ff383f061aeed517f05da7616055c`. [نقطة الاستئناف](automation-resume.md).
+
+
 ## GL14-01 — أساس البيانات الآمن، غير مكتمل وظيفيًا (2 نوفمبر 2026)
 
 بعد التحقق من `main=f70f80cb` وCI الناجح `41383596304`، تبيّن أن GL02-T01 مكتملة وأن GL02-A07/GP02/GP03/C01/GP04/GP05 محجوبة باعتماديات الطباعة والاستيراد والتسوية والدفاتر المساعدة؛ لذلك انتقل العمل المستقل التالي داخل GL إلى GL14 وفق خطة الاعتماديات. أضيفت بنية GL14 للحقول F01–F13 في EF وترقية SQL 027 ذرية مع تفرد الرمز وعزل الشركة ومرجع الترقيم، وحارس يمنع كتابة أي نوع مستند قبل وجود مسار اعتماد SYS09 فعلي. **لا يوجد API أو ربط GL03 أو قبول GL14 مكتمل**، ولم يُختلق مسار اعتماد. [تفاصيل البنية والمانع](gl14-01-foundation.md)؛ [نقطة الاستئناف](automation-resume.md).
@@ -380,7 +388,7 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 
 آخر تقرير محفوظ: `2026-11-02T04:34:25.685879+00:00`؛ النتيجة `passed`؛ 337/337، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `0c091f534aa82c47fd5b583dd98c6971785e35c5f02a12ef3b0b6ba81a3b0a55`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (382/2759)؛ الحقول الجزئية: 55. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (382/2759)؛ الحقول الجزئية: 68. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -409,8 +417,8 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 | audit | 49 |
 | derived | 5 |
 | implemented | 328 |
-| partial | 55 |
-| pending | 2322 |
+| partial | 68 |
+| pending | 2309 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 
@@ -426,7 +434,7 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | SYS06 | المستخدمون | partial | تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC | شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا |
 | SYS07 | الأدوار والصلاحيات | partial | منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته | كتالوج أدوار قابل للإدارة وحدود مبالغ وعملات وصلاحيات بقية الأقسام |
 | SYS08 | نطاقات بيانات المستخدم | partial | نطاق الشركة والفروع مطبق على الأوامر والتقارير | نطاق الحساب والمخزن والصندوق والعملاء ومراكز التكلفة المستقل |
-| SYS09 | مسارات الاعتماد | partial | فصل إلزامي بين منشئ القيد ومعتمده | شاشة إعداد المسارات متعددة المراحل والحدود والتنبيهات |
+| SYS09 | مسارات الاعتماد | partial | SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; all unvalidated writes blocked | SYS07 role catalog and FK, document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented |
 | SYS10 | ترقيم المستندات | partial | سلاسل عامة أو لفرع وسنة ونوع مستند وبادئة ورقم تال قابل للإعداد؛ حجز ذري موثق لا يعاد بعد الإلغاء؛ ربط اليومية والافتتاحات؛ تعديل وتعطيل وبحث واستخدام وإصدار وتدقيق مع حماية السجلات التاريخية | أنواع التشغيل الحالية Journal وInventoryOpening؛ الترقيم الضريبي مرفوض حتى TAX05 وملف الدولة؛ باقي أنواع المستندات تربط عند تنفيذ مصادرها ولا تدعى جاهزيتها |
 | SYS11 | الخيارات العامة والربط المحاسبي | not-started | — | الشاشة كاملة |
 | SYS12 | قوالب الطباعة | not-started | — | الشاشة كاملة |
@@ -453,7 +461,7 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | GL11 | إقفال الفترة والسنة | partial | معاينة إقفال الأستاذ بشروط مفصلة وموانع مقسمة؛ تنفيذ يعيد فحص القيود المعلقة واتزان المرحل داخل المعاملة | إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة وإصدار عددي للإجراء |
 | GL12 | إعادة فتح فترة | partial | فتح فترة بصلاحية مستقلة وسبب مسجل | مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي |
 | GL13 | ربط القوائم المالية والتدفقات | partial | حقول رأس وبنود الربط كاملة؛ صيغ آمنة + و- ومراجع بنود مع منع الدورات والتكرار وتداخل المجموعات؛ مراجعة غير المصنف؛ لقطات أرصدة وظيفية مرحّلة ثابتة وبحث وتعطيل واستخدام وتدقيق ذري | GL13 خريطة ومراجعة لا تنفيذ تقارير RPT03/RPT04 كاملة؛ النطاق الاختياري للفرع مرشح للأستاذ ويتطلب تفويض جميع الفروع لدليل الحسابات؛ ParentCode للعرض فقط والتجميع بمعادلة صريحة؛ لا لغة ضرب/قسمة أو قواعد تدفق نقدي مفترضة |
-| GL14 | أنواع القيود والمستندات | partial | GL14-01 structural foundation: JournalDocumentType with tenant-scoped branch/number-series references, unique text code, origin, attachment flag and server audit; SQL 027 atomic and idempotent; persistence rejects unvalidated SYS09 approval routes | SYS09 approval route cards and active-reference validation are absent; create/edit/disable/search/usage/audit APIs, GL03 binding, manual/automatic origin enforcement and full acceptance remain unimplemented |
+| GL14 | أنواع القيود والمستندات | partial | GL14-01 structural foundation: JournalDocumentType with tenant-scoped branch/number-series references, unique text code, origin, attachment flag and server audit; SQL 027 atomic and idempotent; persistence rejects unvalidated SYS09 approval routes | SYS09 route schema and GL14 tenant FK exist but roles, route activation and policy validation are blocked; create/edit/disable/search/usage/audit APIs, GL03 binding, manual/automatic origin enforcement and full acceptance remain unimplemented |
 
 ### شاشات CASH
 

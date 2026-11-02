@@ -67,9 +67,23 @@ screen("SYS07", "GET/POST /companies/{companyId}/memberships",
 screen("SYS08", "GET/POST /companies/{companyId}/memberships",
        "نطاق الشركة والفروع مطبق على الأوامر والتقارير", "نطاق الحساب والمخزن والصندوق والعملاء ومراكز التكلفة المستقل",
        {1: "CompanyId", 4: "Subject", 6: "AllBranches / BranchIds[]", 13: "Version"}, [(11, "AuditEvent.ActorId"), (12, "AuditEvent.OccurredAt")])
-screen("SYS09", "internal: Company.RequireSeparateApprover; /journals/{id}/approve",
-       "فصل إلزامي بين منشئ القيد ومعتمده", "شاشة إعداد المسارات متعددة المراحل والحدود والتنبيهات",
-       {1: "CompanyId"})
+screen("SYS09", "internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent",
+       "SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; all unvalidated writes blocked",
+       "SYS07 role catalog and FK, document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented",
+       {1: "CompanyId: existing company boundary"})
+for n, binding in {
+    2:"ApprovalRoute.BranchId: optional tenant FK only", 3:"IsActive: stored state only",
+    4:"DocumentType: text placeholder; allowed list not defined", 5:"MinimumAmount: decimal(20,6) only",
+    6:"MaximumAmount: nullable decimal(20,6) only", 7:"CurrencyId: tenant FK only",
+    8:"SeparateCreatorAndApprover: stored flag, not wired to approval engine",
+    9:"ApprovalRouteStage.StageNumber: positive, unique per route",
+    10:"ApproverRoleId: required GUID, no SYS07 role FK; persistence blocked",
+    11:"AlertAfterMinutes: nullable nonnegative; no automatic approval",
+    12:"CreatedBy: actor field, no API", 13:"CreatedAt: datetimeoffset",
+    14:"Revision: server integer in domain only", 15:"LastModifiedAt: datetimeoffset"
+}.items():
+    MAP["SYS09"]["fields"][f"SYS09-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["SYS09"]["test_file"] = "backend/tests/Ameen.Erp.Tests/ApprovalRouteFoundationTests.cs; backend/tests/Ameen.Erp.Tests/ApprovalRouteSqlIntegration.cs"
 screen("SYS10", "GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events",
        "سلاسل عامة أو لفرع وسنة ونوع مستند وبادئة ورقم تال قابل للإعداد؛ حجز ذري موثق لا يعاد بعد الإلغاء؛ ربط اليومية والافتتاحات؛ تعديل وتعطيل وبحث واستخدام وإصدار وتدقيق مع حماية السجلات التاريخية",
        "أنواع التشغيل الحالية Journal وInventoryOpening؛ الترقيم الضريبي مرفوض حتى TAX05 وملف الدولة؛ باقي أنواع المستندات تربط عند تنفيذ مصادرها ولا تدعى جاهزيتها",
@@ -78,13 +92,13 @@ MAP["SYS10"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for 
 
 screen("GL14", "internal EF model and SQL 027 only; no public GL14 API",
        "GL14-01 structural foundation: JournalDocumentType with tenant-scoped branch/number-series references, unique text code, origin, attachment flag and server audit; SQL 027 atomic and idempotent; persistence rejects unvalidated SYS09 approval routes",
-       "SYS09 approval route cards and active-reference validation are absent; create/edit/disable/search/usage/audit APIs, GL03 binding, manual/automatic origin enforcement and full acceptance remain unimplemented",
+       "SYS09 route schema and GL14 tenant FK exist but roles, route activation and policy validation are blocked; create/edit/disable/search/usage/audit APIs, GL03 binding, manual/automatic origin enforcement and full acceptance remain unimplemented",
        {})
 for n, binding in {
     1:"CompanyId: EF/SQL tenant key only", 2:"BranchId: nullable tenant FK only",
     3:"IsActive: persisted server state only", 4:"Code: nvarchar(32) unique per company only",
     5:"Name: nvarchar(200) only", 6:"Origin: Manual/Automatic enum only",
-    7:"NumberSeriesId: tenant FK; active/scope checks pending", 8:"ApprovalRouteId: required UUID; SYS09 FK and validation pending",
+    7:"NumberSeriesId: tenant FK; active/scope checks pending", 8:"ApprovalRouteId: required tenant FK via SQL 028; active route validation pending",
     9:"RequiresAttachment: bit only", 10:"CreatedBy: server actor field, no service",
     11:"CreatedAt: datetimeoffset only", 12:"Revision: int only",
     13:"LastModifiedAt: datetimeoffset only"
