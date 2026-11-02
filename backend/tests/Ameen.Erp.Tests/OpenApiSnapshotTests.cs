@@ -52,9 +52,16 @@ public static class OpenApiSnapshotTests
                 var integer = revisionType.ValueKind == JsonValueKind.String ? revisionType.GetString() == "integer" :
                     revisionType.EnumerateArray().Any(x => x.GetString() == "integer");
                 if (!integer ||
-                    properties.GetProperty("lastModifiedAt").GetProperty("format").GetString() != "date-time")
-                    throw new Exception("GL03 audit field types must match integer/date-time, separate from UUID Version");
+                    properties.GetProperty("lastModifiedAt").GetProperty("format").GetString() != "date-time" ||
+                    !properties.TryGetProperty("automaticReversal", out _) || !properties.TryGetProperty("automaticReversalDate", out _))
+                    throw new Exception("GL03 audit/scheduled reversal fields must be exposed with stable types");
             }
+            var create = schemas.GetProperty("CreateJournalRequest");
+            if (create.GetProperty("required").EnumerateArray().Any(x => x.GetString() is "automaticReversal" or "reversalDate"))
+                throw new Exception("Legacy journal create clients must remain compatible");
+            var edit = schemas.GetProperty("EditJournalRequest");
+            if (edit.GetProperty("required").EnumerateArray().Any(x => x.GetString() is "automaticReversal" or "reversalDate"))
+                throw new Exception("Legacy journal edit clients must remain compatible");
             var artifacts = Environment.GetEnvironmentVariable("AMEEN_TEST_ARTIFACTS");
             foreach (var name in new[] { "CreateRecurringJournalRequest", "EditRecurringJournalRequest" })
             {
@@ -66,6 +73,10 @@ public static class OpenApiSnapshotTests
             var runDue = json.RootElement.GetProperty("paths").GetProperty("/api/v1/companies/{companyId}/recurring-journals/run-due").GetProperty("post");
             if (runDue.GetProperty("parameters").EnumerateArray().Any(x => x.GetProperty("name").GetString() == "Idempotency-Key"))
                 throw new Exception("Scheduled scan uses per-occurrence command keys and must not require a batch key");
+            var reversalDue = json.RootElement.GetProperty("paths").GetProperty("/api/v1/companies/{companyId}/journals/reversals/run-due").GetProperty("post");
+            if (reversalDue.GetProperty("security").GetArrayLength() == 0 ||
+                reversalDue.GetProperty("parameters").EnumerateArray().Any(x => x.GetProperty("name").GetString() == "Idempotency-Key"))
+                throw new Exception("Scheduled reversal scan must be authorized without a batch idempotency key");
             if (!string.IsNullOrWhiteSpace(artifacts))
             {
                 Directory.CreateDirectory(artifacts);
