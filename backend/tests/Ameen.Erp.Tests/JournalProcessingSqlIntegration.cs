@@ -146,6 +146,34 @@ public static class JournalProcessingSqlIntegration
             }
         }
         Console.WriteLine("  SQL PASS GL05/06 mixed concurrent batch replay, durable rejection, per-document rollback/retry, history and refreshed authorization");
+        // GL06-T02 extra concurrency acceptance: the same durable key must not create
+        // multiple batch headers, decision records or financial outbox events.
+        var concurrentApproved = await Approve(await Draft());
+        var concurrentBatchKey = Fixture.Key();
+        var concurrentItem = new JournalProcessingItem(concurrentApproved.ResourceId,
+            concurrentApproved.Version, Fixture.Key());
+        var concurrentRequest = new ProcessJournalsRequest("post",
+            new[] { concurrentItem }, concurrentBatchKey);
+        var concurrentResults = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ =>
+            Call(s => s.Journal.ProcessJournals(cid, approver, concurrentRequest, default))));
+        Ensure(concurrentResults.All(x => x.AllSucceeded && x.Rows.Length == 1 &&
+            x.Rows[0].Receipt == concurrentResults[0].Rows[0].Receipt),
+            "GL06 concurrent durable batch replays diverged");
+        await using (var db = Context())
+        {
+            var batches = await db.Set<JournalProcessingBatch>().Where(x => x.CompanyId == cid &&
+                x.BatchKey == concurrentBatchKey).ToArrayAsync();
+            Ensure(batches.Length == 1 && batches[0].Revision == 2 &&
+                batches[0].Rows().Length == 1,
+                "GL06 concurrent durable replay duplicated or advanced the batch header");
+            Ensure(await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid &&
+                x.ResourceId == concurrentApproved.ResourceId) == 1,
+                "GL06 concurrent durable replay duplicated financial outbox events");
+            Ensure(await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid &&
+                x.ResourceId == batches[0].Id && x.Action == "journal.processing.batch-item") == 1,
+                "GL06 concurrent durable replay duplicated batch decision history");
+        }
+        Console.WriteLine("  SQL PASS GL06 concurrent durable batch key preserves one header, one decision and one outbox");
         // GL02-GP01: verify the real persisted SQL snapshot, posted reversal and dated FX constraint.
         await Call(s => s.Currency.CreateCurrency(cid, owner, Fixture.Key(), new("CHF", 2, "فرنك"), default));
         var datedRate = await Call(s => s.ExchangeRate.CreateExchangeRate(cid, owner, Fixture.Key(),
