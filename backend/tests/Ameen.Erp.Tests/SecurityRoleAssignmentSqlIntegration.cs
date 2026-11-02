@@ -30,12 +30,25 @@ public static class SecurityRoleAssignmentSqlIntegration
             "SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('SecurityRoleAssignments')").SingleAsync() == 5 &&
             await db.Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS [Value] FROM sys.foreign_keys WHERE parent_object_id=OBJECT_ID('SecurityRoleAssignments')").SingleAsync() == 3 &&
+            await db.Database.SqlQueryRaw<int>(@"SELECT COUNT(*) AS [Value] FROM (
+                SELECT fk.name
+                FROM sys.foreign_keys fk
+                JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id=fk.object_id
+                JOIN sys.columns pc ON pc.object_id=fkc.parent_object_id AND pc.column_id=fkc.parent_column_id
+                JOIN sys.columns rc ON rc.object_id=fkc.referenced_object_id AND rc.column_id=fkc.referenced_column_id
+                WHERE fk.parent_object_id=OBJECT_ID('SecurityRoleAssignments')
+                  AND fk.name IN ('FK_SecurityRoleAssignment_Membership','FK_SecurityRoleAssignment_Role')
+                GROUP BY fk.name
+                HAVING COUNT(*)=2
+                   AND SUM(CASE WHEN pc.name='CompanyId' AND rc.name='CompanyId' THEN 1 ELSE 0 END)=1
+                   AND SUM(CASE WHEN pc.name IN ('MembershipId','RoleId') AND rc.name='Id' THEN 1 ELSE 0 END)=1
+            ) AS [TenantScopedForeignKeys]").SingleAsync() == 2 &&
             await db.Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS [Value] FROM sys.indexes WHERE object_id=OBJECT_ID('SecurityRoleAssignments') AND is_unique=1").SingleAsync() == 2,
-            "Role assignment migration fields, unique key or tenant FKs missing");
+            "Role assignment migration fields, unique key or composite CompanyId+MembershipId/RoleId tenant FKs missing");
         Ensure(!await db.Set<SecurityRoleAssignment>().AnyAsync(),
             "Role assignment migration seeded user permissions");
-        Console.WriteLine("  SQL PASS SYS08/SYS07 029→030 rollback/retry, tenant FKs, unique assignment, no seed");
+        Console.WriteLine("  SQL PASS SYS08/SYS07 029→030 rollback/retry, exact composite tenant FK column mappings, unique assignment, no seed");
     }
 
     public static async Task Guard(string connection, Guid companyId)
