@@ -1079,8 +1079,8 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/JournalProcessingTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/Program.cs"
     },
     "GL07": {
-      "api": "POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due",
-      "implemented": "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا؛ تشغيل العكس المجدول للقيود اليدوية المرحّلة المستحقة فقط عبر فحص مفوض وفرعي مع إنشاء مسودة عكس مستقلة بلا اعتماد/ترحيل آلي؛ سجل تاريخي يمنع تكرار التوليد بعد الإلغاء؛ ترقية SQL 026 وعكس ذري قابل لإعادة المحاولة",
+      "api": "POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due",
+      "implemented": "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا؛ تشغيل العكس المجدول للقيود اليدوية المرحّلة المستحقة فقط عبر فحص مفوض وفرعي مع إنشاء مسودة عكس مستقلة بلا اعتماد/ترحيل آلي؛ سجل تاريخي يمنع تكرار التوليد بعد الإلغاء؛ ترقية SQL 026 وعكس ذري قابل لإعادة المحاولة؛ معاينة أثر مسودة العكس بسعر ومبالغ تاريخية معكوسة حرفيًا وفرق اتزان قبل الاعتماد دون تعديل الأستاذ أو سجل التدقيق",
       "remaining": "عكس مستندات الدفاتر المساعدة وفحص التبعيات والضريبة؛ مشغل العكس اختياري وغير مثبت التفعيل في الإنتاج؛ الأنواع غير اليدوية تظل تعكس من مستند المصدر",
       "fields": {
         "GL07-F01": {
@@ -1156,7 +1156,7 @@
           "binding": "Lines[].ExchangeRate copied from original"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/JournalAuditTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalHostedIntegration.cs; backend/tests/Ameen.Erp.Tests/HttpIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/JournalAuditTests.cs; backend/tests/Ameen.Erp.Tests/JournalImpactPreviewTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalHostedIntegration.cs; backend/tests/Ameen.Erp.Tests/HttpIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
     },
     "GL11": {
       "api": "POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview",

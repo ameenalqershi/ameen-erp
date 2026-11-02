@@ -38,6 +38,49 @@ public static class JournalImpactPreviewTests
             Ensure((await f.Journal(r.ResourceId)).State == JournalState.Draft &&
                 f.Store.Count<AuditEvent>() == beforeAudit && f.Store.Count<OutboxEvent>() == 0);
         });
+        test("GL07-A05: reversal impact preview inverts original historical line amounts without mutation", async f =>
+        {
+            var original = await f.Post(await f.Draft(f.Request(175m, 175m)));
+            var reverse = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId,
+                f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date, "Correction"), default);
+            var journal = await f.Journal(original.ResourceId); // Compare with the state after reservation.
+            var reversal = await f.Journal(reverse.ResourceId);
+            var audits = f.Store.Count<AuditEvent>();
+            var outbox = f.Store.Count<OutboxEvent>();
+            var count = f.Store.Count<JournalEntry>();
+            var originalPreview = await f.Service.Journal.ImpactPreview(f.CompanyId, original.ResourceId, f.Clerk, default);
+            var reversedPreview = await f.Service.Journal.ImpactPreview(f.CompanyId, reverse.ResourceId, f.Clerk, default);
+            Ensure(reversedPreview.JournalId == reversal.Id && reversedPreview.Source == JournalSource.Reversal &&
+                reversedPreview.State == JournalState.Draft && reversedPreview.CanSubmit &&
+                reversedPreview.IsBalanced && reversedPreview.Difference == 0m &&
+                reversedPreview.FunctionalDebit == originalPreview.FunctionalCredit &&
+                reversedPreview.FunctionalCredit == originalPreview.FunctionalDebit);
+            Ensure(reversedPreview.Lines.Length == originalPreview.Lines.Length);
+            foreach (var originalLine in originalPreview.Lines)
+            {
+                var reversedLine = reversedPreview.Lines.Single(x => x.Position == originalLine.Position);
+                Ensure(reversedLine.AccountId == originalLine.AccountId &&
+                    reversedLine.CostCenterId == originalLine.CostCenterId &&
+                    reversedLine.CurrencyCode == originalLine.CurrencyCode &&
+                    reversedLine.ExchangeRateId == originalLine.ExchangeRateId &&
+                    reversedLine.ExchangeRate == originalLine.ExchangeRate &&
+                    reversedLine.FunctionalNet == -originalLine.FunctionalNet &&
+                    reversedLine.Debit == originalLine.Credit &&
+                    reversedLine.Credit == originalLine.Debit);
+            }
+            Ensure(f.Store.Count<AuditEvent>() == audits && f.Store.Count<OutboxEvent>() == outbox &&
+                f.Store.Count<JournalEntry>() == count &&
+                (await f.Journal(original.ResourceId)).Version == journal.Version &&
+                (await f.Journal(reverse.ResourceId)).Version == reverse.Version);
+        });
+        test("GL07-A05: authorized reversal preview refuses another branch", async f =>
+        {
+            var original = await f.Post(await f.Draft(f.Request(branch: f.OtherBranchId)));
+            var reverse = await f.Service.Journal.ReverseJournal(f.CompanyId, original.ResourceId,
+                f.Clerk, Fixture.Key(), new(original.Version, Fixture.Date, "Correction"), default);
+            await Error("branch_access_denied", () =>
+                f.Service.Journal.ImpactPreview(f.CompanyId, reverse.ResourceId, f.Limited, default));
+        });
         test("GL03-A05: user without matching branch or membership cannot inspect account lines", async f =>
         {
             var r = await f.Draft(f.Request(branch:f.OtherBranchId));

@@ -139,12 +139,12 @@ MAP["GL05"]["fields"]["GL05-F04"] = dict(status="implemented", binding="processi
 MAP["GL06"]["fields"]["GL06-F04"] = dict(status="partial", binding="processing-queue.source: journal provenance only; source documents route separately")
 MAP["GL06"]["fields"]["GL06-F05"] = dict(status="implemented", binding="processing-queue.numberRange: selected fiscal-year JV number or inclusive range; sequenceFrom/sequenceTo backward-compatible; authorized branch/state/source scoped")
 MAP["GL06"]["fields"]["GL06-F08"] = dict(status="implemented", binding="JournalProcessingPreview.CanExecute/ErrorCode; JournalProcessingRow.ErrorCode/Receipt/RejectionRecorded")
-screen("GL07", "POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due",
-       "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا؛ تشغيل العكس المجدول للقيود اليدوية المرحّلة المستحقة فقط عبر فحص مفوض وفرعي مع إنشاء مسودة عكس مستقلة بلا اعتماد/ترحيل آلي؛ سجل تاريخي يمنع تكرار التوليد بعد الإلغاء؛ ترقية SQL 026 وعكس ذري قابل لإعادة المحاولة",
+screen("GL07", "POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due",
+       "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا؛ تشغيل العكس المجدول للقيود اليدوية المرحّلة المستحقة فقط عبر فحص مفوض وفرعي مع إنشاء مسودة عكس مستقلة بلا اعتماد/ترحيل آلي؛ سجل تاريخي يمنع تكرار التوليد بعد الإلغاء؛ ترقية SQL 026 وعكس ذري قابل لإعادة المحاولة؛ معاينة أثر مسودة العكس بسعر ومبالغ تاريخية معكوسة حرفيًا وفرق اتزان قبل الاعتماد دون تعديل الأستاذ أو سجل التدقيق",
        "عكس مستندات الدفاتر المساعدة وفحص التبعيات والضريبة؛ مشغل العكس اختياري وغير مثبت التفعيل في الإنتاج؛ الأنواع غير اليدوية تظل تعكس من مستند المصدر",
        {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 13: "ReversesJournalId", 14: "ReversalReason", 15: "AccountingDate", 16: "CreatedBy", 17: "CreatedAt", 18: "Version"})
 MAP["GL07"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in
-    ["JournalAuditTests.cs", "ScheduledReversalTests.cs", "ScheduledReversalSqlIntegration.cs", "ScheduledReversalHostedIntegration.cs",
+    ["JournalAuditTests.cs", "JournalImpactPreviewTests.cs", "ScheduledReversalTests.cs", "ScheduledReversalSqlIntegration.cs", "ScheduledReversalHostedIntegration.cs",
      "HttpIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs", "OpenApiSnapshotTests.cs"])
 screen("GL11", "POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview",
        "معاينة إقفال الأستاذ بشروط مفصلة وموانع مقسمة؛ تنفيذ يعيد فحص القيود المعلقة واتزان المرحل داخل المعاملة", "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة وإصدار عددي للإجراء",

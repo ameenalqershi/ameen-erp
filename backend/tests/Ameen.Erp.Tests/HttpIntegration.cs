@@ -106,12 +106,26 @@ public static class HttpIntegration
             using (var anonymousRun = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date)))
                 Ensure(anonymousRun.StatusCode == HttpStatusCode.Unauthorized, "Anonymous scheduled reversal passed");
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test", f.Clerk.Subject);
+            Guid scheduledInverseId;
             using (var run = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date)))
             {
                 Ensure(run.StatusCode == HttpStatusCode.OK, await run.Content.ReadAsStringAsync());
                 using var result = JsonDocument.Parse(await run.Content.ReadAsStringAsync());
                 Ensure(result.RootElement.GetProperty("generatedCount").GetInt32() == 1 &&
                     result.RootElement.GetProperty("rows")[0].GetProperty("succeeded").GetBoolean(), "HTTP scheduled reversal failed");
+                scheduledInverseId = result.RootElement.GetProperty("rows")[0].GetProperty("reversalJournalId").GetGuid();
+            }
+            using (var inversePreviewResponse = await client.GetAsync(path + $"/{scheduledInverseId}/impact-preview"))
+            using (var inversePreview = JsonDocument.Parse(await inversePreviewResponse.Content.ReadAsStringAsync()))
+            {
+                Ensure(inversePreviewResponse.StatusCode == HttpStatusCode.OK &&
+                    inversePreview.RootElement.GetProperty("source").GetString() == "Reversal" &&
+                    inversePreview.RootElement.GetProperty("canSubmit").GetBoolean() &&
+                    inversePreview.RootElement.GetProperty("isBalanced").GetBoolean() &&
+                    inversePreview.RootElement.GetProperty("functionalDebit").GetString() == "100" &&
+                    inversePreview.RootElement.GetProperty("functionalCredit").GetString() == "100" &&
+                    inversePreview.RootElement.GetProperty("lines").GetArrayLength() == 2,
+                    "HTTP GL07 reversal impact preview must use historical inverse snapshots");
             }
             using (var replay = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date)))
             using (var result = JsonDocument.Parse(await replay.Content.ReadAsStringAsync()))

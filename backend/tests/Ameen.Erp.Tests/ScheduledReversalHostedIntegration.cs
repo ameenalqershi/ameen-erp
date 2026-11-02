@@ -118,6 +118,19 @@ public static class ScheduledReversalHostedIntegration
                         "Production scheduled inverse is not a linked, non-recurring historical draft");
                     reversalVersion = json.RootElement.GetProperty("version").GetGuid();
                 }
+                using (var impactResponse = await client.GetAsync(path + $"/{reversalId}/impact-preview"))
+                using (var impact = JsonDocument.Parse(await impactResponse.Content.ReadAsStringAsync()))
+                {
+                    Ensure(impactResponse.StatusCode == HttpStatusCode.OK &&
+                        impact.RootElement.GetProperty("source").GetString() == "Reversal" &&
+                        impact.RootElement.GetProperty("version").GetGuid() == reversalVersion &&
+                        impact.RootElement.GetProperty("canSubmit").GetBoolean() &&
+                        impact.RootElement.GetProperty("isBalanced").GetBoolean() &&
+                        impact.RootElement.GetProperty("difference").GetString() == "0" &&
+                        impact.RootElement.GetProperty("lines").GetArrayLength() == journalRequest.Lines.Length,
+                        "GL07-A05 production reversal impact preview changed historical draft");
+                    Console.WriteLine("  HOST PASS GL07-A05 reversal preview over signed JWT/HTTPS/SQL");
+                }
                 var replay = await Due(client, path, journalRequest.AccountingDate);
                 Ensure(replay.SelectedCount == 0 && replay.GeneratedCount == 0,
                     "Production due replay duplicated a reserved reversal");

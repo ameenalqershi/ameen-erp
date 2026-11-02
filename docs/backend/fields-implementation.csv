@@ -359,24 +359,24 @@ GL06,GL06-F10,أنشأه,system,implemented,JournalProcessingBatch.ActorId: acto
 GL06,GL06-F11,وقت الإنشاء,system,implemented,JournalProcessingBatch.CreatedAt: server time,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}
 GL06,GL06-F12,رقم إصدار التعديل,system,implemented,JournalProcessingBatch.Revision: integer independent of Version UUID,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}
 GL06,GL06-F13,آخر تعديل,system,implemented,JournalProcessingBatch.LastModifiedAt: server time; recorded per-item audit,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}
-GL07,GL07-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F02,الشركة,system,implemented,CompanyId,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F03,الفرع,required,implemented,BranchId,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F04,السنة,system,derived,FiscalPeriod.FiscalYearId,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F05,رقم المستند,system,implemented,Number,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F06,تاريخ الوثيقة,required,implemented,DocumentDate,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F07,تاريخ الأثر,required,implemented,AccountingDate,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F08,العملة,required,partial,Lines[].CurrencyCode copied from original,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F09,سعر الصرف,required,partial,Lines[].ExchangeRate copied from original,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F10,البيان,required,implemented,Description,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F11,المرجع الخارجي,optional,implemented,ExternalReference,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F12,الحالة,system,implemented,State,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F13,القيد الأصلي,required,implemented,ReversesJournalId,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F14,سبب العكس,required,implemented,ReversalReason,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F15,تاريخ العكس,required,implemented,AccountingDate,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F16,أنشأه,system,implemented,CreatedBy,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F17,وقت الإنشاء,system,implemented,CreatedAt,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F18,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/journals/{id}/reverse; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F02,الشركة,system,implemented,CompanyId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F03,الفرع,required,implemented,BranchId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F04,السنة,system,derived,FiscalPeriod.FiscalYearId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F05,رقم المستند,system,implemented,Number,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F06,تاريخ الوثيقة,required,implemented,DocumentDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F07,تاريخ الأثر,required,implemented,AccountingDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F08,العملة,required,partial,Lines[].CurrencyCode copied from original,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F09,سعر الصرف,required,partial,Lines[].ExchangeRate copied from original,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F10,البيان,required,implemented,Description,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F11,المرجع الخارجي,optional,implemented,ExternalReference,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F12,الحالة,system,implemented,State,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F13,القيد الأصلي,required,implemented,ReversesJournalId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F14,سبب العكس,required,implemented,ReversalReason,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F15,تاريخ العكس,required,implemented,AccountingDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F16,أنشأه,system,implemented,CreatedBy,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F17,وقت الإنشاء,system,implemented,CreatedAt,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F18,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
 GL07,GL07-F19,آخر تعديل,system,pending,,
 GL08,GL08-F01,الشركة,system,pending,,
 GL08,GL08-F02,الفرع,conditional,pending,,
