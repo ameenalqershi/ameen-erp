@@ -60,6 +60,6 @@ public static class JournalDocumentTypeReferencePolicy
 
     private static bool ValidCode(string? value) =>
         !string.IsNullOrEmpty(value) && value.Length <= 32 &&
-        value[0] is >= 'A' and <= 'Z' or >= '0' and <= '9' &&
+        (value[0] is >= 'A' and <= 'Z' or >= '0' and <= '9') &&
         value.All(c => c is >= 'A' and <= 'Z' or >= '0' and <= '9' or '.' or '_' or '-');
 }
