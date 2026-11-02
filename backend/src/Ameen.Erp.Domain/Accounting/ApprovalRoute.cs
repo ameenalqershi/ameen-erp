@@ -54,6 +54,44 @@ public sealed class ApprovalRoute : CompanyEntity
         return stage;
     }
 
+    // Domain-only preparation for future audited SYS09 administration. This does
+    // not remove the persistence guard or activate any approval workflow.
+    public void ReplaceStages(IEnumerable<ApprovalRouteStageDraft> drafts,
+        int expectedRevision, DateTimeOffset now)
+    {
+        Check.That(expectedRevision == Revision, "stale_approval_revision",
+            "تم تعديل مسار الاعتماد بواسطة عملية أخرى.", ErrorKind.Conflict);
+        Check.That(drafts is not null, "invalid_approval_stages", "مراحل الاعتماد مطلوبة.");
+        var replacement = new List<ApprovalRouteStage>();
+        var stageNumbers = new HashSet<int>();
+        foreach (var draft in drafts!)
+        {
+            Check.That(draft is not null, "invalid_approval_stages", "مراحل الاعتماد مطلوبة.");
+            var stage = new ApprovalRouteStage(CompanyId, Id,
+                draft!.StageNumber, draft.ApproverRoleId, draft.AlertAfterMinutes);
+            Check.That(stageNumbers.Add(stage.StageNumber), "duplicate_approval_stage", "رقم المرحلة مكرر.");
+            replacement.Add(stage);
+        }
+        Advance(now);
+        Stages.Clear();
+        Stages.AddRange(replacement);
+    }
+
+    public void Edit(string documentType, decimal minimumAmount, decimal? maximumAmount,
+        Guid currencyId, bool separateCreatorAndApprover, int expectedRevision, DateTimeOffset now)
+    {
+        Check.That(expectedRevision == Revision, "stale_approval_revision",
+            "تم تعديل مسار الاعتماد بواسطة عملية أخرى.", ErrorKind.Conflict);
+        Edit(documentType, minimumAmount, maximumAmount, currencyId, separateCreatorAndApprover, now);
+    }
+
+    public void SetActive(bool active, int expectedRevision, DateTimeOffset now)
+    {
+        Check.That(expectedRevision == Revision, "stale_approval_revision",
+            "تم تعديل مسار الاعتماد بواسطة عملية أخرى.", ErrorKind.Conflict);
+        SetActive(active, now);
+    }
+
     public void SetActive(bool active, DateTimeOffset now)
     {
         Advance(now);
@@ -112,3 +150,6 @@ public sealed class ApprovalRouteStage : CompanyEntity
         AlertAfterMinutes = alertAfterMinutes;
     }
 }
+
+// Validated through ApprovalRouteStage before changing the route aggregate.
+public sealed record ApprovalRouteStageDraft(int StageNumber, Guid ApproverRoleId, int? AlertAfterMinutes);

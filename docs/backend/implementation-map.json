@@ -479,8 +479,8 @@
     },
     "SYS09": {
       "api": "internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent",
-      "implemented": "SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; all unvalidated writes blocked",
-      "remaining": "SYS07 role FK exists but membership/active/scope/deny enforcement is absent; document type allowed list, conflict-free amount/scope policy, stage execution, notifications, authorization, endpoints and acceptance not implemented",
+      "implemented": "SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; domain-only conservative branch/amount overlap preflight and atomic stage replacement with revision; all unvalidated writes blocked",
+      "remaining": "SYS07 role FK exists but membership/active/scope/deny enforcement is absent; document type allowed list, transactional overlap/scope arbitration, cross-currency policy, stage execution, notifications, authorization, endpoints and acceptance not implemented",
       "fields": {
         "SYS09-F01": {
           "status": "implemented",
@@ -516,7 +516,7 @@
         },
         "SYS09-F09": {
           "status": "partial",
-          "binding": "ApprovalRouteStage.StageNumber: positive, unique per route"
+          "binding": "ApprovalRouteStage.StageNumber: positive, unique per route; domain-only atomic replacement"
         },
         "SYS09-F10": {
           "status": "partial",
@@ -536,7 +536,7 @@
         },
         "SYS09-F14": {
           "status": "partial",
-          "binding": "Revision: server integer in domain only"
+          "binding": "Revision: server integer, domain-only expected-revision editing"
         },
         "SYS09-F15": {
           "status": "partial",

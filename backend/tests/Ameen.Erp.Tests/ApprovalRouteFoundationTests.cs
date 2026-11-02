@@ -58,6 +58,111 @@ public static class ApprovalRouteFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS09: pure route overlap preflight respects inclusive amounts and branch scope", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 10, 0, 0, TimeSpan.Zero);
+            var currency = Guid.NewGuid();
+            ApprovalRoute Route(Guid? branch, string kind, decimal min, decimal? max,
+                Guid? money = null) => new(f.CompanyId, branch, kind, min, max,
+                    money ?? currency, true, f.Owner.Subject, now);
+            var candidate = Route(f.BranchId, "journal", 100m, 200m);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { candidate }) ==
+                ApprovalRouteConflictStatus.Clear, "Editing the same route is not a collision");
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] {
+                Route(f.BranchId, "journal", 200m, 300m) }) ==
+                ApprovalRouteConflictStatus.Overlap, "Inclusive endpoint collision not detected");
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] {
+                Route(f.BranchId, "journal", 201m, 300m) }) ==
+                ApprovalRouteConflictStatus.Clear, "Disjoint same-currency interval rejected");
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] {
+                Route(null, "journal", 0m, null) }) ==
+                ApprovalRouteConflictStatus.Overlap, "Company-wide route must intersect branch route");
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] {
+                Route(Guid.NewGuid(), "journal", 100m, 200m) }) ==
+                ApprovalRouteConflictStatus.Clear, "Distinct explicit branches should not intersect");
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] {
+                Route(f.BranchId, "other", 100m, 200m) }) ==
+                ApprovalRouteConflictStatus.Clear, "Distinct document kinds should not intersect");
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] {
+                Route(f.BranchId, "journal", 999m, 1000m, Guid.NewGuid()) }) ==
+                ApprovalRouteConflictStatus.UnresolvedCurrency,
+                "Different currencies must not be compared by raw amount");
+            var inactive = Route(null, "journal", 0m, null);
+            inactive.SetActive(false, now.AddSeconds(1));
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { inactive }) ==
+                ApprovalRouteConflictStatus.Clear, "Inactive routes cannot conflict");
+            return Task.CompletedTask;
+        });
+
+        test("SYS09: route preflight rejects incomplete tenant snapshots", f =>
+        {
+            var now = DateTimeOffset.UtcNow;
+            var currency = Guid.NewGuid();
+            var candidate = new ApprovalRoute(f.CompanyId, f.BranchId, "journal", 0m,
+                null, currency, true, f.Owner.Subject, now);
+            var other = new ApprovalRoute(f.CompanyId, f.BranchId, "journal", 10m,
+                20m, currency, true, f.Owner.Subject, now);
+            var foreign = new ApprovalRoute(Guid.NewGuid(), f.BranchId, "journal", 0m,
+                null, currency, true, f.Owner.Subject, now);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, null) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot &&
+                ApprovalRouteConflictPolicy.Evaluate(null, new[] { other }) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot &&
+                ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { other, other }) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot &&
+                ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { other, foreign }) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot &&
+                ApprovalRouteConflictPolicy.Evaluate(candidate, new ApprovalRoute[] { other, null! }) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot,
+                "Incomplete, duplicate, foreign or null snapshot was accepted");
+            return Task.CompletedTask;
+        });
+
+        test("SYS09: atomic stage replacement and expected revision fail closed", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 11, 0, 0, TimeSpan.Zero);
+            var currency = Guid.NewGuid();
+            var role = Guid.NewGuid();
+            var route = new ApprovalRoute(f.CompanyId, f.BranchId, "journal", 0m,
+                null, currency, true, f.Owner.Subject, now);
+            route.AddStage(1, role, 30, now);
+            var revision = route.Revision;
+            var original = route.Stages.Single().Id;
+            var invalid = new[] {
+                new ApprovalRouteStageDraft(2, Guid.NewGuid(), 10),
+                new ApprovalRouteStageDraft(3, Guid.Empty, 20)
+            };
+            Expect("invalid_approval_role_reference", () =>
+                route.ReplaceStages(invalid, revision, now.AddSeconds(1)));
+            Expect("duplicate_approval_stage", () => route.ReplaceStages(new[] {
+                new ApprovalRouteStageDraft(1, role, 30),
+                new ApprovalRouteStageDraft(1, Guid.NewGuid(), 60)
+            }, revision, now.AddSeconds(1)));
+            Expect("invalid_approval_stages", () => route.ReplaceStages(new ApprovalRouteStageDraft[] {
+                new(2, role, null), null!
+            }, revision, now.AddSeconds(1)));
+            Expect("stale_approval_revision", () => route.ReplaceStages(Array.Empty<ApprovalRouteStageDraft>(),
+                revision - 1, now.AddSeconds(1)));
+            Ensure(route.Revision == revision && route.Stages.Single().Id == original,
+                "Rejected stage batch changed route");
+            route.ReplaceStages(new[] {
+                new ApprovalRouteStageDraft(2, role, null),
+                new ApprovalRouteStageDraft(4, Guid.NewGuid(), 45)
+            }, revision, now.AddSeconds(1));
+            Ensure(route.Revision == revision + 1 && route.Stages.Count == 2 &&
+                route.Stages.Select(x => x.StageNumber).SequenceEqual(new[] { 2, 4 }),
+                "Atomic replacement did not commit once");
+            Expect("stale_approval_revision", () => route.Edit("journal", 0m, null,
+                currency, true, revision, now.AddSeconds(2)));
+            Expect("stale_approval_revision", () => route.SetActive(false, revision, now.AddSeconds(2)));
+            Ensure(route.IsActive && route.Revision == revision + 1,
+                "Stale edit or status command changed route");
+            route.SetActive(false, revision + 1, now.AddSeconds(2));
+            Ensure(!route.IsActive && route.Revision == revision + 2,
+                "Current revision did not allow status update");
+            return Task.CompletedTask;
+        });
+
         test("SYS09 foundation: tenant FKs, stage uniqueness, GL14 route FK and guarded EF writes", async f =>
         {
             await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()

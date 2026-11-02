@@ -1,0 +1,70 @@
+namespace Ameen.Erp.Domain;
+
+// Pure, conservative SYS09 preflight. It does NOT prove snapshot completeness,
+// role eligibility, approved document kinds, or transaction-safe uniqueness.
+// Consequently it must not be used as the sole guard for any database write.
+public enum ApprovalRouteConflictStatus
+{
+    Clear,
+    Overlap,
+    UnresolvedCurrency,
+    InvalidSnapshot
+}
+
+public static class ApprovalRouteConflictPolicy
+{
+    public static ApprovalRouteConflictStatus Evaluate(ApprovalRoute? candidate,
+        IEnumerable<ApprovalRoute>? tenantRoutes)
+    {
+        if (candidate is null || tenantRoutes is null || !Valid(candidate))
+            return ApprovalRouteConflictStatus.InvalidSnapshot;
+
+        var snapshot = tenantRoutes.ToArray();
+        // Callers must supply a complete tenant-scoped snapshot. Foreign/null or
+        // duplicate records cannot safely establish absence of conflicts.
+        if (snapshot.Any(x => x is null || !Valid(x) || x.CompanyId != candidate.CompanyId) ||
+            snapshot.Select(x => x.Id).Distinct().Count() != snapshot.Length)
+            return ApprovalRouteConflictStatus.InvalidSnapshot;
+
+        var unresolvedCurrency = false;
+        foreach (var other in snapshot)
+        {
+            if (other.Id == candidate.Id || !other.IsActive ||
+                other.DocumentType != candidate.DocumentType ||
+                (candidate.BranchId is not null && other.BranchId is not null &&
+                 candidate.BranchId != other.BranchId))
+                continue;
+
+            // No approved FX conversion/route comparison policy exists. Do not
+            // compare raw numbers in different currencies or assume no conflict.
+            if (other.CurrencyId != candidate.CurrencyId)
+            {
+                unresolvedCurrency = true;
+                continue;
+            }
+
+            // Both bounds are inclusive. Null maximum means unbounded.
+            if (candidate.MinimumAmount <= (other.MaximumAmount ?? decimal.MaxValue) &&
+                other.MinimumAmount <= (candidate.MaximumAmount ?? decimal.MaxValue))
+                return ApprovalRouteConflictStatus.Overlap;
+        }
+        return unresolvedCurrency ? ApprovalRouteConflictStatus.UnresolvedCurrency :
+            ApprovalRouteConflictStatus.Clear;
+    }
+
+    private static bool Valid(ApprovalRoute route)
+    {
+        const decimal limit = 99999999999999.999999m;
+        var type = route.DocumentType;
+        return route.Id != Guid.Empty && route.CompanyId != Guid.Empty &&
+            route.BranchId != Guid.Empty && route.CurrencyId != Guid.Empty &&
+            !string.IsNullOrEmpty(type) && type.Length <= 32 &&
+            type[0] is >= 'A' and <= 'Z' or >= '0' and <= '9' &&
+            type.All(c => c is >= 'A' and <= 'Z' or >= '0' and <= '9' or '.' or '_' or '-') &&
+            route.MinimumAmount >= 0 && route.MinimumAmount <= limit &&
+            decimal.Round(route.MinimumAmount, 6) == route.MinimumAmount &&
+            (route.MaximumAmount is null || route.MaximumAmount >= route.MinimumAmount &&
+             route.MaximumAmount <= limit &&
+             decimal.Round(route.MaximumAmount.Value, 6) == route.MaximumAmount);
+    }
+}
