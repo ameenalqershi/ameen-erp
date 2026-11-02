@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-11-02T06:28:55.291589+00:00",
+  "startedAtUtc": "2026-11-02T09:04:43.277656+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "661549d14ff032b646ffff22a1d8eecab1434f94c03f884dc4068ad91f4b2a6a",
+  "sourceSha256": "a47d5d1c3322248597fc5314fe8d5793a3d66821d981723c1a91454647d46e06",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -388,6 +388,8 @@
     "PASS SYS09 foundation: tenant FKs, stage uniqueness, GL14 route FK and guarded EF writes",
     "PASS SYS07 foundation: role header, rule dimensions, explicit deny and amount cap",
     "PASS SYS07 foundation: invalid policy, duplicate rule and stale revision are atomic",
+    "PASS SYS07/SYS08: assigned roles enforce tenant, branch, explicit deny and caps",
+    "PASS SYS07/SYS08: assignment FK model and EF guard reject unverified writes",
     "PASS SYS07 foundation: tenant role, currency and SYS09 approver FKs; writes fail closed",
     "PASS HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON",
     "PASS OpenAPI: production routes expose optional draft headers without SQL dependency",
@@ -419,9 +421,11 @@
     "  SQL PASS GL14 026→027 atomic/idempotent schema, tenant FKs, code uniqueness, no seeded cards",
     "  SQL PASS SYS09 027→028 atomic/idempotent, tenant FKs, GL14 FK, no seeded roles",
     "  SQL PASS SYS07 028→029 atomic/idempotent, tenant FKs, SYS09 role FK, no seeded grants",
+    "  SQL PASS SYS08/SYS07 029→030 rollback/retry, tenant FKs, unique assignment, no seed",
     "  SQL PASS GL14 refuses unvalidated approval route without writing a card",
     "  SQL PASS SYS09 refuses unvalidated roles without writing route/stages",
     "  SQL PASS SYS07 guarded writes and rejected branch/role tenant FKs",
+    "  SQL PASS SYS08/SYS07 assignment write guard and missing tenant references",
     "  SQL PASS concurrent idempotency across independent connections",
     "  SQL PASS draft replacement, materialization, posting replay and one outbox",
     "  SQL PASS real constraint failure rolls back journal, audit, outbox and receipt; retry succeeds",
@@ -503,8 +507,8 @@
     "  SQL PASS GL13 concurrent replay, parent-line replacement under runtime role, posted ledger review, immutable snapshots, tenant FKs, audit rollback and retry",
     "PASS SQL Server integration"
   ],
-  "passed": 343,
-  "total": 343,
+  "passed": 345,
+  "total": 345,
   "failed": 0,
-  "finishedAtUtc": "2026-11-02T06:30:31.244509+00:00"
+  "finishedAtUtc": "2026-11-02T09:06:14.034089+00:00"
 }
