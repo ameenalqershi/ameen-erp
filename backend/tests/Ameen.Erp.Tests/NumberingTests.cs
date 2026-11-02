@@ -43,6 +43,25 @@ public static class NumberingTests
                 series.NextNumber==11 && series.Revision==3);
             return Task.CompletedTask;
         });
+        test("SYS10 status atomicity: invalid timestamp cannot mutate activation or audit",f=>
+        {
+            var now=new DateTimeOffset(2026,11,2,12,0,0,TimeSpan.Zero);
+            var card=new DocumentNumberSeries(f.CompanyId,f.BranchId,NumberingDocumentKind.Journal,
+                Guid.NewGuid(),"JV-",7,"actor",now);
+            var version=card.Version;
+            try { card.SetActive(false,now.AddMinutes(-1)); throw new Exception("Expected invalid status timestamp"); }
+            catch(BusinessException ex) when(ex.Code=="invalid_numbering_revision") { }
+            Ensure(card.IsActive && card.Revision==1 && card.LastModifiedAt==now &&
+                card.Version==version && card.NextNumber==7);
+            card.SetActive(false,now.AddMinutes(1));
+            Ensure(!card.IsActive && card.Revision==2 && card.LastModifiedAt==now.AddMinutes(1));
+            version=card.Version;
+            try { card.SetActive(true,now); throw new Exception("Expected stale status timestamp"); }
+            catch(BusinessException ex) when(ex.Code=="invalid_numbering_revision") { }
+            Ensure(!card.IsActive && card.Revision==2 && card.LastModifiedAt==now.AddMinutes(1) &&
+                card.Version==version);
+            return Task.CompletedTask;
+        });
         test("SYS10 idempotency: concurrent create and reserve return one card/allocation and audit",async f=>
         {
             var key=Fixture.Key();var cards=await Task.WhenAll(Enumerable.Range(0,8).Select(_=>Create(f,key:key)));
