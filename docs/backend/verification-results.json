@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-11-02T17:32:37.925631+00:00",
+  "startedAtUtc": "2026-11-02T17:36:45.525301+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -518,5 +518,5 @@
   "passed": 353,
   "total": 353,
   "failed": 0,
-  "finishedAtUtc": "2026-11-02T17:33:39.829198+00:00"
+  "finishedAtUtc": "2026-11-02T17:37:54.373874+00:00"
 }
