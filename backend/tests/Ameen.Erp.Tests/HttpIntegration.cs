@@ -90,9 +90,26 @@ public static class HttpIntegration
             Ensure(json.RootElement.GetProperty("totalClosingDebit").GetString() == "100", "Decimal HTTP contract differs");
             Ensure(json.RootElement.GetProperty("from").GetString() == "2026-01-01", "Date HTTP contract differs");
 
+            await f.Post(await f.Draft(f.Request() with { AutomaticReversal = true, ReversalDate = Fixture.Date }));
+            using (var anonymousRun = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date)))
+                Ensure(anonymousRun.StatusCode == HttpStatusCode.Unauthorized, "Anonymous scheduled reversal passed");
+            using (var run = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date)))
+            {
+                Ensure(run.StatusCode == HttpStatusCode.OK, await run.Content.ReadAsStringAsync());
+                using var result = JsonDocument.Parse(await run.Content.ReadAsStringAsync());
+                Ensure(result.RootElement.GetProperty("generatedCount").GetInt32() == 1 &&
+                    result.RootElement.GetProperty("rows")[0].GetProperty("succeeded").GetBoolean(), "HTTP scheduled reversal failed");
+            }
+            using (var replay = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date)))
+            using (var result = JsonDocument.Parse(await replay.Content.ReadAsStringAsync()))
+                Ensure(replay.StatusCode == HttpStatusCode.OK && result.RootElement.GetProperty("selectedCount").GetInt32() == 0,
+                    "HTTP scheduled reversal replay duplicated work");
+
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test", "unrelated-user");
             using var forbidden = await client.GetAsync(path);
             await Problem(forbidden, 403, "permission_denied");
+            using var forbiddenRun = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date));
+            await Problem(forbiddenRun, 403, "permission_denied");
         }
         finally { await app.StopAsync(); }
     }
