@@ -1,3 +1,12 @@
+# Current checkpoint — SYS09-FG04 inactive candidate interval (2026-11-03)
+
+- Branch `temp/sys09-inactive-candidate-conflict-20261103`, base `origin/main=95f5ad4aa8b57d48899afcbe0d3934dc1d86d317` (main CI #41528897380 SUCCESS). No concurrent git/dotnet processes before worktree creation; other worktrees untouched.
+- Changed `backend/src/Ameen.Erp.Domain/Accounting/ApprovalRouteConflictPolicy.cs`, `backend/tests/Ameen.Erp.Tests/ApprovalRouteFoundationTests.cs`, this checkpoint and `docs/backend/PROGRESS.md`. Disabled candidate returns `Clear` after full snapshot validation; reactivation restores overlap enforcement. This pure result is not permission to write. SYS07/SYS09/GL14 persistence guards unchanged.
+- Local .NET 10 Release and 363/363 domain/EF/HTTP/JWT/OpenAPI tests green, traceability/progress inventory checks green, `git diff --check` clean. Evidence `backend/.artifacts/sys09-inactive-candidate-20261103/verification.json`; no local live SQL. Notion SYS09-01 remains partial; zero accepted new tasks.
+- NEXT: push `temp` commit, create PR, await branch/PR CI with isolated SQL. Merge only if all CI green and main compatible, then verify main CI. Add Notion SYS09-01 partial update with SHA and CI links. Do not repeat this fix or unlock SYS09/GL14 writes. Next functional priority: SYS07 authorized role administration, complete SYS09 document-kind/role/overlap transactional validation and GL14/GL03 binding.
+
+---
+
 # Checkpoint — GL14-02 hydrated reference integrity (2026-11-03)
 
 - Isolated branch `temp/gl14-reference-guard-integrity-20261103` from `main=bdc96e10f9953746bb4070ef7ecda3076afb4d6e`, after merging CI-green SYS09 PR #6. This branch only touches GL14 preflight, SYS09 snapshot validator, one GL14 regression test and handoff docs; other worktrees remain untouched.

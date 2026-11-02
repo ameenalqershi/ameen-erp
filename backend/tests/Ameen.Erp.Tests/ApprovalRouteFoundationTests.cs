@@ -94,6 +94,33 @@ public static class ApprovalRouteFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS09: inactive candidate releases interval but never bypasses snapshot validation", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 3, 0, 0, 0, TimeSpan.Zero);
+            var currency = Guid.NewGuid();
+            ApprovalRoute Route(Guid company, Guid money) => new(company, f.BranchId,
+                "journal", 0m, 100m, money, true, f.Owner.Subject, now);
+            var candidate = Route(f.CompanyId, currency);
+            var existing = Route(f.CompanyId, currency);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                ApprovalRouteConflictStatus.Overlap, "Active candidate overlap not detected");
+            candidate.SetActive(false, now.AddSeconds(1));
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                ApprovalRouteConflictStatus.Clear, "Disabled candidate reserved an interval");
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] {
+                Route(f.CompanyId, Guid.NewGuid()) }) == ApprovalRouteConflictStatus.Clear,
+                "Disabled candidate triggered an unresolved FX comparison");
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] {
+                Route(Guid.NewGuid(), currency) }) == ApprovalRouteConflictStatus.InvalidSnapshot &&
+                ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing, existing }) ==
+                    ApprovalRouteConflictStatus.InvalidSnapshot,
+                "Disabled candidate bypassed tenant or duplicate snapshot validation");
+            candidate.SetActive(true, now.AddSeconds(2));
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                ApprovalRouteConflictStatus.Overlap, "Reactivated candidate escaped conflict check");
+            return Task.CompletedTask;
+        });
+
         test("SYS09: route preflight rejects incomplete tenant snapshots", f =>
         {
             var now = DateTimeOffset.UtcNow;
