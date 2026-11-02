@@ -599,8 +599,8 @@
     },
     "GL14": {
       "api": "internal EF model and SQL 027 only; no public GL14 API",
-      "implemented": "GL14-01 structural foundation: JournalDocumentType with tenant-scoped branch/number-series references, unique text code, origin, attachment flag and server audit; SQL 027 atomic and idempotent; persistence rejects unvalidated SYS09 approval routes",
-      "remaining": "SYS09 route schema and GL14 tenant FK exist but roles, route activation and policy validation are blocked; create/edit/disable/search/usage/audit APIs, GL03 binding, manual/automatic origin enforcement and full acceptance remain unimplemented",
+      "implemented": "GL14-01 structural foundation: JournalDocumentType with tenant-scoped branch/number-series references, unique text code, origin, attachment flag and server audit; domain-only origin compatibility and optimistic revision checks; SQL 027 atomic and idempotent; persistence rejects unvalidated SYS09 approval routes",
+      "remaining": "SYS09 route schema and GL14 tenant FK exist but roles, route activation and policy validation are blocked; create/edit/disable/search/usage/audit APIs, GL03 binding, runtime enforcement of manual/automatic origin and reversal separation, and full acceptance remain unimplemented",
       "fields": {
         "GL14-F01": {
           "status": "partial",
@@ -624,7 +624,7 @@
         },
         "GL14-F06": {
           "status": "partial",
-          "binding": "Origin: Manual/Automatic enum only"
+          "binding": "Origin: Manual/Automatic enum plus domain-only MatchesSource guard; no GL03 enforcement"
         },
         "GL14-F07": {
           "status": "partial",
@@ -648,7 +648,7 @@
         },
         "GL14-F12": {
           "status": "partial",
-          "binding": "Revision: int only"
+          "binding": "Revision: server int plus expected-revision domain guard; no API concurrency acceptance"
         },
         "GL14-F13": {
           "status": "partial",

@@ -76,6 +76,12 @@ public sealed class JournalDocumentType : CompanyEntity
         IsActive = active;
     }
 
+    // GL14 source-origin boundary: a manual card cannot identify an automatic
+    // source (or vice versa). This pure check is not a posting authorization;
+    // the future GL03 service must also validate route, series and reversal.
+    public bool MatchesSource(JournalDocumentOrigin requestedOrigin) =>
+        IsActive && Enum.IsDefined(requestedOrigin) && Origin == requestedOrigin;
+
     private void Advance(DateTimeOffset now)
     {
         Check.That(Revision < int.MaxValue && now >= CreatedAt && now >= LastModifiedAt,

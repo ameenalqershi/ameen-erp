@@ -1,3 +1,12 @@
+# GL14-01 checkpoint — 3 November 2026
+
+- Isolated worktree: `/root/ameen-erp-worktrees/gl14-optimistic-revision`, branch `temp/gl14-optimistic-revision-20261103` based on `fc3bfbc`. Other concurrent SYS09 worktree was active; do not overwrite it.
+- Domain-only origin guard and regression coverage for existing expected-revision overloads. GL14 remains blocked by SYS07/SYS09/GL03 and EF write guard; no completed task claim.
+- Local verification: 360/360 Release, HTTP/JWT, OpenAPI, traceability/progress checks passed (no live SQL). [branch CI #41525900467](https://github.com/ameenalqershi/ameen-erp/actions/runs/41525900467) on [b21d97f](https://github.com/ameenalqershi/ameen-erp/commit/b21d97ff17ef6cbb95b9096d05aa28951c04bda9) succeeded 361/361 with isolated SQL. Before merge: verify the documentation follow-up CI and PR CI; push `temp:` commit; require successful branch CI including isolated SQL, HTTP/JWT and OpenAPI; then merge safely against current main and verify main CI. Update Notion GL14-01 only as partial with exact evidence.
+- No analysis edits, SQL schema edits or production writes.
+
+---
+
 # Latest checkpoint — GL14 hydrated snapshot regression merge (2026-11-02)
 
 - GL14-02 partial only: added negative hydrated snapshot regression for invalid document-type first character, zero document-type revision and zero numbering next counter; valid recovered references remain `UnresolvedPolicy`, not authorization.
