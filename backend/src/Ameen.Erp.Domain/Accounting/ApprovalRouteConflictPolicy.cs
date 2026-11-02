@@ -23,7 +23,8 @@ public static class ApprovalRouteConflictPolicy
         // Callers must supply a complete tenant-scoped snapshot. Foreign/null or
         // duplicate records cannot safely establish absence of conflicts.
         if (snapshot.Any(x => x is null || !Valid(x) || x.CompanyId != candidate.CompanyId) ||
-            snapshot.Select(x => x.Id).Distinct().Count() != snapshot.Length)
+            snapshot.Select(x => x.Id).Distinct().Count() != snapshot.Length ||
+            !DistinctStageIdentities(candidate, snapshot))
             return ApprovalRouteConflictStatus.InvalidSnapshot;
 
         var unresolvedCurrency = false;
@@ -50,6 +51,23 @@ public static class ApprovalRouteConflictPolicy
         }
         return unresolvedCurrency ? ApprovalRouteConflictStatus.UnresolvedCurrency :
             ApprovalRouteConflictStatus.Clear;
+    }
+
+    // Stage IDs are globally unique persistence identities, not merely unique
+    // inside each route. A duplicate across different routes means the supplied
+    // snapshot is corrupt. Ignore the persisted copy of the candidate itself:
+    // edit preflight may legitimately supply the same route twice (by ID).
+    private static bool DistinctStageIdentities(ApprovalRoute candidate,
+        IEnumerable<ApprovalRoute> snapshot)
+    {
+        var ids = new HashSet<Guid>(candidate.Stages.Select(x => x.Id));
+        foreach (var route in snapshot)
+        {
+            if (route.Id == candidate.Id) continue;
+            foreach (var stage in route.Stages)
+                if (!ids.Add(stage.Id)) return false;
+        }
+        return true;
     }
 
     private static bool Valid(ApprovalRoute route)

@@ -148,6 +148,34 @@ public static class ApprovalRouteFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS09: duplicate stage identities across distinct routes fail closed", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 14, 0, 0, TimeSpan.Zero);
+            var currency = Guid.NewGuid();
+            ApprovalRoute Route() => new(f.CompanyId, f.BranchId, "journal", 10m,
+                20m, currency, true, f.Owner.Subject, now);
+            var candidate = Route();
+            var first = Route();
+            var second = Route();
+            var candidateStage = candidate.AddStage(1, Guid.NewGuid(), null, now);
+            var firstStage = first.AddStage(1, Guid.NewGuid(), null, now);
+            var secondStage = second.AddStage(1, Guid.NewGuid(), null, now);
+            var original = secondStage.Id;
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { first, second }) ==
+                ApprovalRouteConflictStatus.Overlap, "Valid stage identities must allow overlap detection");
+            // EF hydration corruption: two distinct routes claim the same stage PK.
+            typeof(Entity).GetProperty(nameof(Entity.Id))!.SetValue(secondStage, firstStage.Id);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { first, second }) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot, "Cross-route duplicate stage PK was accepted");
+            typeof(Entity).GetProperty(nameof(Entity.Id))!.SetValue(secondStage, candidateStage.Id);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { first, second }) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot, "Candidate/tenant duplicate stage PK was accepted");
+            typeof(Entity).GetProperty(nameof(Entity.Id))!.SetValue(secondStage, original);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { candidate, first, second }) ==
+                ApprovalRouteConflictStatus.Overlap, "Own persisted candidate must not be double counted");
+            return Task.CompletedTask;
+        });
+
         test("SYS09: corrupt hydrated route audit invalidates conflict preflight", f =>
         {
             var now = new DateTimeOffset(2026, 11, 2, 13, 0, 0, TimeSpan.Zero);

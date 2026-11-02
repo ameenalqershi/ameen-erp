@@ -1,3 +1,12 @@
+# Latest checkpoint — SYS09-FG03 cross-route stage identity (2026-11-02)
+
+- Preflight: `origin/main=d8c395a4e95ede3a3850ab4f3dca41768a05294c`, main CI #41493519429 SUCCESS 353/353, no active processes; original stale `/root/ameen-erp` worktree deliberately untouched. Isolated worktree `/root/ameen-erp-worktrees/sys09-amount-integrity`, branch `temp/sys09-preflight-amount-integrity-20261102`.
+- Task SYS09-FG03 / GL14 dependency, domain-only partial: `ApprovalRouteConflictPolicy` rejects duplicate `ApprovalRouteStage.Id` across distinct routes in supplied tenant snapshot and candidate. Same-ID persisted candidate is excluded as edit preview; per-route checks still apply. Regression test covers tenant-tenant, candidate-tenant, restored identities and own persisted candidate. Files: `backend/src/Ameen.Erp.Domain/Accounting/ApprovalRouteConflictPolicy.cs`, `backend/tests/Ameen.Erp.Tests/ApprovalRouteFoundationTests.cs`, `backend/scripts/traceability.py`, generated traceability matrices, `docs/backend/PROGRESS.md`, `docs/backend/sys09-route-preflight.md`, this checkpoint.
+- Local first pass 353/353, Release, HTTP/JWT, OpenAPI, traceability, no live SQL. NEXT: regenerate traceability and progress, rerun final verification; only if green commit with `temp:` and push branch, verify CI with isolated SQL; if green and main unchanged fast-forward main, verify main CI and update Notion SYS09-FG03/SYS09-01 as partial. Preserve original analysis and all EF guards; no production. If interrupted, check status, processes, SHA and CI before repeating any step.
+- Blockers: SYS07 audited role/assignment administration, approved document kinds and currency policy, transactional SQL overlap arbitration and role eligibility, runtime JWT/HTTP acceptance, GL14/GL03 integration. No SYS09 functional completion claim.
+
+---
+
 # Latest checkpoint — SYS09-FG04 hydrated audit preflight (2026-11-02)
 
 - Verified clean `origin/main=3180f7a44c7be0c75a596a7da790f9140000b8c5` and no active build/verify/codex processes; older `/root/ameen-erp` branch is behind and deliberately untouched. Isolated worktree `/root/ameen-erp-worktrees/sys09-overlap-boundary`, branch `temp/sys09-route-overlap-boundary-20261102`.

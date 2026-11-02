@@ -21,3 +21,7 @@ The pure `ApprovalRouteConflictPolicy` now rejects an otherwise well-formed rout
 ## Hydrated audit integrity hardening (2026-11-02, partial)
 
 `ApprovalRouteConflictPolicy` rejects candidate and tenant route rows with invalid `Revision`, missing/overlong/untrimmed `CreatedBy`, default `CreatedAt`, or `LastModifiedAt` earlier than `CreatedAt`. These are SYS09-F12–F15 audit invariants, not new business defaults. The preflight returns `InvalidSnapshot` before a false `Clear`, including for inactive tenant rows. Tests corrupt and restore each field on candidate and tenant snapshots. The guard does **not** prove an audit event exists, that the complete tenant snapshot was loaded, or that database writes are safe. EF persistence guards remain active; no SQL, API, permission or approval workflow is enabled.
+
+## Cross-route stage identity integrity (2026-11-02, partial)
+
+The conservative preflight now rejects duplicated stage primary keys **across distinct routes**, including candidate-to-tenant collisions. It excludes the candidate's own persisted route ID from this comparison to preserve legitimate edit preflight, while retaining per-route duplicate checks. Regression tests cover two tenant routes, candidate-to-tenant collisions, restoration and the candidate's own persisted row. This protects against corrupted hydrated snapshots; it is not a guarantee of snapshot completeness, SQL serializability, role eligibility or runtime approval. All SYS09 and GL14 persistence guards remain active.
