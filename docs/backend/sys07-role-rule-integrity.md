@@ -1,0 +1,7 @@
+# SYS07-GAP01 — fail-closed role rule snapshot integrity (2026-11-02)
+
+Partial domain-only hardening grounded in SYS07 company isolation, explicit-deny precedence and independent operations. `SecurityRole.Permits` now refuses malformed rule snapshots: rules from another company, rules referencing another role, or duplicate `(screen, operation, currency)` keys. `SecurityRolePolicyEvaluator` applies the same integrity check to every assigned role before evaluating any grants. This prevents a malformed hydrated role from authorizing through an otherwise valid grant. A valid snapshot retains its existing behavior.
+
+Tests: `SecurityRoleFoundationTests` checks valid direct and assigned grants, foreign-company injected rule, duplicate rule and restored snapshot. Local `verify.py` Release/HTTP/JWT/OpenAPI/traceability: 346/346 passed, 0 failed; isolated SQL verification requires CI. No migration, endpoint, grant-source or original-analysis changes. EF write guards stay enabled; SYS07/SYS08/SYS09/GL14 are **not** functionally accepted.
+
+Next: approved screen-operation registry; audited and concurrency-safe role/assignment administration, anti-self-escalation, tenant-consistent role snapshot loader, negative HTTP/JWT acceptance, then SYS09 and GL14/GL03.

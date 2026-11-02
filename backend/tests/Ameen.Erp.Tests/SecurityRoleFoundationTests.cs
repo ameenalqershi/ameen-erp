@@ -165,6 +165,36 @@ public static class SecurityRoleFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS07: malformed role rule snapshots fail closed for direct and assigned checks", f =>
+        {
+            var now = DateTimeOffset.UtcNow;
+            var member = new Membership(f.CompanyId, f.Owner.Subject,
+                new[] { Permissions.Read }, false, new[] { f.BranchId });
+            var role = new SecurityRole(f.CompanyId, f.BranchId, "Poster", "Post journals",
+                f.Owner.Subject, now);
+            role.AddRule("GL03", "POST", true, null, null, now);
+            var link = new SecurityRoleAssignment(f.CompanyId, member.Id, role.Id);
+            bool Assigned() => SecurityRolePolicyEvaluator.Permits(member,
+                new[] { link }, new[] { role }, f.CompanyId, f.BranchId,
+                "GL03", "POST", null, null);
+            Ensure(role.Permits("GL03", "POST", null, null) && Assigned(),
+                "Valid role snapshot must retain its explicit grant");
+            var foreign = new SecurityRole(Guid.NewGuid(), null, "Foreign", "Other company",
+                f.Owner.Subject, now);
+            foreign.AddRule("GL03", "EXPORT", true, null, null, now);
+            role.Rules.Add(foreign.Rules.Single());
+            Ensure(!role.Permits("GL03", "POST", null, null) && !Assigned(),
+                "Foreign-company rule in role snapshot must fail closed");
+            role.Rules.RemoveAt(1);
+            role.Rules.Add(role.Rules[0]);
+            Ensure(!role.Permits("GL03", "POST", null, null) && !Assigned(),
+                "Duplicate role rule in snapshot must fail closed");
+            role.Rules.RemoveAt(1);
+            Ensure(role.Permits("GL03", "POST", null, null) && Assigned(),
+                "Restored valid snapshot must preserve grant");
+            return Task.CompletedTask;
+        });
+
         test("SYS07/SYS08: assignment FK model and EF guard reject unverified writes", async f =>
         {
             Expect("invalid_role_assignment", () => new SecurityRoleAssignment(f.CompanyId,

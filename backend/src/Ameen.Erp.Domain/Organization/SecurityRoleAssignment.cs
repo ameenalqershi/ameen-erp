@@ -44,8 +44,7 @@ public static class SecurityRolePolicyEvaluator
         var selectedRoles = roles.Where(x => assignedIds.Contains(x.Id)).ToArray();
         if (selectedRoles.Length != assignedIds.Count ||
             selectedRoles.Select(x => x.Id).Distinct().Count() != assignedIds.Count ||
-            selectedRoles.Any(x => x.CompanyId != companyId ||
-                x.Rules.Any(r => r.CompanyId != companyId || r.RoleId != x.Id)))
+            selectedRoles.Any(x => x.CompanyId != companyId || !x.HasValidRuleSnapshot()))
             return false;
         var applicable = selectedRoles.Where(x => x.IsActive &&
             (x.BranchId is null || x.BranchId == branchId)).ToArray();

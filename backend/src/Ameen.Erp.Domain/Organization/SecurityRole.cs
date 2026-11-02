@@ -92,12 +92,24 @@ public sealed class SecurityRole : CompanyEntity
         SetActive(active, now);
     }
 
+    // The public collection can be hydrated or modified outside the aggregate.
+    // A corrupt or cross-tenant rule snapshot must never turn into a grant.
+    internal bool HasValidRuleSnapshot()
+    {
+        if (Rules is null) return false;
+        var keys = new HashSet<(string Screen, string Operation, Guid? Currency)>();
+        return Rules.All(x => x is not null && x.CompanyId == CompanyId &&
+            x.RoleId == Id &&
+            keys.Add((x.ScreenCode, x.OperationCode, x.CurrencyId)));
+    }
+
     // A pure conservative evaluator, NOT yet wired into user authorization.
     // Any explicit deny wins; an amount-limited grant requires a matching currency
     // and a supplied amount. No implicit permission is ever inferred.
     public bool Permits(string screen, string operation, decimal? amount, Guid? currencyId)
     {
-        if (!IsActive || amount < 0 || string.IsNullOrWhiteSpace(screen) || string.IsNullOrWhiteSpace(operation))
+        if (!IsActive || !HasValidRuleSnapshot() || amount < 0 ||
+            string.IsNullOrWhiteSpace(screen) || string.IsNullOrWhiteSpace(operation))
             return false;
         var matches = Rules.Where(x =>
             x.ScreenCode == screen.Trim().ToUpperInvariant() &&

@@ -1,3 +1,12 @@
+# Latest checkpoint — SYS07-GAP01 role rule snapshot integrity (2026-11-02)
+
+- Preflight: remote `origin/main=34a1aae1ac6a2a1ee6eb4b506a6c5ec027b352f5`, main CI #41438417630 SUCCESS. Original `/root/ameen-erp` on temp/sys07-permission-registry-20261102 with local dcd75c2; other worktrees untouched. No active git/dotnet/codex jobs. Created isolated `/root/ameen-erp-worktrees/sys07-rule-integrity` on `temp/sys07-role-rule-integrity-20261102` from origin/main.
+- Task SYS07-GAP01 partial: domain rule-snapshot integrity guard. Files `backend/src/Ameen.Erp.Domain/Organization/SecurityRole.cs`, `SecurityRoleAssignment.cs`, `backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs`, `backend/scripts/traceability.py`, generated traceability docs, `docs/backend/PROGRESS.md`, `docs/backend/sys07-role-rule-integrity.md`, this checkpoint. No migration, original-analysis change, runtime auth or EF guard removal.
+- Local `verify.py` Release + domain + HTTP/JWT + OpenAPI + traceability: 346/346 passed, zero failures, no live SQL. **NEXT**: run final traceability/verify after docs changes; commit with temp prefix and push temp branch; wait for branch CI with isolated SQL. If green and main unchanged, fast-forward main, check main CI, then update Notion SYS07-01/GAP01 and CI evidence. If main moved, rebase/cherry-pick only in isolated worktree after comparing changes; never overwrite other worktrees.
+- Remaining blockers: approved per-screen operation catalog, audited role/assignment CRUD with concurrency/self-escalation guard, consistent tenant snapshot loader, negative runtime HTTP/JWT acceptance; SYS09/GL14 remain blocked and partial.
+
+---
+
 # Latest checkpoint — SYS07 null role rule draft validation (2026-11-02)
 
 - Verified `origin/main=d130c44c274a18c3143f3b7183cd6eac8450df2a`; isolated worktree `/root/ameen-erp-worktrees/sys07-null-draft`, branch `temp/sys07-null-draft-validation-20261102`. Original and other worktrees left unchanged. No active Codex or verification process at preflight.
