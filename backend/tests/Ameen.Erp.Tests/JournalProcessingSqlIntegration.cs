@@ -150,6 +150,18 @@ public static class JournalProcessingSqlIntegration
         }
         catch (BusinessException e) when (e.Code == "idempotency_conflict") { }
         Console.WriteLine("  SQL PASS AT03 durable completed-batch replay, stable revision/outbox/audit and changed-payload rejection");
+        // GL06-A05: durable result history must not be disclosed to another
+        // authenticated actor, even when that actor created the source journal.
+        try
+        {
+            await Call(s => s.Journal.DurableBatch(cid, clerk, durableKey, default));
+            throw new Exception("GL06 durable batch leaked results to a different actor");
+        }
+        catch (BusinessException e) when (e.Code == "processing_batch_not_found") { }
+        var originalHistory = await Call(s => s.Journal.DurableBatch(cid, approver, durableKey, default));
+        Ensure(originalHistory.Rows.Length == 2 && originalHistory.AllSucceeded,
+            "GL06 durable batch result unavailable to its authorized actor");
+        Console.WriteLine("  SQL PASS GL06-A05 durable result history is owner-scoped without cross-actor disclosure");
         Console.WriteLine("  SQL PASS GL06-GP02 durable technical errors, independent retry, action revision and audit history");
         // Simulate stale tracked membership/period reads in a reused scoped service, then revoke externally.
         await using (var db = Context())
