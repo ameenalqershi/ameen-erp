@@ -43,7 +43,7 @@ public sealed class DocumentNumberSeries : CompanyEntity
         Advance(now);
         Prefix=validatedPrefix; NextNumber=next;
     }
-    public void SetActive(bool active,DateTimeOffset now) { IsActive=active; Advance(now); }
+    public void SetActive(bool active,DateTimeOffset now) { Advance(now); IsActive=active; }
     public string Candidate() => (Prefix??"")+NextNumber.ToString("D6",CultureInfo.InvariantCulture);
     public (long Sequence,string Number) Allocate(DateTimeOffset now)
     {
