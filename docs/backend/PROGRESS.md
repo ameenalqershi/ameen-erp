@@ -1,5 +1,10 @@
 # سجل تقدم وتسليم الباك إند
 
+## GL14-02 — isolated rejected-edit audit regression (AGENT-03, 2 November 2026)
+
+A non-authorizing GL14 domain test verifies that invalid series/route references and regressed timestamps reject edits/disable without altering code, origin, references, name, attachment requirement, created-by, audit timestamps, revision or optimistic version; a valid edit updates permitted fields and advances audit once. This does not add GL14 API, change original analysis/schema, enable EF writes, select approved document kinds, or claim full GL14-02 acceptance. Final SQL/HTTP/JWT/OpenAPI CI evidence and PR review are required.
+
+
 ## SYS09-FG04 — disabled candidate does not reserve approval interval (3 November 2026)
 
 On `temp/sys09-inactive-candidate-conflict-20261103` from `main=95f5ad4`, the pure SYS09 overlap preflight now returns `Clear` for an **inactive candidate** only **after** validating its own fields and the full supplied tenant snapshot. This is symmetric with existing disabled routes being excluded from conflicts. An active candidate still detects inclusive interval overlap and unresolved cross-currency policy; inactive candidates cannot conceal foreign-company or duplicate snapshot rows. Added regression coverage for disable/reactivate, overlapping amount, FX, foreign tenant and duplicate rows. **This does not authorize SYS09 persistence or GL14/GL03 posting**; EF guards remain in place. No original diagrams/fields, SQL migrations or production data changed. Local .NET 10 Release + domain/EF/HTTP/JWT/OpenAPI **363/363 passed, 0 failed**, `backend/.artifacts/sys09-inactive-candidate-20261103/verification.json`; traceability/progress checks passed. Isolated SQL CI and main merge remain pending. **0 new completed Notion tasks**.

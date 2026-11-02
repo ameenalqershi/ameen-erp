@@ -239,6 +239,55 @@ public static class JournalDocumentTypeFoundationTests
                 "Stale timestamp changed GL14");
             return Task.CompletedTask;
         });
+        test("GL14-02: rejected reference and audit updates preserve card atomically", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 15, 0, 0, TimeSpan.Zero);
+            var series = Guid.NewGuid();
+            var routeId = Guid.NewGuid();
+            var type = new JournalDocumentType(f.CompanyId, f.BranchId, "manual-jv",
+                "Manual journal", JournalDocumentOrigin.Manual, series, routeId,
+                true, f.Owner.Subject, now);
+            var version = type.Version;
+
+            void Unchanged()
+            {
+                Ensure(type.CompanyId == f.CompanyId && type.BranchId == f.BranchId &&
+                    type.Code == "MANUAL-JV" && type.Name == "Manual journal" &&
+                    type.Origin == JournalDocumentOrigin.Manual &&
+                    type.NumberSeriesId == series && type.ApprovalRouteId == routeId &&
+                    type.RequiresAttachment && type.IsActive &&
+                    type.CreatedAt == now && type.LastModifiedAt == now &&
+                    type.CreatedBy == f.Owner.Subject && type.Revision == 1 &&
+                    type.Version == version,
+                    "Rejected GL14 change mutated card, immutable origin or audit fields");
+            }
+
+            Expect("invalid_document_type_reference", () => type.Edit("Changed",
+                Guid.Empty, Guid.NewGuid(), false, now.AddSeconds(1)));
+            Unchanged();
+            Expect("invalid_document_type_reference", () => type.Edit("Changed",
+                Guid.NewGuid(), Guid.Empty, false, now.AddSeconds(1)));
+            Unchanged();
+            Expect("invalid_document_type_revision", () => type.Edit("Changed",
+                Guid.NewGuid(), Guid.NewGuid(), false, now.AddSeconds(-1)));
+            Unchanged();
+            Expect("invalid_document_type_revision", () => type.SetActive(false,
+                now.AddSeconds(-1)));
+            Unchanged();
+
+            var newSeries = Guid.NewGuid();
+            var newRoute = Guid.NewGuid();
+            type.Edit("Updated journal", newSeries, newRoute, false, now.AddSeconds(1));
+            Ensure(type.Name == "Updated journal" && type.NumberSeriesId == newSeries &&
+                type.ApprovalRouteId == newRoute && !type.RequiresAttachment &&
+                type.Origin == JournalDocumentOrigin.Manual && type.Code == "MANUAL-JV" &&
+                type.CreatedAt == now && type.CreatedBy == f.Owner.Subject &&
+                type.Revision == 2 && type.LastModifiedAt == now.AddSeconds(1) &&
+                type.Version != version,
+                "Valid GL14 edit did not update fields and audit atomically");
+            return Task.CompletedTask;
+        });
+
         test("GL14-01: EF model has composite tenant FKs, unique code and blocked unvalidated route", async f =>
         {
             await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()
