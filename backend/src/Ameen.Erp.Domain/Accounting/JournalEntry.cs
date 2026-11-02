@@ -48,8 +48,10 @@ public sealed class JournalEntry : CompanyEntity
     public void ConfigureAutomaticReversal(bool enabled, DateOnly? reversalDate)
     {
         RequireState(JournalState.Draft);
-        Check.That(Source == JournalSource.Manual && ReversesJournalId is null,
-            "automatic_reversal_source", "العكس التلقائي متاح للقيود اليدوية فقط.", ErrorKind.Conflict);
+        // Ordinary edits of generated sources never engage scheduling; only enabling it or setting a date is restricted to manual journals.
+        if (enabled || reversalDate is not null)
+            Check.That(Source == JournalSource.Manual && ReversesJournalId is null,
+                "automatic_reversal_source", "العكس التلقائي متاح للقيود اليدوية فقط.", ErrorKind.Conflict);
         Check.That(enabled || reversalDate is null, "unexpected_reversal_date",
             "تاريخ العكس يحدد فقط عند تفعيل العكس التلقائي.");
         Check.That(!enabled || reversalDate is not null && reversalDate != DateOnly.MinValue,

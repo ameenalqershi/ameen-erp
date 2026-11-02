@@ -46,7 +46,7 @@ public static class ScheduledReversalSqlIntegration
             await using var db = Context();
             return await work(new TestServices(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock()));
         }
-        var request = example with { AutomaticReversal = true, ReversalDate = example.AccountingDate.AddDays(1) };
+        var request = example with { AutomaticReversal = true, ReversalDate = example.AccountingDate };
         var original = await Call(s => s.Journal.CreateJournal(cid, clerk, Fixture.Key(), request, default));
         original = await Call(s => s.Journal.TransitionJournal(cid, original.ResourceId, clerk, Fixture.Key(), new(original.Version), "submit", default));
         original = await Call(s => s.Journal.TransitionJournal(cid, original.ResourceId, approver, Fixture.Key(), new(original.Version), "approve", default));

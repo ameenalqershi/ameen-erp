@@ -28,20 +28,20 @@ public static class ScheduledReversalTests
         });
         test("GL03-GP05: scheduled run creates one due historical inverse draft only", async f =>
         {
-            var original = await f.Post(await f.Draft(f.Request() with { AutomaticReversal = true, ReversalDate = Fixture.Date.AddDays(1) }));
-            var early = await f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, Fixture.Date, 100, default);
+            var original = await f.Post(await f.Draft(f.Request(date: Fixture.Date.AddDays(-1)) with { AutomaticReversal = true, ReversalDate = Fixture.Date }));
+            var early = await f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, Fixture.Date.AddDays(-1), 100, default);
             Ensure(early.SelectedCount == 0);
             var outbox = f.Store.Count<OutboxEvent>();
-            var result = await f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, Fixture.Date.AddDays(1), 100, default);
+            var result = await f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, Fixture.Date, 100, default);
             Ensure(result.SelectedCount == 1 && result.GeneratedCount == 1 && result.FailedCount == 0);
             var reversal = await f.Journal(result.Rows.Single().ReversalJournalId!.Value);
             Ensure(reversal.State == JournalState.Draft && reversal.Source == JournalSource.Reversal &&
-                reversal.ReversesJournalId == original.ResourceId && reversal.AccountingDate == Fixture.Date.AddDays(1) &&
+                reversal.ReversesJournalId == original.ResourceId && reversal.AccountingDate == Fixture.Date &&
                 reversal.ApprovedBy is null && reversal.PostedAt is null && !reversal.AutomaticReversal &&
                 reversal.Lines.Single(x => x.AccountId == f.CashId).FunctionalCredit == 100);
             Ensure(f.Store.Count<OutboxEvent>() == outbox &&
                 (await f.Journal(original.ResourceId)).PendingReversalJournalId == reversal.Id);
-            Ensure((await f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, Fixture.Date.AddDays(1), 100, default)).SelectedCount == 0);
+            Ensure((await f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, Fixture.Date, 100, default)).SelectedCount == 0);
         });
         test("GL03-GP05: cancelled scheduled draft remains history and cannot regenerate", async f =>
         {
@@ -58,14 +58,14 @@ public static class ScheduledReversalTests
         });
         test("GL03-GP05: one failed due journal does not block another tenant-scoped draft", async f =>
         {
+            var september = await f.Post(await f.Draft(f.Request(date: new(2026, 9, 15)) with { AutomaticReversal = true, ReversalDate = new(2026, 9, 20) }));
             var october = await f.Post(await f.Draft(f.Request() with { AutomaticReversal = true, ReversalDate = Fixture.Date }));
-            var november = await f.Post(await f.Draft(f.Request() with { AutomaticReversal = true, ReversalDate = new(2026, 11, 1) }));
-            var period = f.Store.All<FiscalPeriod>().Single(x => x.StartsOn.Month == 10);
+            var period = f.Store.All<FiscalPeriod>().Single(x => x.StartsOn.Month == 9);
             await f.Service.PeriodClose.ChangePeriod(f.CompanyId, period.Id, f.Approver, Fixture.Key(), new(period.Version, "إقفال"), true, default);
-            var result = await f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, new(2026, 11, 1), 100, default);
+            var result = await f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, Fixture.Date, 100, default);
             Ensure(result.SelectedCount == 2 && result.GeneratedCount == 1 && result.FailedCount == 1 &&
-                result.Rows.Single(x => x.OriginalJournalId == october.ResourceId).ErrorCode == "period_closed" &&
-                result.Rows.Single(x => x.OriginalJournalId == november.ResourceId).Succeeded);
+                result.Rows.Single(x => x.OriginalJournalId == september.ResourceId).ErrorCode == "period_closed" &&
+                result.Rows.Single(x => x.OriginalJournalId == october.ResourceId).Succeeded);
             await Error("future_schedule_forbidden", () => f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, DateOnly.MaxValue, 100, default));
             await Error("invalid_schedule_limit", () => f.Service.Journal.RunScheduledReversals(f.CompanyId, f.Clerk, Fixture.Date, 0, default));
         });
