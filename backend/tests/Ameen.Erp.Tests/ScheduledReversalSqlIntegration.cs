@@ -11,6 +11,8 @@ public static class ScheduledReversalSqlIntegration
     public static async Task Upgrade(ErpDbContext db)
     {
         var script = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "026_scheduled_journal_reversals.sql"));
+        if (await db.Database.SqlQueryRaw<int>("SELECT 1 AS [Value] FROM [__AmeenSchemaVersions] WHERE [Version]=26").AnyAsync())
+            return;
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Journals] ADD CONSTRAINT [CK_Test_ReversalCollision] CHECK ([Revision] > 0)");
         try
         {
