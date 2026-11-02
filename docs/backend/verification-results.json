@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-11-02T03:29:15.945348+00:00",
+  "startedAtUtc": "2026-11-02T04:32:46.472320+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "34435d59b0910ac3bf4a66d92115e2a631be4df3b1a5417363e9248027fddc0f",
+  "sourceSha256": "0c091f534aa82c47fd5b583dd98c6971785e35c5f02a12ef3b0b6ba81a3b0a55",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -380,6 +380,9 @@
     "PASS GL13 dependency: mapped group descendants lock GL01 structure and appear in account usage",
     "PASS GL13 wire contract: all mandatory fields required and client audit spoofing rejected",
     "PASS GL13 persistence: frozen review and detached line mutation are rejected before SQL",
+    "PASS GL14-01: type fields preserve code, source, references and server audit revision",
+    "PASS GL14-01: invalid source, reference, branch and stale timestamp rejected",
+    "PASS GL14-01: EF model has composite tenant FKs, unique code and blocked unvalidated route",
     "PASS HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON",
     "PASS OpenAPI: production routes expose optional draft headers without SQL dependency",
     "  SQL PASS atomic/idempotent schema 003→004 upgrade preserves currency identity and precision",
@@ -407,6 +410,8 @@
     "  SQL PASS GL03-FG08 atomic/idempotent schema 021→022 reconstructs lifecycle/reversal audit without rewriting financial history",
     "  SQL PASS atomic/idempotent schema 002→003 upgrade preserves account identity and backfills all five classifications",
     "  SQL PASS atomic/idempotent schema 001→002 upgrade preserves posted amounts, versions and reversal provenance",
+    "  SQL PASS GL14 026→027 atomic/idempotent schema, tenant FKs, code uniqueness, no seeded cards",
+    "  SQL PASS GL14 refuses unvalidated approval route without writing a card",
     "  SQL PASS concurrent idempotency across independent connections",
     "  SQL PASS draft replacement, materialization, posting replay and one outbox",
     "  SQL PASS real constraint failure rolls back journal, audit, outbox and receipt; retry succeeds",
@@ -488,8 +493,8 @@
     "  SQL PASS GL13 concurrent replay, parent-line replacement under runtime role, posted ledger review, immutable snapshots, tenant FKs, audit rollback and retry",
     "PASS SQL Server integration"
   ],
-  "passed": 334,
-  "total": 334,
+  "passed": 337,
+  "total": 337,
   "failed": 0,
-  "finishedAtUtc": "2026-11-02T03:30:46.221685+00:00"
+  "finishedAtUtc": "2026-11-02T04:34:25.685879+00:00"
 }

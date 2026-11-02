@@ -18,7 +18,7 @@
 ## أدلة الاختبار ونطاقها
 
 - اختبارات `JournalDocumentTypeFoundationTests.cs` تتحقق من الأنواع والحقول والأصفار والإصدار والرفض وحارس EF وعزل FK.
-- `JournalDocumentTypeSqlIntegration.cs` يختبر فشل الترقية والتراجع، وإعادة التشغيل، وعدد الأعمدة والقيود، وعدم إدخال بطاقات، وحارس الحفظ على SQL Server معزول. لا تُنفذ هذه الاختبارات في فحص محلي دون `--sql`؛ لا تعد ناجحة قبل إثبات CI.
+- `JournalDocumentTypeSqlIntegration.cs` يختبر فشل الترقية والتراجع، وإعادة التشغيل، وعدد الأعمدة والقيود، وعدم إدخال بطاقات، وحارس الحفظ على SQL Server معزول. **نجح [CI #41389013770](https://github.com/ameenalqershi/ameen-erp/actions/runs/41389013770) على SHA `a336d36337c0d2ce27943a999b247e4ce5a56104` بنتيجة 337/337** مع SQL Server وHTTP/JWT وOpenAPI وRelease. الفحص المحلي دون SQL: 336/336؛ تطابقت بصمة المصادر `0c091f534aa82c47fd5b583dd98c6971785e35c5f02a12ef3b0b6ba81a3b0a55`.
 - `backend/scripts/traceability.py` يربط F01–F13 بوضع `partial` فقط، ولا يعلن اكتمال GL14 أو أي شاشة.
 - لا تغيير في `muhaseb-erp-analysis/` ولا استخدام لبيانات إنتاج أو أسرار.
 
