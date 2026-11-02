@@ -1,3 +1,12 @@
+# Latest checkpoint — GL14 hydrated snapshot regression merge (2026-11-02)
+
+- GL14-02 partial only: added negative hydrated snapshot regression for invalid document-type first character, zero document-type revision and zero numbering next counter; valid recovered references remain `UnresolvedPolicy`, not authorization.
+- Local `.NET 10` Release/domain/HTTP/JWT/OpenAPI verification **355/355 passed**; traceability and progress checks passed. Branch code commit [`59c4969`](https://github.com/ameenalqershi/ameen-erp/commit/59c4969e123476f037da6730ba0dc1f69ea51af3) passed [branch CI #41521254834](https://github.com/ameenalqershi/ameen-erp/actions/runs/41521254834) with isolated SQL; meanwhile main advanced via SYS10 changes to `487f8b5` and [main CI #41521410950](https://github.com/ameenalqershi/ameen-erp/actions/runs/41521410950) succeeded.
+- Merged separate GL14 test change through [PR #1](https://github.com/ameenalqershi/ameen-erp/pull/1) at [merge SHA `a55a25a`](https://github.com/ameenalqershi/ameen-erp/commit/a55a25a48850d27b405fc28dec1bae886b0c988c), after successful branch CI; **new main merge CI must be checked separately**, no claim until observed. No original analysis or production changes; no functional task accepted.
+- NEXT: verify main CI on exact merge SHA `a55a25a48850d27b405fc28dec1bae886b0c988c`; if successful, update Notion GL14-02 as partial, continue approved SYS07/SYS09/SYS10 policy and GL14 runtime dependencies. Do not repeat completed regression test work. Completed tasks this run: **0**; one partial test hardening change merged.
+
+---
+
 # Latest checkpoint — SYS10 numbering atomicity for GL14 (2026-11-02)
 
 - Preflight: `origin/main=d0a346589dea6aa169bdbbd05f7f087a6c54e7fd`, [main CI #41519357276](https://github.com/ameenalqershi/ameen-erp/actions/runs/41519357276) SUCCESS; no active git/dotnet/codex jobs at start. Isolated worktree `/root/ameen-erp-worktrees/sys10-numbering-atomicity` on branch `temp/sys10-numbering-atomicity-20261102`; other worktrees untouched.
