@@ -17,7 +17,9 @@ public static class SecurityRoleFoundationTests
             Ensure(role.CompanyId == f.CompanyId && role.BranchId == f.BranchId &&
                 role.IsActive && role.Revision == 1 && role.CreatedAt == now, "SYS07 role header mismatch");
             role.AddRule("GL03", "POST", true, 100.123456m, currency, now.AddSeconds(1));
-            Ensure(role.Permits("gl03", "post", 100.123456m, currency), "Allowed capped operation missing");
+            Ensure(role.Permits("gl03", "post", 100.123456m, currency) &&
+                role.Permits(" GL03 ", " post ", 100.123456m, currency),
+                "Allowed capped operation missing for normalized input");
             Ensure(!role.Permits("GL03", "POST", 101m, currency) &&
                 !role.Permits("GL03", "POST", null, currency) &&
                 !role.Permits("GL03", "POST", 1m, Guid.NewGuid()) &&

@@ -95,8 +95,8 @@ public sealed class SecurityRole : CompanyEntity
         if (!IsActive || amount < 0 || string.IsNullOrWhiteSpace(screen) || string.IsNullOrWhiteSpace(operation))
             return false;
         var matches = Rules.Where(x =>
-            x.ScreenCode == screen.ToUpperInvariant() &&
-            x.OperationCode == operation.ToUpperInvariant()).ToArray();
+            x.ScreenCode == screen.Trim().ToUpperInvariant() &&
+            x.OperationCode == operation.Trim().ToUpperInvariant()).ToArray();
         if (matches.Any(x => !x.Allowed)) return false;
         return matches.Any(x => x.Allowed && (x.AmountLimit is null ||
             amount is >= 0 && currencyId == x.CurrencyId && amount <= x.AmountLimit));
