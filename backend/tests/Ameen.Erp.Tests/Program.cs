@@ -35,6 +35,21 @@ Test("BR01: line must contain exactly one positive side", async f =>
     await Error("invalid_journal_side", () => f.Draft(request));
     Assert(f.Store.Count<JournalEntry>() == 0);
 });
+Test("GL03-T02: zero-side journal line rejects without persisting journal, audit or outbox", async f =>
+{
+    var initialJournals = f.Store.Count<JournalEntry>();
+    var initialAudits = f.Store.Count<AuditEvent>();
+    var initialOutbox = f.Store.Count<OutboxEvent>();
+    var initialReceipts = f.Store.Count<IdempotencyRecord>();
+    var request = f.Request();
+    request.Lines[0] = request.Lines[0] with { Debit = 0, Credit = 0 };
+    await Error("invalid_journal_side", () => f.Draft(request));
+    Assert(f.Store.Count<JournalEntry>() == initialJournals &&
+        f.Store.Count<AuditEvent>() == initialAudits &&
+        f.Store.Count<OutboxEvent>() == initialOutbox &&
+        f.Store.Count<IdempotencyRecord>() == initialReceipts,
+        "Rejected zero-side line changed journal, audit, outbox or receipt state");
+});
 Test("BR01: disallow negative or excessive precision amounts", async f =>
 {
     await Error("invalid_amount", () => f.Draft(f.Request(-1, 1)));
