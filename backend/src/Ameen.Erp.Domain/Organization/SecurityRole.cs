@@ -63,8 +63,13 @@ public sealed class SecurityRole : CompanyEntity
         Check.That(expectedRevision == Revision, "stale_role_revision",
             "تم تعديل الدور بواسطة عملية أخرى.", ErrorKind.Conflict);
         Check.That(drafts is not null, "invalid_role_rules", "قواعد الدور مطلوبة.");
-        var replacement = drafts!.Select(x => new SecurityRoleRule(CompanyId, Id,
-            x.Screen, x.Operation, x.Allowed, x.AmountLimit, x.CurrencyId)).ToList();
+        var replacement = new List<SecurityRoleRule>();
+        foreach (var draft in drafts!)
+        {
+            Check.That(draft is not null, "invalid_role_rules", "قواعد الدور مطلوبة.");
+            replacement.Add(new SecurityRoleRule(CompanyId, Id,
+                draft!.Screen, draft.Operation, draft.Allowed, draft.AmountLimit, draft.CurrencyId));
+        }
         var unique = new HashSet<(string Screen, string Operation, Guid? Currency)>();
         Check.That(replacement.All(x => unique.Add((x.ScreenCode, x.OperationCode, x.CurrencyId))),
             "duplicate_role_rule", "لا يمكن تكرار العملية والعملة داخل الدور.");

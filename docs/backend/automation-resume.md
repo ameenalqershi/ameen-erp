@@ -1,3 +1,12 @@
+# Latest checkpoint — SYS07 null role rule draft validation (2026-11-02)
+
+- Verified `origin/main=d130c44c274a18c3143f3b7183cd6eac8450df2a`; isolated worktree `/root/ameen-erp-worktrees/sys07-null-draft`, branch `temp/sys07-null-draft-validation-20261102`. Original and other worktrees left unchanged. No active Codex or verification process at preflight.
+- Task SYS07-GAP01 partial domain-only input validation: reject null entries in `SecurityRole.ReplaceRules` as `invalid_role_rules` before mutation; test ensures atomic rejection after a valid entry. Files: `backend/src/Ameen.Erp.Domain/Organization/SecurityRole.cs`, `backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs`, `backend/scripts/traceability.py`, generated traceability and `docs/backend/PROGRESS.md`. No SQL or original analysis changes; EF guards remain.
+- Final local verification **345/345 passed**, 0 failed, Release, HTTP/JWT, OpenAPI and traceability; no live SQL locally. Documentation regenerated; `progress.py --check` passed. Branch CI must pass before merging.
+- NEXT: verify CI with isolated SQL; only then fast-forward main if unchanged, verify main CI and update Notion SYS07-01/GAP01. Blockers remain approved per-screen operation catalog, audited role/assignment CRUD, tenant snapshot loading and HTTP/JWT acceptance; SYS09/GL14 still partial.
+
+---
+
 # Latest checkpoint — SYS07 normalized role lookup integration (2026-11-02)
 
 - Preflight: `origin/main=03eeb1ae83dbba59c7ab20de34469497f6a13942`; [main CI #41431841284](https://github.com/ameenalqershi/ameen-erp/actions/runs/41431841284) SUCCESS. The original `/root/ameen-erp` worktree is on `temp/sys07-permission-registry-20261102` with local commit `dcd75c2`; the other `sys07-registry` worktree has unrelated uncommitted documentation. Neither was reset, overwritten or reused.

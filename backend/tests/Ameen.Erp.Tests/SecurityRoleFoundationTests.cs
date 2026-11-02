@@ -74,6 +74,11 @@ public static class SecurityRoleFoundationTests
             };
             Expect("duplicate_role_rule", () =>
                 role.ReplaceRules(duplicate, version, now.AddSeconds(1)));
+            var withNull = new SecurityRoleRuleDraft[] {
+                new("GL03", "EXPORT", true, null, null), null!
+            };
+            Expect("invalid_role_rules", () =>
+                role.ReplaceRules(withNull, version, now.AddSeconds(1)));
             Expect("stale_role_revision", () =>
                 role.ReplaceRules(Array.Empty<SecurityRoleRuleDraft>(), version - 1, now.AddSeconds(1)));
             Ensure(role.Revision == version && role.Rules.Single().Id == originalRule,
