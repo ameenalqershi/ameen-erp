@@ -13,6 +13,11 @@ public enum ApprovalRouteConflictStatus
 
 public static class ApprovalRouteConflictPolicy
 {
+    // Hydrated row validation only; does not establish snapshot completeness,
+    // absence of conflicts, eligibility, or permission to persist.
+    public static bool HasValidSnapshot(ApprovalRoute? route) =>
+        route is not null && Valid(route);
+
     public static ApprovalRouteConflictStatus Evaluate(ApprovalRoute? candidate,
         IEnumerable<ApprovalRoute>? tenantRoutes)
     {

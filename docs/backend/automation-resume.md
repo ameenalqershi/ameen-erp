@@ -1,3 +1,14 @@
+# Latest checkpoint — GL14-02 structural reference preflight (2026-11-02)
+
+- Preflight: `origin/main=a316485a7e4c20c18b40bb1d0dda171779f6c6fb`, main CI #41502305484 SUCCESS 354/354, no active git/dotnet/codex processes before new task. Original stale `/root/ameen-erp` branch and unrelated dirty `/root/ameen-erp-worktrees/sys07-registry` deliberately untouched. Isolated worktree `/root/ameen-erp-worktrees/gl14-reference-preflight`, branch `temp/gl14-reference-preflight-20261102` from origin/main. Codex CLI attempt failed 401 (expired/missing authentication); implementation completed manually, not via Codex.
+- Task GL14-02 dependency, domain-only partial. Files: new `backend/src/Ameen.Erp.Domain/Accounting/JournalDocumentTypeReferencePolicy.cs`, modified `ApprovalRouteConflictPolicy.cs`, `JournalDocumentType.cs`, `backend/tests/Ameen.Erp.Tests/JournalDocumentTypeFoundationTests.cs`, new `docs/backend/gl14-reference-preflight.md`, `docs/backend/PROGRESS.md`, this checkpoint. No changes to original analysis, SQL schema, API, EF write guards or production.
+- Pure reference preflight validates GL14/SYS10/SYS09 exact IDs, tenant, branch, active state, hydrated invariants. Valid structural match still returns `UnresolvedPolicy`, **never grants use**, due to unapproved kind mapping/role/FX and runtime authorization. Added expected revision overloads with stale atomic rejection.
+- Local `python3 backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts backend/.artifacts/gl14-reference-preflight-20261102`: **355/355 passed, zero failed**, .NET 10 Release, HTTP/JWT, OpenAPI, traceability, no live SQL. Source SHA256 `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. `traceability.py --check`, `progress.py --check`, `git diff --check` pass. Traceability matrices unchanged because GL14 remains partial.
+- **NEXT:** check git status and origin/main, commit `temp: GL14 ...` only after clean checks; push branch, verify branch CI with isolated SQL; on success and no concurrent main change, fast-forward main and verify main CI. Update Notion GL14-02 as partial with exact CI evidence, and append final SHA/CI to this checkpoint and PROGRESS.md. If CI fails, fix and rerun before merge. Do not repeat work or lift guards.
+- Blockers: approved mapping of GL14 code / SYS10 numbering kind / SYS09 document kind, SYS07 role administration, FX, transaction-safe SYS09 conflicts, GL14 audited API, GL03 integration, negative and positive runtime acceptance. No feature completion claim.
+
+---
+
 # Latest checkpoint — SYS09-FG03 cross-route stage identity (2026-11-02)
 
 - Preflight: `origin/main=d8c395a4e95ede3a3850ab4f3dca41768a05294c`, main CI #41493519429 SUCCESS 353/353, no active processes; original stale `/root/ameen-erp` worktree deliberately untouched. Isolated worktree `/root/ameen-erp-worktrees/sys09-amount-integrity`, branch `temp/sys09-preflight-amount-integrity-20261102`.

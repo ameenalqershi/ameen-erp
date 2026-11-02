@@ -44,6 +44,100 @@ public static class JournalDocumentTypeFoundationTests
             Ensure(card.IsActive && card.Revision == 1, "Invalid timestamp mutated card");
             return Task.CompletedTask;
         });
+        test("GL14-02 partial: structural references fail closed and never authorize GL14", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
+            var series = new DocumentNumberSeries(f.CompanyId, f.BranchId,
+                NumberingDocumentKind.Journal, Guid.NewGuid(), "JV", 1, "actor", now);
+            var route = new ApprovalRoute(f.CompanyId, f.BranchId, "JV", 0, 100,
+                Guid.NewGuid(), true, "actor", now);
+            var card = new JournalDocumentType(f.CompanyId, f.BranchId, "JV-001", "قيد",
+                JournalDocumentOrigin.Manual, series.Id, route.Id, true, "actor", now);
+            static JournalDocumentTypeReferenceStatus CheckRefs(JournalDocumentType? c,
+                DocumentNumberSeries? s, ApprovalRoute? r) =>
+                JournalDocumentTypeReferencePolicy.Evaluate(c, s, r);
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.UnresolvedPolicy,
+                "Structurally matching references must not grant unapproved use");
+            Ensure(CheckRefs(null, series, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot &&
+                CheckRefs(card, null, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot &&
+                CheckRefs(card, series, null) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Missing references accepted");
+            var foreignSeries = new DocumentNumberSeries(Guid.NewGuid(), f.BranchId,
+                NumberingDocumentKind.Journal, Guid.NewGuid(), null, 1, "actor", now);
+            var foreignRoute = new ApprovalRoute(Guid.NewGuid(), f.BranchId, "JV", 0, 100,
+                Guid.NewGuid(), true, "actor", now);
+            Ensure(CheckRefs(card, foreignSeries, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot &&
+                CheckRefs(card, series, foreignRoute) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Cross-tenant or wrong-ID references accepted");
+            var wrongIdSeries = new DocumentNumberSeries(f.CompanyId, f.BranchId,
+                NumberingDocumentKind.Journal, Guid.NewGuid(), null, 1, "actor", now);
+            var wrongIdRoute = new ApprovalRoute(f.CompanyId, f.BranchId, "JV", 0, 100,
+                Guid.NewGuid(), true, "actor", now);
+            Ensure(CheckRefs(card, wrongIdSeries, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot &&
+                CheckRefs(card, series, wrongIdRoute) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Wrong reference IDs within tenant accepted");
+            var generalSeries = new DocumentNumberSeries(f.CompanyId, null,
+                NumberingDocumentKind.Journal, Guid.NewGuid(), null, 1, "actor", now);
+            var generalRoute = new ApprovalRoute(f.CompanyId, null, "JV", 0, 100,
+                Guid.NewGuid(), true, "actor", now);
+            var scopedCard = new JournalDocumentType(f.CompanyId, f.BranchId, "JV-003", "قيد",
+                JournalDocumentOrigin.Manual, generalSeries.Id, generalRoute.Id, false, "actor", now);
+            Ensure(CheckRefs(scopedCard, generalSeries, generalRoute) ==
+                JournalDocumentTypeReferenceStatus.UnresolvedPolicy,
+                "General references should be structurally compatible with a specific branch");
+            var wrongBranchSeries = new DocumentNumberSeries(f.CompanyId, Guid.NewGuid(),
+                NumberingDocumentKind.Journal, Guid.NewGuid(), null, 1, "actor", now);
+            var wrongBranchRoute = new ApprovalRoute(f.CompanyId, Guid.NewGuid(), "JV", 0, 100,
+                Guid.NewGuid(), true, "actor", now);
+            var seriesBranchCard = new JournalDocumentType(f.CompanyId, null, "JV-002", "قيد",
+                JournalDocumentOrigin.Manual, series.Id, route.Id, false, "actor", now);
+            Ensure(CheckRefs(card, wrongBranchSeries, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot &&
+                CheckRefs(card, series, wrongBranchRoute) == JournalDocumentTypeReferenceStatus.InvalidSnapshot &&
+                CheckRefs(seriesBranchCard, series, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Branch-specific references accepted for incompatible scope");
+            route.SetActive(false, now.AddMinutes(1));
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.InactiveReference,
+                "Inactive approval route accepted");
+            route.SetActive(true, now.AddMinutes(2));
+            series.SetActive(false, now.AddMinutes(1));
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.InactiveReference,
+                "Inactive numbering series accepted");
+            series.SetActive(true, now.AddMinutes(2));
+            card.SetActive(false, now.AddMinutes(1));
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.InactiveReference,
+                "Inactive document type accepted");
+            card.SetActive(true, now.AddMinutes(2));
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.UnresolvedPolicy,
+                "Restored valid structural references should remain unresolved");
+            typeof(ApprovalRoute).GetProperty(nameof(ApprovalRoute.Revision))!.SetValue(route, 0);
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Corrupt hydrated approval route revision accepted");
+            typeof(ApprovalRoute).GetProperty(nameof(ApprovalRoute.Revision))!.SetValue(route, 3);
+            typeof(DocumentNumberSeries).GetProperty(nameof(DocumentNumberSeries.Revision))!
+                .SetValue(series, 0);
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Corrupt hydrated numbering revision accepted");
+            return Task.CompletedTask;
+        });
+        test("GL14-02 partial: stale revisions reject edit and activation atomically", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 13, 0, 0, TimeSpan.Zero);
+            var series = Guid.NewGuid(); var route = Guid.NewGuid();
+            var card = new JournalDocumentType(f.CompanyId, f.BranchId, "001", "الأصل",
+                JournalDocumentOrigin.Manual, series, route, false, "actor", now);
+            var version = card.Version;
+            Expect("stale_document_type_revision", () => card.Edit("جديد", Guid.NewGuid(),
+                Guid.NewGuid(), true, 0, now.AddMinutes(1)));
+            Expect("stale_document_type_revision", () => card.SetActive(false, 0, now.AddMinutes(1)));
+            Ensure(card.Revision == 1 && card.Name == "الأصل" && card.NumberSeriesId == series &&
+                card.ApprovalRouteId == route && !card.RequiresAttachment && card.IsActive &&
+                card.Version == version, "Stale edit mutated the document type");
+            card.Edit("جديد", series, route, true, 1, now.AddMinutes(1));
+            card.SetActive(false, 2, now.AddMinutes(2));
+            Ensure(card.Revision == 3 && !card.IsActive && card.RequiresAttachment &&
+                card.Name == "جديد", "Current revisions did not update atomically");
+            return Task.CompletedTask;
+        });
         test("GL14-01: EF model has composite tenant FKs, unique code and blocked unvalidated route", async f =>
         {
             await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()

@@ -53,6 +53,23 @@ public sealed class JournalDocumentType : CompanyEntity
         RequiresAttachment = requiresAttachment;
     }
 
+    // Optimistic concurrency at the aggregate boundary only; EF writes remain
+    // blocked until SYS09 and GL14 runtime authorization are accepted.
+    public void Edit(string name, Guid numberSeriesId, Guid approvalRouteId,
+        bool requiresAttachment, int expectedRevision, DateTimeOffset now)
+    {
+        Check.That(expectedRevision == Revision, "stale_document_type_revision",
+            "تم تعديل نوع المستند بواسطة عملية أخرى.", ErrorKind.Conflict);
+        Edit(name, numberSeriesId, approvalRouteId, requiresAttachment, now);
+    }
+
+    public void SetActive(bool active, int expectedRevision, DateTimeOffset now)
+    {
+        Check.That(expectedRevision == Revision, "stale_document_type_revision",
+            "تم تعديل نوع المستند بواسطة عملية أخرى.", ErrorKind.Conflict);
+        SetActive(active, now);
+    }
+
     public void SetActive(bool active, DateTimeOffset now)
     {
         Advance(now);
