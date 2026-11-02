@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-11-02T15:33:50.402011+00:00",
+  "startedAtUtc": "2026-11-02T16:33:16.269407+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -47,7 +47,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "64c9616fb3de2158362fff8c5c827ee51073feddca130ba2ba86565fafdbd88a",
+  "sourceSha256": "567e7ed19171e152fd3955faae93331df0fd4d4de2c2e84494841f47dc198b3e",
   "checks": [
     "PASS BR01 AT01: unbalanced journal cannot submit and remains draft",
     "PASS BR01: line must contain exactly one positive side",
@@ -387,6 +387,7 @@
     "PASS SYS09 foundation: invalid bounds, duplicate stages, role and stale revisions fail closed",
     "PASS SYS09: pure route overlap preflight respects inclusive amounts and branch scope",
     "PASS SYS09: route preflight rejects incomplete tenant snapshots",
+    "PASS SYS09: hydrated stage corruption invalidates conflict preflight",
     "PASS SYS09: atomic stage replacement and expected revision fail closed",
     "PASS SYS09 foundation: tenant FKs, stage uniqueness, GL14 route FK and guarded EF writes",
     "PASS SYS07 foundation: role header, rule dimensions, explicit deny and amount cap",
@@ -513,8 +514,8 @@
     "  SQL PASS GL13 concurrent replay, parent-line replacement under runtime role, posted ledger review, immutable snapshots, tenant FKs, audit rollback and retry",
     "PASS SQL Server integration"
   ],
-  "passed": 351,
-  "total": 351,
+  "passed": 352,
+  "total": 352,
   "failed": 0,
-  "finishedAtUtc": "2026-11-02T15:35:15.569550+00:00"
+  "finishedAtUtc": "2026-11-02T16:34:48.261520+00:00"
 }
