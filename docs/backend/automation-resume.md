@@ -1,3 +1,12 @@
+# Latest checkpoint — SYS10 numbering atomicity for GL14 (2026-11-02)
+
+- Preflight: `origin/main=d0a346589dea6aa169bdbbd05f7f087a6c54e7fd`, [main CI #41519357276](https://github.com/ameenalqershi/ameen-erp/actions/runs/41519357276) SUCCESS; no active git/dotnet/codex jobs at start. Isolated worktree `/root/ameen-erp-worktrees/sys10-numbering-atomicity` on branch `temp/sys10-numbering-atomicity-20261102`; other worktrees untouched.
+- SYS10 dependency for GL14: make `DocumentNumberSeries.Edit` validate prefix/counter and revision before mutations; make `Allocate` validate audit/revision before increment; enforce nondecreasing `LastModifiedAt`. Regression test exercises failed edits/allocations and successful allocation with immutable counter and audit on rejection.
+- Files: `backend/src/Ameen.Erp.Domain/Numbering/DocumentNumberSeries.cs`, `backend/tests/Ameen.Erp.Tests/NumberingTests.cs`, `docs/backend/PROGRESS.md`, this checkpoint. No original analysis, migrations, EF guards, production data or approved policy changed. GL14 remains partial.
+- NEXT: finish local verify.py and traceability/progress checks, commit with `temp:` prefix, push branch and require successful branch CI including isolated SQL; only then fast-forward clean main, verify main CI and update Notion SYS10/GL14 with exact SHA/CI. Report newly completed tasks as zero unless a task's acceptance is fully proven. Do not claim CI green before observing it.
+
+---
+
 # Latest checkpoint — GL14-02 structural reference preflight (2026-11-02)
 
 - Preflight: `origin/main=a316485a7e4c20c18b40bb1d0dda171779f6c6fb`, main CI #41502305484 SUCCESS 354/354, no active git/dotnet/codex processes before new task. Original stale `/root/ameen-erp` branch and unrelated dirty `/root/ameen-erp-worktrees/sys07-registry` deliberately untouched. Isolated worktree `/root/ameen-erp-worktrees/gl14-reference-preflight`, branch `temp/gl14-reference-preflight-20261102` from origin/main. Codex CLI attempt failed 401 (expired/missing authentication); implementation completed manually, not via Codex.

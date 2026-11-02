@@ -20,6 +20,29 @@ public static class NumberingTests
                 c.Revision==1 && c.CreatedBy==f.Owner.Subject && c.LastModifiedAt==c.CreatedAt && c.FiscalYearId==Year(f));
             var scoped=await Create(f,Request(f,f.BranchId));Ensure(scoped.ResourceId!=saved.ResourceId);
         });
+        test("SYS10: invalid revision cannot consume numbers or partially edit series",f=>
+        {
+            var now=new DateTimeOffset(2026,11,2,14,0,0,TimeSpan.Zero);
+            var series=new DocumentNumberSeries(f.CompanyId,f.BranchId,
+                NumberingDocumentKind.Journal,Guid.NewGuid(),"JV-",7,"actor",now);
+            var version=series.Version;
+            try { series.Edit("BAD-",10,now.AddMinutes(-1)); throw new Exception("Edit succeeded"); }
+            catch(BusinessException e) when(e.Code=="invalid_numbering_revision") {}
+            try { series.Allocate(now.AddMinutes(-1)); throw new Exception("Allocation succeeded"); }
+            catch(BusinessException e) when(e.Code=="invalid_numbering_revision") {}
+            Ensure(series.Prefix=="JV-" && series.NextNumber==7 && series.Revision==1 &&
+                series.Version==version && series.LastModifiedAt==now);
+            series.Edit("NEW-",10,now.AddMinutes(1));
+            version=series.Version;
+            try { series.Allocate(now); throw new Exception("Stale allocation succeeded"); }
+            catch(BusinessException e) when(e.Code=="invalid_numbering_revision") {}
+            Ensure(series.Prefix=="NEW-" && series.NextNumber==10 && series.Revision==2 &&
+                series.Version==version && series.LastModifiedAt==now.AddMinutes(1));
+            var allocation=series.Allocate(now.AddMinutes(2));
+            Ensure(allocation.Sequence==10 && allocation.Number=="NEW-000010" &&
+                series.NextNumber==11 && series.Revision==3);
+            return Task.CompletedTask;
+        });
         test("SYS10 idempotency: concurrent create and reserve return one card/allocation and audit",async f=>
         {
             var key=Fixture.Key();var cards=await Task.WhenAll(Enumerable.Range(0,8).Select(_=>Create(f,key:key)));

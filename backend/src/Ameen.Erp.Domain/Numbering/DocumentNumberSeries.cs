@@ -20,24 +20,28 @@ public sealed class DocumentNumberSeries : CompanyEntity
         Check.That(branchId != Guid.Empty && yearId != Guid.Empty, "invalid_numbering_scope", "نطاق الترقيم غير صالح.");
         BranchId=branchId; DocumentKind=kind; FiscalYearId=yearId;
         CreatedBy=Check.Text(actor,"المنشئ"); CreatedAt=now; LastModifiedAt=now;
-        SetConfiguration(prefix,next);
+        Prefix=ValidatedPrefix(prefix,next); NextNumber=next;
     }
-    private void SetConfiguration(string? prefix,long next)
+    // Validate before changing any aggregate fields: a failed edit must not
+    // leave a new prefix/counter behind when the audit revision is invalid.
+    private static string? ValidatedPrefix(string? prefix,long next)
     {
         Check.That(next>0 && next<long.MaxValue,"invalid_next_number","الرقم التالي موجب ودون الحد الأقصى.");
-        Prefix=string.IsNullOrWhiteSpace(prefix)?null:Check.Text(prefix,"البادئة",32);
-        Check.That(Prefix is null || !Prefix.Any(char.IsControl) && !Prefix.Contains("..",StringComparison.Ordinal),"invalid_number_prefix","البادئة لا تتضمن محارف تحكم.");
-        NextNumber=next;
+        var validated=string.IsNullOrWhiteSpace(prefix)?null:Check.Text(prefix,"البادئة",32);
+        Check.That(validated is null || !validated.Any(char.IsControl) && !validated.Contains("..",StringComparison.Ordinal),"invalid_number_prefix","البادئة لا تتضمن محارف تحكم.");
+        return validated;
     }
     private void Advance(DateTimeOffset now)
     {
-        Check.That(Revision<int.MaxValue && now>=CreatedAt,"invalid_numbering_revision","إصدار أو وقت تعديل الترقيم غير صالح.");
+        Check.That(Revision<int.MaxValue && now>=CreatedAt && now>=LastModifiedAt,"invalid_numbering_revision","إصدار أو وقت تعديل الترقيم غير صالح.");
         Revision++; LastModifiedAt=now; Touch();
     }
     public void Edit(string? prefix,long next,DateTimeOffset now)
     {
         Check.That(next>=NextNumber,"number_reuse_forbidden","لا يجوز خفض الرقم التالي وإعادة استخدام أرقام محجوزة.",ErrorKind.Conflict);
-        SetConfiguration(prefix,next); Advance(now);
+        var validatedPrefix=ValidatedPrefix(prefix,next);
+        Advance(now);
+        Prefix=validatedPrefix; NextNumber=next;
     }
     public void SetActive(bool active,DateTimeOffset now) { IsActive=active; Advance(now); }
     public string Candidate() => (Prefix??"")+NextNumber.ToString("D6",CultureInfo.InvariantCulture);
@@ -45,6 +49,9 @@ public sealed class DocumentNumberSeries : CompanyEntity
     {
         Check.That(IsActive,"numbering_inactive","سلسلة الترقيم معطلة.",ErrorKind.Conflict);
         Check.That(NextNumber<long.MaxValue-1,"numbering_exhausted","نفدت سلسلة الأرقام.",ErrorKind.Conflict);
-        var result=(NextNumber,Candidate()); NextNumber++; Advance(now); return result;
+        var result=(NextNumber,Candidate());
+        Advance(now);
+        NextNumber++;
+        return result;
     }
 }
