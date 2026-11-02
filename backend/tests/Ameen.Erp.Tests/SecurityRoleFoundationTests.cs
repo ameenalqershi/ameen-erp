@@ -48,6 +48,57 @@ public static class SecurityRoleFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS07: atomic role rule replacement, revision conflicts and operation isolation", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero);
+            var currency = Guid.NewGuid();
+            var role = new SecurityRole(f.CompanyId, f.BranchId, "Accountant",
+                "Accounting", f.Owner.Subject, now);
+            role.AddRule("GL03", "POST", true, 50m, currency, now);
+            var originalRule = role.Rules.Single().Id;
+            var version = role.Revision;
+            var modified = role.LastModifiedAt;
+            var invalid = new[] {
+                new SecurityRoleRuleDraft("GL03", "POST", true, 100m, currency),
+                new SecurityRoleRuleDraft("GL03", "EXPORT", false, 1m, currency)
+            };
+            Expect("invalid_role_amount_policy", () =>
+                role.ReplaceRules(invalid, version, now.AddSeconds(1)));
+            Ensure(role.Revision == version && role.LastModifiedAt == modified &&
+                role.Rules.Single().Id == originalRule, "Invalid batch changed persisted aggregate");
+            var duplicate = new[] {
+                new SecurityRoleRuleDraft("gl03", "post", true, null, null),
+                new SecurityRoleRuleDraft("GL03", "POST", false, null, null)
+            };
+            Expect("duplicate_role_rule", () =>
+                role.ReplaceRules(duplicate, version, now.AddSeconds(1)));
+            Expect("stale_role_revision", () =>
+                role.ReplaceRules(Array.Empty<SecurityRoleRuleDraft>(), version - 1, now.AddSeconds(1)));
+            Ensure(role.Revision == version && role.Rules.Single().Id == originalRule,
+                "Rejected revision or duplicate changed rules");
+            role.ReplaceRules(new[] {
+                new SecurityRoleRuleDraft("GL03", "POST", true, 100m, currency),
+                new SecurityRoleRuleDraft("GL03", "EXPORT", false, null, null),
+                new SecurityRoleRuleDraft("GL03", "COST", true, null, null)
+            }, version, now.AddSeconds(1));
+            Ensure(role.Revision == version + 1 && role.Rules.Count == 3 &&
+                role.Permits("GL03", "POST", 100m, currency) &&
+                !role.Permits("GL03", "POST", 101m, currency) &&
+                !role.Permits("GL03", "EXPORT", null, null) &&
+                role.Permits("GL03", "COST", null, null),
+                "Atomic replacement or independent operations failed");
+            Expect("stale_role_revision", () =>
+                role.SetActive(false, version, now.AddSeconds(2)));
+            Expect("stale_role_revision", () =>
+                role.Edit("Changed", "Accounting", version, now.AddSeconds(2)));
+            Ensure(role.IsActive && role.Name == "Accountant" &&
+                role.Revision == version + 1, "Stale update changed role");
+            role.SetActive(false, version + 1, now.AddSeconds(2));
+            Ensure(!role.IsActive && role.Revision == version + 2,
+                "Current revision must allow deactivation");
+            return Task.CompletedTask;
+        });
+
         test("SYS07/SYS08: assigned roles enforce tenant, branch, explicit deny and caps", f =>
         {
             var now = DateTimeOffset.UtcNow;

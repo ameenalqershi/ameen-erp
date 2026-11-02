@@ -54,6 +54,39 @@ public sealed class SecurityRole : CompanyEntity
         return rule;
     }
 
+    // This is an internal, fail-closed preparation for audited administration.
+    // Persistence is still blocked by ErpDbContext until authorization and audit
+    // are accepted. Construct the entire replacement before mutating the role.
+    public void ReplaceRules(IEnumerable<SecurityRoleRuleDraft> drafts,
+        int expectedRevision, DateTimeOffset now)
+    {
+        Check.That(expectedRevision == Revision, "stale_role_revision",
+            "تم تعديل الدور بواسطة عملية أخرى.", ErrorKind.Conflict);
+        Check.That(drafts is not null, "invalid_role_rules", "قواعد الدور مطلوبة.");
+        var replacement = drafts!.Select(x => new SecurityRoleRule(CompanyId, Id,
+            x.Screen, x.Operation, x.Allowed, x.AmountLimit, x.CurrencyId)).ToList();
+        var unique = new HashSet<(string Screen, string Operation, Guid? Currency)>();
+        Check.That(replacement.All(x => unique.Add((x.ScreenCode, x.OperationCode, x.CurrencyId))),
+            "duplicate_role_rule", "لا يمكن تكرار العملية والعملة داخل الدور.");
+        Advance(now);
+        Rules.Clear();
+        Rules.AddRange(replacement);
+    }
+
+    public void Edit(string name, string responsibility, int expectedRevision, DateTimeOffset now)
+    {
+        Check.That(expectedRevision == Revision, "stale_role_revision",
+            "تم تعديل الدور بواسطة عملية أخرى.", ErrorKind.Conflict);
+        Edit(name, responsibility, now);
+    }
+
+    public void SetActive(bool active, int expectedRevision, DateTimeOffset now)
+    {
+        Check.That(expectedRevision == Revision, "stale_role_revision",
+            "تم تعديل الدور بواسطة عملية أخرى.", ErrorKind.Conflict);
+        SetActive(active, now);
+    }
+
     // A pure conservative evaluator, NOT yet wired into user authorization.
     // Any explicit deny wins; an amount-limited grant requires a matching currency
     // and a supplied amount. No implicit permission is ever inferred.
@@ -107,3 +140,7 @@ public sealed class SecurityRoleRule : CompanyEntity
         CurrencyId = currencyId;
     }
 }
+
+// Validated through SecurityRoleRule before any aggregate mutation.
+public sealed record SecurityRoleRuleDraft(string Screen, string Operation,
+    bool Allowed, decimal? AmountLimit, Guid? CurrencyId);
