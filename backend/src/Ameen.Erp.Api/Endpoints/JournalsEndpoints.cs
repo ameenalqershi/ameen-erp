@@ -23,6 +23,9 @@ internal static class JournalsEndpoints
             .Produces<JournalProcessingDurableResult>().RequireAuthorization().WithTags("GL06 Durable processing");
         app.MapGet(p + "/journals/{id:guid}/processing-history", async (Guid companyId, Guid id, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ProcessingHistory(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("GL05 GL06 Journal processing");
+        app.MapPost(p + "/journals/reversals/run-due", async (Guid companyId, RunDueReversalsRequest r, JournalService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.RunScheduledReversals(companyId, Actor(h), r.AsOf, r.Limit ?? 50, ct)))
+            .Produces<ReversalDueRunResult>().RequireAuthorization().WithTags("GL03 GL07 Scheduled reversals");
         app.MapGet(p + "/journals", async (Guid companyId, Guid? branchId, JournalState? state, JournalSource? source, string? search, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ListJournals(companyId, Actor(h), branchId, state, offset ?? 0, limit ?? 50, ct, source, search))).Produces<Page<JournalSummary>>().RequireAuthorization().WithTags("GL03 Journals");
         app.MapGet(p + "/journals/{id:guid}", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>

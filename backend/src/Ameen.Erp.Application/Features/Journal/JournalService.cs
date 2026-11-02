@@ -114,10 +114,11 @@ public sealed partial class JournalService : ApplicationService
             var journal = new JournalEntry(cid, request.BranchId, period.Id, number.Number, number.Sequence,
                 request.DocumentDate, request.AccountingDate, request.Description, request.ExternalReference, actor.Subject, clock.UtcNow);
             number.Allocation?.BindDocument(journal.Id);
+            journal.ConfigureAutomaticReversal(request.AutomaticReversal, request.ReversalDate);
             journal.SetLines(await PrepareLines(company, journal, request.Lines, token));
             // An unbalanced draft is allowed; submission/approval/posting require exact balance.
             store.Add(journal);
-            Audit(cid, actor, "journal.created", journal, new { journal.Revision, journal.LastModifiedAt, journal.Number, journal.AccountingDate, journal.BranchId, journal.Lines });
+            Audit(cid, actor, "journal.created", journal, new { journal.Revision, journal.LastModifiedAt, journal.Number, journal.AccountingDate, journal.BranchId, journal.AutomaticReversal, journal.AutomaticReversalDate, journal.Lines });
             return Receipt(journal, journal.State.ToString(), journal.Number);
         }, ct);
 
@@ -130,12 +131,15 @@ public sealed partial class JournalService : ApplicationService
             Check.That(journal.ReversesJournalId is null, "reversal_immutable", "سطور العكس نسخة معكوسة ثابتة من المصدر؛ ألغِ مسودة العكس عند الحاجة.", ErrorKind.Conflict);
             await OpenPeriod(cid, journal.AccountingDate, token);
             var company = await Company(cid, token);
-            var before = new { Header = HeaderSnapshot(journal), journal.Description, Lines = journal.Lines.ToArray() };
+            var before = new { Header = HeaderSnapshot(journal), journal.Description, journal.AutomaticReversal, journal.AutomaticReversalDate, Lines = journal.Lines.ToArray() };
+            var automatic = request.AutomaticReversal ?? journal.AutomaticReversal;
+            var reversalDate = request.AutomaticReversal.HasValue ? request.ReversalDate : journal.AutomaticReversalDate;
             await ReplaceDraftHeader(journal, request.Header, actor, token);
+            journal.ConfigureAutomaticReversal(automatic, reversalDate);
             var newLines = await PrepareLines(company, journal, request.Lines, token);
             store.RemoveLines(journal.Lines.ToArray());
             journal.EditDescription(request.Description); journal.SetLines(newLines); journal.AdvanceRevision(clock.UtcNow);
-            Audit(cid, actor, "journal.edited", journal, new { before, after = new { Header = HeaderSnapshot(journal), journal.Description, journal.Lines } });
+            Audit(cid, actor, "journal.edited", journal, new { before, after = new { Header = HeaderSnapshot(journal), journal.Description, journal.AutomaticReversal, journal.AutomaticReversalDate, journal.Lines } });
             return Receipt(journal, journal.State.ToString(), journal.Number);
         }, ct);
 
@@ -239,6 +243,7 @@ public sealed partial class JournalService : ApplicationService
                  (x.PreviousTrialBalanceReference != null && x.PreviousTrialBalanceReference.Contains(search))),
             q => q.OrderByDescending(x => x.AccountingDate).ThenByDescending(x => x.Sequence).ThenBy(x => x.Id), offset, limit, ct);
         return new(page.Items.Select(x => new JournalSummary(x.Id, x.Version, x.Number, x.BranchId, x.AccountingDate,
-                x.Description, x.State, x.Lines.Sum(l => l.FunctionalDebit), x.Lines.Sum(l => l.FunctionalCredit), x.Source, x.RecurringTemplateId, x.Revision, x.LastModifiedAt)).ToArray(), page.TotalCount, offset, limit);
+                x.Description, x.State, x.Lines.Sum(l => l.FunctionalDebit), x.Lines.Sum(l => l.FunctionalCredit), x.Source, x.RecurringTemplateId,
+                x.Revision, x.LastModifiedAt, x.AutomaticReversal, x.AutomaticReversalDate)).ToArray(), page.TotalCount, offset, limit);
     }
 }
