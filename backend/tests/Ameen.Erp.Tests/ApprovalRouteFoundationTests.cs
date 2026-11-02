@@ -148,6 +148,39 @@ public static class ApprovalRouteFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS09: corrupt hydrated route audit invalidates conflict preflight", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 13, 0, 0, TimeSpan.Zero);
+            var currency = Guid.NewGuid();
+            ApprovalRoute Route() => new(f.CompanyId, f.BranchId, "journal", 10m,
+                20m, currency, true, f.Owner.Subject, now);
+            var candidate = Route();
+            var existing = Route();
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                ApprovalRouteConflictStatus.Overlap, "Valid route should overlap before corruption");
+            void Corrupt(ApprovalRoute target, string property, object value)
+            {
+                var info = typeof(ApprovalRoute).GetProperty(property)!;
+                var original = info.GetValue(target);
+                info.SetValue(target, value);
+                Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                    ApprovalRouteConflictStatus.InvalidSnapshot,
+                    $"Corrupt SYS09 {property} on {(ReferenceEquals(target, candidate) ? "candidate" : "tenant row")} was accepted");
+                info.SetValue(target, original);
+                Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                    ApprovalRouteConflictStatus.Overlap, "Restored audit must allow valid overlap");
+            }
+            Corrupt(existing, nameof(ApprovalRoute.Revision), 0);
+            Corrupt(existing, nameof(ApprovalRoute.CreatedBy), "  ");
+            Corrupt(existing, nameof(ApprovalRoute.CreatedBy), new string('X', 201));
+            Corrupt(existing, nameof(ApprovalRoute.CreatedBy), " actor ");
+            Corrupt(existing, nameof(ApprovalRoute.CreatedAt), default(DateTimeOffset));
+            Corrupt(existing, nameof(ApprovalRoute.LastModifiedAt), now.AddSeconds(-1));
+            Corrupt(candidate, nameof(ApprovalRoute.Revision), -1);
+            Corrupt(candidate, nameof(ApprovalRoute.LastModifiedAt), now.AddSeconds(-1));
+            return Task.CompletedTask;
+        });
+
         test("SYS09: atomic stage replacement and expected revision fail closed", f =>
         {
             var now = new DateTimeOffset(2026, 11, 2, 11, 0, 0, TimeSpan.Zero);

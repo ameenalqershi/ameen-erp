@@ -138,10 +138,10 @@ SYS09,SYS09-F08,فصل المنشئ والمعتمد,required,partial,Company.Re
 SYS09,SYS09-F09,المرحلة,required,partial,"ApprovalRouteStage.StageNumber: positive, unique per route; domain-only atomic replacement",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F10,الدور المعتمد,required,partial,ApproverRoleId: required tenant SYS07 role FK via SQL 029; role policy not validated; persistence blocked,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F11,مهلة التنبيه,optional,partial,AlertAfterMinutes: nullable nonnegative; no automatic approval,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
-SYS09,SYS09-F12,أنشأه,system,partial,"CreatedBy: actor field, no API",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
-SYS09,SYS09-F13,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
-SYS09,SYS09-F14,رقم إصدار التعديل,system,partial,"Revision: server integer, domain-only expected-revision editing",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
-SYS09,SYS09-F15,آخر تعديل,system,partial,LastModifiedAt: datetimeoffset,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F12,أنشأه,system,partial,"CreatedBy: actor field; hydrated audit preflight only, no API",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F13,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset; hydrated audit preflight only,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F14,رقم إصدار التعديل,system,partial,"Revision: server integer, domain-only expected-revision editing and snapshot check",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F15,آخر تعديل,system,partial,LastModifiedAt: datetimeoffset; hydrated audit chronology preflight,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS10,SYS10-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F02,الفرع,conditional,implemented,"BranchId: optional company-wide or explicit branch, global configuration/read requires all branches",GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F03,الحالة,system,implemented,IsActive,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events

@@ -57,6 +57,12 @@ public static class ApprovalRouteConflictPolicy
         const decimal limit = 99999999999999.999999m;
         var type = route.DocumentType;
         return route.Id != Guid.Empty && route.CompanyId != Guid.Empty &&
+            // Audit fields may be corrupted in a hydrated snapshot even when
+            // the amount and stage dimensions are otherwise well formed.
+            route.Revision > 0 && route.CreatedAt != default &&
+            route.LastModifiedAt >= route.CreatedAt &&
+            !string.IsNullOrWhiteSpace(route.CreatedBy) &&
+            route.CreatedBy.Length <= 200 && route.CreatedBy == route.CreatedBy.Trim() &&
             route.BranchId != Guid.Empty && route.CurrencyId != Guid.Empty &&
             !string.IsNullOrEmpty(type) && type.Length <= 32 &&
             type[0] is >= 'A' and <= 'Z' or >= '0' and <= '9' &&

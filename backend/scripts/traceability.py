@@ -81,7 +81,7 @@ screen("SYS08", "GET/POST /companies/{companyId}/memberships",
 MAP["SYS08"]["fields"]["SYS08-F05"] = dict(status="partial", binding="SecurityRoleAssignment.RoleId: tenant FK and guarded write only; no API")
 MAP["SYS08"]["test_file"] = "backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleAssignmentSqlIntegration.cs"
 screen("SYS09", "internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent",
-       "SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; domain-only conservative branch/amount overlap preflight and atomic stage replacement with revision; all unvalidated writes blocked",
+       "SYS09 dependency foundation: tenant-scoped route and stage schema, amount decimal(20,6), optional branch, currency FK, audit revision, stage uniqueness and GL14 route FK; domain-only conservative branch/amount overlap preflight with hydrated stage/audit integrity and atomic stage replacement with revision; all unvalidated writes blocked",
        "SYS07 role FK exists but membership/active/scope/deny enforcement is absent; document type allowed list, transactional overlap/scope arbitration, cross-currency policy, stage execution, notifications, authorization, endpoints and acceptance not implemented",
        {1: "CompanyId: existing company boundary"})
 for n, binding in {
@@ -92,8 +92,8 @@ for n, binding in {
     9:"ApprovalRouteStage.StageNumber: positive, unique per route; domain-only atomic replacement",
     10:"ApproverRoleId: required tenant SYS07 role FK via SQL 029; role policy not validated; persistence blocked",
     11:"AlertAfterMinutes: nullable nonnegative; no automatic approval",
-    12:"CreatedBy: actor field, no API", 13:"CreatedAt: datetimeoffset",
-    14:"Revision: server integer, domain-only expected-revision editing", 15:"LastModifiedAt: datetimeoffset"
+    12:"CreatedBy: actor field; hydrated audit preflight only, no API", 13:"CreatedAt: datetimeoffset; hydrated audit preflight only",
+    14:"Revision: server integer, domain-only expected-revision editing and snapshot check", 15:"LastModifiedAt: datetimeoffset; hydrated audit chronology preflight"
 }.items():
     MAP["SYS09"]["fields"][f"SYS09-F{n:02}"] = dict(status="partial", binding=binding)
 MAP["SYS09"]["test_file"] = "backend/tests/Ameen.Erp.Tests/ApprovalRouteFoundationTests.cs; backend/tests/Ameen.Erp.Tests/ApprovalRouteSqlIntegration.cs"
