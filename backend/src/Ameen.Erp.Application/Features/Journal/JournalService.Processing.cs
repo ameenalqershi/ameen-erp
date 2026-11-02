@@ -170,6 +170,14 @@ public sealed partial class JournalService
                     {
                         var current = await Required<JournalProcessingBatch>(cid, batch.Id, token);
                         var prior = index < current.Rows().Length ? current.Rows()[index] : null;
+                        // A parallel replay may complete the same item after our initial
+                        // batch snapshot. Preserve the final decision and its audit exactly once.
+                        if (prior is { Succeeded: true } or { RejectionRecorded: true })
+                        {
+                            Check.That(prior == stored, "processing_result_final",
+                                "نتيجة المستند النهائية محفوظة ولا تقبل الاستبدال.", ErrorKind.Conflict);
+                            return Receipt(current, "Recorded");
+                        }
                         current.Record(index, stored, clock.UtcNow);
                         Audit(cid, actor, "journal.processing.batch-item", current,
                             new { Index = index, Previous = prior, Result = stored, current.Revision });
