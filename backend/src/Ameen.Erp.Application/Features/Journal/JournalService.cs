@@ -133,7 +133,8 @@ public sealed partial class JournalService : ApplicationService
             var company = await Company(cid, token);
             var before = new { Header = HeaderSnapshot(journal), journal.Description, journal.AutomaticReversal, journal.AutomaticReversalDate, Lines = journal.Lines.ToArray() };
             var automatic = request.AutomaticReversal ?? journal.AutomaticReversal;
-            var reversalDate = request.AutomaticReversal.HasValue ? request.ReversalDate : journal.AutomaticReversalDate;
+            var reversalDate = request.AutomaticReversal.HasValue || request.ReversalDate.HasValue
+                ? request.ReversalDate : journal.AutomaticReversalDate;
             await ReplaceDraftHeader(journal, request.Header, actor, token);
             journal.ConfigureAutomaticReversal(automatic, reversalDate);
             var newLines = await PrepareLines(company, journal, request.Lines, token);
