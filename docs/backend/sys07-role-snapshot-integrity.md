@@ -13,6 +13,6 @@ No new SQL migration. No change to original analysis. Existing EF write guards r
 
 ## Validation and remaining work
 
-Local .NET 10 Release, traceability, domain/EF tests, HTTP/JWT and OpenAPI: **345/345 passed, zero failed**, with no live SQL connection. Evidence: `backend/.artifacts/sys07-snapshot-20261102/verification.json`. SQL isolated and branch/main CI must be verified before acceptance.
+Local .NET 10 Release, traceability, domain/EF tests, HTTP/JWT and OpenAPI: **345/345 passed, zero failed**, with no live SQL connection. Evidence: `backend/.artifacts/sys07-snapshot-20261102/verification.json`. Branch CI [#41430688379](https://github.com/ameenalqershi/ameen-erp/actions/runs/41430688379) passed **346/346**, zero failures, including isolated SQL Server, HTTP/JWT, OpenAPI and Release. Source SHA256: `1133ca97eb94db6fafe18be8fd41a860fc9afa5c804ff6e5ec508bae0a216513`. Main CI remains to be verified after integration.
 
 Next: obtain/derive only explicitly approved screen-operation catalog; implement audited SYS07 role and SYS08 assignment administration, concurrency, anti-self-escalation, complete tenant-scoped snapshot loading, and negative HTTP/JWT acceptance. Then SYS09 stage policy and GL14/GL03. SYS07/SYS08/SYS09/GL14 remain partial.
