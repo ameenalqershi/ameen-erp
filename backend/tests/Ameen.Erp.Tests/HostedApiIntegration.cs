@@ -141,6 +141,18 @@ public static class HostedApiIntegration
 
                 var requestKey = Fixture.Key();
                 var receipt = await Command(client, path, journalRequest, requestKey);
+                using (var previewResponse = await client.GetAsync(path + $"/{receipt.ResourceId}/impact-preview"))
+                using (var impact = JsonDocument.Parse(await previewResponse.Content.ReadAsStringAsync()))
+                {
+                    Ensure(previewResponse.StatusCode == HttpStatusCode.OK &&
+                        impact.RootElement.GetProperty("canSubmit").GetBoolean() &&
+                        impact.RootElement.GetProperty("isBalanced").GetBoolean() &&
+                        impact.RootElement.GetProperty("difference").GetString() == "0" &&
+                        impact.RootElement.GetProperty("lines").GetArrayLength() == journalRequest.Lines.Length &&
+                        impact.RootElement.GetProperty("functionalDebit").GetString() == "100",
+                        "GL03-A05 journal impact preview failed production HTTPS/JWT/SQL snapshot");
+                    Console.WriteLine("  HOST PASS GL03-A05 read-only journal impact preview over HTTPS/JWT/SQL");
+                }
                 using (var response = await client.GetAsync(path + "?source=Manual&search=" + Uri.EscapeDataString(receipt.Number ?? throw new Exception("Missing journal number"))))
                 {
                     using var result = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());

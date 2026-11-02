@@ -28,6 +28,9 @@ internal static class JournalsEndpoints
             .Produces<ReversalDueRunResult>().RequireAuthorization().WithTags("GL03 GL07 Scheduled reversals");
         app.MapGet(p + "/journals", async (Guid companyId, Guid? branchId, JournalState? state, JournalSource? source, string? search, int? offset, int? limit, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ListJournals(companyId, Actor(h), branchId, state, offset ?? 0, limit ?? 50, ct, source, search))).Produces<Page<JournalSummary>>().RequireAuthorization().WithTags("GL03 Journals");
+        app.MapGet(p + "/journals/{id:guid}/impact-preview", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ImpactPreview(companyId, id, Actor(h), ct)))
+            .Produces<JournalImpactPreview>().RequireAuthorization().WithTags("GL03 Journal impact preview");
         app.MapGet(p + "/journals/{id:guid}", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.GetJournal(companyId, id, Actor(h), ct))).Produces<JournalEntry>().RequireAuthorization().WithTags("GL03 Journals");
         app.MapPost(p + "/journals", async (Guid companyId, CreateJournalRequest r, JournalService s, HttpContext h, CancellationToken ct) =>

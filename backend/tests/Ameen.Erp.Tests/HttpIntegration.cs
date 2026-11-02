@@ -65,6 +65,17 @@ public static class HttpIntegration
             using var created = await Send(client, path, f.Request(), key);
             Ensure(created.StatusCode == HttpStatusCode.OK, await created.Content.ReadAsStringAsync());
             var draft = JsonSerializer.Deserialize<CommandReceipt>(await created.Content.ReadAsStringAsync(), JsonDefaults.Options)!;
+            using (var previewResponse = await client.GetAsync(path + $"/{draft.ResourceId}/impact-preview"))
+            {
+                Ensure(previewResponse.StatusCode == HttpStatusCode.OK, await previewResponse.Content.ReadAsStringAsync());
+                using var preview = JsonDocument.Parse(await previewResponse.Content.ReadAsStringAsync());
+                Ensure(preview.RootElement.GetProperty("canSubmit").GetBoolean() &&
+                    preview.RootElement.GetProperty("isBalanced").GetBoolean() &&
+                    preview.RootElement.GetProperty("functionalDebit").GetString() == "100" &&
+                    preview.RootElement.GetProperty("functionalCredit").GetString() == "100" &&
+                    preview.RootElement.GetProperty("lines").GetArrayLength() == 2,
+                    "HTTP GL03 impact preview must expose exact persisted ledger values");
+            }
             using var replayed = await Send(client, path, f.Request(), key);
             Ensure(JsonSerializer.Deserialize<CommandReceipt>(await replayed.Content.ReadAsStringAsync(), JsonDefaults.Options) == draft, "HTTP replay differs");
 
@@ -108,6 +119,8 @@ public static class HttpIntegration
                     "HTTP scheduled reversal replay duplicated work");
 
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test", "unrelated-user");
+            using var forbiddenPreview = await client.GetAsync(path + $"/{draft.ResourceId}/impact-preview");
+            await Problem(forbiddenPreview, 403, "permission_denied");
             using var forbidden = await client.GetAsync(path);
             await Problem(forbidden, 403, "permission_denied");
             using var forbiddenRun = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date));

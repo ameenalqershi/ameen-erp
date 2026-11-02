@@ -428,6 +428,7 @@ InventoryOpeningPostingTests.Register(Test);
 InventoryOpeningReversalTests.Register(Test);
 InventoryReportTests.Register(Test);
 JournalProcessingTests.Register(Test);
+JournalImpactPreviewTests.Register(Test);
 GeneralOpeningTests.Register(Test);
 GeneralOpeningReversalTests.Register(Test);
 DraftJournalHeaderTests.Register(Test);
