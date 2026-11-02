@@ -117,6 +117,30 @@ public static class JournalDocumentTypeFoundationTests
                 .SetValue(series, 0);
             Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
                 "Corrupt hydrated numbering revision accepted");
+            typeof(DocumentNumberSeries).GetProperty(nameof(DocumentNumberSeries.Revision))!
+                .SetValue(series, 1);
+            // Persisted EF snapshots can bypass constructors. Reject invalid card and
+            // numbering fields before even returning the deliberately unresolved policy.
+            typeof(JournalDocumentType).GetProperty(nameof(JournalDocumentType.Code))!
+                .SetValue(card, "-INVALID");
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Hydrated document code with invalid first character accepted");
+            typeof(JournalDocumentType).GetProperty(nameof(JournalDocumentType.Code))!
+                .SetValue(card, "JV-001");
+            typeof(JournalDocumentType).GetProperty(nameof(JournalDocumentType.Revision))!
+                .SetValue(card, 0);
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Hydrated document with zero revision accepted");
+            typeof(JournalDocumentType).GetProperty(nameof(JournalDocumentType.Revision))!
+                .SetValue(card, 3);
+            typeof(DocumentNumberSeries).GetProperty(nameof(DocumentNumberSeries.NextNumber))!
+                .SetValue(series, 0L);
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Hydrated numbering series with zero next number accepted");
+            typeof(DocumentNumberSeries).GetProperty(nameof(DocumentNumberSeries.NextNumber))!
+                .SetValue(series, 1L);
+            Ensure(CheckRefs(card, series, route) == JournalDocumentTypeReferenceStatus.UnresolvedPolicy,
+                "Recovered hydrated references must remain unauthorized");
             return Task.CompletedTask;
         });
         test("GL14-02 partial: stale revisions reject edit and activation atomically", f =>
