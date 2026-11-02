@@ -34,11 +34,13 @@ public static class SqlIntegration
                 await JournalDocumentTypeSqlIntegration.Upgrade(db);
                 await ApprovalRouteSqlIntegration.Upgrade(db);
                 await SecurityRoleSqlIntegration.Upgrade(db);
+                await SecurityRoleAssignmentSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await JournalDocumentTypeSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await ApprovalRouteSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await SecurityRoleSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
+            await SecurityRoleAssignmentSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
 
             var key = Fixture.Key(); var request = f.Request();
             var drafts = await Task.WhenAll(Enumerable.Range(0, 12).Select(_ =>

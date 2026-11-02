@@ -48,6 +48,64 @@ public static class SecurityRoleFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS07/SYS08: assigned roles enforce tenant, branch, explicit deny and caps", f =>
+        {
+            var now = DateTimeOffset.UtcNow;
+            var member = new Membership(f.CompanyId, f.Owner.Subject,
+                new[] { Permissions.Read }, false, new[] { f.BranchId });
+            var currency = Guid.NewGuid();
+            var grant = new SecurityRole(f.CompanyId, f.BranchId, "Poster", "Can post",
+                f.Owner.Subject, now);
+            grant.AddRule("GL03", "POST", true, 100m, currency, now);
+            var denial = new SecurityRole(f.CompanyId, null, "Deny", "No post",
+                f.Owner.Subject, now);
+            denial.AddRule("GL03", "POST", false, null, null, now);
+            var assignments = new[] {
+                new SecurityRoleAssignment(f.CompanyId, member.Id, grant.Id),
+                new SecurityRoleAssignment(f.CompanyId, member.Id, denial.Id)
+            };
+            bool Allowed(IEnumerable<SecurityRoleAssignment> links, IEnumerable<SecurityRole> roles,
+                Guid company, Guid branch, decimal? amount, Guid? money) =>
+                SecurityRolePolicyEvaluator.Permits(member, links, roles, company, branch,
+                    "GL03", "POST", amount, money);
+            Ensure(!Allowed(assignments, new[] { grant, denial }, f.CompanyId, f.BranchId, 1m, currency),
+                "Explicit denial across assigned roles must win");
+            Ensure(Allowed(assignments.Take(1), new[] { grant, denial }, f.CompanyId, f.BranchId, 100m, currency),
+                "Matching assigned grant should allow its exact cap");
+            Ensure(!Allowed(assignments.Take(1), new[] { grant }, f.CompanyId, f.BranchId, 101m, currency) &&
+                !Allowed(assignments.Take(1), new[] { grant }, f.CompanyId, f.BranchId, 1m, Guid.NewGuid()) &&
+                !Allowed(assignments.Take(1), new[] { grant }, f.CompanyId, Guid.NewGuid(), 1m, currency) &&
+                !Allowed(assignments.Take(1), new[] { grant }, Guid.NewGuid(), f.BranchId, 1m, currency) &&
+                !Allowed(Array.Empty<SecurityRoleAssignment>(), new[] { grant }, f.CompanyId, f.BranchId, 1m, currency),
+                "Cap, currency, membership scope, tenant or assignment bypass");
+            var outsider = new Membership(Guid.NewGuid(), "other", new[] { Permissions.Read }, true, Array.Empty<Guid>());
+            Ensure(!SecurityRolePolicyEvaluator.Permits(outsider, assignments, new[] { grant },
+                f.CompanyId, f.BranchId, "GL03", "POST", 1m, currency),
+                "Foreign membership must not grant access");
+            member.SetActive(false);
+            Ensure(!Allowed(assignments.Take(1), new[] { grant }, f.CompanyId, f.BranchId, 1m, currency),
+                "Inactive membership must not grant access");
+            return Task.CompletedTask;
+        });
+
+        test("SYS07/SYS08: assignment FK model and EF guard reject unverified writes", async f =>
+        {
+            Expect("invalid_role_assignment", () => new SecurityRoleAssignment(f.CompanyId,
+                Guid.Empty, Guid.NewGuid()));
+            await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()
+                .UseSqlServer("Server=localhost;Database=ModelOnly;Integrated Security=true;TrustServerCertificate=true").Options);
+            var entity = db.Model.FindEntityType(typeof(SecurityRoleAssignment))!;
+            Ensure(entity.GetForeignKeys().Any(k => k.PrincipalEntityType.ClrType == typeof(Membership) &&
+                    k.Properties.Select(p => p.Name).Order().SequenceEqual(new[] { "CompanyId", "MembershipId" })) &&
+                entity.GetForeignKeys().Any(k => k.PrincipalEntityType.ClrType == typeof(SecurityRole) &&
+                    k.Properties.Select(p => p.Name).Order().SequenceEqual(new[] { "CompanyId", "RoleId" })) &&
+                entity.GetIndexes().Any(i => i.IsUnique && i.Properties.Count == 3),
+                "Role assignment tenant FKs or uniqueness missing");
+            db.Add(new SecurityRoleAssignment(f.CompanyId, Guid.NewGuid(), Guid.NewGuid()));
+            try { await db.SaveChangesAsync(); throw new Exception("Unverified assignment persisted"); }
+            catch (BusinessException ex) when (ex.Code == "security_role_assignment_policy_unavailable") { }
+        });
+
         test("SYS07 foundation: tenant role, currency and SYS09 approver FKs; writes fail closed", async f =>
         {
             await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()

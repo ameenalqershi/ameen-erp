@@ -1,27 +1,24 @@
-# AMEEN ERP resumable development checkpoint — SYS07 dependency (2026-11-02)
+# AMEEN ERP resumable checkpoint — SYS07/SYS08 membership-role link (2026-11-02)
 
-## Preflight (verified before changes)
+## Preflight verified
+- Repo ameenalqershi/ameen-erp; clean main and origin/main both 7aacbe6d058e925560732b247c4164ac0f703799 after fetch; no git/dotnet/verify active before checkout. Two unrelated long-lived kimi-code sessions exist; no tracked worktree modifications.
+- Read AGENTS.md, docs/backend/PROGRESS.md, SYS07/SYS08 original fields and SYS.md, prior SYS07/SYS09/GL14 handoffs, Notion SYS07-01 and SYS07-GAP01. Prior 343/343 main CI #41400728451 accepted only guarded SYS07 foundation.
+- Current branch: temp/sys07-membership-role-assignment-20261102 (created from main). Do not overwrite concurrent changes; recheck git status and origin/main before any push.
 
-- Repository: `ameenalqershi/ameen-erp`, private GitHub origin. `main` and `origin/main` both `e6a500b1309f4fa1a3af2dc86e26711a28f352e3` after fetch. Working tree clean; no active dotnet/git process or uncommitted work. `AGENTS.md`, `PROGRESS.md`, SYS07 original source and SYS09/GL14 prior handoff read.
-- Existing accepted work: SQL 028 SYS09 foundation CI #41395016694 340/340 on main; GL14 and SYS09 remain partial. Do not rerun SQL 027/028 or reopen prior tasks.
-- Current branch: `temp/sys07-role-foundation-20261102` created from main; only this branch is edited.
+## Task and implementation
+- Task SYS07-01 / SYS07-GAP01 dependency on SYS08-F05 user-role reference, **partial structural scope only**.
+- Added backend/src/Ameen.Erp.Domain/Organization/SecurityRoleAssignment.cs; backend/database/030_security_role_assignments.sql; backend/tests/Ameen.Erp.Tests/SecurityRoleAssignmentSqlIntegration.cs; docs/backend/sys07-membership-role-assignment.md.
+- Modified backend/src/Ameen.Erp.Infrastructure/Persistence/Configurations/SecurityRoleModel.cs; Persistence/ErpDbContext.cs (SchemaVersion 30); Persistence/ErpDbContext.Validation.cs (assignment write guard); backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs and SqlIntegration.cs; backend/scripts/traceability.py; generated docs/backend/fields-implementation.csv, screens-implementation.csv, implementation-map.json and PROGRESS.md; this checkpoint.
+- Security: company composite FKs to Membership and SecurityRole; unique membership-role; no seed; EF rejects all assignment writes. Pure evaluator filters membership/company/branch/active roles, denies before grants, amount/currency caps; **NOT** connected to runtime authorization because snapshot completeness and policy audit are not accepted. Existing membership grants and SYS07/SYS09/GL14 guards unchanged.
+- Local /root/.dotnet/dotnet .NET 10 Release + tests + HTTP/JWT/OpenAPI + traceability: **344/344 passed, 0 failed**, source SHA256 a47d5d1c3322248597fc5314fe8d5793a3d66821d981723c1a91454647d46e06; evidence backend/.artifacts/sys07-assignment-20261102/verification.json. SQL not available locally; CI SQL 030 negative rollback/retry and tenant FK must pass before main.
+- Code branch commit SHA: PENDING. Branch CI run/SHA: PENDING. Main SHA: 7aacbe6 (unchanged). Notion update: PENDING until CI success.
 
-## Current task and scope
+## Exact next steps (resume after interruption)
+1. Check git status --short --branch, git fetch origin main, git rev-parse HEAD origin/main and active processes. Reconcile concurrent edits; never reset another actor's work.
+2. Verify local 344/344 result and source fingerprint, python3 backend/scripts/progress.py --check, git diff --check and no muhaseb-erp-analysis diff.
+3. Commit changes with temp: prefix on temp/sys07-membership-role-assignment-20261102; push branch only after local success. Check GitHub Actions branch CI for isolated SQL 030 rollback/retry, tenant FK, HTTP/JWT, OpenAPI, Release. If red, fix, rerun and **do not merge to main**.
+4. On green CI, record exact branch SHA, run URL, SQL result and source hash in PROGRESS.md and checkpoint, update docs/backend/verification-results.json from CI artifact if available. Commit documentation temp:, revalidate CI on final SHA. Fast-forward main only if green and main has not advanced; verify origin/main SHA and main CI.
+5. Update Notion SYS07-01, SYS07-GAP01, SYS08 dependency note: **قيد التنفيذ**, not completed; include SHA/CI links and missing authorization/CRUD/audit.
+6. Next functional task: audited role/assignment administration with concurrency and explicit permission registry, then complete tenant snapshot and negative API acceptance for deny/branch/amount/currency and cost/export/post independence. Preserve legacy grants until verified. Then SYS09 active-role/stage/overlap and GL14/GL03.
 
-- Task: `SYS07-01 / SYS07-GAP01` prerequisite for SYS09/GL14. **Partial structural foundation, not accepted role administration**.
-- Added: `backend/src/Ameen.Erp.Domain/Organization/SecurityRole.cs`, `backend/src/Ameen.Erp.Infrastructure/Persistence/Configurations/SecurityRoleModel.cs`, `backend/database/029_security_role_foundation.sql`, `backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs`, `SecurityRoleSqlIntegration.cs`, `docs/backend/sys07-role-foundation.md`.
-- Modified: `ErpDbContext.cs` (SchemaVersion 29), `ErpDbContext.Validation.cs` (SYS07 write guard), `ApprovalRouteModel.cs` (role FK), `Program.cs`, `SqlIntegration.cs`, `backend/scripts/traceability.py`, generated `docs/backend/{implementation-map.json,fields-implementation.csv,screens-implementation.csv,PROGRESS.md}`, `sys09-approval-route-foundation.md`, `gl14-01-foundation.md`.
-- Design: tenant/branch and currency FKs, role/rule version/audit fields, explicit-deny-first pure evaluation, capped grants with currency, SQL 029 transaction and idempotency, SYS09 role FK; EF blocks role/SYS09/GL14 writes pending full policy. No seed, no public endpoints, no original diagram or analysis modifications.
-- Local verification before final SQL-negative-test addition: **342/342** .NET 10 Release, domain/EF, HTTP/JWT/OpenAPI, traceability; SQL not available locally. Final local verification: `backend/.artifacts/sys07-role-final-20261102/verification.json`, **342/342**, source SHA256 `661549d14ff032b646ffff22a1d8eecab1434f94c03f884dc4068ad91f4b2a6a`. Branch code SHA `d3aa045b170183a377769757eb2bef9667dc428a` passed [isolated SQL CI #41400101494](https://github.com/ameenalqershi/ameen-erp/actions/runs/41400101494) **343/343**; live SQL, HTTP/JWT/OpenAPI and Release. Artifact evidence copied into `docs/backend/verification-results.json`.
-- Code commit SHA `d3aa045b170183a377769757eb2bef9667dc428a`, branch CI [#41400101494](https://github.com/ameenalqershi/ameen-erp/actions/runs/41400101494) successful 343/343. Documentation commit SHA, its CI and main SHA **pending**. Do not push to main until documentation SHA CI is green.
-
-## Blockers and exact next action
-
-1. Check `git status --short --branch`, `git fetch origin main`, `git rev-parse HEAD origin/main` and active sessions; if another actor has modified the worktree, reconcile rather than overwrite.
-2. Confirm final local `verify.py` is **342/342**, `progress.py --check`, no `muhaseb-erp-analysis` diff. If failing, fix only failed tests.
-3. **Done:** code committed `temp:` and pushed to `temp/sys07-role-foundation-20261102`; disposable SQL CI #41400101494 passed 343/343.
-4. **In progress:** CI artifact copied into `docs/backend/verification-results.json`, CI run/SHA and count recorded in PROGRESS and this checkpoint. Commit `temp:` documentation on the existing branch, rerun CI on documentation SHA, fast-forward main only if both code and final CI are green; verify remote SHA.
-5. Update Notion `SYS07-01` and `SYS07-GAP01` to **قيد التنفيذ** (not مكتمل), with commit/CI links and blockers. Update SYS09 dependency note. Do not mark SYS07-FG tasks accepted.
-6. Next functional work: user-to-role assignment, explicit deny and branch/amount/currency authorization, independent cost/export/post rights, audit/concurrency, then SYS09 active-role scope and route overlap/document-kind policy, then GL14/GL03. Preserve current membership grants until replacement is accepted.
-
-No production data, credentials or original analysis may be changed. On interruption preserve exact failed test, SHA, branch, CI URL, changed files and next command here.
+Do not touch production SQL, credentials or original analysis. Do not claim SYS07/SYS08/SYS09/GL14 functional acceptance from structural CI.

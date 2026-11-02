@@ -27,5 +27,12 @@ public sealed partial class ErpDbContext
         rule.HasIndex(x => new { x.CompanyId, x.RoleId, x.ScreenCode, x.OperationCode, x.CurrencyId }).IsUnique();
         Constraint(rule, "CK_SecurityRoleRule_Limit",
             "([AmountLimit] IS NULL AND [CurrencyId] IS NULL) OR ([Allowed]=1 AND [AmountLimit]>=0 AND [CurrencyId] IS NOT NULL)");
+
+        var assignment = Tenant<SecurityRoleAssignment>(model, "SecurityRoleAssignments");
+        assignment.HasOne<Membership>().WithMany()
+            .HasForeignKey(x => new { x.CompanyId, x.MembershipId }).OnDelete(DeleteBehavior.NoAction);
+        assignment.HasOne<SecurityRole>().WithMany()
+            .HasForeignKey(x => new { x.CompanyId, x.RoleId }).OnDelete(DeleteBehavior.NoAction);
+        assignment.HasIndex(x => new { x.CompanyId, x.MembershipId, x.RoleId }).IsUnique();
     }
 }

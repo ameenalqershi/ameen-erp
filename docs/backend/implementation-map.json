@@ -6,11 +6,11 @@
   "partially_implemented_screens": 33,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 328,
+    "implemented": 327,
     "audit": 49,
     "derived": 5,
-    "partial": 77,
-    "pending": 2300
+    "partial": 79,
+    "pending": 2299
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -379,16 +379,16 @@
     },
     "SYS07": {
       "api": "GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only",
-      "implemented": "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته؛ أساس كتالوج أدوار SYS07 وقواعد السماح/المنع وحد المبلغ/العملة وFK إلى SYS09 دون تفعيل",
-      "remaining": "إدارة الأدوار وربطها بالعضويات وإنفاذ المنع الصريح ونطاق الفرع والمبلغ والعملة والعمليات المنفصلة والتدقيق وقبول API؛ كتابة الأدوار محجوبة",
+      "implemented": "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته؛ أساس كتالوج أدوار SYS07 وقواعد السماح/المنع وحد المبلغ/العملة وFK إلى SYS09؛ ربط مستخدم-دور SQL 030 ومقيّم مستقل غير مفعل",
+      "remaining": "إدارة الأدوار وربطها بالعضويات عبر API وإنفاذ المنع الصريح ونطاق الفرع والمبلغ والعملة والعمليات المنفصلة والتدقيق وقبول API؛ كتابة الأدوار والروابط محجوبة",
       "fields": {
         "SYS07-F01": {
           "status": "implemented",
           "binding": "CompanyId"
         },
         "SYS07-F07": {
-          "status": "implemented",
-          "binding": "GrantedPermissions[]"
+          "status": "partial",
+          "binding": "SecurityRoleRule.OperationCode: internal model only"
         },
         "SYS07-F13": {
           "status": "implemented",
@@ -439,12 +439,12 @@
           "binding": "SecurityRole.LastModifiedAt: internal server timestamp only"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleSqlIntegration.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleAssignmentSqlIntegration.cs"
     },
     "SYS08": {
       "api": "GET/POST /companies/{companyId}/memberships",
-      "implemented": "نطاق الشركة والفروع مطبق على الأوامر والتقارير",
-      "remaining": "نطاق الحساب والمخزن والصندوق والعملاء ومراكز التكلفة المستقل",
+      "implemented": "نطاق الشركة والفروع مطبق على الأوامر والتقارير؛ ربط عضوية-دور محمي SQL 030 دون إنفاذ",
+      "remaining": "نطاق الحساب والمخزن والصندوق والعملاء ومراكز التكلفة المستقل؛ تفعيل إدارة الدور وربطه بالمستخدم",
       "fields": {
         "SYS08-F01": {
           "status": "implemented",
@@ -469,8 +469,13 @@
         "SYS08-F12": {
           "status": "audit",
           "binding": "AuditEvent.OccurredAt"
+        },
+        "SYS08-F05": {
+          "status": "partial",
+          "binding": "SecurityRoleAssignment.RoleId: tenant FK and guarded write only; no API"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleAssignmentSqlIntegration.cs"
     },
     "SYS09": {
       "api": "internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent",

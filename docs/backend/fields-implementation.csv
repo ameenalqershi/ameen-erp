@@ -105,7 +105,7 @@ SYS07,SYS07-F03,الحالة,system,partial,SecurityRole.IsActive: stored only,G
 SYS07,SYS07-F04,الدور,required,partial,SecurityRole.Name: internal model only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F05,وصف المسؤولية,required,partial,SecurityRole.Responsibility: internal model only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F06,الشاشة,required,partial,SecurityRoleRule.ScreenCode: internal model only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
-SYS07,SYS07-F07,العملية,required,implemented,GrantedPermissions[],GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F07,العملية,required,partial,SecurityRoleRule.OperationCode: internal model only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F08,مسموح,required,partial,SecurityRoleRule.Allowed: no runtime enforcement,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F09,حد المبلغ,conditional,partial,"SecurityRoleRule.AmountLimit: decimal(20,6), no runtime enforcement",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F10,عملة الحد,conditional,partial,"SecurityRoleRule.CurrencyId: tenant FK, no runtime enforcement",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
@@ -117,7 +117,7 @@ SYS08,SYS08-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{c
 SYS08,SYS08-F02,الفرع,conditional,pending,,
 SYS08,SYS08-F03,الحالة,system,pending,,
 SYS08,SYS08-F04,المستخدم,required,implemented,Subject,GET/POST /companies/{companyId}/memberships
-SYS08,SYS08-F05,الدور,required,pending,,
+SYS08,SYS08-F05,الدور,required,partial,SecurityRoleAssignment.RoleId: tenant FK and guarded write only; no API,GET/POST /companies/{companyId}/memberships
 SYS08,SYS08-F06,الفرع,required,implemented,AllBranches / BranchIds[],GET/POST /companies/{companyId}/memberships
 SYS08,SYS08-F07,المخزن,conditional,pending,,
 SYS08,SYS08-F08,الصندوق,conditional,pending,,

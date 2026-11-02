@@ -12,6 +12,10 @@ public sealed partial class ErpDbContext
         Check.That(!ChangeTracker.Entries<SecurityRole>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
             !ChangeTracker.Entries<SecurityRoleRule>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
             "security_role_policy_unavailable", "لا يمكن حفظ أدوار قبل تنفيذ الصلاحيات والنطاقات ومنع التعارض.", ErrorKind.Conflict);
+        Check.That(!ChangeTracker.Entries<SecurityRoleAssignment>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "security_role_assignment_policy_unavailable",
+            "لا يمكن حفظ ربط دور بالمستخدم قبل اعتماد سياسة التفويض والتدقيق.", ErrorKind.Conflict);
         // SYS09 has a SYS07 role FK but no verified active/scope or overlap/amount approval policy yet.
         // Refuse all writes (including stage-only writes) rather than accepting invented roles.
         Check.That(!ChangeTracker.Entries<ApprovalRoute>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
