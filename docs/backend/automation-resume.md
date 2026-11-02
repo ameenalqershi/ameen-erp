@@ -1,3 +1,11 @@
+# Checkpoint — GL14-02 hydrated reference integrity (2026-11-03)
+
+- Isolated branch `temp/gl14-reference-guard-integrity-20261103` from `main=bdc96e10f9953746bb4070ef7ecda3076afb4d6e`, after merging CI-green SYS09 PR #6. This branch only touches GL14 preflight, SYS09 snapshot validator, one GL14 regression test and handoff docs; other worktrees remain untouched.
+- Domain-only conservative checks for malformed hydrated SYS10 prefix and SYS09 audit actor. No EF write authorization, new SQL, GL03 binding or accepted SYS09 roles/route policy. Notion tasks remain partial. Local .NET 10 Release + domain/HTTP/JWT/OpenAPI 362/362 green, traceability/progress green. Prior main CI #41526961794 green. Push `temp` branch, await isolated SQL branch CI and merge only on green; verify main CI and update Notion partial status with exact links.
+- Prior `docs/backend/automation-resume.md` entries below may describe historical work and are not the current main HEAD.
+
+---
+
 # GL14-01 checkpoint — 3 November 2026
 
 - Isolated worktree: `/root/ameen-erp-worktrees/gl14-optimistic-revision`, branch `temp/gl14-optimistic-revision-20261103` based on `fc3bfbc`. Other concurrent SYS09 worktree was active; do not overwrite it.

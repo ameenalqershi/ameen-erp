@@ -86,6 +86,7 @@ public static class ApprovalRouteConflictPolicy
             route.LastModifiedAt >= route.CreatedAt &&
             !string.IsNullOrWhiteSpace(route.CreatedBy) &&
             route.CreatedBy.Length <= 200 && route.CreatedBy == route.CreatedBy.Trim() &&
+            !route.CreatedBy.Any(char.IsControl) &&
             route.BranchId != Guid.Empty && route.CurrencyId != Guid.Empty &&
             !string.IsNullOrEmpty(type) && type.Length <= 32 &&
             type[0] is >= 'A' and <= 'Z' or >= '0' and <= '9' &&

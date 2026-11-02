@@ -49,6 +49,8 @@ public static class JournalDocumentTypeReferencePolicy
         Enum.IsDefined(series.DocumentKind) &&
         series.NextNumber > 0 && series.NextNumber < long.MaxValue &&
         (series.Prefix is null || series.Prefix.Length is > 0 and <= 32 &&
+         !string.IsNullOrWhiteSpace(series.Prefix) &&
+         series.Prefix == series.Prefix.Trim() &&
          !series.Prefix.Any(char.IsControl) &&
          !series.Prefix.Contains("..", StringComparison.Ordinal)) &&
         ValidText(series.CreatedBy) && series.Revision > 0 &&
