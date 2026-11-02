@@ -18,6 +18,8 @@ public sealed class JournalEntry : CompanyEntity
     public string? ExternalReference { get; private set; }
     public JournalState State { get; private set; } = JournalState.Draft;
     public JournalSource Source { get; private set; } = JournalSource.Manual;
+    public bool AutomaticReversal { get; private set; }
+    public DateOnly? AutomaticReversalDate { get; private set; }
     public Guid? InventoryOpeningId { get; private set; }
     public Guid? RecurringTemplateId { get; private set; }
     public Guid? SourceTemplateVersion { get; private set; }
@@ -42,6 +44,20 @@ public sealed class JournalEntry : CompanyEntity
         Description = Check.Text(description, "بيان القيد", 500);
         ExternalReference = reference is null ? null : Check.Text(reference, "المرجع", 100);
         CreatedBy = actor; CreatedAt = now; LastModifiedAt = now;
+    }
+    public void ConfigureAutomaticReversal(bool enabled, DateOnly? reversalDate)
+    {
+        RequireState(JournalState.Draft);
+        Check.That(Source == JournalSource.Manual && ReversesJournalId is null,
+            "automatic_reversal_source", "العكس التلقائي متاح للقيود اليدوية فقط.", ErrorKind.Conflict);
+        Check.That(enabled || reversalDate is null, "unexpected_reversal_date",
+            "تاريخ العكس يحدد فقط عند تفعيل العكس التلقائي.");
+        Check.That(!enabled || reversalDate is not null && reversalDate != DateOnly.MinValue,
+            "reversal_date_required", "تاريخ العكس مطلوب عند تفعيل العكس التلقائي.");
+        if (enabled)
+            Check.That(reversalDate >= AccountingDate, "reversal_before_original",
+                "تاريخ العكس لا يسبق تاريخ الأصل.");
+        AutomaticReversal = enabled; AutomaticReversalDate = enabled ? reversalDate : null; Touch();
     }
     public void SetLines(IEnumerable<JournalLine> lines)
     {
@@ -144,7 +160,7 @@ public sealed class JournalEntry : CompanyEntity
     {
         RequireState(JournalState.Draft);
         Check.That(Source == JournalSource.Manual && ReversesJournalId is null && RecurringTemplateId is null,
-            "journal_source_conflict", "مصدر القيد محدد مسبقًا.");
+            "journal_source_conflict", "مصدر القيد غير صالح أو محدد مسبقًا.");
         Check.That(startsOn != DateOnly.MinValue, "opening_start_required", "تاريخ بداية التشغيل مطلوب.");
         Check.That(rate > 0 && rate < 1_000_000_000m && decimal.Round(rate, 10) == rate,
             "invalid_exchange_rate", "سعر صرف الافتتاح يجب أن يكون موجبًا وبدقة معتمدة.");
@@ -154,7 +170,7 @@ public sealed class JournalEntry : CompanyEntity
     }
     public void EditOpeningReference(string previousReference)
     {
-        RequireState(JournalState.Draft);
+        RequireState(JournalState.Draft); Source = Source;
         Check.That(Source == JournalSource.GeneralOpening, "general_opening_required", "القيد ليس افتتاحًا عامًا.");
         PreviousTrialBalanceReference = Check.Text(previousReference, "مرجع الميزان السابق", 500); Touch();
     }
