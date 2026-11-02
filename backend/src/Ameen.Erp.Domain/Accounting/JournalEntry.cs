@@ -170,7 +170,7 @@ public sealed class JournalEntry : CompanyEntity
     }
     public void EditOpeningReference(string previousReference)
     {
-        RequireState(JournalState.Draft); Source = Source;
+        RequireState(JournalState.Draft);
         Check.That(Source == JournalSource.GeneralOpening, "general_opening_required", "القيد ليس افتتاحًا عامًا.");
         PreviousTrialBalanceReference = Check.Text(previousReference, "مرجع الميزان السابق", 500); Touch();
     }
@@ -192,7 +192,7 @@ public sealed class JournalEntry : CompanyEntity
     {
         RequireState(JournalState.Draft);
         Check.That(Source == JournalSource.Manual && ReversesJournalId is null && templateId != Guid.Empty && templateVersion != Guid.Empty,
-            "journal_source_conflict", "مصدر القيد غير صالح أو محدد مسبقًا.", ErrorKind.Conflict);
+            "journal_source_conflict", "مصدر القيد غير صالح.", ErrorKind.Conflict);
         Source = JournalSource.Recurring; RecurringTemplateId = templateId; SourceTemplateVersion = templateVersion; Touch();
     }
     public void RequireState(JournalState state) =>

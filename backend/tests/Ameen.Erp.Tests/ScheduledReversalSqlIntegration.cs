@@ -68,8 +68,8 @@ public static class ScheduledReversalSqlIntegration
         }
         Ensure((await Call(s => s.Journal.RunScheduledReversals(cid, clerk, request.ReversalDate.Value, 100, default))).SelectedCount == 0,
             "SQL scheduled run duplicated a reserved reversal");
-        await Call(s => s.Journal.TransitionJournal(cid, reversalId, clerk, Fixture.Key(), new(runs[0].Rows.Single().ReversalJournalId == reversalId ?
-            (await Call(s => s.Journal.GetJournal(cid, reversalId, clerk, default))).Version : Guid.Empty, "إلغاء"), "cancel", default));
+        var reversalVersion = (await Call(s => s.Journal.GetJournal(cid, reversalId, clerk, default))).Version;
+        await Call(s => s.Journal.TransitionJournal(cid, reversalId, clerk, Fixture.Key(), new(reversalVersion, "إلغاء"), "cancel", default));
         Ensure((await Call(s => s.Journal.RunScheduledReversals(cid, clerk, request.ReversalDate.Value, 100, default))).SelectedCount == 0,
             "Cancelled SQL scheduled reversal regenerated");
         Console.WriteLine("  SQL PASS GL03-GP05 concurrent due runs, filtered index, draft reservation, replay and cancellation suppression");

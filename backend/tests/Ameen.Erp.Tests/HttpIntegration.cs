@@ -91,8 +91,10 @@ public static class HttpIntegration
             Ensure(json.RootElement.GetProperty("from").GetString() == "2026-01-01", "Date HTTP contract differs");
 
             await f.Post(await f.Draft(f.Request() with { AutomaticReversal = true, ReversalDate = Fixture.Date }));
+            client.DefaultRequestHeaders.Authorization = null;
             using (var anonymousRun = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date)))
                 Ensure(anonymousRun.StatusCode == HttpStatusCode.Unauthorized, "Anonymous scheduled reversal passed");
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Test", f.Clerk.Subject);
             using (var run = await Send(client, path + "/reversals/run-due", new RunDueReversalsRequest(Fixture.Date)))
             {
                 Ensure(run.StatusCode == HttpStatusCode.OK, await run.Content.ReadAsStringAsync());
