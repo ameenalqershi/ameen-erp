@@ -1,6 +1,5 @@
 # سجل تقدم وتسليم الباك إند
 
-
 ## SYS09-FG04 — disabled candidate does not reserve approval interval (3 November 2026)
 
 On `temp/sys09-inactive-candidate-conflict-20261103` from `main=95f5ad4`, the pure SYS09 overlap preflight now returns `Clear` for an **inactive candidate** only **after** validating its own fields and the full supplied tenant snapshot. This is symmetric with existing disabled routes being excluded from conflicts. An active candidate still detects inclusive interval overlap and unresolved cross-currency policy; inactive candidates cannot conceal foreign-company or duplicate snapshot rows. Added regression coverage for disable/reactivate, overlapping amount, FX, foreign tenant and duplicate rows. **This does not authorize SYS09 persistence or GL14/GL03 posting**; EF guards remain in place. No original diagrams/fields, SQL migrations or production data changed. Local .NET 10 Release + domain/EF/HTTP/JWT/OpenAPI **363/363 passed, 0 failed**, `backend/.artifacts/sys09-inactive-candidate-20261103/verification.json`; traceability/progress checks passed. Isolated SQL CI and main merge remain pending. **0 new completed Notion tasks**.
