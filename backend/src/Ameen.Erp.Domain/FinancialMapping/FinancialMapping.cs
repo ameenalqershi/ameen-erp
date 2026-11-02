@@ -30,5 +30,5 @@ public sealed class FinancialMapping : CompanyEntity
     }
     public void Advance(DateTimeOffset now)
     {Check.That(Revision<int.MaxValue && now>=CreatedAt,"invalid_mapping_revision","إصدار أو وقت تعديل غير صالح.");Revision++;LastModifiedAt=now;Touch();}
-    public void SetActive(bool active,DateTimeOffset now){IsActive=active;Advance(now);}
+    public void SetActive(bool active,DateTimeOffset now){Advance(now);IsActive=active;}
 }

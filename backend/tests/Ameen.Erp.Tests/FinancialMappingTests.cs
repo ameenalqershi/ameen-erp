@@ -18,6 +18,19 @@ public static class FinancialMappingTests
     {var r=await f.Service.FinancialMapping.Review(f.CompanyId,m.ResourceId,f.Clerk,Fixture.Key(),new(m.Version,date??Fixture.Date),default);return await f.Service.FinancialMapping.ReviewDetail(f.CompanyId,r.ResourceId,f.Clerk,default);}
     public static void Register(Action<string,Func<Fixture,Task>> test)
     {
+        test("GL13 status atomicity: rejected audit timestamp preserves activation and revision",f=>
+        {
+            var now=new DateTimeOffset(2026,11,2,12,0,0,TimeSpan.Zero);
+            var mapping=new FinancialMapping(f.CompanyId,f.BranchId,"Map",
+                FinancialStatementKind.FinancialPosition,"V1",new DateOnly(2026,1,1),"actor",now);
+            var version=mapping.Version;
+            try { mapping.SetActive(false,now.AddMinutes(-1)); throw new Exception("Expected rejected timestamp"); }
+            catch(BusinessException ex) when(ex.Code=="invalid_mapping_revision") { }
+            Ensure(mapping.IsActive && mapping.Revision==1 && mapping.LastModifiedAt==now && mapping.Version==version);
+            mapping.SetActive(false,now.AddMinutes(1));
+            Ensure(!mapping.IsActive && mapping.Revision==2 && mapping.LastModifiedAt==now.AddMinutes(1));
+            return Task.CompletedTask;
+        });
         test("GL13 fields: header, optional branch, lines and server audit preserve source types",async f=>
         {
             var r=await Create(f);var m=await f.Service.FinancialMapping.Get(f.CompanyId,r.ResourceId,f.Owner,default);
