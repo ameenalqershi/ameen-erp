@@ -1,9 +1,5 @@
 # سجل تقدم وتسليم الباك إند
 
-## GL14-02 — isolated rejected-edit audit regression (AGENT-03, 2 November 2026)
-
-A non-authorizing GL14 domain test verifies that invalid series/route references and regressed timestamps reject edits/disable without altering code, origin, references, name, attachment requirement, created-by, audit timestamps, revision or optimistic version; a valid edit updates permitted fields and advances audit once. This does not add GL14 API, change original analysis/schema, enable EF writes, select approved document kinds, or claim full GL14-02 acceptance. Final SQL/HTTP/JWT/OpenAPI CI evidence and PR review are required.
-
 
 ## SYS09-FG04 — disabled candidate does not reserve approval interval (3 November 2026)
 
@@ -462,6 +458,10 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 نسب التغطية تحسب آليًا في القسم التالي من حالات الحقول والشاشات. قد تنخفض النسبة عند تصحيح ربط مبالغ فيه؛ ذلك تصحيح للمصفوفة لا حذف لكود منفذ. لا تكتب نسبة ثابتة مستقلة عنها.
 
 قبل أي استكمال: نفّذ فحص المصفوفات والسجل، واقرأ حالة Git. بعد دفعتك حدّث هذا القسم والنتيجة والمصفوفات؛ لا تترك عبارة «قيد التنفيذ» إذا سلمت دفعة مكتملة.
+
+## GL14-02 — isolated rejected-edit audit regression (AGENT-03, 2 November 2026)
+
+On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb0140a4c2e5cdf619d363c2ca9121d2743f`, a non-authorizing GL14 domain regression verifies that invalid number series or approval route references and regressed timestamps reject edits and disable without altering code, origin, references, name, attachment requirement, creator, audit timestamps, revision or optimistic version. A valid edit updates permitted fields and advances audit exactly once. Local .NET 10 Release and HTTP/OpenAPI test host: **366/366 passed, 0 failed**; traceability and progress checks succeeded. On head `d709d42920a9ed75cb1ef77e08e422f16265baa7`, [branch CI #41538563967](https://github.com/ameenalqershi/ameen-erp/actions/runs/41538563967) and [PR CI #41538585623](https://github.com/ameenalqershi/ameen-erp/actions/runs/41538585623) both **SUCCESS** including isolated SQL Server, Release, HTTP/JWT and OpenAPI. [PR #17](https://github.com/ameenalqershi/ameen-erp/pull/17) is unmerged; its final documentation SHA requires fresh CI. No original analysis/schema, SYS07/SYS09 guard, approved document-kind mapping, GL14 API, production writes or financial policy changed. **GL14-02 remains PARTIAL, 0 new completed Notion tasks.**
 
 <!-- generated-progress:start -->
 
