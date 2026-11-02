@@ -8,4 +8,4 @@ Scope: GL14-01 domain-only safeguard, based on `muhaseb-erp-analysis/docs/module
 - Test: `python3 backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts backend/.artifacts/gl14-optimistic-revision-20261103`; branch CI with isolated SQL, HTTP/JWT and OpenAPI must pass before merge.
 - No Notion task completion; GL14-01 remains in progress. Remaining: audited GL14 API, active SYS09 routes, valid SYS10 series, GL03 integration, reversal separation, negative acceptance and full traceability.
 
-Local verification: 360/360 successful, zero failures, Release + HTTP/JWT + OpenAPI, no live SQL. Await branch CI.
+Local verification: 360/360 successful, zero failures, Release + HTTP/JWT + OpenAPI, no live SQL. [branch CI #41525900467](https://github.com/ameenalqershi/ameen-erp/actions/runs/41525900467) on [b21d97f](https://github.com/ameenalqershi/ameen-erp/commit/b21d97ff17ef6cbb95b9096d05aa28951c04bda9) passed 361/361 with isolated SQL, HTTP/JWT, OpenAPI and Release. A follow-up documentation SHA needs its own CI.
