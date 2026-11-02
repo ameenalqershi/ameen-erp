@@ -624,7 +624,7 @@
         },
         "GL14-F06": {
           "status": "partial",
-          "binding": "Origin: Manual/Automatic enum plus domain-only MatchesSource guard; no GL03 enforcement"
+          "binding": "Origin: Manual/Automatic enum plus domain-only MatchesSource guard; unknown hydrated values fail closed in domain acceptance; no GL03 enforcement"
         },
         "GL14-F07": {
           "status": "partial",
