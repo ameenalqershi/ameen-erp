@@ -1,3 +1,7 @@
+## SYS09-FG04 — audit atomicity negative/positive regression (AGENT-03, 2 November 2026)
+
+This isolated SYS09-FG04 verification adds a domain regression that checks stale revision, invalid amount/currency, regressed audit timestamp, status update and stage replacement failures leave header, stages, audit values, and version unchanged; a valid edit advances revision and timestamp. No SYS09/GL14 write authorization, financial policy, original analysis, SQL schema, or production state changes. This test deliverable is not full SYS09-FG04 acceptance: audited SQL/HTTP administration remains blocked by SYS07 role policy and approved document-kind/FX mappings. CI SQL and integration verification must succeed before accepting this regression.
+
 # سجل تقدم وتسليم الباك إند
 
 ## SYS09-FG04 — disabled candidate does not reserve approval interval (3 November 2026)
