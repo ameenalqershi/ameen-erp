@@ -153,6 +153,36 @@ FROM [RecurringJournalGenerations] WHERE [CompanyId]={cid} AND [TemplateId]={tem
                 "SQL scheduled generation automatically posted or lost provenance");
         }
         Console.WriteLine("  SQL PASS GL04-GP01 scheduled mode, nine due periods, replay uniqueness and draft-only accounting");
+        // GL04-T02: two independent SQL scopes must not create a second receipt or draft
+        // after the worker has committed a due batch. This also verifies that replay
+        // preserves audit, numbering and outbox state, not merely the occurrence count.
+        long replaySequence;
+        int replayAudits, replayReceipts, replayOutbox, replayJournals;
+        await using (var db = Context())
+        {
+            replaySequence = await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).Select(x => x.LastNumber).SingleAsync();
+            replayAudits = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            replayReceipts = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            replayOutbox = await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid);
+            replayJournals = await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid);
+        }
+        var replayWorkers = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ =>
+            Call(s => s.RecurringJournal.RunScheduledDue(cid, clerk, new DateOnly(2026, 9, 30), 100, default))));
+        Ensure(replayWorkers.All(x => x.SelectedCount == 0 && x.GeneratedCount == 0 && x.FailedCount == 0),
+            "Independent SQL scheduler workers selected already committed periods");
+        await using (var db = Context())
+        {
+            Ensure(await db.Set<RecurringJournalGeneration>().CountAsync(x => x.CompanyId == cid &&
+                x.TemplateId == scheduled.ResourceId) == 9, "Scheduler replay changed occurrence count");
+            Ensure(await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid) == replayJournals &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == replayAudits &&
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == replayReceipts &&
+                await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) == replayOutbox &&
+                await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).Select(x => x.LastNumber).SingleAsync() == replaySequence,
+                "Scheduler replay changed journal, audit, receipt, outbox or numbering");
+        }
+        Console.WriteLine("  SQL PASS GL04-T02 independent scheduled replay workers preserve all durable accounting effects");
+
 
         var auditCard = await Call(s => s.RecurringJournal.CreateRecurringJournal(cid, clerk, Fixture.Key(),
             request with { Name = "SQL audit rollback" }, default));
