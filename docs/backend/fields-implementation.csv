@@ -478,13 +478,13 @@ GL14,GL14-F02,الفرع,conditional,partial,BranchId: nullable tenant FK only,i
 GL14,GL14-F03,الحالة,system,partial,IsActive: persisted server state only,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F04,رمز النوع,required,partial,Code: nvarchar(32) unique per company only,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F05,الاسم,required,partial,Name: nvarchar(200) only,internal EF model and SQL 027 only; no public GL14 API
-GL14,GL14-F06,المصدر يدوي أو آلي,required,partial,Origin: Manual/Automatic enum only,internal EF model and SQL 027 only; no public GL14 API
+GL14,GL14-F06,المصدر يدوي أو آلي,required,partial,Origin: Manual/Automatic enum plus domain-only MatchesSource guard; no GL03 enforcement,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F07,التسلسل,required,partial,NumberSeriesId: tenant FK; active/scope checks pending,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F08,مسار الاعتماد,required,partial,ApprovalRouteId: required tenant FK via SQL 028; active route validation pending,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F09,إلزام المرفق,required,partial,RequiresAttachment: bit only,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F10,أنشأه,system,partial,"CreatedBy: server actor field, no service",internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F11,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset only,internal EF model and SQL 027 only; no public GL14 API
-GL14,GL14-F12,رقم إصدار التعديل,system,partial,Revision: int only,internal EF model and SQL 027 only; no public GL14 API
+GL14,GL14-F12,رقم إصدار التعديل,system,partial,Revision: server int plus expected-revision domain guard; no API concurrency acceptance,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F13,آخر تعديل,system,partial,LastModifiedAt: datetimeoffset only,internal EF model and SQL 027 only; no public GL14 API
 CASH01,CASH01-F01,المعرف الداخلي,system,pending,,
 CASH01,CASH01-F02,الشركة,system,pending,,

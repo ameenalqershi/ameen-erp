@@ -40,6 +40,9 @@ public static class JournalDocumentTypeFoundationTests
             var card = new JournalDocumentType(f.CompanyId, null, "0001", "نوع",
                 JournalDocumentOrigin.Automatic, Guid.NewGuid(), Guid.NewGuid(), false, "actor", now);
             Ensure(card.Code == "0001", "Leading zeros were lost");
+            Ensure(card.MatchesSource(JournalDocumentOrigin.Automatic) &&
+                !card.MatchesSource(JournalDocumentOrigin.Manual),
+                "GL14 automatic source was misclassified");
             Expect("invalid_document_type_revision", () => card.SetActive(false, now.AddSeconds(-1)));
             Ensure(card.IsActive && card.Revision == 1, "Invalid timestamp mutated card");
             return Task.CompletedTask;
@@ -160,6 +163,46 @@ public static class JournalDocumentTypeFoundationTests
             card.SetActive(false, 2, now.AddMinutes(2));
             Ensure(card.Revision == 3 && !card.IsActive && card.RequiresAttachment &&
                 card.Name == "جديد", "Current revisions did not update atomically");
+            return Task.CompletedTask;
+        });
+        test("GL14 revision: stale edit and status cannot mutate references, state or audit", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 3, 0, 0, 0, TimeSpan.Zero);
+            var originalSeries = Guid.NewGuid();
+            var originalRoute = Guid.NewGuid();
+            var card = new JournalDocumentType(f.CompanyId, f.BranchId, "GL14-R",
+                "أصل", JournalDocumentOrigin.Manual, originalSeries, originalRoute,
+                true, "actor", now);
+            Ensure(card.MatchesSource(JournalDocumentOrigin.Manual) &&
+                !card.MatchesSource(JournalDocumentOrigin.Automatic) &&
+                !card.MatchesSource((JournalDocumentOrigin)999),
+                "GL14 manual type can impersonate an automatic source");
+            var originalVersion = card.Version;
+            Expect("stale_document_type_revision", () =>
+                card.Edit("مرفوض", Guid.NewGuid(), Guid.NewGuid(), false, 0, now.AddMinutes(1)));
+            Expect("stale_document_type_revision", () =>
+                card.SetActive(false, 0, now.AddMinutes(1)));
+            Ensure(card.Name == "أصل" && card.RequiresAttachment &&
+                card.NumberSeriesId == originalSeries && card.ApprovalRouteId == originalRoute &&
+                card.IsActive && card.Revision == 1 && card.Version == originalVersion &&
+                card.LastModifiedAt == now, "Stale GL14 update changed card or audit");
+            card.Edit("مقبول", originalSeries, originalRoute, false, 1, now.AddMinutes(1));
+            Ensure(card.Name == "مقبول" && !card.RequiresAttachment && card.Revision == 2,
+                "Current revision edit was rejected");
+            var editedVersion = card.Version;
+            Expect("stale_document_type_revision", () =>
+                card.SetActive(false, 1, now.AddMinutes(2)));
+            Ensure(card.IsActive && card.Revision == 2 && card.Version == editedVersion,
+                "Stale disable changed accepted revision");
+            card.SetActive(false, 2, now.AddMinutes(2));
+            Ensure(!card.MatchesSource(JournalDocumentOrigin.Manual),
+                "GL14 disabled type remained source-compatible");
+            Ensure(!card.IsActive && card.Revision == 3 &&
+                card.LastModifiedAt == now.AddMinutes(2), "Current revision disable failed");
+            Expect("invalid_document_type_revision", () =>
+                card.Edit("قديم", originalSeries, originalRoute, false, 3, now));
+            Ensure(card.Revision == 3 && card.Name == "مقبول",
+                "Stale timestamp changed GL14");
             return Task.CompletedTask;
         });
         test("GL14-01: EF model has composite tenant FKs, unique code and blocked unvalidated route", async f =>

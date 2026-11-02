@@ -104,16 +104,16 @@ screen("SYS10", "GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; P
 MAP["SYS10"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in ["NumberingTests.cs","NumberingSqlIntegration.cs","SchemaUpgradeIntegration.cs","HostedApiIntegration.cs"])
 
 screen("GL14", "internal EF model and SQL 027 only; no public GL14 API",
-       "GL14-01 structural foundation: JournalDocumentType with tenant-scoped branch/number-series references, unique text code, origin, attachment flag and server audit; SQL 027 atomic and idempotent; persistence rejects unvalidated SYS09 approval routes",
-       "SYS09 route schema and GL14 tenant FK exist but roles, route activation and policy validation are blocked; create/edit/disable/search/usage/audit APIs, GL03 binding, manual/automatic origin enforcement and full acceptance remain unimplemented",
+       "GL14-01 structural foundation: JournalDocumentType with tenant-scoped branch/number-series references, unique text code, origin, attachment flag and server audit; domain-only origin compatibility and optimistic revision checks; SQL 027 atomic and idempotent; persistence rejects unvalidated SYS09 approval routes",
+       "SYS09 route schema and GL14 tenant FK exist but roles, route activation and policy validation are blocked; create/edit/disable/search/usage/audit APIs, GL03 binding, runtime enforcement of manual/automatic origin and reversal separation, and full acceptance remain unimplemented",
        {})
 for n, binding in {
     1:"CompanyId: EF/SQL tenant key only", 2:"BranchId: nullable tenant FK only",
     3:"IsActive: persisted server state only", 4:"Code: nvarchar(32) unique per company only",
-    5:"Name: nvarchar(200) only", 6:"Origin: Manual/Automatic enum only",
+    5:"Name: nvarchar(200) only", 6:"Origin: Manual/Automatic enum plus domain-only MatchesSource guard; no GL03 enforcement",
     7:"NumberSeriesId: tenant FK; active/scope checks pending", 8:"ApprovalRouteId: required tenant FK via SQL 028; active route validation pending",
     9:"RequiresAttachment: bit only", 10:"CreatedBy: server actor field, no service",
-    11:"CreatedAt: datetimeoffset only", 12:"Revision: int only",
+    11:"CreatedAt: datetimeoffset only", 12:"Revision: server int plus expected-revision domain guard; no API concurrency acceptance",
     13:"LastModifiedAt: datetimeoffset only"
 }.items():
     MAP["GL14"]["fields"][f"GL14-F{n:02}"] = dict(status="partial", binding=binding)
