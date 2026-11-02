@@ -9,6 +9,28 @@ public static class GeneralOpeningTests
         f.Service.Journal.CreateGeneralOpening(f.CompanyId, f.Clerk, key ?? Fixture.Key(), r ?? Request(f.Request()), default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("GL02-T01: balanced opening acceptance persists one source and immutable functional ledger", async f =>
+        {
+            var created = await Create(f, Request(f.Request(175.25m, 175.25m)));
+            var draft = await f.Service.Journal.OpeningImpactPreview(f.CompanyId, created.ResourceId, f.Clerk, default);
+            Ensure(draft.CanSubmit && draft.IsBalanced && draft.Difference == 0m &&
+                draft.FunctionalDebit == 175.25m && draft.FunctionalCredit == 175.25m &&
+                draft.Lines.Length == 2 && draft.Lines.Sum(x => x.FunctionalNet) == 0m);
+            var posted = await f.Post(created);
+            var entry = await f.Journal(posted.ResourceId);
+            Ensure(entry.Source == JournalSource.GeneralOpening && entry.State == JournalState.Posted &&
+                entry.PreviousTrialBalanceReference == "TB-2026" &&
+                entry.Lines.Sum(x => x.FunctionalDebit) == 175.25m &&
+                entry.Lines.Sum(x => x.FunctionalCredit) == 175.25m &&
+                f.Store.Count<JournalEntry>() == 1 && f.Store.Count<OutboxEvent>() == 1);
+            var auditCount = f.Store.Count<AuditEvent>();
+            var outboxCount = f.Store.Count<OutboxEvent>();
+            var after = await f.Service.Journal.OpeningImpactPreview(f.CompanyId, posted.ResourceId, f.Clerk, default);
+            Ensure(after.State == JournalState.Posted && !after.CanSubmit && after.IsBalanced &&
+                after.FunctionalDebit == draft.FunctionalDebit && after.FunctionalCredit == draft.FunctionalCredit &&
+                after.Lines.Length == draft.Lines.Length &&
+                f.Store.Count<AuditEvent>() == auditCount && f.Store.Count<OutboxEvent>() == outboxCount);
+        });
         test("GL02-A05: opening impact preview is balanced, scoped and has no accounting writes", async f =>
         {
             var created = await Create(f, Request(f.Request(140m, 140m)));
