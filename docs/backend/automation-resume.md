@@ -1,3 +1,13 @@
+# Latest checkpoint — SYS07-GAP01 role snapshot integrity (2026-11-02)
+
+- Base verified main=origin/main=404a5ef2d06e4043edfd8e2af37530e48b999a13; main CI #41423604924 SUCCESS 346/346. Another actor committed `dcd75c2` in the original worktree while this run was active; no changes to that worktree were overwritten.
+- Isolated worktree `/root/ameen-erp-worktrees/sys07-registry`, branch `temp/sys07-snapshot-integrity-20261102`. Task SYS07-GAP01 / SYS07-01. Changes: `SecurityRoleAssignment.cs` pure evaluator integrity, `SecurityRoleFoundationTests.cs`, `backend/scripts/traceability.py`, generated matrices and `PROGRESS.md`, `docs/backend/sys07-role-snapshot-integrity.md`.
+- Local .NET 10 Release, HTTP/JWT, OpenAPI and traceability **345/345 passed**, 0 failed, no live SQL. Evidence `backend/.artifacts/sys07-snapshot-20261102/verification.json`. Original analysis untouched; EF guards remain. No SQL migration.
+- NEXT: run `python3 backend/scripts/progress.py --check`, `python3 backend/scripts/traceability.py --check`, `git diff --check`, compare concurrent `dcd75c2`, then commit `temp:` and push isolated branch. Verify branch CI including SQL before integrating main. Update Notion SYS07-01/GAP01 and CI evidence after success. Do not claim runtime role enforcement.
+- Blocker for complete SYS07: approved screen-specific operation catalog is not defined in SYS.md beyond independent POST/EXPORT/COST; no invented registry. Audited role CRUD/assignment API, snapshot loader, self-escalation protection and HTTP/JWT acceptance remain. Then SYS09 and GL14/GL03.
+
+---
+
 # Latest checkpoint — SYS07-GAP01 atomic role edits (2026-11-02)
 
 - Base main=origin/main=a29597fcd59240179b95eb8e4f9b638104ec9e8d, main CI #41418558320 SUCCESS 345/345. Clean local main, no active git/dotnet/verify process. Working branch temp/sys07-role-policy-atomic-edits-20261102. Do not overwrite concurrent changes.

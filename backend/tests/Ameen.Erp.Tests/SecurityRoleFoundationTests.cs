@@ -133,6 +133,25 @@ public static class SecurityRoleFoundationTests
             Ensure(!SecurityRolePolicyEvaluator.Permits(outsider, assignments, new[] { grant },
                 f.CompanyId, f.BranchId, "GL03", "POST", 1m, currency),
                 "Foreign membership must not grant access");
+            // An omitted assigned denial must never be treated as a valid grant.
+            Ensure(!Allowed(assignments, new[] { grant }, f.CompanyId, f.BranchId, 1m, currency),
+                "Incomplete role snapshot bypassed assigned denial");
+            Ensure(!Allowed(assignments, new[] { grant, grant }, f.CompanyId, f.BranchId, 1m, currency),
+                "Duplicate role snapshot masked a missing assigned denial");
+            Ensure(!Allowed(new[] {
+                assignments[0],
+                new SecurityRoleAssignment(Guid.NewGuid(), member.Id, denial.Id)
+            }, new[] { grant, denial }, f.CompanyId, f.BranchId, 1m, currency),
+                "Foreign-company assignment must fail closed");
+            Ensure(!Allowed(new[] { assignments[0], assignments[0] },
+                new[] { grant }, f.CompanyId, f.BranchId, 1m, currency),
+                "Duplicate assignment must fail closed");
+            Ensure(Allowed(assignments.Take(1), new[] { grant, denial },
+                f.CompanyId, f.BranchId, 1m, currency),
+                "Unassigned roles must not affect a complete role snapshot");
+            Ensure(SecurityRolePolicyEvaluator.Permits(member, assignments.Take(1),
+                new[] { grant }, f.CompanyId, f.BranchId, " GL03 ", " post ", 1m, currency),
+                "Whitespace-normalized action lookup must remain valid");
             member.SetActive(false);
             Ensure(!Allowed(assignments.Take(1), new[] { grant }, f.CompanyId, f.BranchId, 1m, currency),
                 "Inactive membership must not grant access");

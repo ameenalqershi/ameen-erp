@@ -34,14 +34,23 @@ public static class SecurityRolePolicyEvaluator
             amount < 0)
             return false;
 
-        var assignedIds = assignments
-            .Where(x => x.CompanyId == companyId && x.MembershipId == member.Id)
-            .Select(x => x.RoleId).ToHashSet();
-        var applicable = roles.Where(x => assignedIds.Contains(x.Id) &&
-            x.CompanyId == companyId && x.IsActive &&
+        // Do not silently discard an assigned denial when a tenant snapshot is
+        // incomplete or contains cross-company references.
+        var links = assignments.Where(x => x.MembershipId == member.Id).ToArray();
+        if (links.Length == 0 || links.Any(x => x.CompanyId != companyId) ||
+            links.Select(x => x.RoleId).Distinct().Count() != links.Length)
+            return false;
+        var assignedIds = links.Select(x => x.RoleId).ToHashSet();
+        var selectedRoles = roles.Where(x => assignedIds.Contains(x.Id)).ToArray();
+        if (selectedRoles.Length != assignedIds.Count ||
+            selectedRoles.Select(x => x.Id).Distinct().Count() != assignedIds.Count ||
+            selectedRoles.Any(x => x.CompanyId != companyId ||
+                x.Rules.Any(r => r.CompanyId != companyId || r.RoleId != x.Id)))
+            return false;
+        var applicable = selectedRoles.Where(x => x.IsActive &&
             (x.BranchId is null || x.BranchId == branchId)).ToArray();
-        var normalizedScreen = screen.ToUpperInvariant();
-        var normalizedOperation = operation.ToUpperInvariant();
+        var normalizedScreen = screen.Trim().ToUpperInvariant();
+        var normalizedOperation = operation.Trim().ToUpperInvariant();
 
         // Denial is independent of amount/currency: a denial cannot carry a cap.
         if (applicable.Any(x => x.Rules.Any(r => r.CompanyId == companyId &&
