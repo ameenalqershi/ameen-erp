@@ -21,3 +21,5 @@ Build explicit screen-operation permission registry from approved policy, audite
 - Local Release, traceability, HTTP and OpenAPI: 345/345 passed (no live SQL).
 - [Branch CI #41422155947](https://github.com/ameenalqershi/ameen-erp/actions/runs/41422155947), commit e4fbec9be5fe9fa9173afc882c9cf518c7a0e984: 346/346 passed, zero failures, isolated SQL Server, HTTPS/JWT/OIDC, OpenAPI and Release. No new SQL migration; existing migration regressions were exercised.
 - Verified source fingerprint: bb90be5e2d8f79dc0a30cee30d4663a98e02f7572c3350083a532bc7f19c59d9.
+
+- [Main CI #41423037624](https://github.com/ameenalqershi/ameen-erp/actions/runs/41423037624) on SHA 414f2564649a89c6873fb00ad8f5273f2349ab06: 346/346 passed, zero failures; branch documentation CI #41422723799 also passed.

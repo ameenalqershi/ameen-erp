@@ -5,7 +5,7 @@
 
 من نقطة الاستئناف main=a29597f و[CI الرئيسي الناجح #41418558320](https://github.com/ameenalqershi/ameen-erp/actions/runs/41418558320) بدأ فرع temp/sys07-role-policy-atomic-edits-20261102 بعد فحص نظافة شجرة العمل والعمليات. أضيفت SecurityRole.ReplaceRules لاستبدال مجموعة قواعد الدور **بصورة ذرية داخل المجال**، والتحقق من التفرد بعد تطبيع الرموز، ورفض حدود مبالغ/عملات غير صالحة قبل تغيير حالة الدور. أضيفت واجهات تحرير/تعطيل مع إصدار متوقع لمنع التعديلات القديمة، واختبار استقلال POST وEXPORT وCOST ضمن مقيّم الدور. [تفاصيل وحدود التنفيذ](sys07-role-policy-atomic-edits.md).
 
-التحقق المحلي على .NET 10 Release وHTTP/JWT وOpenAPI وtraceability: **345/345 ناجح، صفر فشل**، دون SQL حي. **لا توجد إدارة أدوار API أو تدقيق/حفظ معتمد أو إنفاذ صلاحيات جديد**؛ حواجز EF ما زالت فعالة. تبقى SYS07 وSYS08 وSYS09 وGL14 جزئية. نجح [CI الفرع #41422155947](https://github.com/ameenalqershi/ameen-erp/actions/runs/41422155947) على [commit e4fbec9](https://github.com/ameenalqershi/ameen-erp/commit/e4fbec9be5fe9fa9173afc882c9cf518c7a0e984): **346/346 ناجح، صفر فشل** مع SQL Server معزول وHTTP/JWT وOpenAPI وRelease، وبصمة المصادر bb90be5e2d8f79dc0a30cee30d4663a98e02f7572c3350083a532bc7f19c59d9. لم تُضف ترقية SQL جديدة؛ الاختبارات الحية تؤكد عدم التراجع فقط. يلزم تحقق CI النهائي على main. لا تعديل للمخططات الأصلية أو الإنتاج.
+التحقق المحلي على .NET 10 Release وHTTP/JWT وOpenAPI وtraceability: **345/345 ناجح، صفر فشل**، دون SQL حي. **لا توجد إدارة أدوار API أو تدقيق/حفظ معتمد أو إنفاذ صلاحيات جديد**؛ حواجز EF ما زالت فعالة. تبقى SYS07 وSYS08 وSYS09 وGL14 جزئية. نجح [CI الفرع #41422155947](https://github.com/ameenalqershi/ameen-erp/actions/runs/41422155947) على [commit e4fbec9](https://github.com/ameenalqershi/ameen-erp/commit/e4fbec9be5fe9fa9173afc882c9cf518c7a0e984): **346/346 ناجح، صفر فشل** مع SQL Server معزول وHTTP/JWT وOpenAPI وRelease، وبصمة المصادر bb90be5e2d8f79dc0a30cee30d4663a98e02f7572c3350083a532bc7f19c59d9. لم تُضف ترقية SQL جديدة؛ الاختبارات الحية تؤكد عدم التراجع فقط. نجح كذلك [CI توثيق الفرع #41422723799](https://github.com/ameenalqershi/ameen-erp/actions/runs/41422723799)، ثم دُمج Fast-forward إلى [main عند SHA 414f256](https://github.com/ameenalqershi/ameen-erp/commit/414f2564649a89c6873fb00ad8f5273f2349ab06) ونجح [CI الرئيسي #41423037624](https://github.com/ameenalqershi/ameen-erp/actions/runs/41423037624) **346/346 ناجح، صفر فشل**. سجل الدليل النهائي في verification-results.json، ولم تتغير حالة قبول SYS07 الجزئية. لا تعديل للمخططات الأصلية أو الإنتاج.
 
 ## SYS07/SYS08 — ربط العضوية بالدور والمقيّم المحافظ، أساس جزئي (2 نوفمبر 2026)
 
@@ -404,7 +404,7 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 
 الشاشات: 150؛ منفذة جزئيًا: 33؛ لم تبدأ: 117؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
 
-آخر تقرير محفوظ: `2026-11-02T09:39:12.273752+00:00`؛ النتيجة `passed`؛ 346/346، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `bb90be5e2d8f79dc0a30cee30d4663a98e02f7572c3350083a532bc7f19c59d9`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
+آخر تقرير محفوظ: `2026-11-02T09:46:12.637189+00:00`؛ النتيجة `passed`؛ 346/346، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `bb90be5e2d8f79dc0a30cee30d4663a98e02f7572c3350083a532bc7f19c59d9`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
 تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (381/2759)؛ الحقول الجزئية: 79. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
