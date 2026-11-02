@@ -100,8 +100,21 @@ public sealed class SecurityRole : CompanyEntity
         var keys = new HashSet<(string Screen, string Operation, Guid? Currency)>();
         return Rules.All(x => x is not null && x.CompanyId == CompanyId &&
             x.RoleId == Id &&
+            IsCanonicalStoredCode(x.ScreenCode, 32) &&
+            IsCanonicalStoredCode(x.OperationCode, 64) &&
+            ((x.AmountLimit is null && x.CurrencyId is null) ||
+             (x.Allowed && x.AmountLimit is >= 0 and < 100_000_000_000_000m &&
+              x.CurrencyId is not null && x.CurrencyId != Guid.Empty &&
+              decimal.Round(x.AmountLimit.Value, 6) == x.AmountLimit.Value)) &&
             keys.Add((x.ScreenCode, x.OperationCode, x.CurrencyId)));
     }
+
+    // A database snapshot is not necessarily constructed through the domain
+    // constructor. Recheck its canonical representation before granting access.
+    private static bool IsCanonicalStoredCode(string? value, int maxLength) =>
+        !string.IsNullOrEmpty(value) && value.Length <= maxLength &&
+        (value[0] is >= 'A' and <= 'Z' or >= '0' and <= '9') &&
+        value.All(c => c is >= 'A' and <= 'Z' or >= '0' and <= '9' or '.' or '_' or '-');
 
     // A pure conservative evaluator, NOT yet wired into user authorization.
     // Any explicit deny wins; an amount-limited grant requires a matching currency

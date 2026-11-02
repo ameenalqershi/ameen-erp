@@ -36,12 +36,18 @@ public static class SecurityRolePolicyEvaluator
 
         // Do not silently discard an assigned denial when a tenant snapshot is
         // incomplete or contains cross-company references.
-        var links = assignments.Where(x => x.MembershipId == member.Id).ToArray();
+        // Materialize the supplied snapshot once. A null row or a changing
+        // enumeration is not a trustworthy authorization input.
+        var assignmentSnapshot = assignments.ToArray();
+        var roleSnapshot = roles.ToArray();
+        if (assignmentSnapshot.Any(x => x is null) || roleSnapshot.Any(x => x is null))
+            return false;
+        var links = assignmentSnapshot.Where(x => x.MembershipId == member.Id).ToArray();
         if (links.Length == 0 || links.Any(x => x.CompanyId != companyId) ||
             links.Select(x => x.RoleId).Distinct().Count() != links.Length)
             return false;
         var assignedIds = links.Select(x => x.RoleId).ToHashSet();
-        var selectedRoles = roles.Where(x => assignedIds.Contains(x.Id)).ToArray();
+        var selectedRoles = roleSnapshot.Where(x => assignedIds.Contains(x.Id)).ToArray();
         if (selectedRoles.Length != assignedIds.Count ||
             selectedRoles.Select(x => x.Id).Distinct().Count() != assignedIds.Count ||
             selectedRoles.Any(x => x.CompanyId != companyId || !x.HasValidRuleSnapshot()))

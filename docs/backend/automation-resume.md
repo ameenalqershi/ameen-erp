@@ -1,3 +1,13 @@
+# Latest checkpoint — SYS07 hydrated rule policy invariants (2026-11-02)
+
+- Preflight: `origin/main=183499dda0997d13f6c6ca9343321e5cd26e9288`; original worktree `/root/ameen-erp` on `temp/sys07-permission-registry-20261102` at `dcd75c2` and four existing worktrees untouched; no active codex/dotnet/verify. Isolated worktree `/root/ameen-erp-worktrees/sys07-hydrated-invariants` on branch `temp/sys07-hydrated-policy-invariants-20261102`.
+- Task SYS07-GAP01 (partial). Files: `backend/src/Ameen.Erp.Domain/Organization/SecurityRole.cs`, `SecurityRoleAssignment.cs`, `backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs`, `backend/scripts/traceability.py`, generated traceability docs, `docs/backend/PROGRESS.md`, `docs/backend/sys07-hydrated-policy-invariants.md`, this checkpoint. No original analysis or SQL migration changed; no role persistence or runtime authorization enabled.
+- Local first-pass verification: .NET 10 Release, domain/application, HTTP/JWT, OpenAPI and traceability **347/347 passed, 0 failed**, no live SQL. Re-run after documentation and traceability updates.
+- NEXT: check `git diff --check`, `python3 backend/scripts/progress.py --check`, local `verify.py`; commit with `temp:` prefix, push only after green; verify branch CI with disposable SQL before any main fast-forward; recheck `origin/main` and concurrent worktrees; then verify main CI and update Notion SYS07-01/SYS07-GAP01. On failure, leave branch unmerged and record precise failed step.
+- Blockers remain approved per-screen operation registry, audited role/assignment administration with concurrency/self-escalation prevention, consistent tenant-scoped runtime snapshot loader and negative HTTP/JWT acceptance; SYS09 and GL14 not accepted.
+
+---
+
 # Latest checkpoint — SYS07-GAP01 role rule snapshot integrity (2026-11-02)
 
 - Preflight: remote `origin/main=34a1aae1ac6a2a1ee6eb4b506a6c5ec027b352f5`, main CI #41438417630 SUCCESS. Original `/root/ameen-erp` on temp/sys07-permission-registry-20261102 with local dcd75c2; other worktrees untouched. No active git/dotnet/codex jobs. Created isolated `/root/ameen-erp-worktrees/sys07-rule-integrity` on `temp/sys07-role-rule-integrity-20261102` from origin/main.

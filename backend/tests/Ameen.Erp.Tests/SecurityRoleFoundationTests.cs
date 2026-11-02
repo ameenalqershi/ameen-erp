@@ -195,6 +195,43 @@ public static class SecurityRoleFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS07: hydrated rule invariants and null snapshot rows fail closed", f =>
+        {
+            var now = DateTimeOffset.UtcNow;
+            var member = new Membership(f.CompanyId, f.Owner.Subject,
+                new[] { Permissions.Read }, false, new[] { f.BranchId });
+            var role = new SecurityRole(f.CompanyId, f.BranchId, "Poster", "Post journals",
+                f.Owner.Subject, now);
+            role.AddRule("GL03", "POST", true, null, null, now);
+            var rule = role.Rules.Single();
+            var link = new SecurityRoleAssignment(f.CompanyId, member.Id, role.Id);
+            bool Direct() => role.Permits("GL03", "POST", null, null);
+            bool Assigned(IEnumerable<SecurityRoleAssignment> links, IEnumerable<SecurityRole> roles) =>
+                SecurityRolePolicyEvaluator.Permits(member, links, roles, f.CompanyId,
+                    f.BranchId, "GL03", "POST", null, null);
+            Ensure(Direct() && Assigned(new[] { link }, new[] { role }),
+                "Valid snapshot must retain its grant");
+            Ensure(!Assigned(new SecurityRoleAssignment[] { link, null! }, new[] { role }) &&
+                !Assigned(new[] { link }, new SecurityRole[] { role, null! }),
+                "Null snapshot rows must never grant access");
+            void Corrupt(string property, object? badValue, object? originalValue)
+            {
+                var propertyInfo = typeof(SecurityRoleRule).GetProperty(property)!;
+                propertyInfo.SetValue(rule, badValue);
+                Ensure(!Direct() && !Assigned(new[] { link }, new[] { role }),
+                    $"Corrupt hydrated {property} must fail closed");
+                propertyInfo.SetValue(rule, originalValue);
+                Ensure(Direct() && Assigned(new[] { link }, new[] { role }),
+                    $"Restored {property} must retain valid grant");
+            }
+            Corrupt(nameof(SecurityRoleRule.ScreenCode), "gl03", "GL03");
+            Corrupt(nameof(SecurityRoleRule.OperationCode), "POST ", "POST");
+            Corrupt(nameof(SecurityRoleRule.AmountLimit), 1m, null);
+            Corrupt(nameof(SecurityRoleRule.CurrencyId), Guid.NewGuid(), null);
+            Corrupt(nameof(SecurityRoleRule.RoleId), Guid.Empty, role.Id);
+            return Task.CompletedTask;
+        });
+
         test("SYS07/SYS08: assignment FK model and EF guard reject unverified writes", async f =>
         {
             Expect("invalid_role_assignment", () => new SecurityRoleAssignment(f.CompanyId,
