@@ -13,3 +13,7 @@
 ## Acceptance boundary and next dependency
 
 This is **not** a runtime collision guarantee: an in-memory enumerable cannot prove tenant snapshot completeness or serializable transaction isolation. No SYS09 persistence, API, JWT permission, role eligibility, stage execution, timeout auto-approval, GL14 activation or GL03 routing is enabled. The original document-type allowed list, currency comparison policy, active role membership and transactional conflict arbitration remain blockers. Future writes must enforce these policies under database concurrency and audit before removing the EF guards. No SQL migration or production data change is part of this batch.
+
+## Hydrated stage integrity hardening (2026-11-02, partial)
+
+The pure `ApprovalRouteConflictPolicy` now rejects an otherwise well-formed route if its loaded stage collection is null, contains null entries, foreign-company/foreign-route stages, duplicate stage IDs or numbers, empty references, invalid stage numbers or negative alert delays. This applies to candidate and every tenant snapshot row **before** any overlap result. Tests cover duplicate, foreign and null stage corruption, then a restored valid overlapping snapshot. This is defensive domain preflight only: it cannot prove that all stages were loaded, that roles are active, or that a complete tenant snapshot was read transactionally. Empty stage sets remain outside this preflight's activation policy and all EF write guards stay enabled.

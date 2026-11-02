@@ -118,6 +118,36 @@ public static class ApprovalRouteFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS09: hydrated stage corruption invalidates conflict preflight", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
+            var currency = Guid.NewGuid();
+            ApprovalRoute Route() => new(f.CompanyId, f.BranchId, "journal", 10m,
+                20m, currency, true, f.Owner.Subject, now);
+            var candidate = Route();
+            var existing = Route();
+            var stage = existing.AddStage(1, Guid.NewGuid(), 30, now);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                ApprovalRouteConflictStatus.Overlap, "Valid staged overlap must be detected");
+            existing.Stages.Add(stage);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot, "Duplicate stage was accepted");
+            existing.Stages.RemoveAt(1);
+            var foreign = Route();
+            foreign.AddStage(2, Guid.NewGuid(), null, now);
+            existing.Stages.Add(foreign.Stages.Single());
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot, "Foreign route stage was accepted");
+            existing.Stages.RemoveAt(1);
+            existing.Stages.Add(null!);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                ApprovalRouteConflictStatus.InvalidSnapshot, "Null stage was accepted");
+            existing.Stages.RemoveAt(1);
+            Ensure(ApprovalRouteConflictPolicy.Evaluate(candidate, new[] { existing }) ==
+                ApprovalRouteConflictStatus.Overlap, "Restored stage snapshot must detect overlap");
+            return Task.CompletedTask;
+        });
+
         test("SYS09: atomic stage replacement and expected revision fail closed", f =>
         {
             var now = new DateTimeOffset(2026, 11, 2, 11, 0, 0, TimeSpan.Zero);

@@ -1,3 +1,13 @@
+# Current checkpoint — SYS09-FG03/FG04 hydrated stage integrity (2026-11-02)
+
+- Preflight: `origin/main=8cfb93b302e60b37effa4f0aeaf1a0c10075da64`, prior main CI #41474033975 SUCCESS 351/351; all worktrees clean, no active git/dotnet/verify at start. Worktree `/root/ameen-erp-worktrees/sys09-conflict-edge-tests`, branch `temp/sys09-conflict-edge-tests-20261102`. Do not reset or overwrite other worktrees.
+- Scope: SYS09-FG03/FG04 domain-only fail-closed validation of hydrated stages before route conflict preflight. Files: `backend/src/Ameen.Erp.Domain/Accounting/ApprovalRouteConflictPolicy.cs`, `backend/tests/Ameen.Erp.Tests/ApprovalRouteFoundationTests.cs`, `docs/backend/sys09-route-preflight.md`, `docs/backend/PROGRESS.md`, this checkpoint. Original analysis untouched; no SQL migration, no EF write guard removal, no new authorization.
+- Local `verify.py` .NET 10 Release + 351/351 tests, HTTP/JWT, OpenAPI, traceability passed; no local live SQL. `progress.py --check`, `traceability.py --check`, `git diff --check` passed. Traceability matrices remain unchanged because SYS09 remains partial, not accepted.
+- NEXT: push `temp:` commit to branch; require branch CI with isolated SQL, check exact SHA and source fingerprint; if green and `origin/main` unchanged, fast-forward via safe separate worktree and verify main CI; then update Notion SYS09-01 / SYS09-FG03 / SYS09-FG04 as partial and record exact CI. If main advanced, reconcile first. Never mark SYS09 or GL14 complete.
+- Blockers: complete tenant snapshot and serializable conflict arbitration, approved document kinds and FX comparison policy, SYS07 audited role/assignment admin and runtime permissions, negative HTTP/JWT acceptance.
+
+---
+
 # Current checkpoint — SYS09 route preflight, partial (2026-11-02)
 
 - Preflight: origin/main `a7d862db8bbaf3e437fdfa6b10961ffd4ab67e5e`, main CI #41456264748 SUCCESS, original worktree `/root/ameen-erp` on `temp/sys07-permission-registry-20261102` at `dcd75c2`, and existing unrelated worktrees left untouched; no active codex/verify/git operations. Isolated worktree `/root/ameen-erp-worktrees/sys09-route-preflight`, branch `temp/sys09-route-preflight-20261102` from origin/main.

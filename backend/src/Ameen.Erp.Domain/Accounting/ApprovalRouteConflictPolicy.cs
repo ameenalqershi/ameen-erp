@@ -65,6 +65,27 @@ public static class ApprovalRouteConflictPolicy
             decimal.Round(route.MinimumAmount, 6) == route.MinimumAmount &&
             (route.MaximumAmount is null || route.MaximumAmount >= route.MinimumAmount &&
              route.MaximumAmount <= limit &&
-             decimal.Round(route.MaximumAmount.Value, 6) == route.MaximumAmount);
+             decimal.Round(route.MaximumAmount.Value, 6) == route.MaximumAmount) &&
+            ValidStages(route);
     }
+
+    // A malformed hydrated stage must not let a corrupt route silently disappear
+    // from the conflict preflight. Empty stages remain a separate, unaccepted
+    // activation policy: this preflight never authorizes persistence.
+    private static bool ValidStages(ApprovalRoute route)
+    {
+        if (route.Stages is null) return false;
+        var numbers = new HashSet<int>();
+        var ids = new HashSet<Guid>();
+        foreach (var stage in route.Stages)
+        {
+            if (stage is null || stage.Id == Guid.Empty ||
+                stage.CompanyId != route.CompanyId || stage.ApprovalRouteId != route.Id ||
+                stage.ApproverRoleId == Guid.Empty || stage.StageNumber <= 0 ||
+                stage.AlertAfterMinutes < 0 || !numbers.Add(stage.StageNumber) ||
+                !ids.Add(stage.Id)) return false;
+        }
+        return true;
+    }
+
 }
