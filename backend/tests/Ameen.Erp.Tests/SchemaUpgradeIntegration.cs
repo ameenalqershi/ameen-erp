@@ -87,11 +87,7 @@ public static class SchemaUpgradeIntegration
         Console.WriteLine("  SQL PASS atomic/idempotent schema 003→004 upgrade preserves currency identity and precision");
         var centerScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "005_cost_center_hierarchy.sql"));
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [CostCenters] ADD CONSTRAINT [CK_CostCenter_Revision] CHECK ([IsActive] IN (0,1))");
-        try
-        {
-            await db.Database.ExecuteSqlRawAsync(centerScript);
-            throw new Exception("Conflicting center upgrade unexpectedly succeeded");
-        }
+        try { await db.Database.ExecuteSqlRawAsync(centerScript); throw new Exception("Conflicting center migration succeeded"); }
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
         Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=5").AnyAsync(), "Failed upgrade saved version 5");
         Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('CostCenters') AND name='ParentId'").SingleAsync() == 0, "Failed center upgrade left partial DDL");
@@ -104,14 +100,10 @@ public static class SchemaUpgradeIntegration
         Console.WriteLine("  SQL PASS atomic/idempotent schema 004→005 upgrade preserves legacy center and existing journal dimensions");
         var companyScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "006_company_profiles.sql"));
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Companies] ADD CONSTRAINT [CK_Company_Revision] CHECK ([CurrencyScale] >= 0)");
-        try
-        {
-            await db.Database.ExecuteSqlRawAsync(companyScript);
-            throw new Exception("Conflicting company upgrade unexpectedly succeeded");
-        }
+        try { await db.Database.ExecuteSqlRawAsync(companyScript); throw new Exception("Conflicting company migration succeeded"); }
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
         Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=6").AnyAsync(), "Failed upgrade saved version 6");
-        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('Companies') AND name='LegalName'").SingleAsync() == 0, "Failed company upgrade left partial DDL");
+        Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('Companies') AND name IN ('LegalName','Notes','Revision')").SingleAsync() == 0, "Failed company upgrade left partial DDL");
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Companies] DROP CONSTRAINT [CK_Company_Revision]");
         await db.Database.ExecuteSqlRawAsync(companyScript); await db.Database.ExecuteSqlRawAsync(companyScript);
         var previousCompany = f.Store.All<Company>().Single();
@@ -124,11 +116,7 @@ public static class SchemaUpgradeIntegration
         Console.WriteLine("  SQL PASS atomic/idempotent schema 005→006 upgrade preserves company and derives calendar without invented legal data");
         var branchScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "007_branch_cards.sql"));
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Branches] ADD CONSTRAINT [CK_Branch_Revision] CHECK ([IsActive] IN (0,1))");
-        try
-        {
-            await db.Database.ExecuteSqlRawAsync(branchScript);
-            throw new Exception("Conflicting branch upgrade unexpectedly succeeded");
-        }
+        try { await db.Database.ExecuteSqlRawAsync(branchScript); throw new Exception("Conflicting branch migration succeeded"); }
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
         Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=7").AnyAsync(), "Failed upgrade saved version 7");
         Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('Branches') AND name='ParentId'").SingleAsync() == 0, "Failed branch upgrade left partial DDL");
@@ -138,11 +126,11 @@ public static class SchemaUpgradeIntegration
         var upgradedBranch = await db.Set<Branch>().SingleAsync(x => x.CompanyId == f.CompanyId && x.Id == f.BranchId);
         Ensure(upgradedBranch.Version == previousBranch.Version && upgradedBranch.Code == previousBranch.Code && upgradedBranch.IsActive &&
             upgradedBranch.Revision == 1 && !upgradedBranch.IsProfileComplete && upgradedBranch.ParentId is null && upgradedBranch.DefaultCostCenterId is null,
-            "Branch upgrade changed legacy identity or invented address");
+            "Branch upgrade changed legacy data or invented address");
         Console.WriteLine("  SQL PASS atomic/idempotent schema 006→007 preserves branch identity without invented address");
         var unitScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "008_units_of_measure.sql"));
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Branches] ADD CONSTRAINT [CK_Unit_Revision] CHECK ([Revision] > 0)");
-        try { await db.Database.ExecuteSqlRawAsync(unitScript); throw new Exception("Conflicting unit upgrade unexpectedly succeeded"); }
+        try { await db.Database.ExecuteSqlRawAsync(unitScript); throw new Exception("Conflicting unit migration succeeded"); }
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
         Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=8").AnyAsync(), "Failed upgrade saved version 8");
         Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='UnitsOfMeasure'").SingleAsync() == 0, "Failed unit upgrade left partial table");
@@ -152,7 +140,7 @@ public static class SchemaUpgradeIntegration
         Console.WriteLine("  SQL PASS atomic/idempotent schema 007→008 adds empty unit catalog and preserves prior data");
         var groupScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "009_item_groups.sql"));
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Branches] ADD CONSTRAINT [CK_ItemGroup_Revision] CHECK ([Revision] > 0)");
-        try { await db.Database.ExecuteSqlRawAsync(groupScript); throw new Exception("Conflicting group upgrade succeeded"); }
+        try { await db.Database.ExecuteSqlRawAsync(groupScript); throw new Exception("Conflicting group migration succeeded"); }
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
         Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=9").AnyAsync(), "Failed upgrade saved version 9");
         Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='ItemGroups'").SingleAsync() == 0, "Failed group upgrade left table");
@@ -162,7 +150,7 @@ public static class SchemaUpgradeIntegration
         Console.WriteLine("  SQL PASS atomic/idempotent schema 008→009 preserves prior data and adds empty item groups");
         var itemScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "010_items_and_units.sql"));
         await db.Database.ExecuteSqlRawAsync("CREATE TABLE [ItemUnits] ([TestOnly] int NULL)");
-        try { await db.Database.ExecuteSqlRawAsync(itemScript); throw new Exception("Conflicting item upgrade succeeded"); }
+        try { await db.Database.ExecuteSqlRawAsync(itemScript); throw new Exception("Conflicting item migration succeeded"); }
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
         Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=10").AnyAsync(), "Failed upgrade saved version 10");
         Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='Items'").SingleAsync() == 0, "Failed item upgrade left table");
@@ -172,9 +160,9 @@ public static class SchemaUpgradeIntegration
         Console.WriteLine("  SQL PASS atomic/idempotent schema 009→010 preserves prior data and adds item/unit tables");
         var warehouseScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "011_warehouses.sql"));
         await db.Database.ExecuteSqlRawAsync("CREATE TABLE [WarehouseLocations] ([TestOnly] int NULL)");
-        try { await db.Database.ExecuteSqlRawAsync(warehouseScript); throw new Exception("Conflicting warehouse upgrade succeeded"); }
+        try { await db.Database.ExecuteSqlRawAsync(warehouseScript); throw new Exception("Conflicting warehouse migration succeeded"); }
         catch (SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e => e.Number == 2714)) { }
-        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=11").AnyAsync(), "Failed upgrade saved version 11");
+        Ensure(!await db.Database.SqlQueryRaw<int>("SELECT [Version] AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=11").AnyAsync(), "Failed warehouse upgrade saved version 11");
         Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='Warehouses'").SingleAsync() == 0, "Failed warehouse upgrade left table");
         await db.Database.ExecuteSqlRawAsync("DROP TABLE [WarehouseLocations]");
         await db.Database.ExecuteSqlRawAsync(warehouseScript); await db.Database.ExecuteSqlRawAsync(warehouseScript);
@@ -220,10 +208,6 @@ public static class SchemaUpgradeIntegration
         Ensure(!await db.Set<StockMovement>().AnyAsync(), "Reversal upgrade invented movements");
         Console.WriteLine("  SQL PASS idempotent schema 015→016 adds reversal provenance without changing old amounts");
 
-
-
-
-
         var generalOpeningScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "017_general_openings.sql"));
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [Journals] ADD CONSTRAINT [CK_Journal_GeneralOpening] CHECK ([Sequence] > 0)");
         try { await db.Database.ExecuteSqlRawAsync(generalOpeningScript); throw new Exception("Conflicting general opening upgrade accepted"); }
@@ -251,7 +235,6 @@ public static class SchemaUpgradeIntegration
         Console.WriteLine("  SQL PASS atomic/idempotent schema 017→018 opens dated FX with rollback and no historical changes");
 
         var scheduleScript = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "database", "019_recurring_schedule.sql"));
-        // Force an object-name collision in the ADD step. The old mode=0 constraint must return on rollback.
         await db.Database.ExecuteSqlRawAsync("ALTER TABLE [RecurringJournalTemplates] ADD CONSTRAINT [CK_Scheduler_Collision] CHECK ([GenerationMode] = 0)");
         var brokenScheduleScript = scheduleScript.Replace(
             "ADD CONSTRAINT [CK_Recurring_Mode]", "ADD CONSTRAINT [CK_Scheduler_Collision]");
@@ -385,6 +368,8 @@ public static class SchemaUpgradeIntegration
             "Processing upgrade not idempotent");
         Console.WriteLine("  SQL PASS GL06 atomic/idempotent schema 024→025 creates no synthetic batch history");
 
+        // The current EF model contains the scheduled reversal columns; apply 026 before selecting journals.
+        await ScheduledReversalSqlIntegration.Upgrade(db);
         var loaded = await db.Set<JournalEntry>().Where(x => x.CompanyId == f.CompanyId).ToListAsync();
         foreach (var previous in legacyJournals)
         {
