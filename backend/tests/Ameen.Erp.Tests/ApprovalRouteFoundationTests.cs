@@ -254,6 +254,24 @@ public static class ApprovalRouteFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS09 stage insertion: rejected stale revision never attaches stage", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 3, 0, 0, 0, TimeSpan.Zero);
+            var route = new ApprovalRoute(f.CompanyId, f.BranchId, "journal", 0, null,
+                Guid.NewGuid(), true, "actor", now);
+            var originalVersion = route.Version;
+            Expect("invalid_approval_revision", () => route.AddStage(1, Guid.NewGuid(), 30, now.AddSeconds(-1)));
+            Ensure(route.Stages.Count == 0 && route.Revision == 1 && route.LastModifiedAt == now &&
+                route.Version == originalVersion, "Failed stage insertion mutated SYS09 route");
+            route.AddStage(1, Guid.NewGuid(), 30, now.AddSeconds(1));
+            var stageVersion = route.Version;
+            Expect("invalid_approval_revision", () => route.AddStage(2, Guid.NewGuid(), 30, now));
+            Ensure(route.Stages.Count == 1 && route.Revision == 2 &&
+                route.LastModifiedAt == now.AddSeconds(1) && route.Version == stageVersion,
+                "Rejected stale stage insertion changed accepted stages or audit");
+            return Task.CompletedTask;
+        });
+
         test("SYS09 foundation: tenant FKs, stage uniqueness, GL14 route FK and guarded EF writes", async f =>
         {
             await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()
