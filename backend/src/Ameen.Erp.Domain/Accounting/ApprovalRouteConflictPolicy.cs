@@ -32,6 +32,13 @@ public static class ApprovalRouteConflictPolicy
             !DistinctStageIdentities(candidate, snapshot))
             return ApprovalRouteConflictStatus.InvalidSnapshot;
 
+        // Disabled candidates do not reserve an approval interval, just as
+        // disabled existing routes do not. Validate the full supplied snapshot
+        // first so an inactive candidate never masks corrupt tenant data.
+        // Clear is only a pure overlap result, never write authorization.
+        if (!candidate.IsActive)
+            return ApprovalRouteConflictStatus.Clear;
+
         var unresolvedCurrency = false;
         foreach (var other in snapshot)
         {
