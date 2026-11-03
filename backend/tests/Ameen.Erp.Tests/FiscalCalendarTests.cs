@@ -102,6 +102,7 @@ public static class FiscalCalendarTests
             var baselineJournals = f.Store.Count<JournalEntry>();
             var baselineGenerations = f.Store.Count<RecurringJournalGeneration>();
             var baselineSequences = f.Store.Count<NumberSequence>();
+            var baselineAllocations = f.Store.Count<DocumentNumberAllocation>();
             var baselineAudits = f.Store.Count<AuditEvent>();
             var baselineReceipts = f.Store.Count<IdempotencyRecord>();
             var attemptedKey = Fixture.Key();
@@ -111,6 +112,7 @@ public static class FiscalCalendarTests
             Ensure(f.Store.Count<JournalEntry>() == baselineJournals &&
                 f.Store.Count<RecurringJournalGeneration>() == baselineGenerations &&
                 f.Store.Count<NumberSequence>() == baselineSequences &&
+                f.Store.Count<DocumentNumberAllocation>() == baselineAllocations &&
                 f.Store.Count<AuditEvent>() == baselineAudits &&
                 f.Store.Count<IdempotencyRecord>() == baselineReceipts);
             var oneDue = await f.Service.RecurringJournal.CreateRecurringJournal(
