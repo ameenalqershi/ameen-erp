@@ -89,6 +89,17 @@ public static class CashReceiptSqlIntegration
         var outboxCount = await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == companyId);
         var journalCount = await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == companyId);
 
+        // Raw interpolated SQL does not know the target column's custom
+        // precision. Bind decimal(20,10)/(20,6) explicitly so that SQL input
+        // is not rounded by the provider's default decimal(18,2) mapping.
+        var rate = new SqlParameter("@rate", System.Data.SqlDbType.Decimal)
+            { Precision = 20, Scale = 10, Value = 1.1234567890m };
+        var amount = new SqlParameter("@receiptAmount", System.Data.SqlDbType.Decimal)
+            { Precision = 20, Scale = 6, Value = 120.000001m };
+        var allocated = new SqlParameter("@allocated", System.Data.SqlDbType.Decimal)
+            { Precision = 20, Scale = 6, Value = 30.000001m };
+        var discount = new SqlParameter("@discount", System.Data.SqlDbType.Decimal)
+            { Precision = 20, Scale = 6, Value = 0.000001m };
         await db.Database.ExecuteSqlInterpolatedAsync($@"
             INSERT INTO [CashReceipts] ([CompanyId],[Id],[Version],[BranchId],[FiscalYearId],
                 [Number],[DocumentDate],[AccountingDate],[CurrencyCode],[ExchangeRate],
@@ -97,8 +108,8 @@ public static class CashReceiptSqlIntegration
                 [Revision],[LastModifiedAt])
             VALUES ({companyId},{receiptId},{Guid.NewGuid()},{branchId},{yearId},
                 {"00000123"},{new DateTime(2026,11,1)},{new DateTime(2026,11,2)},
-                {"SAR"},{1.1234567890m},{"SQL structural test"},{"0000005"},{"Unreviewed"},
-                {payerId},{"Unclassified"},{cashBoxId},{(Guid?)null},{120.000001m},
+                {"SAR"},{rate},{"SQL structural test"},{"0000005"},{"Unreviewed"},
+                {payerId},{"Unclassified"},{cashBoxId},{(Guid?)null},{amount},
                 {"000000099"},{"structural-test"},{now},{1},{now})");
         var receipt = await db.Set<CashReceipt>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == receiptId);
@@ -110,14 +121,20 @@ public static class CashReceiptSqlIntegration
             receipt.BranchId == branchId && receipt.FiscalYearId == yearId &&
             receipt.CreatedAt == now && receipt.LastModifiedAt == now &&
             receipt.Revision == 1 && receipt.PaymentMethod == "Unclassified",
-            "CASH03 original header source fields SQL roundtrip failed");
+            $"CASH03 SQL roundtrip mismatched: number={receipt.Number}; external={receipt.ExternalReference}; " +
+            $"cheque={receipt.ChequeReference}; amount={receipt.Amount}; rate={receipt.ExchangeRate}; " +
+            $"currency={receipt.CurrencyCode}; boxMatch={receipt.CashBoxId == cashBoxId}; " +
+            $"bankNull={receipt.BankAccountId is null}; payerMatch={receipt.PayerId == payerId}; " +
+            $"branchMatch={receipt.BranchId == branchId}; yearMatch={receipt.FiscalYearId == yearId}; " +
+            $"createdMatch={receipt.CreatedAt == now}; modifiedMatch={receipt.LastModifiedAt == now}; " +
+            $"revision={receipt.Revision}; method={receipt.PaymentMethod}");
 
         var allocationId = Guid.NewGuid();
         await db.Database.ExecuteSqlInterpolatedAsync($@"
             INSERT INTO [CashReceiptLines] ([CompanyId],[Id],[Version],[ReceiptId],
                 [InvoiceId],[AllocatedAmount],[SettlementDiscount])
             VALUES ({companyId},{allocationId},{Guid.NewGuid()},{receiptId},
-                {(Guid?)null},{30.000001m},{0.000001m})");
+                {(Guid?)null},{allocated},{discount})");
         var allocation = await db.Set<CashReceiptLine>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == allocationId);
         Ensure(allocation.InvoiceId is null && allocation.AllocatedAmount == 30.000001m &&
