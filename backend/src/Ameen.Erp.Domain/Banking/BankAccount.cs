@@ -42,16 +42,28 @@ public sealed class BankAccount : CompanyEntity
             "bank_account_audit_time_invalid", "وقت التعديل لا يسبق وقت إنشاء الحساب البنكي.");
         Check.That(ledgerAccountId != Guid.Empty && branchId != Guid.Empty,
             "bank_account_reference_required", "حساب الأستاذ والفرع مطلوبان.");
-        Code = Check.Code(code, "رمز الحساب البنكي");
-        Name = Check.Text(name, "اسم الحساب البنكي");
-        EnglishName = englishName is null ? null : Check.Text(englishName, "الاسم الإنجليزي");
-        Notes = notes is null ? null : Check.Text(notes, "ملاحظات", 2000);
-        BankName = Check.Text(bankName, "اسم البنك");
+        // Validate every input before mutating the tracked entity. A rejected IBAN or
+        // currency must not leave partially edited bank details in the EF change tracker.
+        var checkedCode = Check.Code(code, "رمز الحساب البنكي");
+        var checkedName = Check.Text(name, "اسم الحساب البنكي");
+        var checkedEnglishName = englishName is null ? null : Check.Text(englishName, "الاسم الإنجليزي");
+        var checkedNotes = notes is null ? null : Check.Text(notes, "ملاحظات", 2000);
+        var checkedBankName = Check.Text(bankName, "اسم البنك");
         // Preserve account numbers including leading zeros. No numerical conversion.
-        AccountNumber = Check.Text(accountNumber, "رقم الحساب البنكي", 64);
-        Iban = NormalizeIban(iban);
+        var checkedAccountNumber = Check.Text(accountNumber, "رقم الحساب البنكي", 64);
+        var checkedIban = NormalizeIban(iban);
+        var checkedCurrency = Check.Currency(currencyCode);
+        Check.That(Revision < int.MaxValue, "bank_account_revision_exhausted",
+            "بلغ إصدار بطاقة الحساب البنكي الحد الأقصى.", ErrorKind.Conflict);
+        Code = checkedCode;
+        Name = checkedName;
+        EnglishName = checkedEnglishName;
+        Notes = checkedNotes;
+        BankName = checkedBankName;
+        AccountNumber = checkedAccountNumber;
+        Iban = checkedIban;
         LedgerAccountId = ledgerAccountId;
-        CurrencyCode = Check.Currency(currencyCode);
+        CurrencyCode = checkedCurrency;
         BranchId = branchId;
         Advance(now);
     }
@@ -80,6 +92,8 @@ public sealed class BankAccount : CompanyEntity
     {
         Check.That(now >= CreatedAt && now >= LastModifiedAt,
             "bank_account_audit_time_invalid", "وقت التعديل لا يسبق وقت إنشاء الحساب البنكي.");
+        Check.That(Revision < int.MaxValue, "bank_account_revision_exhausted",
+            "بلغ إصدار بطاقة الحساب البنكي الحد الأقصى.", ErrorKind.Conflict);
         IsActive = active;
         Advance(now);
     }

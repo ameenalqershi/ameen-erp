@@ -7,6 +7,37 @@ public static class CashBoxTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("CASH01: rejected domain edits leave every cashbox field unchanged", f =>
+        {
+            var now = new FixedClock().UtcNow;
+            var box = new CashBox(f.CompanyId, "BOX", "صندوق", f.CashId, f.BranchId,
+                Guid.NewGuid(), "SAR", 100m, f.Owner.Subject, now);
+            var version = box.Version;
+            var custodian = box.CustodianMembershipId;
+            try
+            {
+                box.Configure("ALTERED", "تعديل", f.EquityId, f.OtherBranchId,
+                    Guid.NewGuid(), "USD", -1m, "Changed", "Changed", now.AddMinutes(1));
+                throw new Exception("Invalid balance limit unexpectedly accepted");
+            }
+            catch (BusinessException ex) when (ex.Code == "invalid_amount") { }
+            Ensure(box.Code == "BOX" && box.Name == "صندوق" && box.AccountId == f.CashId &&
+                box.BranchId == f.BranchId && box.CustodianMembershipId == custodian &&
+                box.CurrencyCode == "SAR" && box.BalanceLimit == 100m &&
+                box.EnglishName is null && box.Notes is null && box.Revision == 1 &&
+                box.Version == version && box.LastModifiedAt == now);
+            typeof(CashBox).GetProperty(nameof(CashBox.Revision))!.SetValue(box, int.MaxValue);
+            try
+            {
+                box.SetActive(false, now.AddMinutes(1));
+                throw new Exception("Exhausted revision unexpectedly accepted");
+            }
+            catch (BusinessException ex) when (ex.Code == "cashbox_revision_exhausted") { }
+            Ensure(box.IsActive && box.Revision == int.MaxValue && box.Version == version &&
+                box.LastModifiedAt == now);
+            return Task.CompletedTask;
+        });
+
         test("CASH01: complete card, actor/UTC audit, search and usage", async f =>
         {
             var custodian = Custodian(f);
