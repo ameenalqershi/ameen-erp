@@ -999,7 +999,8 @@ public static class HostedApiIntegration
                 var companyPath = $"/api/v1/companies/{company.Id}";
                 var companyProfile = company.Profile with { CommercialRegistration = "00042", City = "مدينة معدلة", PostalCode = "00123",
                     EnglishName = "HTTP legal name", Notes = "ملاحظة HTTP", Street = "شارع HTTP",
-                    BuildingNumber = "0007", AdditionalNumber = "0009" };
+                    BuildingNumber = "0007", AdditionalNumber = "0009",
+                    TaxRegistration = "000456", District = "حي HTTP" };
                 companyReceipt = await Command(client, companyPath, new EditCompanyRequest(companyReceipt.Version, company.Code, company.Name,
                     company.CountryCode, company.FunctionalCurrency, companyProfile, "استكمال البيانات"), method: HttpMethod.Put);
                 using (var companyDetail = await client.GetAsync(companyPath))
@@ -1016,8 +1017,13 @@ public static class HostedApiIntegration
                         json.RootElement.GetProperty("buildingNumber").GetString() == "0007" &&
                         json.RootElement.GetProperty("postalCode").GetString() == "00123" &&
                         json.RootElement.GetProperty("additionalNumber").GetString() == "0009" &&
+                        json.RootElement.GetProperty("taxRegistration").GetString() == "000456" &&
+                        json.RootElement.GetProperty("city").GetString() == "مدينة معدلة" &&
+                        json.RootElement.GetProperty("district").GetString() == "حي HTTP" &&
+                        json.RootElement.GetProperty("fiscalYearStartsOn").GetString() == "2026-01-01" &&
                         json.RootElement.GetProperty("isProfileComplete").GetBoolean(), "SYS01-FG02 company HTTP profile differs");
                 Console.WriteLine("  HOST PASS SYS01-FG05 address and zero-prefixed building/postal/additional numbers over HTTPS/JWT/SQL");
+                Console.WriteLine("  HOST PASS SYS01-FG04 tax code, fiscal-year start, city and district over HTTPS/JWT/SQL");
                 companyReceipt = await Command(client, companyPath + "/status", new SetCompanyStatusRequest(companyReceipt.Version, false, "إيقاف"));
                 using (var blockedWrite = new HttpRequestMessage(HttpMethod.Post, companyPath + "/branches"))
                 {
