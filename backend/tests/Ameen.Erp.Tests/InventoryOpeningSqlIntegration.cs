@@ -226,6 +226,33 @@ public static class InventoryOpeningSqlIntegration
             (await Call(s => s.Warehouse.ListWarehouseMovements(cid, wh.ResourceId, writer, 1, 1, default))).TotalCount == 2,
             "SQL INV01/INV04 usage lost historical original/reversal document");
         Console.WriteLine("  SQL PASS INV01/INV04 usage retains original and reversal source history, paging and ledger count");
+        // INV04-GAP03: even a fully reversed quantity/value retains immutable stock provenance.
+        // The stock structure remains locked; a failed edit must not persist revision, audit or receipt.
+        var protectedItem = await Call(s => s.Item.GetItem(cid, item.ResourceId, owner, default));
+        int priorItemAudits, priorItemReceipts;
+        await using (var db = Context())
+        {
+            priorItemAudits = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.ResourceId == item.ResourceId);
+            priorItemReceipts = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+        }
+        var forbiddenItemKey = Fixture.Key();
+        try
+        {
+            await Call(s => s.Item.EditItem(cid, item.ResourceId, owner, forbiddenItemKey,
+                ItemTests.Edit(protectedItem) with { Code = "SQL-USED-ITEM-CHANGED" }, default));
+            throw new Exception("A stock-used item was edited after complete reversal");
+        }
+        catch (BusinessException e) when (e.Code == "item_stock_structure_in_use") { }
+        await using (var db = Context())
+        {
+            var savedItem = await db.Set<Item>().SingleAsync(x => x.CompanyId == cid && x.Id == item.ResourceId);
+            Ensure(savedItem.Version == protectedItem.Version && savedItem.Code == protectedItem.Code &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.ResourceId == item.ResourceId) == priorItemAudits &&
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == priorItemReceipts &&
+                !await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == forbiddenItemKey),
+                "INV04-GAP03 denied SQL item edit changed revision, audit or idempotency record");
+        }
+        Console.WriteLine("  SQL PASS INV04-GAP03: item identity remains immutable after full stock reversal");
         var stockLedger = await Call(s => s.Report.InventoryLedger(cid, item.ResourceId, writer, Fixture.Date, Fixture.Date, branch, wh.ResourceId, null, 1, 1, default));
         Ensure(stockLedger.Rows.TotalCount == 2 && stockLedger.ClosingQuantity == 0 && stockLedger.ClosingValue == 0 && stockLedger.InValue == 15 && stockLedger.OutValue == 15 && stockLedger.Rows.Items.Single().RunningValue == 0, "SQL item ledger page balance differs");
         Ensure(stockLedger.Rows.Items.Single().DocumentUnits.Single().Quantity == -3, "SQL source document units missing");
