@@ -23,13 +23,13 @@ public sealed class MembershipService : ApplicationService
             if (member is null)
             {
                 Check.That(request.ExpectedVersion is null, "membership_missing", "العضوية المطلوب تعديلها غير موجودة.", ErrorKind.Conflict);
-                member = new Membership(cid, subject, request.Permissions!, request.AllBranches, request.BranchIds!);
+                member = new Membership(cid, subject, request.Permissions!, request.AllBranches, request.BranchIds!, actor.Subject, clock.UtcNow);
                 store.Add(member);
             }
             else
             {
                 Check.Version(member, request.ExpectedVersion ?? Guid.Empty);
-                member.Configure(request.Permissions!, request.AllBranches, request.BranchIds!);
+                member.ConfigureAuthorized(request.Permissions!, request.AllBranches, request.BranchIds!, clock.UtcNow);
             }
             Audit(cid, actor, "membership.granted", member, new { subject, before, after = new { member.GrantedPermissions, member.AllBranches, member.BranchIds } });
             return Receipt(member, "Granted");
@@ -41,7 +41,7 @@ public sealed class MembershipService : ApplicationService
             var member = await Required<Membership>(cid, id, token); Check.Version(member, request.ExpectedVersion);
             Check.That(member.Subject != actor.Subject, "self_grant_forbidden", "لا يمكنك تغيير حالة عضويتك بنفسك.", ErrorKind.Forbidden);
             var reason = Check.Text(request.Reason, "السبب", 500); var before = member.IsActive;
-            member.SetActive(request.IsActive);
+            member.SetActiveAuthorized(request.IsActive, clock.UtcNow);
             Audit(cid, actor, "membership.status-changed", member, new { before, after = member.IsActive, reason });
             return Receipt(member, member.IsActive ? "Active" : "Inactive");
         }, ct);
