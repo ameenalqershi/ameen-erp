@@ -813,6 +813,52 @@ public static class HostedApiIntegration
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));
                 var rate = await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date, 1.25m, "HTTP source"));
                 await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date.AddDays(1), 1.5m, "HTTP future"));
+                // SYS05-OP01: a valid JWT for an unrelated tenant cannot
+                // search for or provision an effective exchange rate.
+                Authenticate(Token("sys04-unrelated-user"));
+                using (var deniedRateSearch = await client.GetAsync(ratesPath + "/search?currencyCode=NZD"))
+                    Ensure(deniedRateSearch.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP01 unrelated JWT searched another company's rate history");
+                using (var deniedRateCreate = new HttpRequestMessage(HttpMethod.Post, ratesPath))
+                {
+                    deniedRateCreate.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedRateCreate.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateExchangeRateRequest("NZD", Fixture.Date.AddDays(7),
+                            1.2345m, "SYS05-OP01-DENIED"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var unauthorizedRateResponse = await client.SendAsync(deniedRateCreate);
+                    Ensure(unauthorizedRateResponse.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP01 unrelated JWT provisioned another company's rate");
+                }
+                Authenticate(Token("sql-owner"));
+                using (var rateSearch = await client.GetAsync(ratesPath + "/search?source=SYS05-OP01-DENIED"))
+                using (var rateSearchJson = JsonDocument.Parse(await rateSearch.Content.ReadAsStringAsync()))
+                    Ensure(rateSearch.StatusCode == HttpStatusCode.OK &&
+                        rateSearchJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS05-OP01 denied rate creation persisted a SQL record");
+                Console.WriteLine("  HOST PASS SYS05-OP01 rate search/create authorization and denied foreign JWT over HTTPS/SQL");
+                // SYS05-FG03: the public contract forbids a zero rate or
+                // excessive decimal precision before reserving a SQL record.
+                foreach (var invalidRate in new[] { 0m, 1.12345678901m })
+                {
+                    using var attempt = new HttpRequestMessage(HttpMethod.Post, ratesPath);
+                    attempt.Headers.Add("Idempotency-Key", Fixture.Key());
+                    attempt.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateExchangeRateRequest("NZD", Fixture.Date.AddDays(6),
+                            invalidRate, "SYS05-invalid"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(attempt);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        error.RootElement.GetProperty("code").GetString() == "invalid_exchange_rate",
+                        "SYS05-FG03 HTTPS accepted zero or overprecision exchange rate");
+                }
+                using (var invalidSearch = await client.GetAsync(ratesPath + "/search?currencyCode=NZD&source=SYS05-invalid"))
+                using (var invalidJson = JsonDocument.Parse(await invalidSearch.Content.ReadAsStringAsync()))
+                    Ensure(invalidSearch.StatusCode == HttpStatusCode.OK &&
+                        invalidJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS05-FG03 rejected exchange rate persisted in SQL");
+                Console.WriteLine("  HOST PASS SYS05-FG03 invalid decimal rate refusal over HTTPS/JWT/SQL");
                 using (var response = await client.GetAsync(ratesPath + $"/quote?currencyCode=NZD&date={Fixture.Date:yyyy-MM-dd}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("exchangeRateId").GetGuid() == rate.ResourceId &&
@@ -976,7 +1022,59 @@ public static class HostedApiIntegration
                 using (var log = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await log.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Currency HTTP audit failed");
+                // SYS04-FG04: the audit is system-issued, company-scoped,
+                // chronologically ordered by the authoritative server clock.
+                using (var audit = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/audit-events"))
+                using (var auditJson = JsonDocument.Parse(await audit.Content.ReadAsStringAsync()))
+                {
+                    var events = auditJson.RootElement.GetProperty("items").EnumerateArray().ToArray();
+                    Ensure(audit.StatusCode == HttpStatusCode.OK &&
+                        auditJson.RootElement.GetProperty("totalCount").GetInt32() == 3 &&
+                        events.Length == 3 && events.All(x =>
+                            x.GetProperty("actorId").GetString() == "sql-owner" &&
+                            x.GetProperty("companyId").GetGuid() == companyId &&
+                            x.GetProperty("resourceId").GetGuid() == currencyCard.ResourceId),
+                        "SYS04-FG04 currency audit actor/resource/tenant was not preserved");
+                    var created = events.Single(x => x.GetProperty("action").GetString() == "currency.created")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    var edited = events.Single(x => x.GetProperty("action").GetString() == "currency.edited")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    var disabled = events.Single(x => x.GetProperty("action").GetString() == "currency.status-changed")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    Ensure(created != default && edited >= created && disabled >= edited,
+                        "SYS04-FG04 currency audit timestamps were not chronological");
+                }
+                Console.WriteLine("  HOST PASS SYS04-FG04 currency audit actor, timestamps and tenant identity over HTTPS/JWT/SQL");
 
+                // SYS04-FG03: display metadata and changed integer scale
+                // survive authorized PUT and a disabled-card HTTPS GET.
+                using (var currencyProfile = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}"))
+                using (var currencyJson = JsonDocument.Parse(await currencyProfile.Content.ReadAsStringAsync()))
+                    Ensure(currencyProfile.StatusCode == HttpStatusCode.OK &&
+                        currencyJson.RootElement.GetProperty("scale").GetInt32() == 3 &&
+                        currencyJson.RootElement.GetProperty("displaySymbol").GetString() == "£" &&
+                        currencyJson.RootElement.GetProperty("fractionName").GetString() == "بنس" &&
+                        currencyJson.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        !currencyJson.RootElement.GetProperty("isActive").GetBoolean(),
+                        "SYS04-FG03 currency scale/symbol/fraction did not persist over HTTPS/SQL");
+                using (var invalidScale = new HttpRequestMessage(HttpMethod.Post, currenciesPath))
+                {
+                    invalidScale.Headers.Add("Idempotency-Key", Fixture.Key());
+                    invalidScale.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateCurrencyRequest("AUD", 7, "دولار أسترالي", DisplaySymbol: "A$"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(invalidScale);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        error.RootElement.GetProperty("code").GetString() == "invalid_scale",
+                        "SYS04-FG03 HTTP accepted out-of-bounds currency precision");
+                }
+                using (var rejectedSearch = await client.GetAsync(currenciesPath + "/search?search=AUD"))
+                using (var rejectedJson = JsonDocument.Parse(await rejectedSearch.Content.ReadAsStringAsync()))
+                    Ensure(rejectedSearch.StatusCode == HttpStatusCode.OK &&
+                        rejectedJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS04-FG03 invalid currency precision persisted a card");
+                Console.WriteLine("  HOST PASS SYS04-FG03 integer precision and Unicode metadata over HTTPS/JWT/SQL");
                 // SYS04-OP03: usage remains readable when disabled, and both
                 // usage and audit must enforce tenant-level authorization.
                 using (var usage = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/usage"))
@@ -1241,17 +1339,165 @@ public static class HostedApiIntegration
                 var parentBranch = await Command(client, branchesPath, new CreateBranchRequest("PARENT", "أب", "مدينة", "عنوان"));
                 var childBranch = await Command(client, branchesPath, new CreateBranchRequest("CHILD", "ابن", "مدينة", "عنوان", parentBranch.ResourceId));
                 childBranch = await Command(client, branchesPath + $"/{childBranch.ResourceId}",
-                    new EditBranchRequest(childBranch.Version, "CHILD", "ابن معدل", "مدينة", "عنوان 001", parentBranch.ResourceId, null, "HTTP child", null, "تحديث"), method: HttpMethod.Put);
+                    new EditBranchRequest(childBranch.Version, "CHILD", "ابن معدل", "مدينة", "عنوان 001", parentBranch.ResourceId, null, "HTTP child", "ملاحظة فرع", "تحديث"), method: HttpMethod.Put);
+                // SYS02-OP01: both search and new reject a valid JWT from
+                // a member of a different company, even before query filtering.
+                Authenticate(Token("sql-clerk"));
+                using (var deniedSearch = await client.GetAsync(branchesPath + "/search?search=PARENT"))
+                    Ensure(deniedSearch.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP01 search exposed another company's branch to a valid JWT");
+                using (var deniedCreate = new HttpRequestMessage(HttpMethod.Post, branchesPath))
+                {
+                    deniedCreate.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedCreate.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateBranchRequest("FORGED", "غير مصرح", "مدينة", "عنوان"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(deniedCreate);
+                    Ensure(rejected.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP01 cross-company JWT provisioned a branch");
+                }
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                using (var searchAfterDeniedCreate = await client.GetAsync(branchesPath + "/search?search=FORGED"))
+                using (var searchJson = JsonDocument.Parse(await searchAfterDeniedCreate.Content.ReadAsStringAsync()))
+                    Ensure(searchAfterDeniedCreate.StatusCode == HttpStatusCode.OK &&
+                        searchJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS02-OP01 denied branch creation left an authorized-visible record");
+                Console.WriteLine("  HOST PASS SYS02-OP01 tenant-scoped branch search/create and denied cross-company JWT");
+                // SYS02-FG02: optional English name and notes round-trip,
+                // with an active default and authorized same-company parent.
+                using (var childProfile = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}"))
+                using (var childJson = JsonDocument.Parse(await childProfile.Content.ReadAsStringAsync()))
+                    Ensure(childProfile.StatusCode == HttpStatusCode.OK &&
+                        childJson.RootElement.GetProperty("englishName").GetString() == "HTTP child" &&
+                        childJson.RootElement.GetProperty("notes").GetString() == "ملاحظة فرع" &&
+                        childJson.RootElement.GetProperty("parentId").GetGuid() == parentBranch.ResourceId &&
+                        childJson.RootElement.GetProperty("isActive").GetBoolean() &&
+                        childJson.RootElement.GetProperty("revision").GetInt32() == 2,
+                        "SYS02-FG02 child branch optional fields or parent scope did not round-trip");
+                // SYS02-FG01: the public API returns the generated IDs, company
+                // reference and original Arabic name; duplicate codes are refused.
+                Ensure(parentBranch.ResourceId != Guid.Empty && childBranch.ResourceId != Guid.Empty &&
+                    parentBranch.ResourceId != childBranch.ResourceId,
+                    "SYS02-FG01 public create did not generate independent branch IDs");
+                using (var branchResponse = await client.GetAsync(branchesPath + $"/{parentBranch.ResourceId}"))
+                using (var branchJson = JsonDocument.Parse(await branchResponse.Content.ReadAsStringAsync()))
+                    Ensure(branchResponse.StatusCode == HttpStatusCode.OK &&
+                        branchJson.RootElement.GetProperty("id").GetGuid() == parentBranch.ResourceId &&
+                        branchJson.RootElement.GetProperty("companyId").GetGuid() == company.Id &&
+                        branchJson.RootElement.GetProperty("code").GetString() == "PARENT" &&
+                        branchJson.RootElement.GetProperty("name").GetString() == "أب",
+                        "SYS02-FG01 public GET returned incorrect branch identity/company/code/name");
+                using (var duplicate = new HttpRequestMessage(HttpMethod.Post, branchesPath))
+                {
+                    duplicate.Headers.Add("Idempotency-Key", Fixture.Key());
+                    duplicate.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateBranchRequest("PARENT", "رمز مكرر", "مدينة", "عنوان"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var result = await client.SendAsync(duplicate);
+                    using var error = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
+                    Ensure(result.StatusCode == HttpStatusCode.Conflict &&
+                        error.RootElement.GetProperty("code").GetString() == "duplicate_code",
+                        "SYS02-FG01 HTTP accepted duplicate branch code");
+                }
+                Console.WriteLine("  HOST PASS SYS02-FG01 generated ID, company reference, Arabic name and duplicate denial over HTTPS/JWT/SQL");
+                // SYS02-AC02: reject a self-parent and an ancestor->descendant
+                // cycle over the production HTTPS/JWT route without changing SQL state.
+                async Task RejectBranchCycle(Guid branchId, Guid version, Guid invalidParent)
+                {
+                    using var edit = new HttpRequestMessage(HttpMethod.Put, branchesPath + $"/{branchId}");
+                    edit.Headers.Add("Idempotency-Key", Fixture.Key());
+                    edit.Content = new StringContent(JsonSerializer.Serialize(
+                        new EditBranchRequest(version, branchId == parentBranch.ResourceId ? "PARENT" : "CHILD",
+                            "دورة ممنوعة", "مدينة", "عنوان", invalidParent, null, null, null, "اختبار منع دورة"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(edit);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        error.RootElement.GetProperty("code").GetString() == "branch_tree_cycle",
+                        "SYS02-AC02 production HTTP accepted a branch cycle");
+                }
+                await RejectBranchCycle(parentBranch.ResourceId, parentBranch.Version, parentBranch.ResourceId);
+                await RejectBranchCycle(parentBranch.ResourceId, parentBranch.Version, childBranch.ResourceId);
+                using (var parentAfterRejection = await client.GetAsync(branchesPath + $"/{parentBranch.ResourceId}"))
+                using (var parentJson = JsonDocument.Parse(await parentAfterRejection.Content.ReadAsStringAsync()))
+                    Ensure(parentAfterRejection.StatusCode == HttpStatusCode.OK &&
+                        parentJson.RootElement.GetProperty("version").GetGuid() == parentBranch.Version &&
+                        parentJson.RootElement.GetProperty("parentId").ValueKind == JsonValueKind.Null,
+                        "SYS02-AC02 rejected cycle mutated parent branch");
+                Console.WriteLine("  HOST PASS SYS02-AC02 self-parent and ancestor cycle rejection over HTTPS/JWT");
                 using (var response = await client.GetAsync(branchesPath + $"/search?parentId={parentBranch.ResourceId}&search=HTTP"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("items")[0].GetProperty("revision").GetInt32() == 2, "Branch HTTP search failed");
                 using (var response = await client.GetAsync(branchesPath + $"/{parentBranch.ResourceId}/usage"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("childCount").GetInt32() == 1, "Branch HTTP usage failed");
-                await Command(client, branchesPath + $"/{childBranch.ResourceId}/status", new SetBranchStatusRequest(childBranch.Version, false, "إيقاف"));
+                var childDisabled = await Command(client, branchesPath + $"/{childBranch.ResourceId}/status", new SetBranchStatusRequest(childBranch.Version, false, "إيقاف"));
+                Ensure(childDisabled.Version != Guid.Empty && childDisabled.Version != childBranch.Version,
+                    "SYS02-FG05 branch status did not advance the concurrency version");
+                using (var disabledProfile = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}"))
+                using (var disabledJson = JsonDocument.Parse(await disabledProfile.Content.ReadAsStringAsync()))
+                    Ensure(disabledProfile.StatusCode == HttpStatusCode.OK &&
+                        !disabledJson.RootElement.GetProperty("isActive").GetBoolean() &&
+                        disabledJson.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        disabledJson.RootElement.GetProperty("notes").GetString() == "ملاحظة فرع",
+                        "SYS02-FG02 disabled state or optional notes were not persisted");
                 using (var response = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
-                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Branch HTTP audit failed");
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 3,
+                        "Branch HTTP audit failed");
+                    var events = json.RootElement.GetProperty("items").EnumerateArray().ToArray();
+                    Ensure(events.Length == 3 && events.All(x =>
+                        x.GetProperty("actorId").GetString() == "runtime-admin" &&
+                        x.GetProperty("companyId").GetGuid() == company.Id &&
+                        x.GetProperty("resourceId").GetGuid() == childBranch.ResourceId),
+                        "SYS02-FG05 branch audit actor or tenant identity differs");
+                    var createdAt = events.Single(x => x.GetProperty("action").GetString() == "branch.created")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    var editedAt = events.Single(x => x.GetProperty("action").GetString() == "branch.edited")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    var statusAt = events.Single(x => x.GetProperty("action").GetString() == "branch.status-changed")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    Ensure(createdAt != default && editedAt >= createdAt && statusAt >= editedAt,
+                        "SYS02-FG05 system-owned branch create/last-modified timestamps differ");
+                }
+                Console.WriteLine("  HOST PASS SYS02-FG02/FG05 optional profile, status, numeric revision, audit actor and timestamps");
+                // SYS02-OP02: the existing edit/status commands are authorized
+                // independently; an unrelated tenant JWT must never mutate them.
+                Authenticate(Token("sql-clerk"));
+                using (var deniedEdit = new HttpRequestMessage(HttpMethod.Put,
+                    branchesPath + $"/{childBranch.ResourceId}"))
+                {
+                    deniedEdit.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedEdit.Content = new StringContent(JsonSerializer.Serialize(
+                        new EditBranchRequest(childDisabled.Version, "CHILD", "تزوير", "مدينة", "عنوان 001",
+                            parentBranch.ResourceId, null, "HTTP child", "محاولة", "غير مصرح"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(deniedEdit);
+                    Ensure(rejected.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP02 unrelated JWT edited another company's branch");
+                }
+                using (var deniedStatus = new HttpRequestMessage(HttpMethod.Post,
+                    branchesPath + $"/{childBranch.ResourceId}/status"))
+                {
+                    deniedStatus.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedStatus.Content = new StringContent(JsonSerializer.Serialize(
+                        new SetBranchStatusRequest(childDisabled.Version, true, "غير مصرح"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(deniedStatus);
+                    Ensure(rejected.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP02 unrelated JWT reactivated another company's branch");
+                }
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                using (var unchanged = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}"))
+                using (var unchangedJson = JsonDocument.Parse(await unchanged.Content.ReadAsStringAsync()))
+                    Ensure(unchanged.StatusCode == HttpStatusCode.OK &&
+                        unchangedJson.RootElement.GetProperty("version").GetGuid() == childDisabled.Version &&
+                        unchangedJson.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        !unchangedJson.RootElement.GetProperty("isActive").GetBoolean(),
+                        "SYS02-OP02 denied edit/status changed branch revision or disabled state");
+                Console.WriteLine("  HOST PASS SYS02-OP02 edit/disable and denied cross-company JWT mutations");
                 // SYS02-OP03: usage and audit are tenant-scoped even with
                 // active/disabled branches and a valid unrelated JWT.
                 var sys02UsagePath = branchesPath + $"/{parentBranch.ResourceId}/usage";
@@ -1290,9 +1536,141 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("periods").GetArrayLength() == 2 &&
                         json.RootElement.GetProperty("state").GetString() == "Open" && json.RootElement.GetProperty("generalLedgerOnly").GetBoolean(), "Custom HTTP calendar failed");
+                // SYS03-AC01: new periods are open, contiguous and carry
+                // the exact posting calendar returned by the production API.
+                using (var fiscalPositive = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}"))
+                using (var positiveJson = JsonDocument.Parse(await fiscalPositive.Content.ReadAsStringAsync()))
+                {
+                    var periods = positiveJson.RootElement.GetProperty("periods").EnumerateArray().ToArray();
+                    Ensure(fiscalPositive.StatusCode == HttpStatusCode.OK &&
+                        positiveJson.RootElement.GetProperty("state").GetString() == "Open" &&
+                        positiveJson.RootElement.GetProperty("generalLedgerOnly").GetBoolean() &&
+                        periods.Length == 2 &&
+                        periods[0].GetProperty("code").GetString() == "2026-H1" &&
+                        periods[0].GetProperty("startsOn").GetString() == "2026-01-01" &&
+                        periods[0].GetProperty("endsOn").GetString() == "2026-06-30" &&
+                        !periods[0].GetProperty("isClosed").GetBoolean() &&
+                        periods[1].GetProperty("code").GetString() == "2026-H2" &&
+                        periods[1].GetProperty("startsOn").GetString() == "2026-07-01" &&
+                        periods[1].GetProperty("endsOn").GetString() == "2026-12-31" &&
+                        !periods[1].GetProperty("isClosed").GetBoolean(),
+                        "SYS03-AC01 HTTPS calendar did not expose contiguous open periods");
+                }
+                Console.WriteLine("  HOST PASS SYS03-AC01 open contiguous fiscal periods over HTTPS/JWT/SQL");
+                // SYS03-FG03: leading-zero period identifiers are text;
+                // clients define dates/codes, but the server owns close state.
+                var codedFiscal = await Command(client, calendarPath,
+                    new CreateFiscalYearRequest("2034", new(2034, 1, 1), new(2034, 12, 31),
+                        new[] {
+                            new FiscalPeriodRequest("0001", new(2034, 1, 1), new(2034, 6, 30)),
+                            new FiscalPeriodRequest("0002", new(2034, 7, 1), new(2034, 12, 31))
+                        }));
+                using (var codedResponse = await client.GetAsync(calendarPath + $"/{codedFiscal.ResourceId}"))
+                using (var codedJson = JsonDocument.Parse(await codedResponse.Content.ReadAsStringAsync()))
+                {
+                    var periods = codedJson.RootElement.GetProperty("periods").EnumerateArray().ToArray();
+                    Ensure(codedResponse.StatusCode == HttpStatusCode.OK && periods.Length == 2 &&
+                        periods[0].GetProperty("code").GetString() == "0001" &&
+                        periods[0].GetProperty("startsOn").GetString() == "2034-01-01" &&
+                        periods[0].GetProperty("endsOn").GetString() == "2034-06-30" &&
+                        !periods[0].GetProperty("isClosed").GetBoolean() &&
+                        periods[1].GetProperty("code").GetString() == "0002" &&
+                        periods[1].GetProperty("startsOn").GetString() == "2034-07-01" &&
+                        periods[1].GetProperty("endsOn").GetString() == "2034-12-31" &&
+                        !periods[1].GetProperty("isClosed").GetBoolean(),
+                        "SYS03-FG03 HTTPS period identifiers/date fields or initial GL-only state differ");
+                }
+                Console.WriteLine("  HOST PASS SYS03-FG03 period codes with leading zeros and dates over HTTPS/JWT/SQL");
+                // SYS03-FG02: fiscal date boundaries survive the public
+                // HTTPS/SQL roundtrip and malformed ranges fail atomically.
+                using (var fiscalDetail = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}"))
+                using (var fiscalJson = JsonDocument.Parse(await fiscalDetail.Content.ReadAsStringAsync()))
+                {
+                    var year = fiscalJson.RootElement.GetProperty("year");
+                    Ensure(fiscalDetail.StatusCode == HttpStatusCode.OK &&
+                        year.GetProperty("companyId").GetGuid() == company.Id &&
+                        year.GetProperty("startsOn").GetString() == "2026-01-01" &&
+                        year.GetProperty("endsOn").GetString() == "2026-12-31",
+                        "SYS03-FG02 fiscal date header was not preserved by HTTPS/SQL");
+                }
+                async Task RejectFiscalRange(string code, DateOnly start, DateOnly end)
+                {
+                    using var invalid = new HttpRequestMessage(HttpMethod.Post, calendarPath);
+                    invalid.Headers.Add("Idempotency-Key", Fixture.Key());
+                    invalid.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateFiscalYearRequest(code, start, end),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(invalid);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        error.RootElement.GetProperty("code").GetString() == "invalid_fiscal_year",
+                        "SYS03-FG02 public API accepted reversed or excessively long fiscal dates");
+                }
+                await RejectFiscalRange("2030-BACK", new(2030, 12, 31), new(2030, 1, 1));
+                await RejectFiscalRange("2030-LONG", new(2030, 1, 1), new(2031, 12, 31));
+                using (var invalidSearch = await client.GetAsync(calendarPath + "/search?search=2030"))
+                using (var invalidJson = JsonDocument.Parse(await invalidSearch.Content.ReadAsStringAsync()))
+                    Ensure(invalidSearch.StatusCode == HttpStatusCode.OK &&
+                        invalidJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS03-FG02 rejected fiscal year persisted a partial row");
+                Console.WriteLine("  HOST PASS SYS03-FG02 fiscal date roundtrip and negative ranges over HTTPS/JWT/SQL");
                 using (var response = await client.GetAsync(calendarPath + "/search?search=2026"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Calendar HTTP search failed");
+                // SYS03-AC02: no gaps or overlaps in approved fiscal-year
+                // coverage; re-opening closed periods remains a GL12 action.
+                async Task RejectPeriodCoverage(CreateFiscalYearRequest invalidRequest)
+                {
+                    using var post = new HttpRequestMessage(HttpMethod.Post, calendarPath);
+                    post.Headers.Add("Idempotency-Key", Fixture.Key());
+                    post.Content = new StringContent(JsonSerializer.Serialize(
+                        invalidRequest, JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(post);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        error.RootElement.GetProperty("code").GetString() == "invalid_period_coverage",
+                        "SYS03-AC02 HTTP accepted an uncovered or overlapping fiscal period");
+                }
+                await RejectPeriodCoverage(new("2032-GAP", new(2032, 1, 1), new(2032, 12, 31), new[] {
+                    new FiscalPeriodRequest("2032-P1", new(2032, 1, 1), new(2032, 6, 30)),
+                    new FiscalPeriodRequest("2032-P2", new(2032, 7, 2), new(2032, 12, 31))
+                }));
+                await RejectPeriodCoverage(new("2033-OVERLAP", new(2033, 1, 1), new(2033, 12, 31), new[] {
+                    new FiscalPeriodRequest("2033-P1", new(2033, 1, 1), new(2033, 6, 30)),
+                    new FiscalPeriodRequest("2033-P2", new(2033, 6, 30), new(2033, 12, 31))
+                }));
+                foreach (var rejectedYear in new[] { "2032", "2033" })
+                {
+                    using var response = await client.GetAsync(calendarPath + "/search?search=" + rejectedYear);
+                    using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS03-AC02 refused fiscal coverage created a partial year in SQL");
+                }
+                Console.WriteLine("  HOST PASS SYS03-AC02 fiscal gaps/overlaps refused atomically over HTTPS/JWT/SQL");
+                // SYS03-OP01: a valid JWT belonging only to a different
+                // company cannot search or provision this fiscal calendar.
+                Authenticate(Token("sql-clerk"));
+                using (var deniedCalendarSearch = await client.GetAsync(calendarPath + "/search?search=2026"))
+                    Ensure(deniedCalendarSearch.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS03-OP01 unrelated JWT searched another company's fiscal years");
+                using (var deniedCalendarCreate = new HttpRequestMessage(HttpMethod.Post, calendarPath))
+                {
+                    deniedCalendarCreate.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedCalendarCreate.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateFiscalYearRequest("2030-FORGED", new(2030, 1, 1), new(2030, 12, 31)),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(deniedCalendarCreate);
+                    Ensure(rejected.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS03-OP01 unrelated JWT created another company's fiscal year");
+                }
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                using (var deniedCalendarResult = await client.GetAsync(calendarPath + "/search?search=2030-FORGED"))
+                using (var deniedCalendarJson = JsonDocument.Parse(await deniedCalendarResult.Content.ReadAsStringAsync()))
+                    Ensure(deniedCalendarResult.StatusCode == HttpStatusCode.OK &&
+                        deniedCalendarJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS03-OP01 denied calendar creation persisted an unauthorized year");
+                Console.WriteLine("  HOST PASS SYS03-OP01 tenant-scoped fiscal search/create and cross-company JWT denial");
                 using (var response = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Calendar HTTP audit failed");

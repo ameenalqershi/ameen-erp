@@ -19,6 +19,23 @@ public static class FiscalCalendarTests
             var audit = await f.Service.FiscalCalendar.ListFiscalYearAudit(f.CompanyId, r.ResourceId, f.Owner, 0, 10, default);
             Ensure(audit.TotalCount == 1 && audit.Items[0].Details.Contains("2027-H1", StringComparison.Ordinal));
         });
+        test("SYS03-FG02: required start/end dates reject reversed or overlong years atomically", async f =>
+        {
+            var yearsBefore = f.Store.Count<FiscalYear>();
+            var periodsBefore = f.Store.Count<FiscalPeriod>();
+            var auditsBefore = f.Store.Count<AuditEvent>();
+            var rejectedKeys = new[] { Fixture.Key(), Fixture.Key() };
+            await Error("invalid_fiscal_year", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId, f.Owner, rejectedKeys[0],
+                new("2030-BACK", new(2030, 12, 31), new(2030, 1, 1)), default));
+            await Error("invalid_fiscal_year", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId, f.Owner, rejectedKeys[1],
+                new("2030-LONG", new(2030, 1, 1), new(2031, 12, 31)), default));
+            Ensure(f.Store.Count<FiscalYear>() == yearsBefore &&
+                f.Store.Count<FiscalPeriod>() == periodsBefore &&
+                f.Store.Count<AuditEvent>() == auditsBefore &&
+                !f.Store.All<IdempotencyRecord>().Any(x => rejectedKeys.Contains(x.Key)));
+        });
         test("SYS03: custom coverage rejects gaps overlaps outside bounds and missing ends atomically", async f =>
         {
             var original = Request();

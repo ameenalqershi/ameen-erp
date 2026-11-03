@@ -16,6 +16,23 @@ public static class RateAndCloseTests
             Ensure(quote.ExchangeRateId == old.ResourceId && quote.RateToFunctional == 3.123456789m && quote.FunctionalCurrency == "SAR" && quote.CurrencyCode == "USD");
             Ensure((await f.Service.ExchangeRate.QuoteExchangeRate(f.CompanyId, f.Clerk, "USD", Fixture.Date, default)).ExchangeRateId == current.ResourceId);
         });
+        test("SYS05-FG03: positive ten-place decimal rate and invalid precision reject atomically", async f =>
+        {
+            await Currency(f);
+            var accepted = await Rate(f, Fixture.Date.AddDays(-1), 1.1234567891m);
+            var stored = await f.Service.ExchangeRate.GetExchangeRate(f.CompanyId, accepted.ResourceId, f.Clerk, default);
+            Ensure(stored.Rate.RateToFunctional == 1.1234567891m);
+            var auditBefore = f.Store.Count<AuditEvent>();
+            var recordsBefore = f.Store.Count<ExchangeRate>();
+            var receiptBefore = f.Store.Count<IdempotencyRecord>();
+            foreach (var invalid in new[] { 0m, -1m, 1.12345678901m, 1_000_000_000m })
+                await Error("invalid_exchange_rate", () => f.Service.ExchangeRate.CreateExchangeRate(
+                    f.CompanyId, f.Owner, Fixture.Key(),
+                    new("USD", Fixture.Date, invalid, "رفض دقة غير صحيحة"), default));
+            Ensure(f.Store.Count<ExchangeRate>() == recordsBefore &&
+                f.Store.Count<AuditEvent>() == auditBefore &&
+                f.Store.Count<IdempotencyRecord>() == receiptBefore);
+        });
         test("SYS05: functional quote is one without fabricated rate and missing historical quote fails", async f =>
         {
             var own = await f.Service.ExchangeRate.QuoteExchangeRate(f.CompanyId, f.Clerk, "SAR", Fixture.Date, default);
