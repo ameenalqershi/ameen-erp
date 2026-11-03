@@ -1358,9 +1358,9 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/PeriodExecutionHistorySqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "GL12": {
-      "api": "POST /companies/{companyId}/periods/{id}/reopen",
-      "implemented": "فتح فترة بصلاحية مستقلة وسبب مسجل",
-      "remaining": "مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي",
+      "api": "POST /companies/{companyId}/periods/{id}/reopen; GET /companies/{companyId}/periods/{id}/reopen-history",
+      "implemented": "فتح فترة بصلاحية مستقلة وسبب مسجل؛ عرض نتيجة/سجل فتح مفوض بخصوصية PeriodReopen+Audit+Read وفصل أحداث الفتح عن الإقفال، مع ترقيم الصفحات بلا أثر مالي",
+      "remaining": "مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي، وفحوص إقرارات SYS14/الذمم عند إعادة الفتح، لم تنفذ؛ لا يعتبر سجل الفتح شهادة بهذه الموافقات",
       "fields": {
         "GL12-F01": {
           "status": "implemented",
@@ -1386,7 +1386,8 @@
           "status": "audit",
           "binding": "AuditEvent.OccurredAt"
         }
-      }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/PeriodReopenHistorySqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "COST01": {
       "api": "GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",

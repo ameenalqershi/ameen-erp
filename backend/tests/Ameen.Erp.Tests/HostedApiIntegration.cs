@@ -899,6 +899,91 @@ public static class HostedApiIntegration
                         "GL11 execution history leaked to an unrelated JWT subject");
                 Authenticate(Token("sql-approver"));
                 Console.WriteLine("  HOST PASS GL11-A05 scoped execution result/history over HTTPS/JWT/SQL");
+
+                // GL12-A05: choose a truly closeable and otherwise unused
+                // test period; never override the period-close safety guard.
+                Guid gl12Period = Guid.Empty;
+                Guid gl12PeriodVersion = Guid.Empty;
+                using (var periodsResponse = await client.GetAsync(
+                    $"/api/v1/companies/{companyId}/periods"))
+                using (var periodsJson = JsonDocument.Parse(
+                    await periodsResponse.Content.ReadAsStringAsync()))
+                {
+                    Ensure(periodsResponse.StatusCode == HttpStatusCode.OK,
+                        "GL12 test could not enumerate fiscal periods");
+                    foreach (var candidate in periodsJson.RootElement.EnumerateArray())
+                    {
+                        var candidateId = candidate.GetProperty("id").GetGuid();
+                        if (candidateId == periodId || candidate.GetProperty("isClosed").GetBoolean())
+                            continue;
+                        using var preview = await client.GetAsync(
+                            $"/api/v1/companies/{companyId}/periods/{candidateId}/close-preview?limit=1");
+                        using var previewJson = JsonDocument.Parse(
+                            await preview.Content.ReadAsStringAsync());
+                        if (preview.StatusCode == HttpStatusCode.OK &&
+                            previewJson.RootElement.GetProperty("canCloseGeneralLedger").GetBoolean())
+                        {
+                            gl12Period = candidateId;
+                            gl12PeriodVersion = previewJson.RootElement
+                                .GetProperty("expectedVersion").GetGuid();
+                            break;
+                        }
+                    }
+                }
+                Ensure(gl12Period != Guid.Empty,
+                    "No safely closeable disposable period available for GL12 HTTP acceptance");
+                var gl12Path = $"/api/v1/companies/{companyId}/periods/{gl12Period}";
+                var gl12Closed = await Command(client, gl12Path + "/close",
+                    new ChangePeriodRequest(gl12PeriodVersion, "GL12 HTTPS إغلاق"));
+                var gl12Reopened = await Command(client, gl12Path + "/reopen",
+                    new ChangePeriodRequest(gl12Closed.Version, "GL12 HTTPS إعادة فتح"));
+                Authenticate(Token("sql-owner"));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl12-read-audit-reopen",
+                        new[] { Permissions.Read, Permissions.Audit, Permissions.PeriodReopen },
+                        true, Array.Empty<Guid>(), null));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl12-read-audit-close",
+                        new[] { Permissions.Read, Permissions.Audit, Permissions.PeriodClose },
+                        true, Array.Empty<Guid>(), null));
+                Authenticate(Token("gl12-read-audit-reopen"));
+                using (var gl12Http = await client.GetAsync(gl12Path + "/reopen-history?offset=0&limit=1"))
+                using (var gl12Json = JsonDocument.Parse(
+                    await gl12Http.Content.ReadAsStringAsync()))
+                {
+                    var summary = gl12Json.RootElement;
+                    var history = summary.GetProperty("history");
+                    var item = history.GetProperty("items")[0];
+                    Ensure(gl12Http.StatusCode == HttpStatusCode.OK &&
+                        summary.GetProperty("periodId").GetGuid() == gl12Period &&
+                        !summary.GetProperty("isClosed").GetBoolean() &&
+                        summary.GetProperty("version").GetGuid() == gl12Reopened.Version &&
+                        history.GetProperty("totalCount").GetInt32() == 1 &&
+                        item.GetProperty("action").GetString() == "period.reopened" &&
+                        item.GetProperty("actorId").GetString() == "sql-approver" &&
+                        item.GetProperty("details").GetString()!.Contains(
+                            "GL12 HTTPS إعادة فتح", StringComparison.Ordinal),
+                        "GL12 HTTP reopen-only event/result missing or mis-scoped");
+                }
+                using (var gl12Page = await client.GetAsync(gl12Path + "/reopen-history?offset=1&limit=1"))
+                using (var gl12PageJson = JsonDocument.Parse(await gl12Page.Content.ReadAsStringAsync()))
+                    Ensure(gl12Page.StatusCode == HttpStatusCode.OK &&
+                        gl12PageJson.RootElement.GetProperty("history").GetProperty("totalCount").GetInt32() == 1 &&
+                        gl12PageJson.RootElement.GetProperty("history").GetProperty("items").GetArrayLength() == 0,
+                        "GL12 HTTP reopen audit paging duplicated a decision");
+                using (var gl11Denied = await client.GetAsync(gl12Path + "/execution-history"))
+                    Ensure(gl11Denied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL12-only reviewer gained unauthorized PeriodClose audit access");
+                Authenticate(Token("gl12-read-audit-close"));
+                using (var gl12Denied = await client.GetAsync(gl12Path + "/reopen-history"))
+                    Ensure(gl12Denied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL11-only reviewer gained unauthorized PeriodReopen audit access");
+                Authenticate(Token("gl12-not-member"));
+                using (var gl12Outside = await client.GetAsync(gl12Path + "/reopen-history"))
+                    Ensure(gl12Outside.StatusCode == HttpStatusCode.Forbidden,
+                        "GL12 reopening history disclosed to an unrelated JWT");
+                Authenticate(Token("sql-approver"));
+                Console.WriteLine("  HOST PASS GL12-A05 reopen-only outcome/history, independent PeriodReopen rights and paging over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL");
 
                 // SYS05-GAP03: a quotation does not hold its rate; the next journal
