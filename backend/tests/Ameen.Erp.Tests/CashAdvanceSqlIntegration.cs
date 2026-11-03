@@ -73,6 +73,14 @@ public static class CashAdvanceSqlIntegration
         var advanceId = Guid.NewGuid();
         var holderId = Guid.NewGuid(); // HR03 source is not implemented.
         var documentDate = new DateOnly(2026, 11, 3);
+        // For raw SQL bind the financial scale explicitly: the provider's
+        // inferred decimal(18,2) would round these approved source values.
+        var rate = new SqlParameter("@advanceRate", System.Data.SqlDbType.Decimal)
+            { Precision = 20, Scale = 10, Value = 1.1234567890m };
+        var amount = new SqlParameter("@advanceAmount", System.Data.SqlDbType.Decimal)
+            { Precision = 20, Scale = 6, Value = 123.000001m };
+        var settlement = new SqlParameter("@advanceSettlement", System.Data.SqlDbType.Decimal)
+            { Precision = 20, Scale = 6, Value = 1.000001m };
         await db.Database.ExecuteSqlInterpolatedAsync($@"
             INSERT INTO [CashAdvances] ([CompanyId],[Id],[Version],[BranchId],
                [FiscalYearId],[Number],[DocumentDate],[AccountingDate],[CurrencyCode],
@@ -81,8 +89,8 @@ public static class CashAdvanceSqlIntegration
                [CreatedAt],[Revision],[LastModifiedAt])
             VALUES ({companyId},{advanceId},{Guid.NewGuid()},{branchId},
                {yearId},{"000009"},{documentDate},{documentDate},{"SAR"},
-               {1.1234567890m},{"purpose"},{"EXT09"},{"Pending"},{holderId},
-               {"Unapproved"},{123.000001m},{documentDate.AddDays(14)},{"tester"},
+               {rate},{"purpose"},{"EXT09"},{"Pending"},{holderId},
+               {"Unapproved"},{amount},{documentDate.AddDays(14)},{"tester"},
                {now},{1},{now})");
         var saved = await db.Set<CashAdvance>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == advanceId);
@@ -98,7 +106,7 @@ public static class CashAdvanceSqlIntegration
             INSERT INTO [CashAdvanceLines] ([CompanyId],[Id],[Version],
                 [AdvanceId],[ExpenseReferenceId],[SettlementAmount],[AttachmentReference])
             VALUES ({companyId},{lineId},{Guid.NewGuid()},{advanceId},
-                {Guid.NewGuid()},{1.000001m},{"scan-001"})");
+                {Guid.NewGuid()},{settlement},{"scan-001"})");
         var savedLine = await db.Set<CashAdvanceLine>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == lineId);
         Ensure(savedLine.SettlementAmount == 1.000001m &&
