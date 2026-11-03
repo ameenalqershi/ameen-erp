@@ -291,6 +291,42 @@ for n, binding in {
 MAP["CASH02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in
     ["BankAccountFoundationTests.cs", "BankAccountSqlIntegration.cs", "SqlIntegration.cs"])
 
+screen("CASH03", "internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect",
+       "بنية سند قبض و24 حقلًا أصليًا محفوظة في CashReceipts/CashReceiptLines؛ تاريخا الوثيقة والأثر، سعر صرف decimal(20,10)، مبلغ/تخصيص/خصم decimal(20,6)، صيغة صندوق أو بنك شرطية بمفاتيح شركة مركبة؛ ترقية 034 ذرية قابلة للإعادة؛ كل كتابات EF للقبض/السطور محظورة",
+       "SAL11 للذمم والفواتير ومرجع جهة القبض غير موجود فعليًا؛ لا FK مخترع لهما. سياسة طريقة التحصيل والمصدر الشرطي والتفويض والترحيل وحالات الشيك وحجز الرصيد والتزامن SYS07/SYS03/GL06/CASH07 غير معتمدة؛ لا API قبض ولا حساب أثر مالي، والمستند البنيوي لا يسمح بحفظه",
+       {})
+for n, binding in {
+    1:"CashReceipt.Id internal GUID; no public document/number allocation",
+    2:"CashReceipt.CompanyId tenant primary key",
+    3:"CashReceipt.BranchId tenant-scoped FK; operational authorization pending",
+    4:"CashReceipt.FiscalYearId tenant FK; no fiscal period validation",
+    5:"CashReceipt.Number nvarchar(64), preserves leading zeros; SYS10 sequence absent",
+    6:"CashReceipt.DocumentDate SQL date",
+    7:"CashReceipt.AccountingDate SQL date; no period/close enforcement yet",
+    8:"CashReceipt.CurrencyCode tenant-scoped FK",
+    9:"CashReceipt.ExchangeRate decimal(20,10)>0; no dated SYS05 rate lookup",
+    10:"CashReceipt.Description nvarchar(1000)",
+    11:"CashReceipt.ExternalReference nvarchar(100) nullable",
+    12:"CashReceipt.State nonempty text; lifecycle not approved",
+    13:"CashReceipt.PayerId GUID stored only; SAL11 payer FK unavailable",
+    14:"CashReceipt.PaymentMethod nonempty text; approved method enum unavailable",
+    15:"CashReceipt.CashBoxId / BankAccountId nullable tenant FKs; method/target binding unavailable",
+    16:"CashReceipt.Amount decimal(20,6)>0; not posted",
+    17:"CashReceipt.ChequeReference nvarchar(100) nullable; CASH07 link pending",
+    18:"CashReceiptLine.InvoiceId optional GUID stored only; SAL11 invoice FK unavailable",
+    19:"CashReceiptLine.AllocatedAmount decimal(20,6)>=0; balance check not live",
+    20:"CashReceiptLine.SettlementDiscount decimal(20,6)>=0; no applied discount posting",
+    21:"CashReceipt.CreatedBy stored actor text; no operational auditing",
+    22:"CashReceipt.CreatedAt datetimeoffset(7) stored; no operational stamping",
+    23:"CashReceipt.Revision positive int; no edit API",
+    24:"CashReceipt.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API"
+}.items():
+    MAP["CASH03"]["fields"][f"CASH03-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["CASH03"]["test_file"] = "; ".join(
+    "backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["CashReceiptAllocationTests.cs", "CashReceiptFoundationTests.cs",
+     "CashReceiptSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("CASH11", "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",
        "بنية محضر جرد صندوق وسطور فئات/عدد القطع بقيمة Decimal محسوبة في SQL؛ مفتاح صندوق وفرع/قائم بالجرد ضمن الشركة وتدقيق زمني وإصدار؛ ترقية 033 ذرية قابلة للإعادة؛ كل الكتابات عبر EF محجوبة حتى اعتماد مسار الرصيد والتسوية",
        "لا توجد عملية جرد أو مقارنة رصيد دفتر أو محضر عجز/زيادة تشغيلي أو اعتماد تسوية GL03؛ الحالة المسموحة وقواعد تفعيل الجرد وصلاحيات SYS07 تتطلب مسارًا معتمدًا؛ SQL بنيوي فقط، لا HTTP/JWT/OpenAPI عمليات CASH11",
@@ -413,7 +449,7 @@ def generate():
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
         "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
-        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
+        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH03 أساس سند قبض بنيوي فقط مع حظر كتابته؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",

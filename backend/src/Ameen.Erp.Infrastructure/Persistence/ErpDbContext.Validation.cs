@@ -8,6 +8,14 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // CASH03 receipt methods, payer/SAL11 invoices and cheque collection
+        // are not approved yet. No caller may persist a header or line through EF.
+        Check.That(!ChangeTracker.Entries<CashReceipt>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<CashReceiptLine>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cash_receipt_policy_unavailable",
+            "لا يمكن حفظ سند قبض قبل اعتماد التحصيل والفواتير والشيكات والترحيل.", ErrorKind.Conflict);
         // CASH11 is structural-only. No approved count-to-ledger snapshot, adjustment
         // authorization, lifecycle or branch permissions exist yet. Prevent writes
         // through any EF caller, including child-only changes and deletions.

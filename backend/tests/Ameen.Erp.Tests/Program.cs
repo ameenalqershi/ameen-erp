@@ -592,6 +592,7 @@ CashBoxTests.Register(Test);
 BankAccountFoundationTests.Register(Test);
 CashCountFoundationTests.Register(Test);
 CashReceiptAllocationTests.Register(Test);
+CashReceiptFoundationTests.Register(Test);
 FiscalCalendarTests.Register(Test);
 RateAndCloseTests.Register(Test);
 UnitTests.Register(Test);

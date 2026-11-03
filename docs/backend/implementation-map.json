@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 36,
+  "partially_implemented_screens": 37,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 47,
     "derived": 4,
-    "partial": 108,
-    "pending": 2251
+    "partial": 132,
+    "pending": 2227
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2092,6 +2092,110 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/BankAccountFoundationTests.cs; backend/tests/Ameen.Erp.Tests/BankAccountSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "CASH03": {
+      "api": "internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect",
+      "implemented": "بنية سند قبض و24 حقلًا أصليًا محفوظة في CashReceipts/CashReceiptLines؛ تاريخا الوثيقة والأثر، سعر صرف decimal(20,10)، مبلغ/تخصيص/خصم decimal(20,6)، صيغة صندوق أو بنك شرطية بمفاتيح شركة مركبة؛ ترقية 034 ذرية قابلة للإعادة؛ كل كتابات EF للقبض/السطور محظورة",
+      "remaining": "SAL11 للذمم والفواتير ومرجع جهة القبض غير موجود فعليًا؛ لا FK مخترع لهما. سياسة طريقة التحصيل والمصدر الشرطي والتفويض والترحيل وحالات الشيك وحجز الرصيد والتزامن SYS07/SYS03/GL06/CASH07 غير معتمدة؛ لا API قبض ولا حساب أثر مالي، والمستند البنيوي لا يسمح بحفظه",
+      "fields": {
+        "CASH03-F01": {
+          "status": "partial",
+          "binding": "CashReceipt.Id internal GUID; no public document/number allocation"
+        },
+        "CASH03-F02": {
+          "status": "partial",
+          "binding": "CashReceipt.CompanyId tenant primary key"
+        },
+        "CASH03-F03": {
+          "status": "partial",
+          "binding": "CashReceipt.BranchId tenant-scoped FK; operational authorization pending"
+        },
+        "CASH03-F04": {
+          "status": "partial",
+          "binding": "CashReceipt.FiscalYearId tenant FK; no fiscal period validation"
+        },
+        "CASH03-F05": {
+          "status": "partial",
+          "binding": "CashReceipt.Number nvarchar(64), preserves leading zeros; SYS10 sequence absent"
+        },
+        "CASH03-F06": {
+          "status": "partial",
+          "binding": "CashReceipt.DocumentDate SQL date"
+        },
+        "CASH03-F07": {
+          "status": "partial",
+          "binding": "CashReceipt.AccountingDate SQL date; no period/close enforcement yet"
+        },
+        "CASH03-F08": {
+          "status": "partial",
+          "binding": "CashReceipt.CurrencyCode tenant-scoped FK"
+        },
+        "CASH03-F09": {
+          "status": "partial",
+          "binding": "CashReceipt.ExchangeRate decimal(20,10)>0; no dated SYS05 rate lookup"
+        },
+        "CASH03-F10": {
+          "status": "partial",
+          "binding": "CashReceipt.Description nvarchar(1000)"
+        },
+        "CASH03-F11": {
+          "status": "partial",
+          "binding": "CashReceipt.ExternalReference nvarchar(100) nullable"
+        },
+        "CASH03-F12": {
+          "status": "partial",
+          "binding": "CashReceipt.State nonempty text; lifecycle not approved"
+        },
+        "CASH03-F13": {
+          "status": "partial",
+          "binding": "CashReceipt.PayerId GUID stored only; SAL11 payer FK unavailable"
+        },
+        "CASH03-F14": {
+          "status": "partial",
+          "binding": "CashReceipt.PaymentMethod nonempty text; approved method enum unavailable"
+        },
+        "CASH03-F15": {
+          "status": "partial",
+          "binding": "CashReceipt.CashBoxId / BankAccountId nullable tenant FKs; method/target binding unavailable"
+        },
+        "CASH03-F16": {
+          "status": "partial",
+          "binding": "CashReceipt.Amount decimal(20,6)>0; not posted"
+        },
+        "CASH03-F17": {
+          "status": "partial",
+          "binding": "CashReceipt.ChequeReference nvarchar(100) nullable; CASH07 link pending"
+        },
+        "CASH03-F18": {
+          "status": "partial",
+          "binding": "CashReceiptLine.InvoiceId optional GUID stored only; SAL11 invoice FK unavailable"
+        },
+        "CASH03-F19": {
+          "status": "partial",
+          "binding": "CashReceiptLine.AllocatedAmount decimal(20,6)>=0; balance check not live"
+        },
+        "CASH03-F20": {
+          "status": "partial",
+          "binding": "CashReceiptLine.SettlementDiscount decimal(20,6)>=0; no applied discount posting"
+        },
+        "CASH03-F21": {
+          "status": "partial",
+          "binding": "CashReceipt.CreatedBy stored actor text; no operational auditing"
+        },
+        "CASH03-F22": {
+          "status": "partial",
+          "binding": "CashReceipt.CreatedAt datetimeoffset(7) stored; no operational stamping"
+        },
+        "CASH03-F23": {
+          "status": "partial",
+          "binding": "CashReceipt.Revision positive int; no edit API"
+        },
+        "CASH03-F24": {
+          "status": "partial",
+          "binding": "CashReceipt.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/CashReceiptAllocationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "CASH11": {
       "api": "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",
