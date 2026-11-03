@@ -136,6 +136,11 @@ public static class CashReceiptAllocationTests
         });
     }
 
+    private static void Ensure(bool condition, string message)
+    {
+        if (!condition) throw new Exception(message);
+    }
+
     private static void RejectBatch(string expected, CashReceiptAllocationLine[] lines)
     {
         try { CashReceiptAllocation.ValidateBatch(lines); }
