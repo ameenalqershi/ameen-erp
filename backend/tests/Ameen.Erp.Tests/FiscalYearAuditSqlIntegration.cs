@@ -55,6 +55,29 @@ public static class FiscalYearAuditSqlIntegration
                 throw new Exception("SYS03 audit columns accepted partial invalid metadata");
             }
             catch (SqlException ex) when (ex.Number == 547) { }
+            // Existing years must not accept a complete-looking but impossible audit snapshot.
+            // The same constraint protects both the numeric revision and time ordering.
+            async Task RejectAuditSnapshot(FormattableString sql)
+            {
+                try
+                {
+                    await db.Database.ExecuteSqlInterpolatedAsync(sql);
+                    throw new Exception("SYS03 accepted an invalid fiscal-year audit snapshot");
+                }
+                catch (SqlException ex) when (ex.Number == 547) { }
+            }
+            await RejectAuditSnapshot($@"UPDATE dbo.FiscalYears SET
+                [CreatedBy]=N'actor',[CreatedAt]='2039-01-03T00:00:00+00:00',
+                [LastModifiedAt]='2039-01-03T00:00:00+00:00',[Revision]=0
+                WHERE [CompanyId]={companyId} AND [Id]={legacyId}");
+            await RejectAuditSnapshot($@"UPDATE dbo.FiscalYears SET
+                [CreatedBy]=N'actor',[CreatedAt]='2039-01-03T00:00:00+00:00',
+                [LastModifiedAt]='2039-01-02T23:59:59+00:00',[Revision]=1
+                WHERE [CompanyId]={companyId} AND [Id]={legacyId}");
+            var unchanged = await db.Set<FiscalYear>().AsNoTracking().SingleAsync(x => x.Id == legacyId);
+            Ensure(unchanged.CreatedBy is null && unchanged.Revision is null &&
+                unchanged.CreatedAt is null && unchanged.LastModifiedAt is null,
+                "SYS03 rejected audit mutation nonetheless changed legacy provenance");
             await tx.RollbackAsync();
         }
         Ensure(!await db.Set<FiscalYear>().AnyAsync(x => x.Id == legacyId) &&
