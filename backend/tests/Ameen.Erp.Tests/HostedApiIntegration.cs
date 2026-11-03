@@ -9,6 +9,8 @@ using System.Text.Json;
 using Ameen.Erp.Api;
 using Ameen.Erp.Application;
 using Ameen.Erp.Domain;
+using Ameen.Erp.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -877,6 +879,43 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(ratesPath + $"/{rate.ResourceId}/usage"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "SQL/HTTP rate usage should count journal once");
+
+                // SYS05-OP03: usage and history are read-only and must not leak through JWT role/tenant boundaries.
+                var readCountsBefore = await ReadOnlyCounts(connection, companyId);
+                var rateUsagePath = ratesPath + $"/{rate.ResourceId}/usage";
+                var rateAuditPath = ratesPath + $"/{rate.ResourceId}/audit-events";
+                Ensure(specJson.Contains("/api/v1/companies/{companyId}/exchange-rates/{id}/usage", StringComparison.Ordinal) &&
+                    specJson.Contains("/api/v1/companies/{companyId}/exchange-rates/{id}/audit-events", StringComparison.Ordinal),
+                    "SYS05-OP03 usage/audit OpenAPI routes missing");
+                using (var page = await client.GetAsync(rateUsagePath + "?offset=1&limit=1"))
+                using (var json = JsonDocument.Parse(await page.Content.ReadAsStringAsync()))
+                    Ensure(page.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 0,
+                        "SYS05-OP03 SQL-backed usage paging is unstable");
+                using (var deniedAudit = await client.GetAsync(rateAuditPath))
+                    Ensure(deniedAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP03 read-only clerk accessed protected rate audit");
+                Authenticate(Token("audit-no-membership"));
+                using (var deniedUsage = await client.GetAsync(rateUsagePath))
+                    Ensure(deniedUsage.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP03 non-member accessed rate usage");
+                using (var deniedAudit = await client.GetAsync(rateAuditPath))
+                    Ensure(deniedAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP03 non-member accessed rate audit");
+                Authenticate(Token("sql-owner"));
+                using (var audit = await client.GetAsync(rateAuditPath))
+                using (var json = JsonDocument.Parse(await audit.Content.ReadAsStringAsync()))
+                    Ensure(audit.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items")[0].GetProperty("action").GetString() == "exchange-rate.created",
+                        "SYS05-OP03 owner audit history missing persisted create event");
+                using (var missingUsage = await client.GetAsync(ratesPath + $"/{Guid.NewGuid()}/usage"))
+                    Ensure(missingUsage.StatusCode == HttpStatusCode.NotFound,
+                        "SYS05-OP03 non-existent rate usage exposed");
+                Ensure(readCountsBefore == await ReadOnlyCounts(connection, companyId),
+                    "SYS05-OP03 read-only usage/audit changed journal, audit, receipt or outbox SQL");
+                Console.WriteLine("  HOST PASS SYS05-OP03 usage/audit paging, role/tenant rejection, SQL nonmutation and OpenAPI");
                 Authenticate(Token("sql-approver"));
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/periods/{periodId}/close-preview?limit=1"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
@@ -2038,5 +2077,15 @@ public static class HostedApiIntegration
         Ensure(result.StatusCode == HttpStatusCode.OK, "Production HTTP command failed: " + json);
         return JsonSerializer.Deserialize<CommandReceipt>(json, JsonDefaults.Options)!;
     }
+    private static async Task<(int Journals, int Audits, int Receipts, int Outbox)> ReadOnlyCounts(string connection, Guid cid)
+    {
+        await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options);
+        return (
+            await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid),
+            await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid),
+            await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid),
+            await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid));
+    }
+
     private static void Ensure(bool condition, string message) { if (!condition) throw new Exception(message); }
 }
