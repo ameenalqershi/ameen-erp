@@ -39,6 +39,9 @@ public static class SqlIntegration
                 await BankAccountSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
+            // CASH02 structural acceptance does not activate banking API/EF writes.
+            await using (var bankGuardDb = f.Context())
+                await BankAccountSqlIntegration.Guard(bankGuardDb, f.CompanyId, f.CashId, f.BranchId);
             // CASH01 acceptance: SQL persistence, tenant FK, atomic command replay and account guard.
             Guid cashCustodian;
             await using (var db = f.Context())
