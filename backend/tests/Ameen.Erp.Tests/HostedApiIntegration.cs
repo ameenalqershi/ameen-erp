@@ -2687,10 +2687,10 @@ public static class HostedApiIntegration
                         new RunDueRecurringRequest(Fixture.Date, 10), JsonDefaults.Options),
                         Encoding.UTF8, "application/json");
                     using var response = await client.SendAsync(due);
-                    using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    using var workerDueJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
                     Ensure(response.StatusCode == HttpStatusCode.OK &&
-                        body.RootElement.GetProperty("selectedCount").GetInt32() == 0 &&
-                        body.RootElement.GetProperty("generatedCount").GetInt32() == 0,
+                        workerDueJson.RootElement.GetProperty("selectedCount").GetInt32() == 0 &&
+                        workerDueJson.RootElement.GetProperty("generatedCount").GetInt32() == 0,
                         "GL04-01 restricted actor's re-scan duplicated a scheduler-created journal");
                 }
                 Authenticate(Token("sql-clerk"));
