@@ -142,6 +142,14 @@ public static class SqlIntegration
             await f.Call(s => s.Company.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default));
             var otherAccount = await f.Call(s => s.Account.CreateAccount(other, f.Owner, Fixture.Key(),
                 new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default));
+            // SYS01-OP01: database-backed listing must not disclose a freshly
+            // provisioned company to users without membership in it.
+            var ownerCompanies = await f.Call(s => s.Company.ListCompanies(f.Owner, default));
+            var clerkCompanies = await f.Call(s => s.Company.ListCompanies(f.Clerk, default));
+            Ensure(ownerCompanies.Any(x => x.Id == other) &&
+                clerkCompanies.Any(x => x.Id == f.CompanyId) && clerkCompanies.All(x => x.Id != other),
+                "SYS01-OP01 SQL company list crossed tenant membership boundaries");
+            Console.WriteLine("  SQL PASS SYS01-OP01 company provisioning and membership-scoped listing");
             // SYS01-AC01: creating a legal entity bootstraps its own functional
             // currency/membership and an independent, tenant-scoped ledger. Both
             // entities may reuse account code 1 without sharing any postings.

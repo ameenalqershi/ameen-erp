@@ -997,6 +997,30 @@ public static class HostedApiIntegration
                 Authenticate(Token("runtime-admin", "erp.platform-admin"));
                 var companyReceipt = await Command(client, "/api/v1/companies", company);
                 var companyPath = $"/api/v1/companies/{company.Id}";
+                // SYS01-OP01: search is scoped to visible companies, never
+                // to all tenants. Positive code/Arabic queries and negative scope.
+                using (var byCode = await client.GetAsync("/api/v1/companies?search=HTTPTEST"))
+                using (var json = JsonDocument.Parse(await byCode.Content.ReadAsStringAsync()))
+                    Ensure(byCode.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.EnumerateArray().Any(x => x.GetProperty("id").GetGuid() == company.Id),
+                        "SYS01-OP01 authorized company code search omitted its tenant");
+                using (var byArabic = await client.GetAsync("/api/v1/companies?search=" + Uri.EscapeDataString("شركة HTTP")))
+                using (var json = JsonDocument.Parse(await byArabic.Content.ReadAsStringAsync()))
+                    Ensure(byArabic.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.EnumerateArray().Any(x => x.GetProperty("id").GetGuid() == company.Id),
+                        "SYS01-OP01 Arabic company search omitted its tenant");
+                using (var absent = await client.GetAsync("/api/v1/companies?search=NOT-PRESENT-COMPANY"))
+                using (var json = JsonDocument.Parse(await absent.Content.ReadAsStringAsync()))
+                    Ensure(absent.StatusCode == HttpStatusCode.OK && json.RootElement.GetArrayLength() == 0,
+                        "SYS01-OP01 unknown search leaked companies");
+                Authenticate(Token("sql-clerk"));
+                using (var deniedSearch = await client.GetAsync("/api/v1/companies?search=HTTPTEST"))
+                using (var json = JsonDocument.Parse(await deniedSearch.Content.ReadAsStringAsync()))
+                    Ensure(deniedSearch.StatusCode == HttpStatusCode.OK && json.RootElement.GetArrayLength() == 0,
+                        "SYS01-OP01 another tenant's company is visible to a non-member");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS01-OP01 authorized creation, code/Arabic search, empty match and tenant isolation over HTTPS/JWT/SQL");
+
                 var companyProfile = company.Profile with { CommercialRegistration = "00042", City = "مدينة معدلة", PostalCode = "00123",
                     EnglishName = "HTTP legal name", Notes = "ملاحظة HTTP", Street = "شارع HTTP",
                     BuildingNumber = "0007", AdditionalNumber = "0009",

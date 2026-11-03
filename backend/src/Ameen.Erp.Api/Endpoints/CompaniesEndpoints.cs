@@ -9,8 +9,15 @@ internal static class CompaniesEndpoints
     public static void Map(WebApplication app)
     {
         const string p = EndpointRoutes.Company;
-        app.MapGet("/api/v1/companies", async (CompanyService s, HttpContext h, CancellationToken ct) =>
-            Results.Ok(await s.ListCompanies(Actor(h), ct))).Produces<IReadOnlyList<Company>>().RequireAuthorization().WithTags("SYS01 Companies");
+        app.MapGet("/api/v1/companies", async (string? search, CompanyService s, HttpContext h, CancellationToken ct) =>
+        {
+            // Always scope by membership before applying the optional search filter.
+            var visible = await s.ListCompanies(Actor(h), ct);
+            var term = search?.Trim();
+            return Results.Ok(string.IsNullOrEmpty(term) ? visible : visible.Where(c =>
+                c.Code.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                c.Name.Contains(term, StringComparison.OrdinalIgnoreCase)).ToArray());
+        }).Produces<IReadOnlyList<Company>>().RequireAuthorization().WithTags("SYS01 Companies");
         app.MapPost("/api/v1/companies", async (CreateCompanyRequest r, CompanyService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.CreateCompany(Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("SYS01 Companies");
         app.MapGet(p, async (Guid companyId, CompanyService s, HttpContext h, CancellationToken ct) =>
