@@ -36,6 +36,22 @@ public static class FiscalCalendarTests
                 f.Store.Count<AuditEvent>() == auditsBefore &&
                 !f.Store.All<IdempotencyRecord>().Any(x => rejectedKeys.Contains(x.Key)));
         });
+        test("SYS03: calendar creation idempotency rejects changed payload without extra periods or audit", async f =>
+        {
+            var key = Fixture.Key();
+            var original = Request();
+            var first = await f.Service.FiscalCalendar.CreateFiscalYear(f.CompanyId, f.Owner, key, original, default);
+            Ensure(await f.Service.FiscalCalendar.CreateFiscalYear(f.CompanyId, f.Owner, key, original, default) == first);
+            var years = f.Store.Count<FiscalYear>();
+            var periods = f.Store.Count<FiscalPeriod>();
+            var audits = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            await Error("idempotency_conflict", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId, f.Owner, key, original with { Code = "2027-CHANGED" }, default));
+            Ensure(f.Store.Count<FiscalYear>() == years && f.Store.Count<FiscalPeriod>() == periods &&
+                f.Store.Count<AuditEvent>() == audits && f.Store.Count<IdempotencyRecord>() == receipts);
+            Ensure((await f.Service.FiscalCalendar.GetFiscalCalendar(f.CompanyId, first.ResourceId, f.Owner, default)).Periods.Count == 2);
+        });
         test("SYS03: custom coverage rejects gaps overlaps outside bounds and missing ends atomically", async f =>
         {
             var original = Request();
