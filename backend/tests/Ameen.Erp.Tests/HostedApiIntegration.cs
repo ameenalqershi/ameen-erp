@@ -245,10 +245,15 @@ public static class HostedApiIntegration
                         j.RootElement.GetProperty("items")[0].GetProperty("action").GetString() ==
                             "journal.processing-succeeded",
                         "GL05 HTTP review decision not retrievable with auditor permission");
-                Authenticate(Token("sql-clerk"));
+                // SQL fixture grants Permissions.All to sql-clerk, including Audit.
+                // Use an explicit read-only member to test the intended audit boundary.
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl05-review-readonly",
+                        new[] { Permissions.Read }, true, Array.Empty<Guid>(), null));
+                Authenticate(Token("gl05-review-readonly"));
                 using (var gl05HistoryDenied = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}/processing-history"))
                     Ensure(gl05HistoryDenied.StatusCode == HttpStatusCode.Forbidden,
-                        "GL05 HTTP creator retrieved privileged review audit history");
+                        "GL05 HTTP read-only member retrieved privileged review audit history");
                 Authenticate(Token("sql-approver"));
                 Console.WriteLine("  HOST PASS GL05-A05 scoped review outcome/history with paging and JWT audit permission");
                 // Finish the additional approved journal so it cannot interfere with later close checks.

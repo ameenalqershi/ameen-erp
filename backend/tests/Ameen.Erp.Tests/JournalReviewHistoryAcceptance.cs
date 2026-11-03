@@ -91,6 +91,12 @@ public static class JournalReviewHistoryAcceptance
             rejected.Rows.Single().ErrorCode == "version_conflict",
             "GL05 SQL rejected second approval did not create a decision");
 
+        // SQL test fixtures give the clerk Permissions.All. Create an explicit
+        // member with Read but not Audit to exercise the real authorization gate.
+        var readOnly = new Actor("gl05-sql-readonly");
+        await Call(s => s.Membership.GrantMembership(cid, owner, Fixture.Key(),
+            new(readOnly.Subject, new[] { Permissions.Read }, true, Array.Empty<Guid>(), null),
+            default));
         int audits, receipts, outbox;
         long seq;
         await using (var db = Db())
@@ -114,7 +120,7 @@ public static class JournalReviewHistoryAcceptance
             p1.Items[0].Id != p2.Items[0].Id,
             "GL05 SQL decision history not queryable/paginated");
         await Reject("permission_denied", () => Call(s =>
-            s.Journal.ProcessingHistory(cid, created.ResourceId, clerk, 0, 10, default)));
+            s.Journal.ProcessingHistory(cid, created.ResourceId, readOnly, 0, 10, default)));
         await using (var db = Db())
         {
             Ensure(await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == audits &&
