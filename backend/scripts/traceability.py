@@ -271,6 +271,30 @@ screen("CASH01", "GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|
 MAP["CASH01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CashBoxTests.cs", "CashBoxSqlIntegration.cs", "SqlIntegration.cs", "OpenApiSnapshotTests.cs"])
 
+screen("SYS16", "internal EF/SQL schema 033 only; public SYS16 payment API not enabled",
+       "بنية أصلية لبطاقات طرق الدفع وخطط الأقساط: الشركة والفرع والرمز والاسم والوسيلة والحساب الاختياري وأيام السماح والنسب والاستحقاق والتدقيق؛ هجرة ذرية idempotent ومراجع SQL مركبة بالشركة؛ مجموع نسب خطة معطاة يساوي 100 في Domain، ورفض EF لأي كتابة غير معتمدة",
+       "كتابة وقراءة SYS16 عبر API والبحث والتعديل والتعطيل والاستخدام وسجل التدقيق؛ اعتماد قائمة أنواع الوسائل التفصيلية وشروط إلزام الحساب، صلاحيات الفرع والحساب، ربط SAL06/PUR07/POS03 ومنع ترحيل البطاقة نقدًا؛ لا تعتبر البيانات schema-only وسيلة دفع تشغيلية",
+       {})
+for n, binding in {
+    1: "PaymentTerm.CompanyId: tenant FK, schema only",
+    2: "PaymentTerm.BranchId: nullable composite tenant FK, schema only",
+    3: "PaymentTerm.IsActive: status column, writes blocked",
+    4: "PaymentTerm.Code: nvarchar(32), unique within company",
+    5: "PaymentTerm.Name: Unicode nvarchar(200)",
+    6: "PaymentTerm.Kind: Cash/Card/Credit source-named initial means, no approved UI catalog",
+    7: "PaymentTerm.SettlementAccountId: nullable tenant FK, conditional rules pending",
+    8: "PaymentTerm.GraceDays: nonnegative int",
+    9: "PaymentTermLine.Percent: decimal(9,6); domain sum exactly 100 if present; EF writes blocked",
+    10: "PaymentTermLine.DaysFromBase: nonnegative int",
+    11: "PaymentTerm.CreatedBy: internal server-owned actor, no API yet",
+    12: "PaymentTerm.CreatedAt: internal datetimeoffset, no API yet",
+    13: "PaymentTerm.Revision: positive int, no API yet",
+    14: "PaymentTerm.LastModifiedAt: internal datetimeoffset, no API yet"
+}.items():
+    MAP["SYS16"]["fields"][f"SYS16-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["SYS16"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in
+    ["PaymentTermFoundationTests.cs", "PaymentTermSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("CASH02", "internal EF/SQL schema 032 only; no CASH02 public API",
        "بنية بطاقة بنك تحمل حقول CASH02-F01..F17، ومفاتيح مركبة للشركة والحساب والفرع والعملة وIBAN اختياري؛ منع تعديل البيانات البنكية قبل اعتماد الصلاحيات ومراجعة تغيير المستفيدين؛ ترقية ذرية قابلة للإعادة",
        "لا يمكن إنشاء/تحرير حساب بنكي عبر API حتى اعتماد التحقق الشرطي لوجوب IBAN وبيانات المستفيدين ومسار المراجعة؛ لا دفتر تسوية أو CASH07/CASH10 أو استعمال تشغيلي للبطاقة؛ الحقول بنية مخزنة فقط",

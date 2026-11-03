@@ -1825,6 +1825,29 @@ public static class HostedApiIntegration
                 Authenticate(Token("runtime-admin", "erp.platform-admin"));
                 var companyReceipt = await Command(client, "/api/v1/companies", company);
                 var companyPath = $"/api/v1/companies/{company.Id}";
+                // SYS01-FG01: production HTTPS/JWT returns server identity and
+                // Arabic name, and an already assigned company code is rejected.
+                using(var detailsResponse=await client.GetAsync(companyPath))
+                using(var detailsJson=JsonDocument.Parse(await detailsResponse.Content.ReadAsStringAsync()))
+                {
+                    var c=detailsJson.RootElement;
+                    Ensure(detailsResponse.StatusCode==HttpStatusCode.OK &&
+                        c.GetProperty("id").GetGuid()==company.Id &&
+                        c.GetProperty("code").GetString()=="HTTPTEST" &&
+                        c.GetProperty("name").GetString()=="شركة HTTP",
+                        "SYS01-FG01 HTTPS identity/code/Arabic name mismatch");
+                }
+                using(var duplicateRequest=new HttpRequestMessage(HttpMethod.Post,"/api/v1/companies"))
+                {
+                    duplicateRequest.Headers.Add("Idempotency-Key",Fixture.Key());
+                    duplicateRequest.Content=new StringContent(JsonSerializer.Serialize(
+                        company with { Id=Guid.NewGuid() },JsonDefaults.Options),Encoding.UTF8,"application/json");
+                    using var duplicate=await client.SendAsync(duplicateRequest);
+                    Ensure(duplicate.StatusCode==HttpStatusCode.Conflict &&
+                        (await duplicate.Content.ReadAsStringAsync()).Contains("company_exists",StringComparison.Ordinal),
+                        "SYS01-FG01 HTTPS accepted a duplicate company code");
+                }
+                Console.WriteLine("  HOST PASS SYS01-FG01 identity/code/Arabic and duplicate rejection over HTTPS/JWT/SQL");
                 // SYS01-OP01: search is scoped to visible companies, never
                 // to all tenants. Positive code/Arabic queries and negative scope.
                 using (var byCode = await client.GetAsync("/api/v1/companies?search=HTTPTEST"))

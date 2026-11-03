@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 40,
+  "partially_implemented_screens": 41,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 47,
     "derived": 4,
-    "partial": 189,
-    "pending": 2170
+    "partial": 203,
+    "pending": 2156
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2016,6 +2016,70 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CashBoxTests.cs; backend/tests/Ameen.Erp.Tests/CashBoxSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
+    },
+    "SYS16": {
+      "api": "internal EF/SQL schema 033 only; public SYS16 payment API not enabled",
+      "implemented": "بنية أصلية لبطاقات طرق الدفع وخطط الأقساط: الشركة والفرع والرمز والاسم والوسيلة والحساب الاختياري وأيام السماح والنسب والاستحقاق والتدقيق؛ هجرة ذرية idempotent ومراجع SQL مركبة بالشركة؛ مجموع نسب خطة معطاة يساوي 100 في Domain، ورفض EF لأي كتابة غير معتمدة",
+      "remaining": "كتابة وقراءة SYS16 عبر API والبحث والتعديل والتعطيل والاستخدام وسجل التدقيق؛ اعتماد قائمة أنواع الوسائل التفصيلية وشروط إلزام الحساب، صلاحيات الفرع والحساب، ربط SAL06/PUR07/POS03 ومنع ترحيل البطاقة نقدًا؛ لا تعتبر البيانات schema-only وسيلة دفع تشغيلية",
+      "fields": {
+        "SYS16-F01": {
+          "status": "partial",
+          "binding": "PaymentTerm.CompanyId: tenant FK, schema only"
+        },
+        "SYS16-F02": {
+          "status": "partial",
+          "binding": "PaymentTerm.BranchId: nullable composite tenant FK, schema only"
+        },
+        "SYS16-F03": {
+          "status": "partial",
+          "binding": "PaymentTerm.IsActive: status column, writes blocked"
+        },
+        "SYS16-F04": {
+          "status": "partial",
+          "binding": "PaymentTerm.Code: nvarchar(32), unique within company"
+        },
+        "SYS16-F05": {
+          "status": "partial",
+          "binding": "PaymentTerm.Name: Unicode nvarchar(200)"
+        },
+        "SYS16-F06": {
+          "status": "partial",
+          "binding": "PaymentTerm.Kind: Cash/Card/Credit source-named initial means, no approved UI catalog"
+        },
+        "SYS16-F07": {
+          "status": "partial",
+          "binding": "PaymentTerm.SettlementAccountId: nullable tenant FK, conditional rules pending"
+        },
+        "SYS16-F08": {
+          "status": "partial",
+          "binding": "PaymentTerm.GraceDays: nonnegative int"
+        },
+        "SYS16-F09": {
+          "status": "partial",
+          "binding": "PaymentTermLine.Percent: decimal(9,6); domain sum exactly 100 if present; EF writes blocked"
+        },
+        "SYS16-F10": {
+          "status": "partial",
+          "binding": "PaymentTermLine.DaysFromBase: nonnegative int"
+        },
+        "SYS16-F11": {
+          "status": "partial",
+          "binding": "PaymentTerm.CreatedBy: internal server-owned actor, no API yet"
+        },
+        "SYS16-F12": {
+          "status": "partial",
+          "binding": "PaymentTerm.CreatedAt: internal datetimeoffset, no API yet"
+        },
+        "SYS16-F13": {
+          "status": "partial",
+          "binding": "PaymentTerm.Revision: positive int, no API yet"
+        },
+        "SYS16-F14": {
+          "status": "partial",
+          "binding": "PaymentTerm.LastModifiedAt: internal datetimeoffset, no API yet"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/PaymentTermFoundationTests.cs; backend/tests/Ameen.Erp.Tests/PaymentTermSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "CASH02": {
       "api": "internal EF/SQL schema 032 only; no CASH02 public API",

@@ -29,6 +29,16 @@ public static class CompanySqlIntegration
             company.TaxRegistration == "000456" && company.District == "حي SQL" &&
             company.FiscalYearStartsOn == new DateOnly(2026, 1, 1) && company.IsProfileComplete, "SYS01-FG01/FG02 company profile SQL differs");
         Ensure((await Call(s => s.Company.ListCompanyAudit(cid, owner, 0, 20, default))).Items.Count(x => x.Action == "company.edited") == 1, "Company replay duplicated audit");
+        // SYS01-FG01: the authoritative SQL identity and Unicode name must
+        // agree with the tenant-scoped public record, including after concurrent replay.
+        await using(var identityDb=Context())
+        {
+            var actual=await identityDb.Set<Company>().AsNoTracking().SingleAsync(x=>x.Id==cid);
+            Ensure(actual.Id==cid && actual.Code=="SQLTEST" && actual.Name=="اختبار SQL" &&
+                await identityDb.Set<Company>().CountAsync(x=>x.Code=="SQLTEST")==1,
+                "SYS01-FG01 SQL company key/code/Arabic name does not roundtrip");
+        }
+        Console.WriteLine("  SQL PASS SYS01-FG01 company key, unique code, Unicode Arabic name and replay");
         Console.WriteLine("  SQL PASS SYS01-FG05 street and zero-prefixed address identifiers persisted after replay");
         Console.WriteLine("  SQL PASS SYS01-FG04 city, district, fiscal-year start and tax code with leading zeros");
         // SYS01-FG06: audit fields are server-generated events, not editable
