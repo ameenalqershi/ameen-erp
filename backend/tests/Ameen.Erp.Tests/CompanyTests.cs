@@ -45,8 +45,7 @@ public static class CompanyTests
                 rejected.CurrencyScale == c.CurrencyScale &&
                 rejected.Revision == c.Revision &&
                 rejected.Version == c.Version &&
-                f.Store.Count<AuditEvent>() == auditBefore,
-                "SYS01-AC02 rejected currency conversion mutated profile, version or audit");
+                f.Store.Count<AuditEvent>() == auditBefore);
             Ensure((await f.Service.Company.GetCompanyUsage(f.CompanyId, f.Owner, default)).CanChangeFunctionalCurrency == false);
         });
         test("SYS01: exchange-rate history blocks base-currency change before any journal", async f =>
