@@ -234,6 +234,28 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(path + $"/{receipt.ResourceId}/processing-history"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP processing history duplicated");
+                // GL05-A05: historical decisions are visible to authorized auditors,
+                // paginated over production HTTPS/JWT/SQL, and hidden from the author.
+                Authenticate(Token("sql-owner"));
+                using (var h = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}/processing-history?offset=0&limit=1"))
+                using (var j = JsonDocument.Parse(await h.Content.ReadAsStringAsync()))
+                    Ensure(h.StatusCode == HttpStatusCode.OK &&
+                        j.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        j.RootElement.GetProperty("items").GetArrayLength() == 1 &&
+                        j.RootElement.GetProperty("items")[0].GetProperty("action").GetString() ==
+                            "journal.processing-succeeded",
+                        "GL05 HTTP review decision not retrievable with auditor permission");
+                // SQL fixture grants Permissions.All to sql-clerk, including Audit.
+                // Use an explicit read-only member to test the intended audit boundary.
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl05-review-readonly",
+                        new[] { Permissions.Read }, true, Array.Empty<Guid>(), null));
+                Authenticate(Token("gl05-review-readonly"));
+                using (var gl05HistoryDenied = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}/processing-history"))
+                    Ensure(gl05HistoryDenied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL05 HTTP read-only member retrieved privileged review audit history");
+                Authenticate(Token("sql-approver"));
+                Console.WriteLine("  HOST PASS GL05-A05 scoped review outcome/history with paging and JWT audit permission");
                 // Finish the additional approved journal so it cannot interfere with later close checks.
                 using (var response = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
@@ -1213,6 +1235,20 @@ public static class HostedApiIntegration
                             line.GetProperty("costCenterId").GetGuid() == sysDefaultCenter.ResourceId),
                         "SYS02-GAP02 explicit journal cost center did not persist through SQL");
                 Console.WriteLine("  HOST PASS SYS02-GAP02 branch default metadata does not inject journal cost center; required and explicit cases over HTTPS/JWT/SQL");
+
+                // GL03-F10/F11/F12: keep the independent journal-header regression at the end
+                // so it cannot affect accounting totals asserted by the other host scenarios.
+                Authenticate(Token("sql-clerk"));
+                await JournalHeaderFieldsHttpIntegration.Run(client, path, journalRequest);
+
+                // GL03-T02: only the authorized subsidiary source may post to control accounts.
+                Authenticate(Token("sql-owner"));
+                var gl03Control = await Command(client, $"/api/v1/companies/{companyId}/accounts",
+                    new CreateAccountRequest("GL03-HOST-CONTROL", "رقابة GL03", AccountType.Asset,
+                        null, true, true, false, null, NormalBalance.Debit));
+                Authenticate(Token("sql-clerk"));
+                await JournalLineGuardHttpIntegration.Run(client, path, journalRequest,
+                    gl03Control.ResourceId);
 
 
 

@@ -1,5 +1,26 @@
 # سجل تقدم وتسليم الباك إند
 
+## GL05-A05 — نتيجة مراجعة القيد وسجل التنفيذ المُدقَّق (3 نوفمبر 2026)
+
+استُكمل اختبار قبول مستقل للشاشة GL05 وفق الأفعال الأصلية «عرض النتيجة + سجل التنفيذ» دون إضافة حالات موافقة مالية غير منصوص عليها: `JournalReviewHistoryAcceptance.cs` يثبت أن عملية اعتماد سارية تعيد نجاحًا وإيصالًا واحدًا، وأن إعادة الطلب بالمفتاح نفسه لا تكرر القرار، وأن محاولة اعتماد ثانية بإصدار قديم تحفظ **رفضًا صريحًا** ولا تدّعي اعتمادًا ثانيًا. يثبت `ProcessingHistory` إرجاع الحدثين `journal.processing-succeeded` و`journal.processing-rejected` دون تكرار، مع ترقيم صفحات آمن، ومنع منشئ القيد من قراءة السجل دون `Audit`، وعدم تأثير القراءة في القيد أو أرقام الوثائق أو Outbox أو التدقيق أو سجل الطلبات.
+
+اختبار `RunSql` يعيد الحالات داخل قاعدة SQL اختبارية مؤقتة ومن اتصالات EF مستقلة ويتحقق من ذرية قراءة السجل وصلاحيات المستخدم، كما أضيف قبول HTTPS/JWT للنتيجة وسجل التنفيذ ولمنع وصول المنشئ غير المخوّل. فحوص `.NET 10` المحلية **379/379 PASS، صفر فشل** دون SQL حي؛ يشترط نجاح CI على SHA الجديد لإغلاق المهمة نهائيًا. **تصحيح اختبار SQL/HTTPS:** أول CI كشف أن هوية `sql-clerk` التجريبية ممنوحة `Permissions.All` بما فيها `Audit`، فكان توقّع HTTP 403 منها غير صحيح؛ أُصلحت حالة الاختبار لتُنشئ مستخدمًا مستقلًا لديه `Permissions.Read` فقط، على HTTPS وقاعدة SQL، دون أي تعديل لسياسات التفويض في الإنتاج. يحتاج التصحيح إعادة CI على الرأس الجديد. لا تغيير في منطق الإنتاج أو مخططات الأصل `muhaseb-erp-analysis`، ولا تمثيل لهذا الاختبار كاكتمال GL05 أو سياستها غير المحسومة للمراجع المستقل وحالة المراجعة متعددة المراحل.
+
+
+## GL03-T02 — ذرية رفض السطر غير القانوني والحساب الرقابي اليدوي (3 نوفمبر 2026)
+
+**بوابة قبول مستقلة وفق ضابط GL03 الأصلي**: «طرف واحد موجب في كل سطر؛ لا ترحيل مباشر للرقابة إلا مسار مسموح». أُضيفت اختبارات مجال `JournalLineGuardAcceptance.cs` للتأكد من رفض سطر عليه مدين ودائن موجبان معًا، أو صفر/صفر، أو مبلغ سالب، ورفض أي محاولة لإدخال حساب رقابي في قيد يدوي عبر `control_account_protected`. التحقق يثبت عدم إنشاء قيد أو رقم أو تدقيق أو إيصال Idempotency أو Outbox من الطلبات المرفوضة، وأن قيدًا يدويًا متزنًا ينجح بعدها. يشمل `RunSql` نفس الحراس ضد SQL Server معزول ضمن `SqlIntegration.Run`، واختبار `JournalLineGuardHttpIntegration.cs` الرفض بصلاحية مستخدم مُخوَّل في الإنتاجية HTTPS/JWT/SQL ونجاح الإدخال الموجب.
+
+**الاستثناء المسموح ليس تجاوزًا من الواجهة**: مصدر افتتاح المخزون `InventoryOpeningService.Posting` يرحل حسابه الرقابي من مستند المصدر مع أثر مخزون مرتبط؛ اختبارات INV06 SQL/HTTP مثبتة مسبقًا. لا نغيّر سياسة سماح الحسابات الرقابية ولا أصل `muhaseb-erp-analysis`، ولا نمسّ نظام SYS أو عمليات الإنتاج. نتيجة المحلي دون SQL حي **378/378 PASS** على .NET 10، وبقية دليل SQL/HTTPS وختم CI على رأس `gl` مطلوب قبل إغلاق GL03-T02.
+
+
+## GL03-FG03 — تحقق حقل البيان والمرجع الخارجي والحالة (3 نوفمبر 2026)
+
+على فرع `gl` المحدث من `main=23f47d3d6b0ef728f8064ef933e14ff6cd0dcca0`، أضيف قبول مستقل للحقول `GL03-F10` و`GL03-F11` و`GL03-F12` دون تغيير قواعد المالية: اختبار مجال إيجابي/سلبي للبيان العربي Unicode والمرجع الخارجي الذي يحفظ الأصفار البادئة، والبحث ضمن الشركة/الفرع/المصدر والحالة النظامية `Draft/Submitted`، والتعديل مع إعادة نفس مفتاح الطلب ورفع Revision مرة واحدة فقط. اختبارات الرفض تتحقق من الحقل الفارغ ومحارف التحكم وطول المرجع الأكبر من 100 ومن **ذرية عدم إنشاء قيد أو تدقيق أو سجل طلب أو استهلاك رقم**. أُضيف اختبار SQL مستقل `JournalHeaderFieldsSqlIntegration.cs` على قاعدة مؤقتة، واختبار HTTPS/JWT/SQL على API الإنتاجية داخل `JournalHeaderFieldsHttpIntegration.cs` مع منع العميل من إرسال حالة مزوّرة.
+
+فحوص المجال/النموذج/HTTP/OpenAPI المحلية على .NET 10: **377/377 PASS، صفر فشل**. اختبار SQL الحقيقي وHTTPS/JWT/SQL يحتاج اجتياز GitHub CI على SHA الجديد. **GL03-F09 ما زال جزئيًا:** قاموس الأصل يطلب سعر صرف في header بينما النموذج المالي الحالي يعرّف العملة والسعر على السطور؛ لا يُنشأ سعر رأس مصطنع ولا يُعدّ GL03-FG03 مكتملًا قبل اعتماد توافق عقد الرأس مع قيود متعددة العملات. لا تعديل في التحليل أو المخططات الأصلية أو SQL migrations أو سلوك الترحيل.
+
+
 ## SYS04-CTRL01 — verified currency precision and functional currency guard (3 November 2026)
 
 The source control `SYS04-CTRL01` forbids retroactive precision changes and locates functional currency configuration in SYS01 company. Current `CurrencyService` enforces forbidden functional-currency disable and scale edits, and rejects precision changes once cards are referenced by accounts, FX rates, journals or recurring templates. Domain and service tests cover these references, active status, audit, rollback, idempotency and permission; the added production HTTPS/JWT/SQL negative acceptance `SYS04-AC02` demonstrates an in-use CAD account prevents a scale 2→3 edit without changing revision, version or audit. This rule was already implemented and is now accepted under the same successful **375/375 branch and PR CI** linked in the SYS04-AC02 evidence above. No new financial policy or original-analysis edits; broader SYS04 migration decisions remain open.
