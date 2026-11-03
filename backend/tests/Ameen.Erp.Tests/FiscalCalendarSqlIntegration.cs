@@ -34,6 +34,15 @@ public static class FiscalCalendarSqlIntegration
                 throw new Exception("SYS03-03 expected SQL idempotency conflict");
             }
             catch (BusinessException e) when (e.Code == "idempotency_conflict") { }
+            try
+            {
+                await Call(s => s.FiscalCalendar.CreateFiscalYear(cid, owner, key,
+                    request with { Periods = new[] {
+                        request.Periods![0] with { Code = "2027-FIRST" }, request.Periods[1]
+                    } }, default));
+                throw new Exception("SYS03-03 expected SQL changed period idempotency conflict");
+            }
+            catch (BusinessException e) when (e.Code == "idempotency_conflict") { }
             await using var afterConflict = Context();
             Ensure(await afterConflict.Set<FiscalYear>().CountAsync(x => x.CompanyId == cid) == yearCount &&
                 await afterConflict.Set<FiscalPeriod>().CountAsync(x => x.CompanyId == cid) == periodCount &&

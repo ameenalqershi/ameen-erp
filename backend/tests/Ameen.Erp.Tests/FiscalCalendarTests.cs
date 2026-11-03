@@ -48,6 +48,10 @@ public static class FiscalCalendarTests
             var receipts = f.Store.Count<IdempotencyRecord>();
             await Error("idempotency_conflict", () => f.Service.FiscalCalendar.CreateFiscalYear(
                 f.CompanyId, f.Owner, key, original with { Code = "2027-CHANGED" }, default));
+            await Error("idempotency_conflict", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId, f.Owner, key, original with { Periods = new[] {
+                    original.Periods![0] with { Code = "2027-FIRST" }, original.Periods[1]
+                } }, default));
             Ensure(f.Store.Count<FiscalYear>() == years && f.Store.Count<FiscalPeriod>() == periods &&
                 f.Store.Count<AuditEvent>() == audits && f.Store.Count<IdempotencyRecord>() == receipts);
             Ensure((await f.Service.FiscalCalendar.GetFiscalCalendar(f.CompanyId, first.ResourceId, f.Owner, default)).Periods.Count == 2);
