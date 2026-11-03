@@ -669,23 +669,23 @@ CASH09,CASH09-F10,أنشأه,system,partial,ChequeMovement.CreatedBy actor store
 CASH09,CASH09-F11,وقت الإنشاء,system,partial,ChequeMovement.CreatedAt datetimeoffset(7) stored,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
 CASH09,CASH09-F12,رقم إصدار التعديل,system,partial,ChequeMovement.Revision int>0; no edit API or CAS transaction,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
 CASH09,CASH09-F13,آخر تعديل,system,partial,ChequeMovement.LastModifiedAt datetimeoffset(7)>=CreatedAt; audit events pending,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
-CASH10,CASH10-F01,الشركة,system,pending,,
-CASH10,CASH10-F02,الفرع,conditional,pending,,
-CASH10,CASH10-F03,الحالة,system,pending,,
-CASH10,CASH10-F04,البنك,required,pending,,
-CASH10,CASH10-F05,من تاريخ الكشف,required,pending,,
-CASH10,CASH10-F06,إلى تاريخ الكشف,required,pending,,
-CASH10,CASH10-F07,رصيد أول الكشف,required,pending,,
-CASH10,CASH10-F08,رصيد آخر الكشف,required,pending,,
-CASH10,CASH10-F09,معرف ملف الكشف,optional,pending,,
-CASH10,CASH10-F10,حركة البنك,required,pending,,
-CASH10,CASH10-F11,حركة الدفتر,conditional,pending,,
-CASH10,CASH10-F12,مبلغ مطابق,required,pending,,
-CASH10,CASH10-F13,سبب فرق,conditional,pending,,
-CASH10,CASH10-F14,أنشأه,system,pending,,
-CASH10,CASH10-F15,وقت الإنشاء,system,pending,,
-CASH10,CASH10-F16,رقم إصدار التعديل,system,pending,,
-CASH10,CASH10-F17,آخر تعديل,system,pending,,
+CASH10,CASH10-F01,الشركة,system,partial,BankReconciliation.CompanyId tenant key,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F02,الفرع,conditional,partial,BankReconciliation.BranchId optional composite tenant FK; operational scope pending,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F03,الحالة,system,partial,BankReconciliation.State nonempty text; lifecycle not approved,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F04,البنك,required,partial,BankReconciliation.BankAccountId composite tenant FK; bank CRUD blocked,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F05,من تاريخ الكشف,required,partial,BankReconciliation.StatementFrom SQL date,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F06,إلى تاريخ الكشف,required,partial,BankReconciliation.StatementTo SQL date; >= StatementFrom,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F07,رصيد أول الكشف,required,partial,"BankReconciliation.OpeningBalance signed decimal(20,6); no ledger impact",internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F08,رصيد آخر الكشف,required,partial,"BankReconciliation.ClosingBalance signed decimal(20,6); no ledger impact",internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F09,معرف ملف الكشف,optional,partial,BankReconciliation.StatementFileId nullable nvarchar(300); source import not approved,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F10,حركة البنك,required,partial,BankReconciliationLine.BankMovementId GUID only; bank movement master FK unavailable,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F11,حركة الدفتر,conditional,partial,BankReconciliationLine.LedgerMovementId optional GUID only; source FK unavailable,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F12,مبلغ مطابق,required,partial,"BankReconciliationLine.MatchedAmount decimal(20,6)>=0; allocation policy pending",internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F13,سبب فرق,conditional,partial,BankReconciliationLine.VarianceReason optional nvarchar(1000); final variance not calculated,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F14,أنشأه,system,partial,BankReconciliation.CreatedBy text stored only; actor validation pending,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F15,وقت الإنشاء,system,partial,BankReconciliation.CreatedAt datetimeoffset(7) stored only,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F16,رقم إصدار التعديل,system,partial,BankReconciliation.Revision>0; no operational edit,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
+CASH10,CASH10-F17,آخر تعديل,system,partial,BankReconciliation.LastModifiedAt>=CreatedAt; no operational update,internal EF/SQL schema 040 only; no bank statement import or reconciliation API
 CASH11,CASH11-F01,الشركة,system,partial,CashCount.CompanyId: tenant primary key and SQL FK; no API,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
 CASH11,CASH11-F02,الفرع,conditional,partial,CashCount.BranchId: nullable tenant FK; no branch operation permission yet,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
 CASH11,CASH11-F03,الحالة,system,partial,CashCount.State: text slot with nonempty SQL check; lifecycle values not approved; EF writes blocked,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment

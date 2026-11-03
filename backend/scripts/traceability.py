@@ -458,6 +458,33 @@ MAP["CASH09"]["fields"]["CASH09-F12"] = dict(status="partial", binding='ChequeMo
 MAP["CASH09"]["fields"]["CASH09-F13"] = dict(status="partial", binding='ChequeMovement.LastModifiedAt datetimeoffset(7)>=CreatedAt; audit events pending')
 MAP["CASH09"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + x for x in ["ChequeMovementFoundationTests.cs", "ChequeMovementSqlIntegration.cs", "ChequeSqlIntegration.cs", "SqlIntegration.cs"])
 
+screen("CASH10", "internal EF/SQL schema 040 only; no bank statement import or reconciliation API",
+       "بنية 17 حقلًا أصليًا لرأس ومحضر المطابقة وسطور حركات البنك والدفتر؛ SQL 040 ذرية قابلة للإعادة، ربط حساب البنك والفرع والشركة بمفاتيح مركبة، ومبالغ decimal(20,6) تشمل رصيد كشف سالبًا مشروعًا؛ EF يمنع كل كتابة حتى اعتماد ربط الحركات وسياسة الاستيراد",
+       "CASH02 بطاقة البنك تشغيلها محجوب؛ لا مصدر حركة كشف أو حركة دفتر مثبت للربط، ولا مفتاح استيراد فريد معتمد، ولا سياسات التوزيع الجزئي والمتعدد/الفرق أو مسودة عمولة GL03 أو التفويض SYS07؛ CASH10 API/JWT/SQL transactional matching غير منفذة",
+       {})
+for n, binding in {
+    1:"BankReconciliation.CompanyId tenant key",
+    2:"BankReconciliation.BranchId optional composite tenant FK; operational scope pending",
+    3:"BankReconciliation.State nonempty text; lifecycle not approved",
+    4:"BankReconciliation.BankAccountId composite tenant FK; bank CRUD blocked",
+    5:"BankReconciliation.StatementFrom SQL date",
+    6:"BankReconciliation.StatementTo SQL date; >= StatementFrom",
+    7:"BankReconciliation.OpeningBalance signed decimal(20,6); no ledger impact",
+    8:"BankReconciliation.ClosingBalance signed decimal(20,6); no ledger impact",
+    9:"BankReconciliation.StatementFileId nullable nvarchar(300); source import not approved",
+    10:"BankReconciliationLine.BankMovementId GUID only; bank movement master FK unavailable",
+    11:"BankReconciliationLine.LedgerMovementId optional GUID only; source FK unavailable",
+    12:"BankReconciliationLine.MatchedAmount decimal(20,6)>=0; allocation policy pending",
+    13:"BankReconciliationLine.VarianceReason optional nvarchar(1000); final variance not calculated",
+    14:"BankReconciliation.CreatedBy text stored only; actor validation pending",
+    15:"BankReconciliation.CreatedAt datetimeoffset(7) stored only",
+    16:"BankReconciliation.Revision>0; no operational edit",
+    17:"BankReconciliation.LastModifiedAt>=CreatedAt; no operational update"
+}.items():
+    MAP["CASH10"]["fields"][f"CASH10-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["CASH10"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + n for n in
+    ["BankReconciliationFoundationTests.cs", "BankReconciliationSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("CASH11", "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",
        "بنية محضر جرد صندوق وسطور فئات/عدد القطع بقيمة Decimal محسوبة في SQL؛ مفتاح صندوق وفرع/قائم بالجرد ضمن الشركة وتدقيق زمني وإصدار؛ ترقية 033 ذرية قابلة للإعادة؛ كل الكتابات عبر EF محجوبة حتى اعتماد مسار الرصيد والتسوية",
        "لا توجد عملية جرد أو مقارنة رصيد دفتر أو محضر عجز/زيادة تشغيلي أو اعتماد تسوية GL03؛ الحالة المسموحة وقواعد تفعيل الجرد وصلاحيات SYS07 تتطلب مسارًا معتمدًا؛ SQL بنيوي فقط، لا HTTP/JWT/OpenAPI عمليات CASH11",

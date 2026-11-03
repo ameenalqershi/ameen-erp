@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 42,
+  "partially_implemented_screens": 43,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 47,
     "derived": 4,
-    "partial": 226,
-    "pending": 2133
+    "partial": 243,
+    "pending": 2116
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2612,6 +2612,82 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/ChequeMovementFoundationTests.cs; backend/tests/Ameen.Erp.Tests/ChequeMovementSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ChequeSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "CASH10": {
+      "api": "internal EF/SQL schema 040 only; no bank statement import or reconciliation API",
+      "implemented": "بنية 17 حقلًا أصليًا لرأس ومحضر المطابقة وسطور حركات البنك والدفتر؛ SQL 040 ذرية قابلة للإعادة، ربط حساب البنك والفرع والشركة بمفاتيح مركبة، ومبالغ decimal(20,6) تشمل رصيد كشف سالبًا مشروعًا؛ EF يمنع كل كتابة حتى اعتماد ربط الحركات وسياسة الاستيراد",
+      "remaining": "CASH02 بطاقة البنك تشغيلها محجوب؛ لا مصدر حركة كشف أو حركة دفتر مثبت للربط، ولا مفتاح استيراد فريد معتمد، ولا سياسات التوزيع الجزئي والمتعدد/الفرق أو مسودة عمولة GL03 أو التفويض SYS07؛ CASH10 API/JWT/SQL transactional matching غير منفذة",
+      "fields": {
+        "CASH10-F01": {
+          "status": "partial",
+          "binding": "BankReconciliation.CompanyId tenant key"
+        },
+        "CASH10-F02": {
+          "status": "partial",
+          "binding": "BankReconciliation.BranchId optional composite tenant FK; operational scope pending"
+        },
+        "CASH10-F03": {
+          "status": "partial",
+          "binding": "BankReconciliation.State nonempty text; lifecycle not approved"
+        },
+        "CASH10-F04": {
+          "status": "partial",
+          "binding": "BankReconciliation.BankAccountId composite tenant FK; bank CRUD blocked"
+        },
+        "CASH10-F05": {
+          "status": "partial",
+          "binding": "BankReconciliation.StatementFrom SQL date"
+        },
+        "CASH10-F06": {
+          "status": "partial",
+          "binding": "BankReconciliation.StatementTo SQL date; >= StatementFrom"
+        },
+        "CASH10-F07": {
+          "status": "partial",
+          "binding": "BankReconciliation.OpeningBalance signed decimal(20,6); no ledger impact"
+        },
+        "CASH10-F08": {
+          "status": "partial",
+          "binding": "BankReconciliation.ClosingBalance signed decimal(20,6); no ledger impact"
+        },
+        "CASH10-F09": {
+          "status": "partial",
+          "binding": "BankReconciliation.StatementFileId nullable nvarchar(300); source import not approved"
+        },
+        "CASH10-F10": {
+          "status": "partial",
+          "binding": "BankReconciliationLine.BankMovementId GUID only; bank movement master FK unavailable"
+        },
+        "CASH10-F11": {
+          "status": "partial",
+          "binding": "BankReconciliationLine.LedgerMovementId optional GUID only; source FK unavailable"
+        },
+        "CASH10-F12": {
+          "status": "partial",
+          "binding": "BankReconciliationLine.MatchedAmount decimal(20,6)>=0; allocation policy pending"
+        },
+        "CASH10-F13": {
+          "status": "partial",
+          "binding": "BankReconciliationLine.VarianceReason optional nvarchar(1000); final variance not calculated"
+        },
+        "CASH10-F14": {
+          "status": "partial",
+          "binding": "BankReconciliation.CreatedBy text stored only; actor validation pending"
+        },
+        "CASH10-F15": {
+          "status": "partial",
+          "binding": "BankReconciliation.CreatedAt datetimeoffset(7) stored only"
+        },
+        "CASH10-F16": {
+          "status": "partial",
+          "binding": "BankReconciliation.Revision>0; no operational edit"
+        },
+        "CASH10-F17": {
+          "status": "partial",
+          "binding": "BankReconciliation.LastModifiedAt>=CreatedAt; no operational update"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/BankReconciliationFoundationTests.cs; backend/tests/Ameen.Erp.Tests/BankReconciliationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "CASH11": {
       "api": "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",

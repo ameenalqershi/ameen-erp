@@ -42,6 +42,15 @@ public sealed partial class ErpDbContext
             "cash_advance_policy_unavailable",
             "لا يمكن حفظ عهدة أو تسوية قبل اعتماد صاحب العهدة وربط المصروف ودورة الصرف.",
             ErrorKind.Conflict);
+        // CASH10 is structural only. No approved statement import dedup,
+        // bank/ledger movement binding, matching policy or GL journal exists.
+        Check.That(!ChangeTracker.Entries<BankReconciliation>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<BankReconciliationLine>().Any(e =>
+                e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "bank_reconciliation_policy_unavailable",
+            "لا يمكن حفظ المطابقة قبل اعتماد حركات البنك والدفتر ومنع استيراد الكشف مرتين.",
+            ErrorKind.Conflict);
         // CASH11 is structural-only. No approved count-to-ledger snapshot, adjustment
         // authorization, lifecycle or branch permissions exist yet. Prevent writes
         // through any EF caller, including child-only changes and deletions.
