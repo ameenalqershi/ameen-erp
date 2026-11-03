@@ -1149,7 +1149,18 @@ public static class HostedApiIntegration
                 var parentBranch = await Command(client, branchesPath, new CreateBranchRequest("PARENT", "أب", "مدينة", "عنوان"));
                 var childBranch = await Command(client, branchesPath, new CreateBranchRequest("CHILD", "ابن", "مدينة", "عنوان", parentBranch.ResourceId));
                 childBranch = await Command(client, branchesPath + $"/{childBranch.ResourceId}",
-                    new EditBranchRequest(childBranch.Version, "CHILD", "ابن معدل", "مدينة", "عنوان 001", parentBranch.ResourceId, null, "HTTP child", null, "تحديث"), method: HttpMethod.Put);
+                    new EditBranchRequest(childBranch.Version, "CHILD", "ابن معدل", "مدينة", "عنوان 001", parentBranch.ResourceId, null, "HTTP child", "ملاحظة فرع", "تحديث"), method: HttpMethod.Put);
+                // SYS02-FG02: optional English name and notes round-trip,
+                // with an active default and authorized same-company parent.
+                using (var childProfile = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}"))
+                using (var childJson = JsonDocument.Parse(await childProfile.Content.ReadAsStringAsync()))
+                    Ensure(childProfile.StatusCode == HttpStatusCode.OK &&
+                        childJson.RootElement.GetProperty("englishName").GetString() == "HTTP child" &&
+                        childJson.RootElement.GetProperty("notes").GetString() == "ملاحظة فرع" &&
+                        childJson.RootElement.GetProperty("parentId").GetGuid() == parentBranch.ResourceId &&
+                        childJson.RootElement.GetProperty("isActive").GetBoolean() &&
+                        childJson.RootElement.GetProperty("revision").GetInt32() == 2,
+                        "SYS02-FG02 child branch optional fields or parent scope did not round-trip");
                 // SYS02-FG01: the public API returns the generated IDs, company
                 // reference and original Arabic name; duplicate codes are refused.
                 Ensure(parentBranch.ResourceId != Guid.Empty && childBranch.ResourceId != Guid.Empty &&
@@ -1159,7 +1170,7 @@ public static class HostedApiIntegration
                 using (var branchJson = JsonDocument.Parse(await branchResponse.Content.ReadAsStringAsync()))
                     Ensure(branchResponse.StatusCode == HttpStatusCode.OK &&
                         branchJson.RootElement.GetProperty("id").GetGuid() == parentBranch.ResourceId &&
-                        branchJson.RootElement.GetProperty("companyId").GetGuid() == companyId &&
+                        branchJson.RootElement.GetProperty("companyId").GetGuid() == company.Id &&
                         branchJson.RootElement.GetProperty("code").GetString() == "PARENT" &&
                         branchJson.RootElement.GetProperty("name").GetString() == "أب",
                         "SYS02-FG01 public GET returned incorrect branch identity/company/code/name");
@@ -1207,10 +1218,38 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(branchesPath + $"/{parentBranch.ResourceId}/usage"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("childCount").GetInt32() == 1, "Branch HTTP usage failed");
-                await Command(client, branchesPath + $"/{childBranch.ResourceId}/status", new SetBranchStatusRequest(childBranch.Version, false, "إيقاف"));
+                var childDisabled = await Command(client, branchesPath + $"/{childBranch.ResourceId}/status", new SetBranchStatusRequest(childBranch.Version, false, "إيقاف"));
+                Ensure(childDisabled.Version != Guid.Empty && childDisabled.Version != childBranch.Version,
+                    "SYS02-FG05 branch status did not advance the concurrency version");
+                using (var disabledProfile = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}"))
+                using (var disabledJson = JsonDocument.Parse(await disabledProfile.Content.ReadAsStringAsync()))
+                    Ensure(disabledProfile.StatusCode == HttpStatusCode.OK &&
+                        !disabledJson.RootElement.GetProperty("isActive").GetBoolean() &&
+                        disabledJson.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        disabledJson.RootElement.GetProperty("notes").GetString() == "ملاحظة فرع",
+                        "SYS02-FG02 disabled state or optional notes were not persisted");
                 using (var response = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
-                    Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Branch HTTP audit failed");
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 3,
+                        "Branch HTTP audit failed");
+                    var events = json.RootElement.GetProperty("items").EnumerateArray().ToArray();
+                    Ensure(events.Length == 3 && events.All(x =>
+                        x.GetProperty("actorId").GetString() == "runtime-admin" &&
+                        x.GetProperty("companyId").GetGuid() == company.Id &&
+                        x.GetProperty("resourceId").GetGuid() == childBranch.ResourceId),
+                        "SYS02-FG05 branch audit actor or tenant identity differs");
+                    var createdAt = events.Single(x => x.GetProperty("action").GetString() == "branch.created")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    var editedAt = events.Single(x => x.GetProperty("action").GetString() == "branch.edited")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    var statusAt = events.Single(x => x.GetProperty("action").GetString() == "branch.status-changed")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    Ensure(createdAt != default && editedAt >= createdAt && statusAt >= editedAt,
+                        "SYS02-FG05 system-owned branch create/last-modified timestamps differ");
+                }
+                Console.WriteLine("  HOST PASS SYS02-FG02/FG05 optional profile, status, numeric revision, audit actor and timestamps");
                 // SYS02-OP03: usage and audit are tenant-scoped even with
                 // active/disabled branches and a valid unrelated JWT.
                 var sys02UsagePath = branchesPath + $"/{parentBranch.ResourceId}/usage";

@@ -66,6 +66,24 @@ public static class BranchSqlIntegration
         var replays = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => Call(s => s.Branch.EditBranch(cid, b.Id, owner, key, request, default))));
         Ensure(replays.All(x => x == replays[0]), "Concurrent branch replay differs");
         b = await Call(s => s.Branch.GetBranch(cid, b.Id, owner, default)); Ensure(b.Revision == 2 && b.Address == "عنوان 001", "Branch revision changed repeatedly");
+        // SYS02-FG02/FG05: optional profile columns, the same-company parent,
+        // numeric revision and immutable creation/last-edit audit are SQL-backed.
+        await using (var fieldDb = Context())
+        {
+            var stored = await fieldDb.Set<Branch>().SingleAsync(x => x.CompanyId == cid && x.Id == b.Id);
+            Ensure(stored.EnglishName == "SQL branch" && stored.Notes is null &&
+                stored.ParentId == parent.ResourceId && stored.IsActive && stored.Revision == 2,
+                "SYS02-FG02 SQL optional fields, parent or active default differ");
+            var events = await fieldDb.Set<AuditEvent>().Where(x => x.CompanyId == cid &&
+                x.ResourceId == b.Id && (x.Action == "branch.created" || x.Action == "branch.edited"))
+                .ToListAsync();
+            Ensure(events.Count == 2 && events.All(x => x.ActorId == owner.Subject &&
+                    x.CompanyId == cid && x.ResourceId == b.Id && x.OccurredAt != default) &&
+                events.Single(x => x.Action == "branch.edited").OccurredAt >=
+                    events.Single(x => x.Action == "branch.created").OccurredAt,
+                "SYS02-FG05 SQL creation/last-edit audit or actor differs");
+        }
+        Console.WriteLine("  SQL PASS SYS02-FG02/FG05 optional branch fields, parent, version and audit actor/time");
         Ensure((await Call(s => s.Branch.SearchBranches(cid, owner, "SQL branch", parent.ResourceId, true, 0, 10, default))).TotalCount == 1, "Branch SQL search differs");
         request = BranchTests.Edit(b) with { Notes = "retry" }; key = Fixture.Key();
         await using (var db = Context()) await db.Database.ExecuteSqlRawAsync("ALTER TABLE [AuditEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_BranchAudit] CHECK ([Action] <> 'branch.edited')");
