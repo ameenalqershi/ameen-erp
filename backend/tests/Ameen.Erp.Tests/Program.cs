@@ -422,6 +422,46 @@ Test("SYS06: disabled membership immediately loses read and replay access", asyn
     await Error("permission_denied", () => f.Draft(key: key));
     await Error("permission_denied", () => f.Service.Account.ListAccounts(f.CompanyId, f.Clerk, null, 0, 10, default));
 });
+Test("SYS06-AC02: unauthorized and stale membership status changes remain atomic", async f =>
+{
+    var clerk = f.Store.All<Membership>().Single(x => x.Subject == f.Clerk.Subject);
+    var owner = f.Store.All<Membership>().Single(x => x.Subject == f.Owner.Subject);
+    var version = clerk.Version;
+    var audit = f.Store.Count<AuditEvent>();
+    var receipts = f.Store.Count<IdempotencyRecord>();
+    await Error("self_grant_forbidden", () => f.Service.Membership.SetMembershipStatus(
+        f.CompanyId, owner.Id, f.Owner, Fixture.Key(), new(owner.Version, false, "محاولة ذاتية"), default));
+    await Error("version_conflict", () => f.Service.Membership.SetMembershipStatus(
+        f.CompanyId, clerk.Id, f.Owner, Fixture.Key(), new(Guid.NewGuid(), false, "نسخة قديمة"), default));
+    await Error("invalid_text", () => f.Service.Membership.SetMembershipStatus(
+        f.CompanyId, clerk.Id, f.Owner, Fixture.Key(), new(version, false, " "), default));
+    Assert(f.Store.All<Membership>().Single(x => x.Id == clerk.Id).IsActive
+        && f.Store.All<Membership>().Single(x => x.Id == clerk.Id).Version == version
+        && f.Store.Count<AuditEvent>() == audit && f.Store.Count<IdempotencyRecord>() == receipts,
+        "SYS06 rejected status operations mutated identity, revision, audit or receipts");
+});
+Test("SYS06-AC02: disabled membership cannot restore access by re-granting permissions", async f =>
+{
+    var actor = new Actor("sys06-revoked-member");
+    var created = await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+        new(actor.Subject, new[] { Permissions.Read, Permissions.Members }, true, Array.Empty<Guid>(), null), default);
+    var disabled = await f.Service.Membership.SetMembershipStatus(f.CompanyId, created.ResourceId,
+        f.Owner, Fixture.Key(), new(created.Version, false, "إلغاء وصول"), default);
+    await Error("permission_denied", () =>
+        f.Service.Membership.ListMembers(f.CompanyId, actor, 0, 20, default));
+    var regranted = await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+        new(actor.Subject, new[] { Permissions.Read, Permissions.Members }, true, Array.Empty<Guid>(), disabled.Version), default);
+    Assert(!f.Store.All<Membership>().Single(x => x.Id == created.ResourceId).IsActive,
+        "SYS06 re-grant bypassed disabled membership state");
+    await Error("permission_denied", () =>
+        f.Service.Membership.ListMembers(f.CompanyId, actor, 0, 20, default));
+    var restored = await f.Service.Membership.SetMembershipStatus(f.CompanyId, created.ResourceId,
+        f.Owner, Fixture.Key(), new(regranted.Version, true, "إعادة وصول معتمدة"), default);
+    Assert(restored.ResourceId == created.ResourceId
+        && (await f.Service.Membership.ListMembers(f.CompanyId, actor, 0, 20, default))
+            .Items.Any(x => x.Id == created.ResourceId && x.IsActive),
+        "SYS06 explicit reactivation did not restore existing membership");
+});
 Test("BR07: EF persistence rejects posted line changes through both save paths", async f =>
 {
     var posted = await f.Post();
