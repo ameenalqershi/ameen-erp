@@ -61,10 +61,9 @@ class AnalysisBaselineAcceptance(unittest.TestCase):
 
     def test_changed_manifest_and_source_still_rejected(self):
         (self.root / "diagrams/source/system-map.mmd").write_text("changed", encoding="utf-8")
+        original_approved_pin = self.pin
         self.refresh_manifest()
-        (self.root / "manifest.json").write_bytes(
-            (self.root / "manifest.json").read_bytes() + b" "
-        )
+        self.pin = original_approved_pin
         with self.assertRaisesRegex(ValueError, "manifest changed"):
             self.verify()
 
