@@ -502,23 +502,23 @@ CASH01,CASH01-F13,أنشأه,system,implemented,CreatedBy: server subject,GET/PO
 CASH01,CASH01-F14,وقت الإنشاء,system,implemented,CreatedAt: server UTC,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
 CASH01,CASH01-F15,رقم إصدار التعديل,system,implemented,Revision: server integer,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
 CASH01,CASH01-F16,آخر تعديل,system,implemented,LastModifiedAt: server UTC,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
-CASH02,CASH02-F01,المعرف الداخلي,system,pending,,
-CASH02,CASH02-F02,الشركة,system,pending,,
-CASH02,CASH02-F03,الرمز,required,pending,,
-CASH02,CASH02-F04,الاسم العربي,required,pending,,
-CASH02,CASH02-F05,الاسم الإنجليزي,optional,pending,,
-CASH02,CASH02-F06,فعال,required,pending,,
-CASH02,CASH02-F07,ملاحظات,optional,pending,,
-CASH02,CASH02-F08,اسم البنك,required,pending,,
-CASH02,CASH02-F09,رقم الحساب,required,pending,,
-CASH02,CASH02-F10,IBAN,conditional,pending,,
-CASH02,CASH02-F11,حساب الأستاذ,required,pending,,
-CASH02,CASH02-F12,العملة,required,pending,,
-CASH02,CASH02-F13,الفرع,required,pending,,
-CASH02,CASH02-F14,أنشأه,system,pending,,
-CASH02,CASH02-F15,وقت الإنشاء,system,pending,,
-CASH02,CASH02-F16,رقم إصدار التعديل,system,pending,,
-CASH02,CASH02-F17,آخر تعديل,system,pending,,
+CASH02,CASH02-F01,المعرف الداخلي,system,partial,BankAccount.Id: internal GUID only,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F02,الشركة,system,partial,BankAccount.CompanyId: tenant key only,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F03,الرمز,required,partial,BankAccount.Code: nvarchar(32) unique per company,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F04,الاسم العربي,required,partial,BankAccount.Name: nvarchar(200),internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F05,الاسم الإنجليزي,optional,partial,BankAccount.EnglishName: nullable,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F06,فعال,required,partial,BankAccount.IsActive: blocked writes,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F07,ملاحظات,optional,partial,BankAccount.Notes: nullable,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F08,اسم البنك,required,partial,BankAccount.BankName: nvarchar(200),internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F09,رقم الحساب,required,partial,"BankAccount.AccountNumber: nvarchar(64), preserves leading zeros",internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F10,IBAN,conditional,partial,BankAccount.Iban: nullable canonical IBAN; conditional country requirement not implemented,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F11,حساب الأستاذ,required,partial,BankAccount.LedgerAccountId: tenant FK,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F12,العملة,required,partial,BankAccount.CurrencyCode: tenant FK,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F13,الفرع,required,partial,BankAccount.BranchId: tenant FK,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F14,أنشأه,system,partial,BankAccount.CreatedBy: internal actor,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F15,وقت الإنشاء,system,partial,BankAccount.CreatedAt: datetimeoffset,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F16,رقم إصدار التعديل,system,partial,BankAccount.Revision: positive int,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F17,آخر تعديل,system,partial,BankAccount.LastModifiedAt: datetimeoffset,internal EF/SQL schema 032 only; no CASH02 public API
 CASH03,CASH03-F01,المعرف الداخلي,system,pending,,
 CASH03,CASH03-F02,الشركة,system,pending,,
 CASH03,CASH03-F03,الفرع,required,pending,,

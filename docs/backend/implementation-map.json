@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 34,
+  "partially_implemented_screens": 35,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 344,
     "audit": 49,
     "derived": 5,
-    "partial": 79,
-    "pending": 2282
+    "partial": 96,
+    "pending": 2265
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2011,6 +2011,82 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CashBoxTests.cs; backend/tests/Ameen.Erp.Tests/CashBoxSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
+    },
+    "CASH02": {
+      "api": "internal EF/SQL schema 032 only; no CASH02 public API",
+      "implemented": "بنية بطاقة بنك تحمل حقول CASH02-F01..F17، ومفاتيح مركبة للشركة والحساب والفرع والعملة وIBAN اختياري؛ منع تعديل البيانات البنكية قبل اعتماد الصلاحيات ومراجعة تغيير المستفيدين؛ ترقية ذرية قابلة للإعادة",
+      "remaining": "لا يمكن إنشاء/تحرير حساب بنكي عبر API حتى اعتماد التحقق الشرطي لوجوب IBAN وبيانات المستفيدين ومسار المراجعة؛ لا دفتر تسوية أو CASH07/CASH10 أو استعمال تشغيلي للبطاقة؛ الحقول بنية مخزنة فقط",
+      "fields": {
+        "CASH02-F01": {
+          "status": "partial",
+          "binding": "BankAccount.Id: internal GUID only"
+        },
+        "CASH02-F02": {
+          "status": "partial",
+          "binding": "BankAccount.CompanyId: tenant key only"
+        },
+        "CASH02-F03": {
+          "status": "partial",
+          "binding": "BankAccount.Code: nvarchar(32) unique per company"
+        },
+        "CASH02-F04": {
+          "status": "partial",
+          "binding": "BankAccount.Name: nvarchar(200)"
+        },
+        "CASH02-F05": {
+          "status": "partial",
+          "binding": "BankAccount.EnglishName: nullable"
+        },
+        "CASH02-F06": {
+          "status": "partial",
+          "binding": "BankAccount.IsActive: blocked writes"
+        },
+        "CASH02-F07": {
+          "status": "partial",
+          "binding": "BankAccount.Notes: nullable"
+        },
+        "CASH02-F08": {
+          "status": "partial",
+          "binding": "BankAccount.BankName: nvarchar(200)"
+        },
+        "CASH02-F09": {
+          "status": "partial",
+          "binding": "BankAccount.AccountNumber: nvarchar(64), preserves leading zeros"
+        },
+        "CASH02-F10": {
+          "status": "partial",
+          "binding": "BankAccount.Iban: nullable canonical IBAN; conditional country requirement not implemented"
+        },
+        "CASH02-F11": {
+          "status": "partial",
+          "binding": "BankAccount.LedgerAccountId: tenant FK"
+        },
+        "CASH02-F12": {
+          "status": "partial",
+          "binding": "BankAccount.CurrencyCode: tenant FK"
+        },
+        "CASH02-F13": {
+          "status": "partial",
+          "binding": "BankAccount.BranchId: tenant FK"
+        },
+        "CASH02-F14": {
+          "status": "partial",
+          "binding": "BankAccount.CreatedBy: internal actor"
+        },
+        "CASH02-F15": {
+          "status": "partial",
+          "binding": "BankAccount.CreatedAt: datetimeoffset"
+        },
+        "CASH02-F16": {
+          "status": "partial",
+          "binding": "BankAccount.Revision: positive int"
+        },
+        "CASH02-F17": {
+          "status": "partial",
+          "binding": "BankAccount.LastModifiedAt: datetimeoffset"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/BankAccountFoundationTests.cs; backend/tests/Ameen.Erp.Tests/BankAccountSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "RPT01": {
       "api": "GET /companies/{companyId}/reports/trial-balance",

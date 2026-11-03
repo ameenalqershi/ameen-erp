@@ -257,6 +257,26 @@ screen("CASH01", "GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|
 MAP["CASH01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CashBoxTests.cs", "CashBoxSqlIntegration.cs", "SqlIntegration.cs", "OpenApiSnapshotTests.cs"])
 
+screen("CASH02", "internal EF/SQL schema 032 only; no CASH02 public API",
+       "بنية بطاقة بنك تحمل حقول CASH02-F01..F17، ومفاتيح مركبة للشركة والحساب والفرع والعملة وIBAN اختياري؛ منع تعديل البيانات البنكية قبل اعتماد الصلاحيات ومراجعة تغيير المستفيدين؛ ترقية ذرية قابلة للإعادة",
+       "لا يمكن إنشاء/تحرير حساب بنكي عبر API حتى اعتماد التحقق الشرطي لوجوب IBAN وبيانات المستفيدين ومسار المراجعة؛ لا دفتر تسوية أو CASH07/CASH10 أو استعمال تشغيلي للبطاقة؛ الحقول بنية مخزنة فقط",
+       {})
+for n, binding in {
+    1:"BankAccount.Id: internal GUID only", 2:"BankAccount.CompanyId: tenant key only",
+    3:"BankAccount.Code: nvarchar(32) unique per company", 4:"BankAccount.Name: nvarchar(200)",
+    5:"BankAccount.EnglishName: nullable", 6:"BankAccount.IsActive: blocked writes",
+    7:"BankAccount.Notes: nullable", 8:"BankAccount.BankName: nvarchar(200)",
+    9:"BankAccount.AccountNumber: nvarchar(64), preserves leading zeros",
+    10:"BankAccount.Iban: nullable canonical IBAN; conditional country requirement not implemented",
+    11:"BankAccount.LedgerAccountId: tenant FK", 12:"BankAccount.CurrencyCode: tenant FK",
+    13:"BankAccount.BranchId: tenant FK", 14:"BankAccount.CreatedBy: internal actor",
+    15:"BankAccount.CreatedAt: datetimeoffset", 16:"BankAccount.Revision: positive int",
+    17:"BankAccount.LastModifiedAt: datetimeoffset"
+}.items():
+    MAP["CASH02"]["fields"][f"CASH02-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["CASH02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in
+    ["BankAccountFoundationTests.cs", "BankAccountSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("RPT01", "GET /companies/{companyId}/reports/trial-balance",
        "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج", "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
        {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 9: "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)", 10: "query.costCenterId", 11: "query.showZero"})
@@ -359,7 +379,7 @@ def generate():
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
         "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
-        "module-CASH": "بطاقة الصندوق CASH01 فقط: بيانات وربط حساب/فرع/عملة/أمين وواجهات؛ أرصدة وسندات النقد والشيكات والمطابقة لم تنفذ",
+        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",

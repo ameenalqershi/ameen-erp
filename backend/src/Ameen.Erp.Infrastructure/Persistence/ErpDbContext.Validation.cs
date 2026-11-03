@@ -8,6 +8,11 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // CASH02 is schema-only until conditional IBAN / beneficiary-change review and permissions are approved.
+        Check.That(!ChangeTracker.Entries<BankAccount>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "bank_account_policy_unavailable",
+            "لا يمكن حفظ حساب بنكي قبل اعتماد التحقق من IBAN والمستفيد والصلاحيات.", ErrorKind.Conflict);
         Check.That(!ChangeTracker.Entries<CashBox>().Any(e => e.State == EntityState.Deleted),
             "cashbox_delete_prohibited", "بطاقة الصندوق لا تحذف؛ استخدم التعطيل.", ErrorKind.Conflict);
         // SYS07 roles have structural references only; no membership/permission enforcement yet.

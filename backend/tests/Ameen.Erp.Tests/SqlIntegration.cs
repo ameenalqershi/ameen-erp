@@ -36,6 +36,7 @@ public static class SqlIntegration
                 await SecurityRoleSqlIntegration.Upgrade(db);
                 await SecurityRoleAssignmentSqlIntegration.Upgrade(db);
                 await CashBoxSqlIntegration.Upgrade(db);
+                await BankAccountSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             // CASH01 acceptance: SQL persistence, tenant FK, atomic command replay and account guard.

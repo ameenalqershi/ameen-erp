@@ -36,6 +36,8 @@ public sealed class CashBox : CompanyEntity
         Guid custodianMembershipId, string currencyCode, decimal? balanceLimit,
         string? englishName, string? notes, DateTimeOffset now)
     {
+        Check.That(now >= CreatedAt && now >= LastModifiedAt,
+            "cashbox_audit_time_invalid", "وقت التعديل لا يسبق السجل السابق.");
         Check.That(accountId != Guid.Empty && branchId != Guid.Empty &&
             custodianMembershipId != Guid.Empty, "cashbox_reference_required",
             "حساب الصندوق والفرع والأمين مطلوبة.");
@@ -54,6 +56,8 @@ public sealed class CashBox : CompanyEntity
 
     public void SetActive(bool active, DateTimeOffset now)
     {
+        Check.That(now >= CreatedAt && now >= LastModifiedAt,
+            "cashbox_audit_time_invalid", "وقت التعديل لا يسبق السجل السابق.");
         IsActive = active;
         Advance(now);
     }
