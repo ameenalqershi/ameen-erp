@@ -67,6 +67,88 @@ public static class ItemTests
             Ensure((await f.Service.Item.SearchItems(f.CompanyId, f.Limited, "ITEM-AA", request.GroupId, true, 0, 10, default)).TotalCount == 1);
             Ensure(f.Store.Count<Item>() == 1 && f.Store.Count<StockMovement>() == 0);
         });
+        test("INV04-FG02: bilingual optional fields and active flag roundtrip through item lifecycle", async f =>
+        {
+            var request = await Setup(f);
+            var receipt = await Create(f, request with
+            {
+                Code = "INV04-FG02-CARD", EnglishName = "  Stock card  ",
+                Notes = "  Internal note  "
+            });
+            var item = await Get(f, receipt.ResourceId);
+            Ensure(item.EnglishName == "Stock card" && item.Notes == "Internal note" &&
+                item.Type == ItemType.Goods && item.IsActive);
+            var updated = await f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner, Fixture.Key(),
+                Edit(item) with { EnglishName = null, Notes = null }, default);
+            item = await Get(f, item.Id);
+            Ensure(item.Version == updated.Version && item.EnglishName is null && item.Notes is null &&
+                item.IsActive && item.Type == ItemType.Goods);
+            await f.Service.Item.SetItemStatus(f.CompanyId, item.Id, f.Owner, Fixture.Key(),
+                new(item.Version, false, "Deactivate item"), default);
+            item = await Get(f, item.Id);
+            Ensure(!item.IsActive && item.EnglishName is null && item.Type == ItemType.Goods &&
+                (await f.Service.Item.SearchItems(f.CompanyId, f.Limited, "INV04-FG02", null, true, 0, 10, default)).TotalCount == 0);
+            Ensure(f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV04-FG02: invalid type and optional text reject atomically", async f =>
+        {
+            var request = await Setup(f);
+            var audits = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            await Error("invalid_command_payload", () => Create(f,
+                request with { Code = "INVALID-TYPE", Type = (ItemType)99 }));
+            await Error("invalid_text", () => Create(f,
+                request with { Code = "INVALID-ENGLISH", EnglishName = "  " }));
+            await Error("invalid_text", () => Create(f,
+                request with { Code = "INVALID-NOTE", Notes = "  " }));
+            Ensure(f.Store.Count<Item>() == 0 && f.Store.Count<AuditEvent>() == audits &&
+                f.Store.Count<IdempotencyRecord>() == receipts &&
+                f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV04-FG05: alternate unit barcode and functional sale price roundtrip exactly", async f =>
+        {
+            var request = await Setup(f);
+            var units = request.Units.Select((line, index) => index == 1
+                ? line with { Barcode = "  FG05-BOX-2026  ", SalePrice = 75.50m }
+                : line).ToArray();
+            var receipt = await Create(f, request with { Code = "FG05-ITEM", Units = units });
+            var item = await Get(f, receipt.ResourceId);
+            var box = item.Units.Single(x => x.UnitId == units[1].UnitId);
+            Ensure(box.FactorToBase == 12m && box.Barcode == "FG05-BOX-2026" &&
+                box.SalePrice == 75.50m);
+            Ensure((await f.Service.Item.ConvertItemQuantity(f.CompanyId, item.Id, f.Limited,
+                box.UnitId, 1.25m, default)).BaseQuantity == 15m);
+            Ensure((await f.Service.Item.SearchItems(f.CompanyId, f.Limited,
+                "FG05-BOX-2026", null, true, 0, 10, default)).TotalCount == 1);
+            Ensure(f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV04-FG05: invalid factor price and duplicate barcode leave version and audit intact", async f =>
+        {
+            var receipt = await Create(f, await Setup(f));
+            var original = await Get(f, receipt.ResourceId);
+            var originalVersion = original.Version;
+            var originalRevision = original.Revision;
+            var units = original.Units.Select(x =>
+                new ItemUnitRequest(x.UnitId, x.FactorToBase, x.Barcode, x.SalePrice)).ToArray();
+            var beforeAudit = f.Store.Count<AuditEvent>();
+            var beforeReceipts = f.Store.Count<IdempotencyRecord>();
+            await Error("invalid_conversion_factor", async () => await f.Service.Item.EditItem(f.CompanyId,
+                original.Id, f.Owner, Fixture.Key(), Edit(await Get(f, original.Id)) with
+                { Units = new[] { units[0], units[1] with { FactorToBase = -2m } } }, default));
+            await Error("price_precision", async () => await f.Service.Item.EditItem(f.CompanyId,
+                original.Id, f.Owner, Fixture.Key(), Edit(await Get(f, original.Id)) with
+                { Units = new[] { units[0], units[1] with { SalePrice = 10.001m } } }, default));
+            await Error("duplicate_barcode", async () => await f.Service.Item.EditItem(f.CompanyId,
+                original.Id, f.Owner, Fixture.Key(), Edit(await Get(f, original.Id)) with
+                { Units = new[] { units[0], units[1] with { Barcode = units[0].Barcode } } }, default));
+            var after = await Get(f, original.Id);
+            Ensure(after.Version == originalVersion && after.Revision == originalRevision &&
+                after.Units.Count == original.Units.Count &&
+                after.Units.Single(x => x.UnitId == units[1].UnitId).SalePrice == units[1].SalePrice &&
+                f.Store.Count<AuditEvent>() == beforeAudit &&
+                f.Store.Count<IdempotencyRecord>() == beforeReceipts &&
+                f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+        });
         test("INV04-FG06: item audit actor, time, revision and rejected version are consistent", async f =>
         {
             var receipt = await Create(f, await Setup(f));
