@@ -518,7 +518,44 @@ public static class HostedApiIntegration
                 Console.WriteLine("  HOST PASS GL06-T01 positive batch post, durable replay and posted state over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS GL05/06 preview, mixed batch with per-item keys, replay and rejection history over HTTPS/JWT/SQL");
 
+                // GL02-C01: direct subsidiary control opening is forbidden;
+                // reject without journal/audit/receipt/outbox side effects.
+                Authenticate(Token("sql-owner"));
+                var openingControl = await Command(client,
+                    $"/api/v1/companies/{companyId}/accounts",
+                    new CreateAccountRequest("HTTP-GL02-CTRL-GUARD", "رقابة افتتاح", AccountType.Asset,
+                        null, true, true, false, null, NormalBalance.Debit));
+                var openingGuardBefore = await ReadOnlyCounts(connection, companyId);
                 Authenticate(Token("sql-clerk"));
+                var forbiddenOpening = GeneralOpeningTests.Request(journalRequest) with
+                {
+                    ExternalReference = "GL02-CTRL-HTTP-" + Fixture.Key(),
+                    Lines = journalRequest.Lines.Select((line, index) => index == 0
+                        ? line with { AccountId = openingControl.ResourceId } : line).ToArray()
+                };
+                using (var deniedOpeningRequest = new HttpRequestMessage(HttpMethod.Post,
+                    $"/api/v1/companies/{companyId}/general-openings"))
+                {
+                    deniedOpeningRequest.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedOpeningRequest.Content = new StringContent(
+                        JsonSerializer.Serialize(forbiddenOpening, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var deniedOpening = await client.SendAsync(deniedOpeningRequest);
+                    using var error = JsonDocument.Parse(await deniedOpening.Content.ReadAsStringAsync());
+                    Ensure((int)deniedOpening.StatusCode == 422 &&
+                        error.RootElement.GetProperty("code").GetString() == "control_account_protected",
+                        "GL02-C01 HTTPS/JWT accepted forbidden direct control-account opening");
+                }
+                Ensure(openingGuardBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL02-C01 rejected HTTPS opening persisted journal/audit/receipt/outbox");
+                using (var absentOpening = await client.GetAsync(
+                    $"/api/v1/companies/{companyId}/general-openings?search=" +
+                    Uri.EscapeDataString(forbiddenOpening.ExternalReference!)))
+                using (var found = JsonDocument.Parse(await absentOpening.Content.ReadAsStringAsync()))
+                    Ensure(absentOpening.StatusCode == HttpStatusCode.OK &&
+                        found.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "GL02-C01 forbidden control opening remained visible after rejection");
+                Console.WriteLine("  HOST PASS GL02-C01 control opening rejects 422 over HTTPS/JWT, no SQL writes or leaked document");
                 const string printDescription = "افتتاح <script>alert(1)</script> & نهاية";
                 var generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings",
                     GeneralOpeningTests.Request(journalRequest) with
