@@ -526,6 +526,7 @@ GeneralOpeningTests.Register(Test);
 GeneralOpeningReversalTests.Register(Test);
 DraftJournalHeaderTests.Register(Test);
 JournalHeaderFieldsTests.Register(Test);
+JournalPrintTests.Register(Test);
 JournalLineGuardAcceptance.Register(Test);
 JournalReviewHistoryAcceptance.Register(Test);
 ItemTests.Register(Test);

@@ -140,7 +140,35 @@ public static class HostedApiIntegration
                 Ensure(forgedSourceResult.StatusCode == HttpStatusCode.BadRequest, "Manual API accepted forged automated provenance");
 
                 var requestKey = Fixture.Key();
-                var receipt = await Command(client, path, journalRequest, requestKey);
+                var printJournalRequest = journalRequest with
+                {
+                    Description = "قيد <script>alert(1)</script> آمن",
+                    ExternalReference = "000070-PRINT"
+                };
+                var receipt = await Command(client, path, printJournalRequest, requestKey);
+                var manualPrintPath = path + $"/{receipt.ResourceId}/print";
+                using (var printed = await client.GetAsync(manualPrintPath))
+                {
+                    var html = await printed.Content.ReadAsStringAsync();
+                    Ensure(printed.StatusCode == HttpStatusCode.OK &&
+                        printed.Content.Headers.ContentType?.MediaType == "text/html" &&
+                        printed.Headers.TryGetValues("Content-Security-Policy", out var policy) &&
+                        policy.Any(x => x.Contains("default-src 'none'", StringComparison.Ordinal)) &&
+                        printed.Headers.TryGetValues("Cache-Control", out var cache) &&
+                        cache.Any(x => x.Contains("no-store", StringComparison.Ordinal)) &&
+                        html.Contains("lang=\"ar\" dir=\"rtl\"", StringComparison.Ordinal) &&
+                        html.Contains("000070-PRINT", StringComparison.Ordinal) &&
+                        html.Contains("&lt;script&gt;", StringComparison.Ordinal) &&
+                        !html.Contains("<script>", StringComparison.OrdinalIgnoreCase) &&
+                        html.Contains("قيد يومية", StringComparison.Ordinal),
+                        "GL03 printable journal failed HTML escaping or protected content");
+                }
+                Authenticate(Token("journal-print-no-membership"));
+                using (var printDenied = await client.GetAsync(manualPrintPath))
+                    Ensure(printDenied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL03 print leaked to a JWT without tenant membership");
+                Authenticate(Token("sql-clerk"));
+                Console.WriteLine("  HOST PASS GL03-A07 script-safe printable manual journal with tenant-scoped HTTPS/JWT");
                 using (var previewResponse = await client.GetAsync(path + $"/{receipt.ResourceId}/impact-preview"))
                 using (var impact = JsonDocument.Parse(await previewResponse.Content.ReadAsStringAsync()))
                 {
@@ -173,7 +201,7 @@ public static class HostedApiIntegration
                     using var rejected = await client.SendAsync(forgedRevision);
                     Ensure(rejected.StatusCode == HttpStatusCode.BadRequest, "GL03 accepted forged numeric revision");
                 }
-                var replay = await Command(client, path, journalRequest, requestKey);
+                var replay = await Command(client, path, printJournalRequest, requestKey);
                 Ensure(receipt == replay, "Production HTTP/SQL replay differs");
                 receipt = await Command(client, path + $"/{receipt.ResourceId}/submit", new TransitionRequest(receipt.Version));
                 Authenticate(Token("sql-approver"));
@@ -302,7 +330,41 @@ public static class HostedApiIntegration
                 Console.WriteLine("  HOST PASS GL05/06 preview, mixed batch with per-item keys, replay and rejection history over HTTPS/JWT/SQL");
 
                 Authenticate(Token("sql-clerk"));
-                var generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings", GeneralOpeningTests.Request(journalRequest));
+                const string printDescription = "افتتاح <script>alert(1)</script> & نهاية";
+                var generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings",
+                    GeneralOpeningTests.Request(journalRequest) with
+                    {
+                        Description = printDescription, ExternalReference = "0000048-PRINT"
+                    });
+                var printPath = $"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}/print";
+                using (var printable = await client.GetAsync(printPath))
+                {
+                    var html = await printable.Content.ReadAsStringAsync();
+                    Ensure(printable.StatusCode == HttpStatusCode.OK &&
+                        printable.Content.Headers.ContentType?.MediaType == "text/html" &&
+                        printable.Headers.TryGetValues("Cache-Control", out var cache) &&
+                        cache.Any(x => x.Contains("no-store", StringComparison.OrdinalIgnoreCase)) &&
+                        printable.Headers.TryGetValues("Content-Security-Policy", out var csp) &&
+                        csp.Any(x => x.Contains("default-src 'none'", StringComparison.Ordinal)) &&
+                        html.Contains("lang=\"ar\" dir=\"rtl\"", StringComparison.Ordinal) &&
+                        html.Contains("0000048-PRINT", StringComparison.Ordinal) &&
+                        html.Contains("&lt;script&gt;", StringComparison.Ordinal) &&
+                        !html.Contains("<script>", StringComparison.OrdinalIgnoreCase) &&
+                        html.Contains("&amp;", StringComparison.Ordinal) &&
+                        html.Contains("TB-2026", StringComparison.Ordinal) &&
+                        html.Contains("100", StringComparison.Ordinal),
+                        "GL02 print route failed HTML encoding, historical opening content or security headers");
+                }
+                Authenticate(Token("gl02-print-nonmember"));
+                using (var printDenied = await client.GetAsync(printPath))
+                    Ensure(printDenied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL02 printable opening was exposed to nonmember JWT");
+                Authenticate(Token("sql-clerk"));
+                using (var printWrongSource = await client.GetAsync(
+                    $"/api/v1/companies/{companyId}/general-openings/{receipt.ResourceId}/print"))
+                    Ensure((int)printWrongSource.StatusCode == 422,
+                        "GL02 print accepted manual journal as a general opening");
+                Console.WriteLine("  HOST PASS GL02-A07 RTL printable HTML, XSS escaping, scoped HTTPS/JWT and no mutation");
                 using (var previewResponse = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}/impact-preview"))
                 using (var preview = JsonDocument.Parse(await previewResponse.Content.ReadAsStringAsync()))
                 {
@@ -346,6 +408,20 @@ public static class HostedApiIntegration
                 generalOpening = await Command(client, path + $"/{generalOpening.ResourceId}/post", new TransitionRequest(generalOpening.Version));
                 Authenticate(Token("sql-clerk"));
                 var generalInverse = await Command(client, path + $"/{generalOpening.ResourceId}/reverse", new ReverseJournalRequest(generalOpening.Version, Fixture.Date, "تصحيح افتتاح HTTP"));
+                using (var inversePrint = await client.GetAsync(path + $"/{generalInverse.ResourceId}/print"))
+                {
+                    var html = await inversePrint.Content.ReadAsStringAsync();
+                    Ensure(inversePrint.StatusCode == HttpStatusCode.OK &&
+                        inversePrint.Content.Headers.ContentType?.MediaType == "text/html" &&
+                        html.Contains("قيد عكسي مرتبط", StringComparison.Ordinal) &&
+                        html.Contains(generalOpening.Number!, StringComparison.Ordinal) &&
+                        html.Contains("تصحيح افتتاح HTTP", StringComparison.Ordinal),
+                        "GL07 reversal print omitted historical original number and correction reason");
+                }
+                using (var sourceWrongPrint = await client.GetAsync(path + $"/{generalOpening.ResourceId}/print"))
+                    Ensure(sourceWrongPrint.StatusCode == HttpStatusCode.Conflict,
+                        "GL03 print misrepresented a generated source as a manual journal");
+                Console.WriteLine("  HOST PASS GL07-A07 reversal printable original link/reason with source-only guards");
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("openingRevision").GetInt32() == 6 && json.RootElement.GetProperty("pendingReversalJournalId").GetGuid() == generalInverse.ResourceId, "HTTP opening reservation metadata missing");
@@ -761,6 +837,22 @@ public static class HostedApiIntegration
                     Ensure(response.StatusCode == HttpStatusCode.OK && !json.RootElement.GetProperty("canCloseGeneralLedger").GetBoolean() &&
                         json.RootElement.GetProperty("generalLedgerOnly").GetBoolean() && json.RootElement.GetProperty("issues").GetProperty("items").GetArrayLength() == 1,
                         "SQL/HTTP close preview did not expose pending blockers");
+                // GL11-A05: history endpoint is read-only and requires a tenant-wide
+                // PeriodClose + Read + Audit permission set, not merely an OIDC token.
+                var closeHistoryPath = $"/api/v1/companies/{companyId}/periods/{periodId}/execution-history";
+                using (var response = await client.GetAsync(closeHistoryPath + "?offset=0&limit=1"))
+                using (var gl11HistoryBody = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        gl11HistoryBody.RootElement.GetProperty("periodId").GetGuid() == periodId &&
+                        gl11HistoryBody.RootElement.GetProperty("history").GetProperty("totalCount").GetInt32() == 0 &&
+                        gl11HistoryBody.RootElement.GetProperty("history").GetProperty("items").GetArrayLength() == 0,
+                        "GL11 HTTP execution history returned unintended event or wrong period");
+                Authenticate(Token("gl11-audit-nonmember"));
+                using (var gl11HistoryDenied = await client.GetAsync(closeHistoryPath))
+                    Ensure(gl11HistoryDenied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL11 execution history leaked to an unrelated JWT subject");
+                Authenticate(Token("sql-approver"));
+                Console.WriteLine("  HOST PASS GL11-A05 scoped execution result/history over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL");
 
                 // SYS05-GAP03: a quotation does not hold its rate; the next journal
