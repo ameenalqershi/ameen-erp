@@ -50,7 +50,7 @@ public static class CustomerSqlIntegration
            CustomerCategoryId,ControlAccountId,TransactionCurrencyId,CreditLimit,
            CreditDays,CountryId,CreatedBy,CreatedAt,Revision,LastModifiedAt,BuildingNumber,PostalCode)
           VALUES({companyId},{customerId},{Guid.NewGuid()},{"00045"},{"عميل"}, {"Customer"},{true},{"اسم قانوني"},
-                 {category},{controlAccountId},{currencyId},{12.123456m},
+                 {category},{controlAccountId},{currencyId},CAST(12.123456 AS decimal(20,6)),
                  {5},{country},{actor},{now},{1},{now},{"0007"},{"0050"})");
         db.ChangeTracker.Clear();
         var saved=await db.Set<Customer>().AsNoTracking().SingleAsync(x=>x.CompanyId==companyId && x.Id==customerId);
@@ -92,6 +92,18 @@ public static class CustomerSqlIntegration
         try {await db.SaveChangesAsync();throw new Exception("SAL01 unauthorized EF write succeeded");}
         catch(BusinessException e) when(e.Code=="customer_policy_unavailable") { }
         db.Entry(rejected).State=EntityState.Detached;
+        // Every direct EF mutation must remain unavailable until the country,
+        // credit override and customer scope policies are approved.
+        db.Attach(saved);
+        db.Entry(saved).State=EntityState.Modified;
+        try {await db.SaveChangesAsync();throw new Exception("SAL01 EF update bypassed policy");}
+        catch(BusinessException e) when(e.Code=="customer_policy_unavailable") { }
+        db.Entry(saved).State=EntityState.Detached;
+        db.Attach(saved);
+        db.Entry(saved).State=EntityState.Deleted;
+        try {await db.SaveChangesAsync();throw new Exception("SAL01 EF delete bypassed policy");}
+        catch(BusinessException e) when(e.Code=="customer_policy_unavailable") { }
+        db.Entry(saved).State=EntityState.Detached;
         Ensure(await db.Set<Customer>().CountAsync()==1 &&
           await db.Set<AuditEvent>().CountAsync()==audits &&
           await db.Set<OutboxEvent>().CountAsync()==outbox &&
