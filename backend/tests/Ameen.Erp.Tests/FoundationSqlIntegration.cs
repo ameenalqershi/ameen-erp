@@ -34,6 +34,21 @@ public static class FoundationSqlIntegration
                 "SYS04-FG03 SQL currency precision/symbol/fraction roundtrip differs");
         }
         Console.WriteLine("  SQL PASS SYS04-FG03 precision and Unicode symbol/fraction persisted after edit");
+        // SYS04-FG04: created/modified actor and timestamps are sourced from
+        // immutable audit events; revision is the card's numeric counter.
+        await using (var currencyAuditDb = Context())
+        {
+            var events = await currencyAuditDb.Set<AuditEvent>().Where(x =>
+                x.CompanyId == cid && x.ResourceId == currency.Id &&
+                (x.Action == "currency.created" || x.Action == "currency.edited")).ToListAsync();
+            Ensure(events.Count == 2 && currency.Revision == 2 &&
+                events.All(x => x.ActorId == owner.Subject && x.OccurredAt != default &&
+                    x.CompanyId == cid && x.ResourceId == currency.Id) &&
+                events.Single(x => x.Action == "currency.edited").OccurredAt >=
+                    events.Single(x => x.Action == "currency.created").OccurredAt,
+                "SYS04-FG04 SQL currency create/last-modified actor, chronology or revision differ");
+        }
+        Console.WriteLine("  SQL PASS SYS04-FG04 currency creation/modification audit, actor/time and numeric revision");
         Ensure((await Call(s => s.Currency.SearchCurrencies(cid, owner, "Euro", true, 0, 10, default))).Items.Single().Id == currency.Id, "Currency search SQL translation differs");
         await Call(s => s.ExchangeRate.CreateExchangeRate(cid, owner, Fixture.Key(), new("EUR", Fixture.Date, 4.2m, "اختبار"), default));
         await Error("currency_precision_in_use", () => Call(s => s.Currency.EditCurrency(cid, currency.Id, owner, Fixture.Key(), CurrencyTests.Edit(currency) with { Scale = 2 }, default)));

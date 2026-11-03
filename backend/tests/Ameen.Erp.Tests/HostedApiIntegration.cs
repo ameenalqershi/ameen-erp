@@ -884,6 +884,29 @@ public static class HostedApiIntegration
                 using (var log = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await log.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Currency HTTP audit failed");
+                // SYS04-FG04: the audit is system-issued, company-scoped,
+                // chronologically ordered by the authoritative server clock.
+                using (var audit = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/audit-events"))
+                using (var auditJson = JsonDocument.Parse(await audit.Content.ReadAsStringAsync()))
+                {
+                    var events = auditJson.RootElement.GetProperty("items").EnumerateArray().ToArray();
+                    Ensure(audit.StatusCode == HttpStatusCode.OK &&
+                        auditJson.RootElement.GetProperty("totalCount").GetInt32() == 3 &&
+                        events.Length == 3 && events.All(x =>
+                            x.GetProperty("actorId").GetString() == "sql-owner" &&
+                            x.GetProperty("companyId").GetGuid() == companyId &&
+                            x.GetProperty("resourceId").GetGuid() == currencyCard.ResourceId),
+                        "SYS04-FG04 currency audit actor/resource/tenant was not preserved");
+                    var created = events.Single(x => x.GetProperty("action").GetString() == "currency.created")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    var edited = events.Single(x => x.GetProperty("action").GetString() == "currency.edited")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    var disabled = events.Single(x => x.GetProperty("action").GetString() == "currency.status-changed")
+                        .GetProperty("occurredAt").GetDateTimeOffset();
+                    Ensure(created != default && edited >= created && disabled >= edited,
+                        "SYS04-FG04 currency audit timestamps were not chronological");
+                }
+                Console.WriteLine("  HOST PASS SYS04-FG04 currency audit actor, timestamps and tenant identity over HTTPS/JWT/SQL");
 
                 // SYS04-FG03: display metadata and changed integer scale
                 // survive authorized PUT and a disabled-card HTTPS GET.
