@@ -30,6 +30,11 @@ public static class ApiHost
             var schedulerActor = builder.Configuration["RecurringScheduler:ActorSubject"];
             if (string.IsNullOrWhiteSpace(schedulerActor) || schedulerActor.Length > 200)
                 throw new InvalidOperationException("RecurringScheduler requires a pre-provisioned ActorSubject with company membership, RecurringGenerate and Draft permissions.");
+            // Reject invalid opt-in worker configuration at host build, not
+            // after the background service has started executing.
+            var intervalMinutes = builder.Configuration.GetValue<int?>("RecurringScheduler:IntervalMinutes") ?? 15;
+            if (intervalMinutes is < 1 or > 1440)
+                throw new InvalidOperationException("RecurringScheduler:IntervalMinutes must be between 1 and 1440.");
             builder.Services.AddHostedService<RecurringDraftScheduler>();
         }
         if (builder.Configuration.GetValue<bool>("ReversalScheduler:Enabled"))
@@ -37,6 +42,11 @@ public static class ApiHost
             var schedulerActor = builder.Configuration["ReversalScheduler:ActorSubject"];
             if (string.IsNullOrWhiteSpace(schedulerActor) || schedulerActor.Length > 200)
                 throw new InvalidOperationException("ReversalScheduler requires a pre-provisioned ActorSubject with company membership, Reverse and Draft permissions.");
+            // Validate the opt-in interval before starting the host, rather than
+            // leaving an invalid deployment to fail inside a background task.
+            var schedulerMinutes = builder.Configuration.GetValue<int?>("ReversalScheduler:IntervalMinutes") ?? 15;
+            if (schedulerMinutes is < 1 or > 1440)
+                throw new InvalidOperationException("ReversalScheduler:IntervalMinutes must be between 1 and 1440.");
             builder.Services.AddHostedService<ReversalDraftScheduler>();
         }
         builder.Services.ConfigureHttpJsonOptions(options => JsonDefaults.Configure(options.SerializerOptions));

@@ -82,6 +82,65 @@
 الاختبارات: CashCountFoundationTests.cs لقبول المجال والدقة والرفض، وCashCountSqlIntegration.cs لاختبار SQL مؤقت على قاعدة جديدة، وفشل ترقية متأخر مع التراجع الذري، وإعادة تطبيقها، وحساب سطور متكرر الفئة دون اختراع منع تكرارها، والحماية من Company/FK خاطئة، والإصدار والتدقيق، والتأكد من بقاء الصندوق دون تعديل بعد SQL مرفوض. رُبطت ببرنامج SqlIntegration.Run وجرى تحديث traceability.py والحقول وخرائط التقدم وتدقيق مخطط CASH (15 عقدة، 14 سهمًا، 11 شاشة، 213 حقلًا محفوظًا في الأصل). نتائج SQL والـAPI الكاملة تتطلب نجاح CI على SHA الدفعة.
 
 **حد القبول:** يمكن إغلاق CASH11-01 فقط بعد نجاح CI البنيوي؛ شاشة CASH11 تظل **جزئية**. لا توجد بعد واجهة جرد أو معاينة رصيد دفتر موثوق أو محضر فرق عجز/زيادة معتمد أو تسوية منفصلة وفق GL03 أو دورة اعتماد موثقة أو صلاحيات SYS07 تشغيلية؛ لا يُسمح بتفعيل هذه الوظائف عبر SQL/EF حتى اعتماد قواعدها. لم تُعدّل المخططات الأصلية أو بيانات الإنتاج ولم يُدمج شيء مباشرة في main.
+## GL11-T02 — رفض إقفال فترة لعدم اتزان قيد مرحلة (3 نوفمبر 2026)
+
+أُضيف اختبار SQL مستقل آخر في PeriodUnbalancedCloseSqlAcceptance.cs لسنة 2048 تجريبية: ينشئ قيدًا Manual متزنًا مُقدمًا ومعتمدًا ومُرحّلًا ثم يكسر توازن سطر الائتمان في SQL المؤقت فقط لمحاكاة تاريخ مالي متضرر رغم CHECK constraints. يجب أن يعرض close-preview فحص posted_journals_balanced فاشلًا وسبب journal_unbalanced مع عدم وجود Pending Journal؛ ثم يرفض ChangePeriod الإقفال دون تعديل حالة/إصدار الفترة أو Audit/Idempotency/Outbox/Journal/NumberSequence. بعد إعادة المبلغ الأصلي داخل finally ينجح معاينة الإقفال ويغلق المفتاح المرفوض سابقًا الفترة مرة واحدة مع receipt ثابت. لا تعديلات لشفرة المالية ولا لبيانات إنتاج ولا لقواعد معالجة الفرق؛ الاختبار يقبل حارس الأستاذ الحالي فقط. GL11-C01 والـERP-wide reconciliation والربح السنوي ما زالت جزئية. يلزم CI branch/PR/gl exact SHA.
+
+
+## GL11-T01 — قبول SQL إيجابي مستقل لإقفال فترة الأستاذ (3 نوفمبر 2026)
+
+بعد اختبار الرفض GL11-T02، أُضيف اختبار SQL Server إيجابي مستقل في PeriodReadyCloseSqlAcceptance.cs على سنة/فترة اختبار جديدتين: إنشاء/تقديم/اعتماد/ترحيل قيد واحد وإلغاء مسودة أخرى في الفترة نفسها عبر الإجراءات المعتمدة، إثبات أن close-preview يعرض Posted=1 وUnposted=0 بلا أخطاء ولا أي كتابة، ثم إقفال الفترة بتوقيع PeriodClose مرة واحدة وإعادة المفتاح نفسه دون قرار مكرر. يفحص SQL الحفاظ على بيانات الحالتين والإصدارات الأصلية وعدم إنشاء/تغيير القيود أو outbox أو حجز أرقام إضافية، وسجل التنفيذ event period.closed واحد، وpreview بعد الإقفال يرفض إقفالًا جديدًا. **هذا قبول GL11-T01 للفترة المالية التابعة للأستاذ فقط (GeneralLedgerOnly)** لا يدل على تنفيذ قيد أرباح السنة أو مطابقة TAX/CASH/SAL/PUR/FA/GL10. لا تعديل الكود المالي أو التحليل الأصلي ولا قاعدة الإنتاج. الإغلاق الجزئي بعد CI push/PR/gl.
+
+
+## GL11-T02 — رفض إقفال فترة ذات مسودة معلّقة دون أثر جانبي (3 نوفمبر 2026)
+
+أُضيف اختبار SQL Server معزول في PeriodPendingCloseSqlAcceptance.cs بعد بقية اختبارات الدفتر حتى لا يتداخل مع مجموعات الفترات الأخرى. ينشئ سنة اختبار مستقلة وفترة مفتوحة وقيدًا Manual مسودة فيها؛ تعرض close-preview السبب unposted_journal ولا تسمح بالإقفال. محاولات ChangePeriod ترفض برمز unposted_journals دون تعديل IsClosed/Version/Journal/Audit/Idempotency/Outbox/NumberSequence، ودون حجز المفتاح المرفوض. بعد إلغاء المسودة بالطريق المعتمد يعاود الاختبار التحقق ويعيد المفتاح نفسه ليقفل الفترة مرة واحدة فقط مع سجل واحد وإيصال idempotent ثابت. هذا قبول سلبي **جزئي** لمانع القيود المعلقة في نطاق GeneralLedgerOnly؛ لا يزعم تنفيذ GL11-C01 إقفال أرباح السنة أو مطابقة بقية الدفاتر المساعدة، ولا يتبنى سياسة محاسبية غير معتمدة. لا تعديل لشفرة الخدمات أو المخططات/بيانات الإنتاج. القبول مرهون بـCI branch/PR/gl على SHA محدد.
+
+
+## GL04-01 — عامل التوليد الدوري الفعلي على SQL مؤقت مع عزل الفرع (3 نوفمبر 2026)
+
+بعد PR #79 الذي أثبت ضوابط التهيئة دون التشغيل، أُضيف اختبار حقيقي لنمط RecurringScheduler:Enabled=true في HostedApiIntegration على SQL Server المؤقت: مستخدم تجريبي له فقط RecurringGenerate + Draft ومقيد بفرع مستقل، قالب Scheduled شهري له موعد واحد، وتشغيل عامل BackgroundService فعليًا لمرة واحدة مع فترة فحص طويلة؛ يثبت ظهور RecurringJournalGeneration واحدة وقيد JournalSource.Recurring بحالة Draft دون ترحيل أو اعتماد آلي أو تكرار عند replay عبر HTTPS/JWT بالهوية المقيدة. يسجل النموذج التاريخي والمبالغ ويراقب العزل، وينهي العامل بعد الاختبار. لا يفعّل VPS ولا يغيّر بيئة إنتاج، ولا يتخذ قرارات غير معتمدة بشأن فرع القالب الشرطي أو الدوريات الإضافية. يحتاج CI branch/PR ثم gl لقبول تشغيل الشفرة.
+
+
+## GL07-02 — اختبار تشغيل حقيقي للعامل المجدول في SQL المؤقت (3 نوفمبر 2026)
+
+بعد قبول تهيئة العامل في PR #77 أُضيف اختبار تشغيل فعلي إلى ScheduledReversalHostedIntegration على **SQL Server مؤقت ومعزول فقط**: إنشاء فرع خاص واختصاص عامل بهوية ذات صلاحيتَي Reverse وDraft لذلك الفرع حصريًا، ترحيل أصل Manual مؤهل يستدعي العكس في موعده، ثم بدء ApiHost ثاني بخيار ReversalScheduler:Enabled=true وهوية معتمدة وIntervalMinutes=1440. يفحص الاختبار ضمن حد انتظار مضبوظ إنشاء قيد عكسي Draft مرتبط أصليًا ويحفظ نفس القيمة التاريخية والعكس المزدوج، وعدم ترقيته تلقائيًا إلى Approved/Posted، وتوقف توليد المسودات عند replay. لا تشغيل للعامل في VPS أو قواعد إنتاج، ولا امتداد إلى INV/SAL/PUR/Tax، ولا افتراض سياسة اعتماد/ترحيل تلقائي. يبقى إغلاق GL07-02 على مستوى الشفرة مرهونًا بنجاح CI branch/PR وgl، أما نشر العامل بصلاحية تشغيلية في بيئة مستهدفة فهو تسليم تشغيلي منفصل.
+
+
+## GL02-C01 — رفض حسابات الرقابة في الافتتاح العام دون أثر جانبي (3 نوفمبر 2026)
+
+تضاف GeneralOpeningControlGuardSqlIntegration.cs إلى تسلسل SQL المعزول وHost acceptance إلى HostedApiIntegration.cs: إنشاء حساب رقابي معتمد ثم رفض استخدامه في سطر الافتتاح العام برمز control_account_protected بنتيجة HTTP 422 عبر HTTPS/JWT؛ يثبت SQL عدم تغير Journals/Audit/Idempotency/Outbox/NumberSequence وعدم حفظ Receipt للمفتاح المرفوض، وتؤكد واجهة البحث عدم إنشاء مستند، ثم يقبل النظام مسودة افتتاح صحيحة متزنة على حسابات غير رقابية. **هذا يحقق منع الافتتاح العام المباشر للرقابة فقط**، ولا يحقق بعد بديل GL02-GP04 لتصفير حساب التسوية من جميع دفاتر المساعدة أو SAL03/PUR03/INV06 ومطابقة أرصدة كل المصادر؛ لذا يبقى GL02-C01 **جزئيًا** حتى توافر قبول التسوية الشاملة. لا تغيير لخدمات مالية أو مخططات المصدر أو بيانات الإنتاج. يلزم CI exact SHA ثم gl.
+
+
+## GL04-01 — قبول أمان التوليد الدوري الاختياري للمسودات (3 نوفمبر 2026)
+
+يوجد نمط RecurringGenerationMode.Scheduled وعامل RecurringDraftScheduler لتوليد مسودة واحدة لكل فترة مستحقة وفق صلاحيات RecurringGenerate + Draft ونطاق الشركة/الفرع، دون موافقة أو ترحيل تلقائي. أُضيف تحقق fail-fast في ApiHost عند RecurringScheduler:Enabled=true من صلاحية IntervalMinutes ضمن 1..1440، واختبار المضيف للمستخدم الفارغ/الطويل وفترات التشغيل غير المقبولة، وضمان عدم تسجيل worker عند Enabled=false وتسجيله عند التفعيل الصحيح فقط **دون تشغيل العامل على SQL أثناء هذا الاختبار**. اختبارات RecurringTests/RecurringSqlIntegration/HostedApiIntegration الحالية تثبت المسودات وعدم التكرار على SQL وHTTPS/JWT. **لا يعني هذا تشغيل عامل على VPS أو اعتماد دوريات جديدة أو تسوية فرع GL04-F02 الشرطي**؛ يقتصر الإغلاق على قبول قدرة التوليد المجدول عبر شفرة واختبارات CI. تبقى GL04-03/GL04-GP02/GL04-FG01 محجوبة بالاعتمادات الأصلية.
+
+
+## GL07-02 — اعتماد أمان تشغيل العكس المجدول الاختياري (3 نوفمبر 2026)
+
+لم يُفعَّل عامل العكس المجدول في بيئة إنتاج. ثبت أن شفرة ReversalDraftScheduler تنشئ **مسودة عكس مرتبطة فقط** لقيود JournalSource.Manual المستحقة بشرط Reverse + Draft ونطاق المستأجر/الفرع، ولا تتجاوز submit/approve/post، ولا تعيد توليد مسودة ملغاة. أُضيف تحقق fail-fast في ApiHost من ReversalScheduler:IntervalMinutes ضمن 1..1440 عند التشغيل الاختياري وحده، واختبار مضيف إنتاجي للإعدادات الناقصة (ActorSubject فارغ/طويل) والقيم غير المقبولة وفحص DI لغياب الخدمة افتراضيًا ووجودها عند الاشتراك الصحيح **دون تشغيل العامل على SQL أثناء اختبار الإعدادات**. الاختبارات الحالية ScheduledReversalHostedIntegration / ScheduledReversalSqlIntegration تختبر فعليًا مسار run-due الموثق باستخدام HTTPS/JWT/SQL ومسوّدة واحدة وإعادة طلب دون تكرار. **لا يعتبر الاختبار دليل تفعيل العامل في VPS، ولا يسمح بعكس مستند INV/SAL/PUR آلي من غير مصدره.** شرط القبول CI على الفرع/PR ثم gl؛ تبقى شاشة GL07 وأتمتة بقية المصادر جزئية.
+
+
+## GL06-A05 — قبول عرض نتيجة الدفعة وسجل التنفيذ عبر HTTPS/JWT (3 نوفمبر 2026)
+
+أُضيف اختبار HTTPS/JWT/OIDC في HostedApiIntegration.cs لسجل نتيجة دفعة محفوظة في SQL ضمن المسار الحالي للقيود: لا يجوز لعضو آخر مخوّل بالقراءة ولكن ليس منشئ الدفعة كشف نتيجة دفعة الغير (404 بلا كشف وجودها)، ولا لغير العضو قراءة سجلها (403)؛ المفتاح غير الموجود يعود 404، ويحتفظ المالك بعد هذه المحاولات بالنتائج الأصلية ورقم الإصدار والفاعل المسجل. القراءة والرفض لا تغيّران Journal/Audit/Receipt/Outbox. الاختبارات الدائمة في JournalProcessingSqlIntegration.cs سبق أن غطت حفظ الخطأ التقني خارج معاملة المستند ونجاح بقية عناصر الدفعة وملكية السجل/إعادة المحاولة. إغلاق GL06-A05 مشروط بنجاح CI الفرع/PR وبعد الدمج إلى gl، ولا يضيف عامل Outbox ولا يعلن إكمال GL06-GP01 أو الشاشة خارج نطاق مصدر Journal الحالي.
+
+
+## GL06-04 — تدقيق اكتمال شاشة الترحيل الذري بعد الدمج (3 نوفمبر 2026)
+
+رُوجع أصل GL06 وقاموس الحقول 13/13 مقابل fields-implementation.csv وواجهات queue/preview/process-batch/history ونتائج SQL/HTTPS/JWT/OpenAPI دون تغيير الشيفرة الإنتاجية أو إعادة تنفيذ المهام المقبولة. التقرير docs/backend/GL06_SCREEN_COMPLETENESS_AUDIT_20261103.md يوثق **12 حقلًا منفذًا وواحدًا جزئيًا GL06-F04**؛ الدفعة تحتفظ بنجاح/فشل كل مستند منفصل ومعاملة ذرية وعدم تكرار الأثر، لكن مسارات مصادر المستندات الأخرى وعامل Outbox GL06-01/GL06-GP01 لم تنفذ بالكامل. إغلاق GL06-04 هو إغلاق **مهمة تدقيق** بعد CI الفرع/PR/gl الأخضر فقط، ولا يعني إغلاق الشاشة أو مهام GL06-FG01 وGL06-T01 المتطلبة قبولًا مستقلًا. أصل التحليل والبيانات الإنتاجية لم يمسا.
+
+
+## GL03-02 — تدقيق اكتمال شاشة قيد اليومية بعد دمج الفروع الأربعة (3 نوفمبر 2026)
+
+قورنت حقول GL03 الـ28 بالمخطط وقاموس المصدر وقائمة fields-implementation.csv ومصفوفة implementation-map.json والاختبارات: **22 حقلًا منفذًا، 1 مشتق، 3 جزئية، 2 معلقة**. يحدد التقرير docs/backend/GL03_SCREEN_COMPLETENESS_AUDIT_20261103.md الإجراءات والقبول الإيجابي/السلبي وربط SQL/HTTPS/JWT/OIDC/OpenAPI وموانع GL03-F08/F09/F13/F22/F23، ويدقق الطباعة والعكس المجدول دون تحويل المسودة إلى ترحيل تلقائي. اكتمال **مهمة التدقيق GL03-02 فقط** مشروط بنجاح CI على SHA الفرع الجديد ثم gl؛ شاشة GL03 تبقى **جزئية** وGL03-01 وGP01–GP04 والحقول الجزئية لا تغلق. لم يعدل التحليل الأصلي أو API أو سياسة محاسبية أو بيانات إنتاج.
+
+
+## GL01-02 — سجل الاستخدام الحالي للأستاذ والقوالب مع قبول SQL وHTTPS (3 نوفمبر 2026)
+
+تسليم المهمة الدقيقة الحالية يثبت أن \`GET /api/v1/companies/{companyId}/accounts/{id}/usage\` يُعيد استخدام الحساب في قيود الأستاذ بجميع الحالات، وفي القوالب الدورية بما فيها المعطلة، مع عدادات مستقلة وصفحات مرتبة قابلة للإعادة؛ لا يفتح هذا التحقق سياسة تحويل بنية الحساب المستخدم \`GL01-GP01\` ولا يزعم تكامل دفاتر مساعدة لم يكتمل تنفيذها. يثبت اختبار \`AccountSqlIntegration.cs\` من قاعدة SQL المؤقتة وجود مراجع Journal وRecurringTemplate مع تطابق pagination واستقرار الأعداد وعدم تسريب بيانات حساب إلى غير عضو وعدم أي كتابة على Account/Journal/Recurring/Audit/Receipt/Outbox. ويضيف \`HostedApiIntegration.cs\` قبولًا من HTTPS/JWT/OIDC/OpenAPI: مراجع وصحفات معروضة فعليًا، 404 لحساب غير موجود، 403 لمستخدم ليس عضوًا، وصفر أثر قراءات على SQL. تعمل فحوص المصدر/traceability/النسخ حسب CI. **لا تُغلق GL01-02 في Notion قبل نجاح CI على SHA الفرع/PR والدمج إلى gl**. يبقى GL01-01/GL01-GP01 محجوبين لعدم اعتماد إجراء تحويل، والشاشة GL01 جزئية؛ لم يُغير التحليل الأصلي أو أي قاعدة مالية أو بيانات الإنتاج.
+
 
 ## INV06-FG05 وINV06-OP03 وINV06-AC01 — سطور الافتتاح والاعتماد والمطابقة (3 نوفمبر 2026)
 
@@ -1324,3 +1383,7 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 ## SYS10-02 — reconcile live field traceability (2026-11-03)
 
 Confirmed against the original read-only SYS10 dictionary and current `DocumentNumberSeries`/`NumberingService` implementation that `SYS10-F05 FiscalYearId`, `SYS10-F06 Prefix`, and `SYS10-F07 NextNumber` are now publicly configurable or selected with validation, immutable allocated history and protected SQL transactions. The old `derived`/`partial` text in `docs/backend/fields-implementation.csv` referred to the legacy journal fallback and was stale after the configured SYS10 number-series feature was integrated. Updated only these three implementation-trace rows; source analysis under `muhaseb-erp-analysis/` is unchanged. Acceptance evidence: `backend/tests/Ameen.Erp.Tests/NumberingTests.cs`, `NumberingSqlIntegration.cs`, `HostedApiIntegration.cs`, and SYS10-A01/AC02/CTRL01/FG02 tasks in Notion. Tax numbering remains explicitly blocked until an approved country profile/TAX05 policy; no tax series or policy was inferred. This documentation correction alone does not implement TAX05.
+
+## GL11-A05 — استقلال فترة SQL النظيفة لاختبار سجل الإقفال (3 نوفمبر 2026)
+
+إثر دمج PR #67 كانت اختبارات SQL Server/HTTPS/JWT الخاصة بـGL01 ناجحة على الفرع وPR (464/464)، لكن اختبار gl push #41666382701 أظهر نتيجة متذبذبة مستقلة في PeriodExecutionHistorySqlIntegration.cs: افترض أن فترة مفتوحة وخالية من القيود ليس لها قرارات period.closed/period.reopened سابقة، وهذا غير مضمون بعد تنفيذ حزم SQL الأخرى في نفس قاعدة البيانات الاختبارية. تم إصلاح **عزل بيانات الاختبار فقط** باختيار فترة لا تحتوي قيودًا أو افتتاحات أو قرارات إقفال/إعادة فتح مسبقة؛ وهي نفس حماية PeriodReopenHistorySqlIntegration.cs القائمة. لا تغيير في PeriodCloseService أو API أو قاعدة البيانات أو التحليل الأصلي أو سياسة إقفال فترة مالية. إغلاق قبول هذه المعالجة ينتظر CI على SHA PR المحدد وCI بعد دمجه إلى gl، ثم إعادة اعتماد GL01-02 وGL03-02 بشكل مستقل.
