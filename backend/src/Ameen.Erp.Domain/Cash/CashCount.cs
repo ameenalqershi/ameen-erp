@@ -26,6 +26,8 @@ public sealed class CashCount : CompanyEntity
             "مرجع الفرع إن وجد يجب أن يكون صحيحًا.");
         Check.That(cashBoxId != Guid.Empty && countedByMembershipId != Guid.Empty,
             "cash_count_reference_required", "الصندوق والقائم بالجرد مطلوبان.");
+        Check.That(cutoffAt != default, "cash_count_cutoff_required",
+            "وقت قطع جرد الصندوق مطلوب.");
         BranchId = branchId;
         State = Check.Text(state, "حالة محضر الجرد", 32);
         CashBoxId = cashBoxId;

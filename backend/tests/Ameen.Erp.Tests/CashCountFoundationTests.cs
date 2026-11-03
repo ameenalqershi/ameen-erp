@@ -39,6 +39,9 @@ public static class CashCountFoundationTests
                 "Unreviewed", Guid.NewGuid(), now, Guid.NewGuid(), f.Owner.Subject, now));
             Reject("cash_count_reference_required", () => new CashCount(f.CompanyId, null,
                 "Unreviewed", Guid.Empty, now, Guid.NewGuid(), f.Owner.Subject, now));
+            // CASH11-F05: the user-supplied cutoff time is mandatory, not default.
+            Reject("cash_count_cutoff_required", () => new CashCount(f.CompanyId, null,
+                "Unreviewed", Guid.NewGuid(), default, Guid.NewGuid(), f.Owner.Subject, now));
             Reject("invalid_text", () => new CashCount(f.CompanyId, null,
                 " ", Guid.NewGuid(), now, Guid.NewGuid(), f.Owner.Subject, now));
             Reject("cash_count_reference_required", () =>
