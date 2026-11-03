@@ -18,6 +18,42 @@ public static class ItemTests
         x.Units.Select(u => new ItemUnitRequest(u.UnitId, u.FactorToBase, u.Barcode, u.SalePrice)).ToArray(), x.ShelfLifeDays, x.ReorderLevel, x.EnglishName, x.Notes, "تحديث");
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV04-FG01: generated item identity, tenant, code and required Arabic name", async f =>
+        {
+            var request = await Setup(f);
+            var receipt = await Create(f, request with { Code = " item-aa ", Name = "  مادة  " });
+            var item = await Get(f, receipt.ResourceId);
+            Ensure(item.Id == receipt.ResourceId && item.Id != Guid.Empty &&
+                item.CompanyId == f.CompanyId && item.Code == "ITEM-AA" && item.Name == "مادة");
+            await Error("invalid_text", () => Create(f, request with { Code = "NEW-N", Name = " " }));
+            await Error("invalid_text", () => Create(f, request with { Code = "", Name = "اسم" }));
+            await Error("invalid_code", () => Create(f, request with { Code = "bad item", Name = "اسم" }));
+            await Error("duplicate_item_code", () => Create(f, request with { Code = "item-aa" }));
+            Ensure((await f.Service.Item.SearchItems(f.CompanyId, f.Limited, "ITEM-AA", request.GroupId, true, 0, 10, default)).TotalCount == 1);
+            Ensure(f.Store.Count<Item>() == 1 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV04-FG06: item audit actor, time, revision and rejected version are consistent", async f =>
+        {
+            var receipt = await Create(f, await Setup(f));
+            var item = await Get(f, receipt.ResourceId);
+            var audit = await f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Owner, 0, 10, default);
+            Ensure(audit.TotalCount == 1 && audit.Items[0].Action == "item.created" &&
+                audit.Items[0].ActorId == f.Owner.Subject && audit.Items[0].OccurredAt != default);
+            using (var json = System.Text.Json.JsonDocument.Parse(audit.Items[0].Details))
+                Ensure(json.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 1);
+            await Error("version_conflict", () => f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner,
+                Fixture.Key(), Edit(item) with { ExpectedVersion = Guid.NewGuid() }, default));
+            Ensure((await f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Owner, 0, 10, default)).TotalCount == 1);
+            var changed = await f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner,
+                Fixture.Key(), Edit(item) with { Name = "اسم معدل" }, default);
+            var events = await f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Owner, 0, 10, default);
+            Ensure((await Get(f, item.Id)).Revision == 2 && changed.Version != receipt.Version &&
+                events.TotalCount == 2 && events.Items.All(x => x.ActorId == f.Owner.Subject && x.OccurredAt != default));
+            using var detail = System.Text.Json.JsonDocument.Parse(events.Items.Single(x => x.Action == "item.edited").Details);
+            Ensure(detail.RootElement.GetProperty("before").GetProperty("revision").GetInt32() == 1 &&
+                detail.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 2);
+            await Error("permission_denied", () => f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Limited, 0, 10, default));
+        });
         test("INV04-AC01: all documented item types produce tenant-scoped cards without stock", async f =>
         {
             var request = await Setup(f);
