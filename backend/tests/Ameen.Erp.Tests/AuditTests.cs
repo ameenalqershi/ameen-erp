@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Ameen.Erp.Application;
 using Ameen.Erp.Domain;
 namespace Ameen.Erp.Tests;
@@ -7,6 +8,28 @@ public static class AuditTests
     { var e = new AuditEvent(company ?? f.CompanyId, actor, action, resource, at, "{}"); f.Store.Add(e); return e; }
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS14-AC01: company edit tracks who/when, before-after and drillable source", async f =>
+        {
+            var initial=await f.Service.Company.GetCompany(f.CompanyId,f.Owner,default);
+            var originalName=initial.Name;
+            var changed=await f.Service.Company.EditCompany(f.CompanyId,f.Owner,Fixture.Key(),
+                CompanyTests.Edit(initial) with { Name = "اسم بعد التدقيق" },default);
+            var history=await f.Service.Audit.ListAudit(f.CompanyId,f.Owner,0,10,default,
+                actorId:f.Owner.Subject,action:"company.edited",resourceId:f.CompanyId);
+            Ensure(history.TotalCount==1 && history.Items.Single().ActorId==f.Owner.Subject);
+            var item=await f.Service.Audit.GetAuditEvent(f.CompanyId,history.Items.Single().Id,f.Owner,default);
+            using var json=JsonDocument.Parse(item.Details);
+            var before=json.RootElement.GetProperty("before");
+            var after=json.RootElement.GetProperty("after");
+            Ensure(item.ResourceId==f.CompanyId && item.CompanyId==f.CompanyId &&
+                item.OccurredAt!=default && before.GetProperty("name").GetString()==originalName &&
+                after.GetProperty("name").GetString()=="اسم بعد التدقيق" &&
+                (await f.Service.Company.GetCompany(f.CompanyId,f.Owner,default)).Name==
+                after.GetProperty("name").GetString() && changed.ResourceId==f.CompanyId);
+            var oldCount=f.Store.Count<AuditEvent>();
+            await f.Service.Audit.GetAuditEvent(f.CompanyId,item.Id,f.Owner,default);
+            Ensure(f.Store.Count<AuditEvent>()==oldCount);
+        });
         test("SYS14: UTC day filters include exact boundaries and combine actor action and reference", async f =>
         {
             var resource = Guid.NewGuid(); var day = new DateTimeOffset(2025, 1, 2, 0, 0, 0, TimeSpan.Zero);

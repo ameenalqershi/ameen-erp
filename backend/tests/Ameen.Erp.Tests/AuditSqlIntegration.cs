@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Ameen.Erp.Application;
 using Ameen.Erp.Domain;
 using Ameen.Erp.Infrastructure;
@@ -26,6 +27,27 @@ public static class AuditSqlIntegration
         Ensure(page.TotalCount == 2 && page.Items.Single().Id == first.Id);
         Ensure((await service.GetAuditEvent(cid, first.Id, owner, default)).ActorId == "CaseUser");
         Ensure((await service.ListAudit(cid, owner, 0, 10, default, DateOnly.MaxValue, DateOnly.MaxValue, resourceId: resource)).TotalCount == 0);
+        // SYS14-AC01: edits created by the real company service are recoverable
+        // as historical before/after snapshots and link to the same tenant source.
+        var companyEdits=await service.ListAudit(cid,owner,0,50,default,
+            actorId:owner.Subject,action:"company.edited",resourceId:cid);
+        Ensure(companyEdits.TotalCount>0 && companyEdits.Items.All(x=>
+            x.CompanyId==cid && x.ActorId==owner.Subject && x.Action=="company.edited" &&
+            x.ResourceId==cid && x.OccurredAt!=default));
+        var edit=await service.GetAuditEvent(cid,companyEdits.Items[0].Id,owner,default);
+        using(var details=JsonDocument.Parse(edit.Details))
+            Ensure(details.RootElement.TryGetProperty("before",out var prior) &&
+                details.RootElement.TryGetProperty("after",out var newer) &&
+                prior.GetProperty("name").GetString()!=null &&
+                newer.GetProperty("name").GetString()!=null &&
+                !prior.GetRawText().Equals(newer.GetRawText(),StringComparison.Ordinal));
+        var company=await db.Set<Company>().AsNoTracking().SingleAsync(x=>x.Id==cid);
+        Ensure(company.Id==edit.ResourceId);
+        var beforeCount=await db.Set<AuditEvent>().CountAsync(x=>x.CompanyId==cid);
+        await service.GetAuditEvent(cid,edit.Id,owner,default);
+        await service.ListAudit(cid,owner,0,5,default,action:"company.edited");
+        Ensure(await db.Set<AuditEvent>().CountAsync(x=>x.CompanyId==cid)==beforeCount);
+        Console.WriteLine("  SQL PASS SYS14-AC01 tracked company-edit actor, time, before/after, source drill and read-only history");
         Console.WriteLine("  SQL PASS SYS14 exact actor/action filters including case and trailing spaces, leap-day boundaries, pagination and event detail");
     }
     private static void Ensure(bool value) { if (!value) throw new Exception("SQL audit filtering assertion failed"); }

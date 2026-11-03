@@ -911,6 +911,39 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(auditPath + $"/{eventId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("resourceId").GetGuid() == wh.ResourceId, "HTTP audit event detail failed");
+                // SYS14-AC01: audit details link to a real tenant-scoped source via resourceId/action.
+                Guid companyEditEvent;
+                using (var response=await client.GetAsync(auditPath+
+                    $"?actorId=sql-owner&action=company.edited&resourceId={companyId}&limit=1"))
+                using (var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32()>0,
+                        "SYS14 HTTP could not find a real company edit event");
+                    companyEditEvent=json.RootElement.GetProperty("items")[0].GetProperty("id").GetGuid();
+                }
+                using (var response=await client.GetAsync(auditPath+$"/{companyEditEvent}"))
+                using (var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("actorId").GetString()=="sql-owner" &&
+                        json.RootElement.GetProperty("action").GetString()=="company.edited" &&
+                        json.RootElement.GetProperty("resourceId").GetGuid()==companyId &&
+                        json.RootElement.GetProperty("companyId").GetGuid()==companyId &&
+                        json.RootElement.GetProperty("occurredAt").GetDateTimeOffset()!=default,
+                        "SYS14 HTTP audit event lost action, actor, resource or time");
+                    using var details=JsonDocument.Parse(json.RootElement.GetProperty("details").GetString()!);
+                    Ensure(details.RootElement.TryGetProperty("before",out _) &&
+                        details.RootElement.TryGetProperty("after",out _),
+                        "SYS14 HTTP company edit missing before-after history");
+                }
+                using (var response=await client.GetAsync($"/api/v1/companies/{companyId}"))
+                using (var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("id").GetGuid()==companyId,
+                        "SYS14 HTTP source drill could not resolve the event's company");
+                Console.WriteLine("  HOST PASS SYS14-AC01 action/actor/time/before-after/source drill via HTTPS/JWT/SQL");
+
                 using (var response = await client.GetAsync(auditPath + "?from=2026-12-31&to=2026-01-01"))
                     Ensure(response.StatusCode == HttpStatusCode.UnprocessableEntity, "HTTP reversed audit dates accepted");
                 using (var response = await client.GetAsync(auditPath + "?from=bad-date"))
