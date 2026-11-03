@@ -1150,6 +1150,29 @@ public static class HostedApiIntegration
                 var childBranch = await Command(client, branchesPath, new CreateBranchRequest("CHILD", "ابن", "مدينة", "عنوان", parentBranch.ResourceId));
                 childBranch = await Command(client, branchesPath + $"/{childBranch.ResourceId}",
                     new EditBranchRequest(childBranch.Version, "CHILD", "ابن معدل", "مدينة", "عنوان 001", parentBranch.ResourceId, null, "HTTP child", "ملاحظة فرع", "تحديث"), method: HttpMethod.Put);
+                // SYS02-OP01: both search and new reject a valid JWT from
+                // a member of a different company, even before query filtering.
+                Authenticate(Token("sql-clerk"));
+                using (var deniedSearch = await client.GetAsync(branchesPath + "/search?search=PARENT"))
+                    Ensure(deniedSearch.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP01 search exposed another company's branch to a valid JWT");
+                using (var deniedCreate = new HttpRequestMessage(HttpMethod.Post, branchesPath))
+                {
+                    deniedCreate.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedCreate.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateBranchRequest("FORGED", "غير مصرح", "مدينة", "عنوان"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(deniedCreate);
+                    Ensure(rejected.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP01 cross-company JWT provisioned a branch");
+                }
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                using (var searchAfterDeniedCreate = await client.GetAsync(branchesPath + "/search?search=FORGED"))
+                using (var searchJson = JsonDocument.Parse(await searchAfterDeniedCreate.Content.ReadAsStringAsync()))
+                    Ensure(searchAfterDeniedCreate.StatusCode == HttpStatusCode.OK &&
+                        searchJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS02-OP01 denied branch creation left an authorized-visible record");
+                Console.WriteLine("  HOST PASS SYS02-OP01 tenant-scoped branch search/create and denied cross-company JWT");
                 // SYS02-FG02: optional English name and notes round-trip,
                 // with an active default and authorized same-company parent.
                 using (var childProfile = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}"))
@@ -1250,6 +1273,41 @@ public static class HostedApiIntegration
                         "SYS02-FG05 system-owned branch create/last-modified timestamps differ");
                 }
                 Console.WriteLine("  HOST PASS SYS02-FG02/FG05 optional profile, status, numeric revision, audit actor and timestamps");
+                // SYS02-OP02: the existing edit/status commands are authorized
+                // independently; an unrelated tenant JWT must never mutate them.
+                Authenticate(Token("sql-clerk"));
+                using (var deniedEdit = new HttpRequestMessage(HttpMethod.Put,
+                    branchesPath + $"/{childBranch.ResourceId}"))
+                {
+                    deniedEdit.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedEdit.Content = new StringContent(JsonSerializer.Serialize(
+                        new EditBranchRequest(childDisabled.Version, "CHILD", "تزوير", "مدينة", "عنوان 001",
+                            parentBranch.ResourceId, null, "HTTP child", "محاولة", "غير مصرح"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(deniedEdit);
+                    Ensure(rejected.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP02 unrelated JWT edited another company's branch");
+                }
+                using (var deniedStatus = new HttpRequestMessage(HttpMethod.Post,
+                    branchesPath + $"/{childBranch.ResourceId}/status"))
+                {
+                    deniedStatus.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedStatus.Content = new StringContent(JsonSerializer.Serialize(
+                        new SetBranchStatusRequest(childDisabled.Version, true, "غير مصرح"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(deniedStatus);
+                    Ensure(rejected.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP02 unrelated JWT reactivated another company's branch");
+                }
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                using (var unchanged = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}"))
+                using (var unchangedJson = JsonDocument.Parse(await unchanged.Content.ReadAsStringAsync()))
+                    Ensure(unchanged.StatusCode == HttpStatusCode.OK &&
+                        unchangedJson.RootElement.GetProperty("version").GetGuid() == childDisabled.Version &&
+                        unchangedJson.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        !unchangedJson.RootElement.GetProperty("isActive").GetBoolean(),
+                        "SYS02-OP02 denied edit/status changed branch revision or disabled state");
+                Console.WriteLine("  HOST PASS SYS02-OP02 edit/disable and denied cross-company JWT mutations");
                 // SYS02-OP03: usage and audit are tenant-scoped even with
                 // active/disabled branches and a valid unrelated JWT.
                 var sys02UsagePath = branchesPath + $"/{parentBranch.ResourceId}/usage";
