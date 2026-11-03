@@ -44,6 +44,44 @@ public static class BankAccountFoundationTests
             return Task.CompletedTask;
         });
 
+        test("CASH02-AC03: lowercase spaced IBAN canonicalizes without losing account zeros", f =>
+        {
+            var card = Create(f, "gb82 west 1234 5698 7654 32");
+            Ensure(card.Iban == "GB82WEST12345698765432" && card.AccountNumber == "0000012345");
+            return Task.CompletedTask;
+        });
+
+        test("CASH02-AC04: tabs and non-ASCII characters never bypass IBAN format", f =>
+        {
+            Error("invalid_iban", () => Create(f, "GB82\tWEST12345698765432"));
+            Error("invalid_iban", () => Create(f, "GB82WEST1234569876543٢"));
+            return Task.CompletedTask;
+        });
+
+        test("CASH02-AC05: IBAN outside supported 15 to 34 length is rejected", f =>
+        {
+            Error("invalid_iban", () => Create(f, "GB82WEST12345"));
+            Error("invalid_iban", () => Create(f, "GB82WEST12345698765432123456789012345"));
+            return Task.CompletedTask;
+        });
+
+        test("CASH02-AC06: invalid currency edit is atomic across bank fields", f =>
+        {
+            var card = Create(f, "GB82 WEST 1234 5698 7654 32");
+            var revision = card.Revision;
+            var version = card.Version;
+            var modified = card.LastModifiedAt;
+            Error("invalid_currency", () => card.Configure("CHANGED", "Changed", "Other Bank",
+                "999", null, Guid.NewGuid(), "US1", Guid.NewGuid(),
+                "Other", "Other", modified.AddMinutes(1)));
+            Ensure(card.Code == "BANK01" && card.Name == "حساب بنكي" &&
+                card.BankName == "بنك اختباري" && card.AccountNumber == "0000012345" &&
+                card.Iban == "GB82WEST12345698765432" && card.CurrencyCode == "SAR" &&
+                card.Revision == revision && card.Version == version &&
+                card.LastModifiedAt == modified);
+            return Task.CompletedTask;
+        });
+
         test("CASH02: rejected bank edits preserve every field and audit revision", f =>
         {
             var card = Create(f, "GB82 WEST 1234 5698 7654 32");

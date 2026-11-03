@@ -41,6 +41,10 @@ public static class SqlIntegration
             await f.Initialize();
             await MembershipStatusSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await MembershipUsageSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
+            // CASH02 structural acceptance does not activate banking API/EF writes.
+            await using (var bankGuardDb = f.Context())
+                await BankAccountSqlIntegration.Guard(bankGuardDb, f.CompanyId, f.CashId, f.BranchId);
+
             // CASH01 acceptance: SQL persistence, tenant FK, atomic command replay and account guard.
             Guid cashCustodian;
             await using (var db = f.Context())
@@ -63,6 +67,8 @@ public static class SqlIntegration
                     x.CompanyId == f.CompanyId && x.Action == "cashbox.created") == 1,
                     "CASH01 replay created extra audit events");
             }
+            await using (var cashGuardDb = f.Context())
+                await CashBoxSqlIntegration.Guard(cashGuardDb, f.CompanyId, cashReceipts[0].ResourceId, f.EquityId);
             await Expect("cashbox_account_already_linked", () =>
                 f.Call(s => s.CashBox.CreateCashBox(f.CompanyId, f.Owner, Fixture.Key(),
                     cashRequest with { Code = "SQL-CASH-2" }, default)));

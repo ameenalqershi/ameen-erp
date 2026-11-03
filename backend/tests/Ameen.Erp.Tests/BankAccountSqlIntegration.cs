@@ -95,6 +95,97 @@ public static class BankAccountSqlIntegration
         Console.WriteLine("  SQL PASS CASH02-01 EF rejects unapproved bank-card writes");
     }
 
+
+    // CASH02 is a schema-only foundation. All statements below are executed
+    // exclusively against SqlIntegration's disposable SQL database, bypassing
+    // the intentionally fail-closed EF bank-account mutation guard.
+    public static async Task Guard(ErpDbContext db, Guid companyId, Guid ledgerAccountId, Guid branchId)
+    {
+        var bankId = Guid.NewGuid();
+        var created = new DateTimeOffset(2026, 11, 3, 0, 0, 0, TimeSpan.Zero);
+        await db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO [BankAccounts] ([CompanyId],[Id],[Version],[Code],[Name],[EnglishName],
+                [IsActive],[Notes],[BankName],[AccountNumber],[Iban],[LedgerAccountId],
+                [CurrencyCode],[BranchId],[CreatedBy],[CreatedAt],[Revision],[LastModifiedAt])
+            VALUES ({companyId},{bankId},{Guid.NewGuid()},{"SQL-BANK"},
+                {"حساب بنكي اختباري"},NULL,{true},NULL,{"بنك فحص"},
+                {"0000012345"},{"GB82WEST12345698765432"},{ledgerAccountId},
+                {"SAR"},{branchId},{"sql-schema-only"},{created},{1},{created})");
+        var before = await db.Set<BankAccount>().AsNoTracking().SingleAsync(x =>
+            x.CompanyId == companyId && x.Id == bankId);
+        Ensure(before.AccountNumber == "0000012345" &&
+            before.Iban == "GB82WEST12345698765432" &&
+            before.CreatedAt == created && before.Revision == 1,
+            "CASH02 SQL lost text leading zero, canonical IBAN or audit values");
+
+        var invalidReference = Guid.NewGuid();
+        await RejectSql("foreign ledger account", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [BankAccounts] SET [LedgerAccountId]={invalidReference} WHERE [CompanyId]={companyId} AND [Id]={bankId}"));
+        await RejectSql("foreign branch", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [BankAccounts] SET [BranchId]={invalidReference} WHERE [CompanyId]={companyId} AND [Id]={bankId}"));
+        await RejectSql("foreign currency", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [BankAccounts] SET [CurrencyCode]={"ZZZ"} WHERE [CompanyId]={companyId} AND [Id]={bankId}"));
+        await RejectSql("non-positive revision", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [BankAccounts] SET [Revision]={0} WHERE [CompanyId]={companyId} AND [Id]={bankId}"));
+        await RejectSql("audit time before creation", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [BankAccounts] SET [LastModifiedAt]={created.AddDays(-1)} WHERE [CompanyId]={companyId} AND [Id]={bankId}"));
+        await RejectSql("duplicate supplied IBAN", 2601,
+            db.Database.ExecuteSqlInterpolatedAsync($@"
+                INSERT INTO [BankAccounts] ([CompanyId],[Id],[Version],[Code],[Name],[EnglishName],
+                    [IsActive],[Notes],[BankName],[AccountNumber],[Iban],[LedgerAccountId],
+                    [CurrencyCode],[BranchId],[CreatedBy],[CreatedAt],[Revision],[LastModifiedAt])
+                SELECT [CompanyId],{Guid.NewGuid()},{Guid.NewGuid()},{"SQL-BANK-2"},
+                    [Name],[EnglishName],[IsActive],[Notes],[BankName],{"0000012346"},
+                    [Iban],[LedgerAccountId],[CurrencyCode],[BranchId],
+                    [CreatedBy],[CreatedAt],[Revision],[LastModifiedAt]
+                FROM [BankAccounts] WHERE [CompanyId]={companyId} AND [Id]={bankId}"));
+
+        // A filtered IBAN index must accept more than one NULL in the same
+        // company; the format/must-supply policy is deliberately not inferred.
+        foreach (var code in new[] { "SQL-BANK-N1", "SQL-BANK-N2" })
+        {
+            var accountNumber = code == "SQL-BANK-N1" ? "0000012351" : "0000012352";
+            await db.Database.ExecuteSqlInterpolatedAsync($@"
+                INSERT INTO [BankAccounts] ([CompanyId],[Id],[Version],[Code],[Name],[EnglishName],
+                    [IsActive],[Notes],[BankName],[AccountNumber],[Iban],[LedgerAccountId],
+                    [CurrencyCode],[BranchId],[CreatedBy],[CreatedAt],[Revision],[LastModifiedAt])
+                SELECT [CompanyId],{Guid.NewGuid()},{Guid.NewGuid()},{code},
+                    [Name],[EnglishName],[IsActive],[Notes],[BankName],{accountNumber},
+                    NULL,[LedgerAccountId],[CurrencyCode],[BranchId],
+                    [CreatedBy],[CreatedAt],[Revision],[LastModifiedAt]
+                FROM [BankAccounts] WHERE [CompanyId]={companyId} AND [Id]={bankId}");
+        }
+
+        var after = await db.Set<BankAccount>().AsNoTracking().SingleAsync(x =>
+            x.CompanyId == companyId && x.Id == bankId);
+        Ensure(after.Version == before.Version && after.Revision == before.Revision &&
+            after.LedgerAccountId == before.LedgerAccountId &&
+            after.BranchId == before.BranchId && after.CurrencyCode == before.CurrencyCode &&
+            after.LastModifiedAt == before.LastModifiedAt,
+            "Rejected CASH02 SQL updates mutated the bank-card foundation");
+        Ensure(await db.Set<BankAccount>().CountAsync(x =>
+            x.CompanyId == companyId && x.Code.StartsWith("SQL-BANK")) == 3,
+            "CASH02 unique IBAN check rejected nullable rows or leaked a failed insert");
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"DELETE FROM [BankAccounts] WHERE [CompanyId]={companyId} AND [Code] LIKE {"SQL-BANK%"}");
+        Ensure(!await db.Set<BankAccount>().AnyAsync(x => x.CompanyId == companyId),
+            "CASH02 disposable SQL fixtures were not cleaned up");
+        Console.WriteLine("  SQL PASS CASH02 live tenant FKs, audit constraints, IBAN uniqueness/nullability and preserved zeros");
+    }
+
+    private static async Task RejectSql(string name, int expected, Task<int> action)
+    {
+        try { await action; }
+        catch (SqlException ex) when (ex.Number == expected ||
+            (expected == 2601 && ex.Number == 2627)) { return; }
+        throw new Exception("CASH02 SQL constraint failed to reject: " + name);
+    }
+
     private static void Ensure(bool value, string message)
     {
         if (!value) throw new Exception(message);
