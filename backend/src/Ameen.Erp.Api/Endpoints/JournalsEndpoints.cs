@@ -31,6 +31,16 @@ internal static class JournalsEndpoints
         app.MapGet(p + "/journals/{id:guid}/impact-preview", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ImpactPreview(companyId, id, Actor(h), ct)))
             .Produces<JournalImpactPreview>().RequireAuthorization().WithTags("GL03 GL07 Journal impact preview");
+        app.MapGet(p + "/journals/{id:guid}/print", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>
+        {
+            var printable = await s.JournalPrint(companyId, id, Actor(h), ct);
+            h.Response.Headers["Cache-Control"] = "no-store, private";
+            h.Response.Headers["X-Content-Type-Options"] = "nosniff";
+            h.Response.Headers["X-Frame-Options"] = "DENY";
+            h.Response.Headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
+            return Results.Content(JournalPrintHtml.Render(printable), "text/html; charset=utf-8");
+        }).Produces(StatusCodes.Status200OK, contentType: "text/html")
+          .RequireAuthorization().WithTags("GL03 GL07 Journal printing");
         app.MapGet(p + "/journals/{id:guid}", async (Guid companyId, Guid id, JournalService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.GetJournal(companyId, id, Actor(h), ct))).Produces<JournalEntry>().RequireAuthorization().WithTags("GL03 Journals");
         app.MapPost(p + "/journals", async (Guid companyId, CreateJournalRequest r, JournalService s, HttpContext h, CancellationToken ct) =>

@@ -938,7 +938,7 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/GeneralOpeningTests.cs; backend/tests/Ameen.Erp.Tests/GeneralOpeningReversalTests.cs; backend/tests/Ameen.Erp.Tests/GeneralOpeningPrintSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/DraftJournalHeaderTests.cs; backend/tests/Ameen.Erp.Tests/DraftHeaderSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "GL03": {
-      "api": "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due",
+      "api": "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due",
       "implemented": "قيد يدوي متعدد العملات والمراكز بدورة مستقلة وأرقام وسعر تاريخي؛ تعديل رأس المسودة والسطور مع إعادة ربط الفترة وترقيم السنة والتحقق من السعر النافذ؛ حقلا العكس التلقائي المشروط وموعده؛ توليد مسودة عكس مرتبطة عند الاستحقاق وفق صلاحيات Reverse/Draft ونطاق الفرع مع منع التكرار حتى بعد إلغاء المسودة؛ مشغل مفوض اختياري لا يعتمد أو يرحّل القيد تلقائيًا؛ معاينة أثر القيد اليدوي والعكس قبل التقديم بسطور المبالغ الأصلية والمحوّلة وفرق الاتزان وفحص الموانع دون تعديل الأستاذ أو التدقيق",
       "remaining": "المشروع والطرف والمرفقات وأنواع القيود GL14؛ تفعيل عامل العكس المجدول في بيئة النشر مشروط بإعداد ActorSubject المفوض؛ لا يعد توليد مسودة العكس موافقة أو ترحيلًا",
       "fields": {
@@ -1047,7 +1047,7 @@
           "binding": "Source: Manual / Recurring / Reversal provenance; configurable journal-type catalog is pending"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/JournalAuditTests.cs; backend/tests/Ameen.Erp.Tests/DraftJournalHeaderTests.cs; backend/tests/Ameen.Erp.Tests/DraftHeaderSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/JournalImpactPreviewTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalHostedIntegration.cs; backend/tests/Ameen.Erp.Tests/HttpIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/JournalAuditTests.cs; backend/tests/Ameen.Erp.Tests/JournalPrintTests.cs; backend/tests/Ameen.Erp.Tests/JournalPrintSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/DraftJournalHeaderTests.cs; backend/tests/Ameen.Erp.Tests/DraftHeaderSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/JournalImpactPreviewTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalHostedIntegration.cs; backend/tests/Ameen.Erp.Tests/HttpIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
     },
     "GL04": {
       "api": "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
@@ -1234,7 +1234,7 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/JournalProcessingTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/Program.cs"
     },
     "GL07": {
-      "api": "POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due",
+      "api": "POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due",
       "implemented": "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا؛ تشغيل العكس المجدول للقيود اليدوية المرحّلة المستحقة فقط عبر فحص مفوض وفرعي مع إنشاء مسودة عكس مستقلة بلا اعتماد/ترحيل آلي؛ سجل تاريخي يمنع تكرار التوليد بعد الإلغاء؛ ترقية SQL 026 وعكس ذري قابل لإعادة المحاولة؛ معاينة أثر مسودة العكس بسعر ومبالغ تاريخية معكوسة حرفيًا وفرق اتزان قبل الاعتماد دون تعديل الأستاذ أو سجل التدقيق",
       "remaining": "عكس مستندات الدفاتر المساعدة وفحص التبعيات والضريبة؛ مشغل العكس اختياري وغير مثبت التفعيل في الإنتاج؛ الأنواع غير اليدوية تظل تعكس من مستند المصدر",
       "fields": {
@@ -1315,7 +1315,7 @@
           "binding": "Lines[].ExchangeRate copied from original"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/JournalAuditTests.cs; backend/tests/Ameen.Erp.Tests/JournalImpactPreviewTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalHostedIntegration.cs; backend/tests/Ameen.Erp.Tests/HttpIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/JournalAuditTests.cs; backend/tests/Ameen.Erp.Tests/JournalPrintTests.cs; backend/tests/Ameen.Erp.Tests/JournalPrintSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/JournalImpactPreviewTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalHostedIntegration.cs; backend/tests/Ameen.Erp.Tests/HttpIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
     },
     "GL11": {
       "api": "POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview",

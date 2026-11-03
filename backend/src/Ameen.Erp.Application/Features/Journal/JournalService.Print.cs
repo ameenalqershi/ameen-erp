@@ -28,7 +28,7 @@ public sealed partial class JournalService
             .Select(x =>
             {
                 var account = accounts[x.AccountId];
-                return new GeneralOpeningPrintLine(
+                return new JournalPrintLine(
                     x.Position, account.Code, account.Name,
                     x.CostCenterId.HasValue ? centers[x.CostCenterId.Value].Code : null,
                     x.Description, x.CurrencyCode, x.ExchangeRate,

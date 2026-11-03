@@ -140,7 +140,35 @@ public static class HostedApiIntegration
                 Ensure(forgedSourceResult.StatusCode == HttpStatusCode.BadRequest, "Manual API accepted forged automated provenance");
 
                 var requestKey = Fixture.Key();
-                var receipt = await Command(client, path, journalRequest, requestKey);
+                var printJournalRequest = journalRequest with
+                {
+                    Description = "قيد <script>alert(1)</script> آمن",
+                    ExternalReference = "000070-PRINT"
+                };
+                var receipt = await Command(client, path, printJournalRequest, requestKey);
+                var manualPrintPath = path + $"/{receipt.ResourceId}/print";
+                using (var printed = await client.GetAsync(manualPrintPath))
+                {
+                    var html = await printed.Content.ReadAsStringAsync();
+                    Ensure(printed.StatusCode == HttpStatusCode.OK &&
+                        printed.Content.Headers.ContentType?.MediaType == "text/html" &&
+                        printed.Headers.TryGetValues("Content-Security-Policy", out var policy) &&
+                        policy.Any(x => x.Contains("default-src 'none'", StringComparison.Ordinal)) &&
+                        printed.Headers.TryGetValues("Cache-Control", out var cache) &&
+                        cache.Any(x => x.Contains("no-store", StringComparison.Ordinal)) &&
+                        html.Contains("lang=\"ar\" dir=\"rtl\"", StringComparison.Ordinal) &&
+                        html.Contains("000070-PRINT", StringComparison.Ordinal) &&
+                        html.Contains("&lt;script&gt;", StringComparison.Ordinal) &&
+                        !html.Contains("<script>", StringComparison.OrdinalIgnoreCase) &&
+                        html.Contains("قيد يومية", StringComparison.Ordinal),
+                        "GL03 printable journal failed HTML escaping or protected content");
+                }
+                Authenticate(Token("journal-print-no-membership"));
+                using (var printDenied = await client.GetAsync(manualPrintPath))
+                    Ensure(printDenied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL03 print leaked to a JWT without tenant membership");
+                Authenticate(Token("sql-clerk"));
+                Console.WriteLine("  HOST PASS GL03-A07 script-safe printable manual journal with tenant-scoped HTTPS/JWT");
                 using (var previewResponse = await client.GetAsync(path + $"/{receipt.ResourceId}/impact-preview"))
                 using (var impact = JsonDocument.Parse(await previewResponse.Content.ReadAsStringAsync()))
                 {
@@ -173,7 +201,7 @@ public static class HostedApiIntegration
                     using var rejected = await client.SendAsync(forgedRevision);
                     Ensure(rejected.StatusCode == HttpStatusCode.BadRequest, "GL03 accepted forged numeric revision");
                 }
-                var replay = await Command(client, path, journalRequest, requestKey);
+                var replay = await Command(client, path, printJournalRequest, requestKey);
                 Ensure(receipt == replay, "Production HTTP/SQL replay differs");
                 receipt = await Command(client, path + $"/{receipt.ResourceId}/submit", new TransitionRequest(receipt.Version));
                 Authenticate(Token("sql-approver"));
@@ -380,6 +408,20 @@ public static class HostedApiIntegration
                 generalOpening = await Command(client, path + $"/{generalOpening.ResourceId}/post", new TransitionRequest(generalOpening.Version));
                 Authenticate(Token("sql-clerk"));
                 var generalInverse = await Command(client, path + $"/{generalOpening.ResourceId}/reverse", new ReverseJournalRequest(generalOpening.Version, Fixture.Date, "تصحيح افتتاح HTTP"));
+                using (var inversePrint = await client.GetAsync(path + $"/{generalInverse.ResourceId}/print"))
+                {
+                    var html = await inversePrint.Content.ReadAsStringAsync();
+                    Ensure(inversePrint.StatusCode == HttpStatusCode.OK &&
+                        inversePrint.Content.Headers.ContentType?.MediaType == "text/html" &&
+                        html.Contains("قيد عكسي مرتبط", StringComparison.Ordinal) &&
+                        html.Contains(generalOpening.Number!, StringComparison.Ordinal) &&
+                        html.Contains("تصحيح افتتاح HTTP", StringComparison.Ordinal),
+                        "GL07 reversal print omitted historical original number and correction reason");
+                }
+                using (var sourceWrongPrint = await client.GetAsync(path + $"/{generalOpening.ResourceId}/print"))
+                    Ensure(sourceWrongPrint.StatusCode == HttpStatusCode.Conflict,
+                        "GL03 print misrepresented a generated source as a manual journal");
+                Console.WriteLine("  HOST PASS GL07-A07 reversal printable original link/reason with source-only guards");
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("openingRevision").GetInt32() == 6 && json.RootElement.GetProperty("pendingReversalJournalId").GetGuid() == generalInverse.ResourceId, "HTTP opening reservation metadata missing");
