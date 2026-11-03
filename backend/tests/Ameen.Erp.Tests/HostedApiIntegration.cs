@@ -918,6 +918,63 @@ public static class HostedApiIntegration
                         "SYS04-AC02 rejected precision edit wrote currency audit");
                 Console.WriteLine("  HOST PASS SYS04-AC02 referenced currency precision edit refused atomically over HTTPS/JWT/SQL");
 
+                // SYS01-AC02: an existing posted journal forbids functional-currency
+                // conversion on the real authenticated production HTTP + SQL path.
+                var sys01Path = $"/api/v1/companies/{companyId}";
+                Guid sys01Version;
+                int sys01Revision;
+                int sys01Scale;
+                string sys01Code, sys01Name, sys01Country, sys01Functional;
+                using (var response = await client.GetAsync(sys01Path))
+                using (var detail = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK, "SYS01-AC02 prerequisite company detail unavailable");
+                    var c = detail.RootElement;
+                    sys01Version = c.GetProperty("version").GetGuid();
+                    sys01Revision = c.GetProperty("revision").GetInt32();
+                    sys01Scale = c.GetProperty("currencyScale").GetInt32();
+                    sys01Code = c.GetProperty("code").GetString()!;
+                    sys01Name = c.GetProperty("name").GetString()!;
+                    sys01Country = c.GetProperty("countryCode").GetString()!;
+                    sys01Functional = c.GetProperty("functionalCurrency").GetString()!;
+                }
+                int sys01AuditBefore;
+                using (var response = await client.GetAsync(sys01Path + "/profile-audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK, "SYS01-AC02 prerequisite audit unavailable");
+                    sys01AuditBefore = json.RootElement.GetProperty("totalCount").GetInt32();
+                }
+                using (var request = new HttpRequestMessage(HttpMethod.Put, sys01Path))
+                {
+                    request.Headers.Add("Idempotency-Key", Fixture.Key());
+                    request.Content = new StringContent(JsonSerializer.Serialize(new EditCompanyRequest(
+                        sys01Version, sys01Code, sys01Name, sys01Country, "NOK", Fixture.Profile(),
+                        "منع تحويل العملة بعد وجود قيود"), JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var response = await client.SendAsync(request);
+                    Ensure(response.StatusCode == HttpStatusCode.Conflict &&
+                        (await response.Content.ReadAsStringAsync()).Contains("functional_currency_in_use", StringComparison.Ordinal),
+                        "SYS01-AC02 production HTTP accepted a historical functional-currency change");
+                }
+                using (var response = await client.GetAsync(sys01Path))
+                using (var detail = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    var c = detail.RootElement;
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        c.GetProperty("functionalCurrency").GetString() == sys01Functional &&
+                        c.GetProperty("currencyScale").GetInt32() == sys01Scale &&
+                        c.GetProperty("revision").GetInt32() == sys01Revision &&
+                        c.GetProperty("version").GetGuid() == sys01Version,
+                        "SYS01-AC02 rejected HTTP conversion mutated company in SQL");
+                }
+                using (var response = await client.GetAsync(sys01Path + "/profile-audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == sys01AuditBefore,
+                        "SYS01-AC02 rejected HTTP conversion added audit");
+                Console.WriteLine("  HOST PASS SYS01-AC02 functional-currency conversion denied atomically over HTTPS/JWT/SQL");
+
+
                 var centersPath = $"/api/v1/companies/{companyId}/cost-centers";
                 var rootCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-ROOT", "مركز عام", null));
                 var childCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-CHILD", "مركز فرعي", journalRequest.BranchId, rootCenter.ResourceId, EnglishName: "HTTP center"));
