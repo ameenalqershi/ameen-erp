@@ -19,6 +19,36 @@ public static class FiscalCalendarSqlIntegration
         Ensure(results.All(x => x == results[0]), "Calendar concurrent replay differs");
         var calendar = await Call(s => s.FiscalCalendar.GetFiscalCalendar(cid, results[0].ResourceId, owner, default));
         Ensure(calendar.Periods.Count == 2 && calendar.Periods[0].Code == "2027-H1", "Custom SQL calendar differs");
+        // SYS03-03: one successful idempotency key cannot be reused with a changed
+        // year header or period code, even from another live SQL context.
+        await using (var beforeConflict = Context())
+        {
+            var years = await beforeConflict.Set<FiscalYear>().CountAsync(x => x.CompanyId == cid);
+            var periods = await beforeConflict.Set<FiscalPeriod>().CountAsync(x => x.CompanyId == cid);
+            var audits = await beforeConflict.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            var receipts = await beforeConflict.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            foreach (var changed in new[] {
+                request with { Code = "2027-DIFFERENT" },
+                request with { Periods = new[] {
+                    request.Periods![0] with { Code = "2027-FIRST" }, request.Periods[1]
+                } }
+            })
+            {
+                try
+                {
+                    await Call(s => s.FiscalCalendar.CreateFiscalYear(cid, owner, key, changed, default));
+                    throw new Exception("SYS03-03 expected SQL idempotency conflict");
+                }
+                catch (BusinessException ex) when (ex.Code == "idempotency_conflict") { }
+            }
+            await using var afterConflict = Context();
+            Ensure(await afterConflict.Set<FiscalYear>().CountAsync(x => x.CompanyId == cid) == years &&
+                await afterConflict.Set<FiscalPeriod>().CountAsync(x => x.CompanyId == cid) == periods &&
+                await afterConflict.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == audits &&
+                await afterConflict.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == receipts,
+                "SYS03-03 rejected idempotency replay changed SQL calendar/audit/receipt");
+        }
+        Console.WriteLine("  SQL PASS SYS03-03 changed fiscal year replay rejects atomically");
         // SYS03-FG04: the original immutable fiscal-year creation has real actor/time
         // and numeric revision, persisted independently of the Guid concurrency token.
         Ensure(calendar.Year.CreatedBy == owner.Subject &&
