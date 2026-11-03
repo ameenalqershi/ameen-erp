@@ -54,6 +54,25 @@ public static class FoundationSqlIntegration
         // in SQL; rejected zero or excessive decimal precision is atomic.
         var euroRate = await Call(s => s.ExchangeRate.CreateExchangeRate(
             cid, owner, Fixture.Key(), new("EUR", Fixture.Date, 4.2m, "اختبار"), default));
+        // SYS05-AC02: a duplicate same-day rate is rejected in actual SQL
+        // without a second card, audit event or idempotency receipt.
+        var duplicateRateKey = Fixture.Key();
+        await Error("duplicate_exchange_rate", () => Call(s => s.ExchangeRate.CreateExchangeRate(
+            cid, owner, duplicateRateKey,
+            new("EUR", Fixture.Date, 4.3m, "مكرر"), default)));
+        await using (var duplicateDb = Context())
+        {
+            Ensure(await duplicateDb.Set<ExchangeRate>().CountAsync(x =>
+                x.CompanyId == cid && x.CurrencyCode == "EUR" &&
+                x.EffectiveDate == Fixture.Date) == 1 &&
+                !await duplicateDb.Set<IdempotencyRecord>().AnyAsync(x =>
+                    x.CompanyId == cid && x.Key == duplicateRateKey) &&
+                await duplicateDb.Set<AuditEvent>().CountAsync(x =>
+                    x.CompanyId == cid && x.ResourceId == euroRate.ResourceId &&
+                    x.Action == "exchange-rate.created") == 1,
+                "SYS05-AC02 duplicate rate mutated SQL rate/audit/receipt");
+        }
+        Console.WriteLine("  SQL PASS SYS05-AC02 duplicate effective-date rate rejected atomically");
         var badRateKey = Fixture.Key();
         await Error("invalid_exchange_rate", () => Call(s => s.ExchangeRate.CreateExchangeRate(
             cid, owner, badRateKey,
