@@ -86,7 +86,7 @@ public static class CashBoxSqlIntegration
 
     // CASH01 SQL acceptance against disposable test data: the SQL constraints
     // must reject writes even when the public API/domain layer is bypassed.
-    public static async Task Guard(ErpDbContext db, Guid companyId, Guid cashBoxId)
+    public static async Task Guard(ErpDbContext db, Guid companyId, Guid cashBoxId, Guid alternativeAccountId)
     {
         var before = await db.Set<CashBox>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == cashBoxId);
@@ -125,6 +125,30 @@ public static class CashBoxSqlIntegration
                     [CustodianMembershipId],[CurrencyCode],[BalanceLimit],
                     [CreatedBy],[CreatedAt],[Revision],[LastModifiedAt]
                 FROM [CashBoxes] WHERE [CompanyId]={companyId} AND [Id]={cashBoxId}"));
+
+        // The unique dimensions permit a different ledger account in the
+        // same branch/currency, while cash-box code remains tenant-wide unique.
+        var alternateId = Guid.NewGuid();
+        await db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO [CashBoxes] ([CompanyId],[Id],[Version],[Code],[Name],
+                [EnglishName],[IsActive],[Notes],[AccountId],[BranchId],
+                [CustodianMembershipId],[CurrencyCode],[BalanceLimit],
+                [CreatedBy],[CreatedAt],[Revision],[LastModifiedAt])
+            SELECT [CompanyId],{alternateId},{Guid.NewGuid()},{"SQL-CASH-ALT"},
+                [Name],[EnglishName],[IsActive],[Notes],{alternativeAccountId},
+                [BranchId],[CustodianMembershipId],[CurrencyCode],[BalanceLimit],
+                [CreatedBy],[CreatedAt],[Revision],[LastModifiedAt]
+            FROM [CashBoxes] WHERE [CompanyId]={companyId} AND [Id]={cashBoxId}");
+        Ensure(await db.Set<CashBox>().CountAsync(x => x.CompanyId == companyId) == 2,
+            "CASH01 SQL incorrectly rejects distinct account separation");
+        await RejectSql("tenant-wide cash-box code unique index", 2601,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [CashBoxes] SET [Code]={before.Code} WHERE [CompanyId]={companyId} AND [Id]={alternateId}"));
+        Ensure((await db.Set<CashBox>().AsNoTracking().SingleAsync(x =>
+            x.CompanyId == companyId && x.Id == alternateId)).Code == "SQL-CASH-ALT",
+            "Rejected CASH01 duplicate-code update altered a separate card");
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"DELETE FROM [CashBoxes] WHERE [CompanyId]={companyId} AND [Id]={alternateId}");
 
         var after = await db.Set<CashBox>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == cashBoxId);
