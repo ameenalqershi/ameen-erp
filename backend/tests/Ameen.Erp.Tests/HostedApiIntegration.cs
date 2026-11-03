@@ -997,13 +997,18 @@ public static class HostedApiIntegration
                 Authenticate(Token("runtime-admin", "erp.platform-admin"));
                 var companyReceipt = await Command(client, "/api/v1/companies", company);
                 var companyPath = $"/api/v1/companies/{company.Id}";
-                var companyProfile = company.Profile with { CommercialRegistration = "00042", City = "مدينة معدلة", PostalCode = "00123" };
+                var companyProfile = company.Profile with { CommercialRegistration = "00042", City = "مدينة معدلة", PostalCode = "00123",
+                    EnglishName = "HTTP legal name", Notes = "ملاحظة HTTP" };
                 companyReceipt = await Command(client, companyPath, new EditCompanyRequest(companyReceipt.Version, company.Code, company.Name,
                     company.CountryCode, company.FunctionalCurrency, companyProfile, "استكمال البيانات"), method: HttpMethod.Put);
                 using (var companyDetail = await client.GetAsync(companyPath))
                 using (var json = JsonDocument.Parse(await companyDetail.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("commercialRegistration").GetString() == "00042" &&
-                        json.RootElement.GetProperty("revision").GetInt32() == 2 && json.RootElement.GetProperty("isProfileComplete").GetBoolean(), "Company HTTP profile differs");
+                        json.RootElement.GetProperty("revision").GetInt32() == 2 &&
+                        json.RootElement.GetProperty("englishName").GetString() == "HTTP legal name" &&
+                        json.RootElement.GetProperty("notes").GetString() == "ملاحظة HTTP" &&
+                        json.RootElement.GetProperty("legalName").GetString() == companyProfile.LegalName &&
+                        json.RootElement.GetProperty("isProfileComplete").GetBoolean(), "SYS01-FG02 company HTTP profile differs");
                 companyReceipt = await Command(client, companyPath + "/status", new SetCompanyStatusRequest(companyReceipt.Version, false, "إيقاف"));
                 using (var blockedWrite = new HttpRequestMessage(HttpMethod.Post, companyPath + "/branches"))
                 {
