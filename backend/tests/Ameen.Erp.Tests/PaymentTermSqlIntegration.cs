@@ -78,7 +78,7 @@ public static class PaymentTermSqlIntegration
         foreach(var (position,percent,days) in new[] { (1,40m,0), (2,60m,30) })
             await db.Database.ExecuteSqlInterpolatedAsync($@"
                 INSERT INTO PaymentTermLines
-                  (CompanyId,Id,Version,TermId,Position,Percent,DaysFromBase)
+                  ([CompanyId],[Id],[Version],[TermId],[Position],[Percent],[DaysFromBase])
                 VALUES({cid},{Guid.NewGuid()},{Guid.NewGuid()},{termId},
                        {position},{percent},{days})");
 
@@ -103,14 +103,14 @@ public static class PaymentTermSqlIntegration
         await Reject("reversed audit time", db.Database.ExecuteSqlInterpolatedAsync(
             $"UPDATE PaymentTerms SET LastModifiedAt={now.AddDays(-1)} WHERE CompanyId={cid} AND Id={termId}"),547);
         await Reject("invalid line percentage", db.Database.ExecuteSqlInterpolatedAsync(
-            $"UPDATE PaymentTermLines SET Percent={0m} WHERE CompanyId={cid} AND TermId={termId} AND Position={2}"),547);
+            $"UPDATE PaymentTermLines SET [Percent]={0m} WHERE CompanyId={cid} AND TermId={termId} AND Position={2}"),547);
         await Reject("negative due-date offset", db.Database.ExecuteSqlInterpolatedAsync(
             $"UPDATE PaymentTermLines SET DaysFromBase={-2} WHERE CompanyId={cid} AND TermId={termId} AND Position={1}"),547);
         await Reject("duplicate line position", db.Database.ExecuteSqlInterpolatedAsync($@"
-            INSERT INTO PaymentTermLines(CompanyId,Id,Version,TermId,Position,Percent,DaysFromBase)
+            INSERT INTO PaymentTermLines([CompanyId],[Id],[Version],[TermId],[Position],[Percent],[DaysFromBase])
             VALUES({cid},{Guid.NewGuid()},{Guid.NewGuid()},{termId},{1},{10m},{14})"),2601,2627);
         await Reject("foreign term line", db.Database.ExecuteSqlInterpolatedAsync($@"
-            INSERT INTO PaymentTermLines(CompanyId,Id,Version,TermId,Position,Percent,DaysFromBase)
+            INSERT INTO PaymentTermLines([CompanyId],[Id],[Version],[TermId],[Position],[Percent],[DaysFromBase])
             VALUES({cid},{Guid.NewGuid()},{Guid.NewGuid()},{Guid.NewGuid()},{3},{10m},{14})"),547);
         await Reject("duplicate company payment code", db.Database.ExecuteSqlInterpolatedAsync($@"
             INSERT INTO PaymentTerms
