@@ -43,6 +43,13 @@ public static class PeriodExecutionHistorySqlIntegration
         var reopened = await Call(s => s.PeriodClose.ChangePeriod(cid, period.Id,
             approver, Fixture.Key(), new(closed.Version, "فتح SQL خاص بالسجل"),
             false, default));
+        // The SQL owner is not a PeriodClose reviewer. Provision an explicitly
+        // authorized all-branch reader with Read + Audit + PeriodClose, matching
+        // the production query gate (do not weaken security to fit a fixture).
+        var reviewer = new Actor("gl11-sql-execution-auditor");
+        await Call(s => s.Membership.GrantMembership(cid, owner, Fixture.Key(),
+            new(reviewer.Subject, new[] { Permissions.Read, Permissions.Audit,
+                Permissions.PeriodClose }, true, Array.Empty<Guid>(), null), default));
         int audits, receipts, outbox, journals;
         long numbers;
         await using (var db = Context())
@@ -55,13 +62,13 @@ public static class PeriodExecutionHistorySqlIntegration
                 .SumAsync(x => x.LastNumber);
         }
         var whole = await Call(s => s.PeriodClose.PeriodExecutionHistory(cid,
-            period.Id, owner, 0, 10, default));
+            period.Id, reviewer, 0, 10, default));
         var page1 = await Call(s => s.PeriodClose.PeriodExecutionHistory(cid,
-            period.Id, owner, 0, 1, default));
+            period.Id, reviewer, 0, 1, default));
         var page2 = await Call(s => s.PeriodClose.PeriodExecutionHistory(cid,
-            period.Id, owner, 1, 1, default));
+            period.Id, reviewer, 1, 1, default));
         var page3 = await Call(s => s.PeriodClose.PeriodExecutionHistory(cid,
-            period.Id, owner, 2, 1, default));
+            period.Id, reviewer, 2, 1, default));
         Ensure(!whole.IsClosed && whole.Version == reopened.Version &&
             whole.History.TotalCount == 2 && whole.History.Items.Count == 2 &&
             whole.History.Items.Any(x => x.Action == "period.closed" &&
