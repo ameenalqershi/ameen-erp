@@ -107,17 +107,20 @@ public static class BalancedJournalLedgerSqlAcceptance
         {
             var journal = await db.Set<JournalEntry>().AsNoTracking()
                 .SingleAsync(x => x.CompanyId == cid && x.Id == posted.ResourceId);
+            var auditDelta = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) - originalAudit;
+            var postActions = await db.Set<AuditEvent>().CountAsync(x =>
+                x.CompanyId == cid && x.ResourceId == posted.ResourceId && x.Action == "journal.post");
+            var outboxDelta = await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) - originalOutbox;
+            var receiptsDelta = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) - originalReceipt;
             Ensure(journal.State == JournalState.Posted &&
                 journal.PostedAt is not null &&
                 journal.ExternalReference == reference &&
                 journal.BranchId == sample.BranchId &&
-                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == originalAudit + 4 &&
-                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid &&
-                    x.ResourceId == posted.ResourceId && x.Action == "journal.post") == 1 &&
-                await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) == originalOutbox + 1 &&
-                await db.Set<IdempotencyRecord>()
-                    .CountAsync(x => x.CompanyId == cid) == originalReceipt + 4,
-                "GL03-T01 posting failed audit/outbox atomicity or idempotent SQL accounting");
+                auditDelta == 5 && postActions == 1 && outboxDelta == 1 &&
+                receiptsDelta == 4,
+                $"GL03-T01 atomicity mismatch: state={journal.State}, postedAt={journal.PostedAt}, " +
+                $"referenceMatch={journal.ExternalReference == reference}, branchMatch={journal.BranchId == sample.BranchId}, " +
+                $"auditDelta={auditDelta}, postActions={postActions}, outboxDelta={outboxDelta}, receiptsDelta={receiptsDelta}");
         }
 
         await Expect("permission_denied", () => Call(s =>
