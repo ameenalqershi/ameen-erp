@@ -2065,6 +2065,42 @@ public static class HostedApiIntegration
                 using(var search=await client.GetAsync(numPath+"?search=HTTPNUM-&isActive=false"))
                 using(var json=JsonDocument.Parse(await search.Content.ReadAsStringAsync()))
                     Ensure(search.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==1,"SYS10 HTTP search/status filter differs");
+                // SYS10-03: the same production JWT can read its branch series but not audit or allocate it.
+                await Command(client,$"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("sys10-http-scoped-reader",new[]{Permissions.Read},
+                        false,new[]{numBranch.ResourceId},null));
+                var foreignBranch=await Command(client,$"/api/v1/companies/{companyId}/branches",
+                    new CreateBranchRequest("SYS10-HTTP-OTHER","فرع آخر","مدينة","عنوان"));
+                var foreignSeries=await Command(client,numPath,
+                    new CreateNumberSeriesRequest(NumberingDocumentKind.Journal,yearId,400,"SYS10-FOREIGN-",foreignBranch.ResourceId));
+                Authenticate(Token("sys10-http-scoped-reader"));
+                using(var ownResponse=await client.GetAsync(numPath+$"/{numCard.ResourceId}"))
+                    Ensure(ownResponse.StatusCode==HttpStatusCode.OK,
+                        "SYS10 scoped JWT could not read its own branch series");
+                using(var otherResponse=await client.GetAsync(numPath+$"/{foreignSeries.ResourceId}"))
+                    Ensure(otherResponse.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS10 scoped JWT read series from an unauthorized branch");
+                using(var hidden=await client.GetAsync(numPath+"?limit=100"))
+                using(var json=JsonDocument.Parse(await hidden.Content.ReadAsStringAsync()))
+                    Ensure(hidden.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("items").EnumerateArray().All(x=>
+                            x.GetProperty("branchId").GetGuid()==numBranch.ResourceId),
+                        "SYS10 search leaked other branch number-series cards");
+                using(var auditDenied=await client.GetAsync(numPath+$"/{numCard.ResourceId}/audit-events"))
+                    Ensure(auditDenied.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS10 scoped JWT read audit without Audit permission");
+                using(var reserveDenied=await client.PostAsync(numPath+$"/{numCard.ResourceId}/reserve",
+                    new StringContent(JsonSerializer.Serialize(new ReserveDocumentNumberRequest(
+                        numCard.Version,numBranch.ResourceId),JsonDefaults.Options),Encoding.UTF8,"application/json")))
+                    Ensure(reserveDenied.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS10 read-only scoped JWT allocated a document number");
+                Authenticate(Token("sql-owner"));
+                using(var finalResponse=await client.GetAsync(numPath+$"/{numCard.ResourceId}"))
+                using(var json=JsonDocument.Parse(await finalResponse.Content.ReadAsStringAsync()))
+                    Ensure(finalResponse.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("nextNumber").GetInt64()==43,
+                        "SYS10 denied HTTP allocation modified series counter");
+                Console.WriteLine("  HOST PASS SYS10-03 branch isolation and read/audit/configure JWT separation over HTTPS/SQL");
                 Console.WriteLine("  HOST PASS SYS10 create/edit/reserve/status/search/usage/audit with exact field types over HTTPS/JWT/SQL");
                 var mapPath=$"/api/v1/companies/{companyId}/financial-mappings";
                 var mapLines=new FinancialMappingLineRequest[]{new("ROOT","عنوان",FinancialDisplaySign.Normal),new("CASH","نقدية",FinancialDisplaySign.Normal,journalRequest.Lines[0].AccountId,"ROOT"),new("TOTAL","المجموع",FinancialDisplaySign.Normal,null,"ROOT","[CASH]")};
