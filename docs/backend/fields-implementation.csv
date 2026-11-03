@@ -220,20 +220,20 @@ SYS15,SYS15-F10,أنشأه,system,pending,,
 SYS15,SYS15-F11,وقت الإنشاء,system,pending,,
 SYS15,SYS15-F12,رقم إصدار التعديل,system,pending,,
 SYS15,SYS15-F13,آخر تعديل,system,pending,,
-SYS16,SYS16-F01,الشركة,system,pending,,
-SYS16,SYS16-F02,الفرع,conditional,pending,,
-SYS16,SYS16-F03,الحالة,system,pending,,
-SYS16,SYS16-F04,رمز الطريقة,required,pending,,
-SYS16,SYS16-F05,اسم الطريقة,required,pending,,
-SYS16,SYS16-F06,نوع الوسيلة,required,pending,,
-SYS16,SYS16-F07,حساب التسوية,conditional,pending,,
-SYS16,SYS16-F08,أيام السماح,required,pending,,
-SYS16,SYS16-F09,نسبة الدفعة,conditional,pending,,
-SYS16,SYS16-F10,أيام من تاريخ الأساس,conditional,pending,,
-SYS16,SYS16-F11,أنشأه,system,pending,,
-SYS16,SYS16-F12,وقت الإنشاء,system,pending,,
-SYS16,SYS16-F13,رقم إصدار التعديل,system,pending,,
-SYS16,SYS16-F14,آخر تعديل,system,pending,,
+SYS16,SYS16-F01,الشركة,system,partial,"PaymentTerm.CompanyId: tenant FK, schema only",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F02,الفرع,conditional,partial,"PaymentTerm.BranchId: nullable composite tenant FK, schema only",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F03,الحالة,system,partial,"PaymentTerm.IsActive: status column, writes blocked",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F04,رمز الطريقة,required,partial,"PaymentTerm.Code: nvarchar(32), unique within company",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F05,اسم الطريقة,required,partial,PaymentTerm.Name: Unicode nvarchar(200),internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F06,نوع الوسيلة,required,partial,"PaymentTerm.Kind: Cash/Card/Credit source-named initial means, no approved UI catalog",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F07,حساب التسوية,conditional,partial,"PaymentTerm.SettlementAccountId: nullable tenant FK, conditional rules pending",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F08,أيام السماح,required,partial,PaymentTerm.GraceDays: nonnegative int,internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F09,نسبة الدفعة,conditional,partial,"PaymentTermLine.Percent: decimal(9,6); domain sum exactly 100 if present; EF writes blocked",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F10,أيام من تاريخ الأساس,conditional,partial,PaymentTermLine.DaysFromBase: nonnegative int,internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F11,أنشأه,system,partial,"PaymentTerm.CreatedBy: internal server-owned actor, no API yet",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F12,وقت الإنشاء,system,partial,"PaymentTerm.CreatedAt: internal datetimeoffset, no API yet",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F13,رقم إصدار التعديل,system,partial,"PaymentTerm.Revision: positive int, no API yet",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F14,آخر تعديل,system,partial,"PaymentTerm.LastModifiedAt: internal datetimeoffset, no API yet",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
 SYS17,SYS17-F01,الشركة,system,pending,,
 SYS17,SYS17-F02,الفرع,conditional,pending,,
 SYS17,SYS17-F03,الحالة,system,pending,,
