@@ -1,5 +1,12 @@
 # سجل تقدم وتسليم الباك إند
 
+
+## SYS03-GAP03 — ambiguous recurring due dates in custom fiscal periods (3 November 2026)
+
+The SYS03 custom-period rule delegates to the GL04 recurring due-date guard: a half-year containing more than one monthly due date must reject the entire generation attempt as `ambiguous_recurring_period` rather than selecting an arbitrary date. On the dedicated `sys` branch, added an actual application-service negative acceptance test using SYS03's explicit 2027 H1/H2 calendar. It verifies failure without changes to journal, generation, numbering allocation/counter, audit or idempotency receipt counts. Added a production HTTPS/JWT/SQL acceptance test creating an independent 2035 H1/H2 calendar and monthly template, requiring HTTP 422 and the named error, then verifying the journal list, generation history and audit log remain identical. No finance policy, chart, original analysis, or production data change.
+
+**Verification gate:** pending exact `sys` head SHA successful GitHub Actions, including isolated SQL Server, HTTP/JWT, OpenAPI, domain tests and Release. SYS03-GAP03 must remain `قيد التحقق` until the final branch and PR checks pass. Other SYS03 gaps and overall screen remain partial.
+
 ## SYS03-GAP04 — fiscal closure bypass negative acceptance (3 November 2026)
 
 Branch `sys` adds a production-host HTTPS/JWT/SQL regression for the SYS03 invariant: a fiscal year and its periods must not be deleted or disabled as a shortcut around GL12 period-close authorization. After a successful calendar create/read, the test asserts DELETE on the fiscal-year resource is HTTP 405, POST on an undocumented status route is HTTP 404, and both the persisted calendar/periods and its audit event history remain byte-identical to before the refused calls. The generated production OpenAPI is also checked to ensure no DELETE or status route is advertised. Existing GL12 positive close/reopen tests remain the authorized lifecycle path. No financial policy, production data, or original source analysis is changed.
