@@ -19,6 +19,21 @@ public static class FiscalCalendarSqlIntegration
         Ensure(results.All(x => x == results[0]), "Calendar concurrent replay differs");
         var calendar = await Call(s => s.FiscalCalendar.GetFiscalCalendar(cid, results[0].ResourceId, owner, default));
         Ensure(calendar.Periods.Count == 2 && calendar.Periods[0].Code == "2027-H1", "Custom SQL calendar differs");
+        // SYS03-FG02: the API header's required start/end are persisted
+        // exactly as DateOnly values, without truncation or shifting in SQL.
+        Ensure(calendar.Year.StartsOn == new DateOnly(2027, 1, 1) &&
+            calendar.Year.EndsOn == new DateOnly(2027, 12, 31),
+            "SYS03-FG02 year range differs from the submitted dates");
+        await using (var dateDb = Context())
+        {
+            var stored = await dateDb.Set<FiscalYear>().SingleAsync(x =>
+                x.CompanyId == cid && x.Id == results[0].ResourceId);
+            Ensure(stored.StartsOn == new DateOnly(2027, 1, 1) &&
+                stored.EndsOn == new DateOnly(2027, 12, 31) &&
+                stored.Code == "2027",
+                "SYS03-FG02 persisted fiscal dates/code differ in tenant SQL");
+        }
+        Console.WriteLine("  SQL PASS SYS03-FG02 fiscal start/end DateOnly roundtrip in SQL");
         Ensure((await Call(s => s.FiscalCalendar.SearchFiscalYears(cid, owner, "2027", 0, 10, default))).TotalCount == 1, "Calendar SQL search differs");
         Ensure((await Call(s => s.FiscalCalendar.ListFiscalYearAudit(cid, results[0].ResourceId, owner, 0, 10, default))).TotalCount == 1, "Duplicate calendar audit");
         Ensure((await Call(s => s.FiscalCalendar.GetFiscalYearUsage(cid, results[0].ResourceId, owner, default))).JournalCount == 0, "New calendar has usage");

@@ -1346,6 +1346,39 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("periods").GetArrayLength() == 2 &&
                         json.RootElement.GetProperty("state").GetString() == "Open" && json.RootElement.GetProperty("generalLedgerOnly").GetBoolean(), "Custom HTTP calendar failed");
+                // SYS03-FG02: fiscal date boundaries survive the public
+                // HTTPS/SQL roundtrip and malformed ranges fail atomically.
+                using (var fiscalDetail = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}"))
+                using (var fiscalJson = JsonDocument.Parse(await fiscalDetail.Content.ReadAsStringAsync()))
+                {
+                    var year = fiscalJson.RootElement.GetProperty("year");
+                    Ensure(fiscalDetail.StatusCode == HttpStatusCode.OK &&
+                        year.GetProperty("companyId").GetGuid() == company.Id &&
+                        year.GetProperty("startsOn").GetString() == "2026-01-01" &&
+                        year.GetProperty("endsOn").GetString() == "2026-12-31",
+                        "SYS03-FG02 fiscal date header was not preserved by HTTPS/SQL");
+                }
+                async Task RejectFiscalRange(string code, DateOnly start, DateOnly end)
+                {
+                    using var invalid = new HttpRequestMessage(HttpMethod.Post, calendarPath);
+                    invalid.Headers.Add("Idempotency-Key", Fixture.Key());
+                    invalid.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateFiscalYearRequest(code, start, end),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(invalid);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        error.RootElement.GetProperty("code").GetString() == "invalid_fiscal_year",
+                        "SYS03-FG02 public API accepted reversed or excessively long fiscal dates");
+                }
+                await RejectFiscalRange("2030-BACK", new(2030, 12, 31), new(2030, 1, 1));
+                await RejectFiscalRange("2030-LONG", new(2030, 1, 1), new(2031, 12, 31));
+                using (var invalidSearch = await client.GetAsync(calendarPath + "/search?search=2030"))
+                using (var invalidJson = JsonDocument.Parse(await invalidSearch.Content.ReadAsStringAsync()))
+                    Ensure(invalidSearch.StatusCode == HttpStatusCode.OK &&
+                        invalidJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS03-FG02 rejected fiscal year persisted a partial row");
+                Console.WriteLine("  HOST PASS SYS03-FG02 fiscal date roundtrip and negative ranges over HTTPS/JWT/SQL");
                 using (var response = await client.GetAsync(calendarPath + "/search?search=2026"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Calendar HTTP search failed");
