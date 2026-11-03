@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 39,
+  "partially_implemented_screens": 40,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 47,
     "derived": 4,
-    "partial": 176,
-    "pending": 2183
+    "partial": 189,
+    "pending": 2170
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2388,6 +2388,66 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/ChequeFoundationTests.cs; backend/tests/Ameen.Erp.Tests/ChequeSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "CASH09": {
+      "api": "internal EF/SQL schema 037 only; no cheque clearing/cancellation API",
+      "implemented": "بنية حركة شيك 037 تمثل 13 حقلًا أصليًا مع حل مرجع الشيك ذي النوعين عبر IncomingChequeId أو OutgoingChequeId بمفتاح شركة مركب وقيد exactly-one، ومرجع بنك مستلم اختياري وعمولة decimal(20,6) غير سالبة؛ ترقية ذرية قابلة للإعادة وحارس EF يمنع كل كتابة",
+      "remaining": "قائمة أفعال وانتقالات وحالات CASH09 لم تعتمد؛ لا تحصيل شيك مرتين أو رفض/إلغاء أو إعادة الذمة قبل اعتماد CAS/GL06/SYS07 وCASH07/CASH08 وقواعد التزامن، ولا API تحصيل أو سجل تغير فعلي؛ SQL محفوظ بنيويًا فقط",
+      "fields": {
+        "CASH09-F01": {
+          "status": "partial",
+          "binding": "ChequeMovement.CompanyId tenant primary key and FK; no public API"
+        },
+        "CASH09-F02": {
+          "status": "partial",
+          "binding": "ChequeMovement.BranchId nullable tenant scoped FK"
+        },
+        "CASH09-F03": {
+          "status": "partial",
+          "binding": "ChequeMovement.State nonempty text; no approved state transitions"
+        },
+        "CASH09-F04": {
+          "status": "partial",
+          "binding": "ChequeMovement.ChequeId computed from exactly one IncomingChequeId or OutgoingChequeId; both are tenant FKs"
+        },
+        "CASH09-F05": {
+          "status": "partial",
+          "binding": "ChequeMovement.Action nonempty text, no approved action set, EF writes blocked"
+        },
+        "CASH09-F06": {
+          "status": "partial",
+          "binding": "ChequeMovement.ActionDate SQL date; no effective financial date validation"
+        },
+        "CASH09-F07": {
+          "status": "partial",
+          "binding": "ChequeMovement.ReceivedBankAccountId nullable company FK; no bank credit"
+        },
+        "CASH09-F08": {
+          "status": "partial",
+          "binding": "ChequeMovement.RejectionReason optional nvarchar(1000); return receivable not implemented"
+        },
+        "CASH09-F09": {
+          "status": "partial",
+          "binding": "ChequeMovement.Fee nullable decimal(20,6)>=0; no commission journal"
+        },
+        "CASH09-F10": {
+          "status": "partial",
+          "binding": "ChequeMovement.CreatedBy actor stored only; no operation authorized"
+        },
+        "CASH09-F11": {
+          "status": "partial",
+          "binding": "ChequeMovement.CreatedAt datetimeoffset(7) stored"
+        },
+        "CASH09-F12": {
+          "status": "partial",
+          "binding": "ChequeMovement.Revision int>0; no edit API or CAS transaction"
+        },
+        "CASH09-F13": {
+          "status": "partial",
+          "binding": "ChequeMovement.LastModifiedAt datetimeoffset(7)>=CreatedAt; audit events pending"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/ChequeMovementFoundationTests.cs; backend/tests/Ameen.Erp.Tests/ChequeMovementSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ChequeSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "CASH11": {
       "api": "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",

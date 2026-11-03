@@ -656,19 +656,19 @@ CASH08,CASH08-F19,أنشأه,system,partial,OutgoingCheque.CreatedBy stored text
 CASH08,CASH08-F20,وقت الإنشاء,system,partial,OutgoingCheque.CreatedAt datetimeoffset(7) stored only,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
 CASH08,CASH08-F21,رقم إصدار التعديل,system,partial,OutgoingCheque.Revision >0; no edit API,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
 CASH08,CASH08-F22,آخر تعديل,system,partial,OutgoingCheque.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
-CASH09,CASH09-F01,الشركة,system,pending,,
-CASH09,CASH09-F02,الفرع,conditional,pending,,
-CASH09,CASH09-F03,الحالة,system,pending,,
-CASH09,CASH09-F04,الشيك,required,pending,,
-CASH09,CASH09-F05,الإجراء,required,pending,,
-CASH09,CASH09-F06,تاريخ الإجراء,required,pending,,
-CASH09,CASH09-F07,البنك المستلم,conditional,pending,,
-CASH09,CASH09-F08,سبب الرفض أو الإلغاء,conditional,pending,,
-CASH09,CASH09-F09,عمولة,optional,pending,,
-CASH09,CASH09-F10,أنشأه,system,pending,,
-CASH09,CASH09-F11,وقت الإنشاء,system,pending,,
-CASH09,CASH09-F12,رقم إصدار التعديل,system,pending,,
-CASH09,CASH09-F13,آخر تعديل,system,pending,,
+CASH09,CASH09-F01,الشركة,system,partial,ChequeMovement.CompanyId tenant primary key and FK; no public API,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F02,الفرع,conditional,partial,ChequeMovement.BranchId nullable tenant scoped FK,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F03,الحالة,system,partial,ChequeMovement.State nonempty text; no approved state transitions,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F04,الشيك,required,partial,ChequeMovement.ChequeId computed from exactly one IncomingChequeId or OutgoingChequeId; both are tenant FKs,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F05,الإجراء,required,partial,"ChequeMovement.Action nonempty text, no approved action set, EF writes blocked",internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F06,تاريخ الإجراء,required,partial,ChequeMovement.ActionDate SQL date; no effective financial date validation,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F07,البنك المستلم,conditional,partial,ChequeMovement.ReceivedBankAccountId nullable company FK; no bank credit,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F08,سبب الرفض أو الإلغاء,conditional,partial,ChequeMovement.RejectionReason optional nvarchar(1000); return receivable not implemented,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F09,عمولة,optional,partial,"ChequeMovement.Fee nullable decimal(20,6)>=0; no commission journal",internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F10,أنشأه,system,partial,ChequeMovement.CreatedBy actor stored only; no operation authorized,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F11,وقت الإنشاء,system,partial,ChequeMovement.CreatedAt datetimeoffset(7) stored,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F12,رقم إصدار التعديل,system,partial,ChequeMovement.Revision int>0; no edit API or CAS transaction,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F13,آخر تعديل,system,partial,ChequeMovement.LastModifiedAt datetimeoffset(7)>=CreatedAt; audit events pending,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
 CASH10,CASH10-F01,الشركة,system,pending,,
 CASH10,CASH10-F02,الفرع,conditional,pending,,
 CASH10,CASH10-F03,الحالة,system,pending,,

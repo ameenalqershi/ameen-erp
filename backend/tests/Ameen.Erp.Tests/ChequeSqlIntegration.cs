@@ -209,6 +209,10 @@ public static class ChequeSqlIntegration
             await db.Set<JournalEntry>().CountAsync(x => x.CompanyId==companyId)==journal &&
             await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId==companyId)==outbox,
             "Rejected cheque SQL modified bank, accounting, audit or journal");
+        // The CASH09 FK acceptance runs against these disposable parent
+        // cheque fixtures before they are removed.
+        await ChequeMovementSqlIntegration.Guard(
+            db, companyId, branchId, incomingId, outgoingId, bankId);
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"DELETE FROM [OutgoingCheques] WHERE [CompanyId]={companyId} AND [Id]={outgoingId}");
         await db.Database.ExecuteSqlInterpolatedAsync(

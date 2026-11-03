@@ -8,6 +8,14 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // CASH09 transition list, authorized actor, cheque clearing, bank
+        // debit and returned receivables are unapproved. Do not record an
+        // apparent financial transition through any EF caller.
+        Check.That(!ChangeTracker.Entries<ChequeMovement>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cheque_movement_policy_unavailable",
+            "لا يمكن حفظ حركة شيك قبل اعتماد حالات التحصيل والرفض والصرف والتسوية.",
+            ErrorKind.Conflict);
         // CASH07/CASH08 document status, payee, cancellation, bank clearing and
         // accounting movements need approved linked CASH03/CASH04/CASH09
         // workflows. Fail closed for both headers and all EF write operations.

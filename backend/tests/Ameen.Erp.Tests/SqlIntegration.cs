@@ -40,6 +40,7 @@ public static class SqlIntegration
                 await CashCountSqlIntegration.Upgrade(db);
                 await CashReceiptSqlIntegration.Upgrade(db);
                 await ChequeSqlIntegration.Upgrade(db);
+                await ChequeMovementSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await MembershipStatusSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);

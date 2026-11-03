@@ -382,6 +382,25 @@ MAP["CASH08"]["fields"]["CASH08-F21"] = dict(status="partial", binding='Outgoing
 MAP["CASH08"]["fields"]["CASH08-F22"] = dict(status="partial", binding='OutgoingCheque.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API')
 MAP["CASH08"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + x for x in ["ChequeFoundationTests.cs", "ChequeSqlIntegration.cs", "SqlIntegration.cs"])
 
+screen("CASH09", "internal EF/SQL schema 037 only; no cheque clearing/cancellation API",
+       "بنية حركة شيك 037 تمثل 13 حقلًا أصليًا مع حل مرجع الشيك ذي النوعين عبر IncomingChequeId أو OutgoingChequeId بمفتاح شركة مركب وقيد exactly-one، ومرجع بنك مستلم اختياري وعمولة decimal(20,6) غير سالبة؛ ترقية ذرية قابلة للإعادة وحارس EF يمنع كل كتابة",
+       "قائمة أفعال وانتقالات وحالات CASH09 لم تعتمد؛ لا تحصيل شيك مرتين أو رفض/إلغاء أو إعادة الذمة قبل اعتماد CAS/GL06/SYS07 وCASH07/CASH08 وقواعد التزامن، ولا API تحصيل أو سجل تغير فعلي؛ SQL محفوظ بنيويًا فقط",
+       {})
+MAP["CASH09"]["fields"]["CASH09-F01"] = dict(status="partial", binding='ChequeMovement.CompanyId tenant primary key and FK; no public API')
+MAP["CASH09"]["fields"]["CASH09-F02"] = dict(status="partial", binding='ChequeMovement.BranchId nullable tenant scoped FK')
+MAP["CASH09"]["fields"]["CASH09-F03"] = dict(status="partial", binding='ChequeMovement.State nonempty text; no approved state transitions')
+MAP["CASH09"]["fields"]["CASH09-F04"] = dict(status="partial", binding='ChequeMovement.ChequeId computed from exactly one IncomingChequeId or OutgoingChequeId; both are tenant FKs')
+MAP["CASH09"]["fields"]["CASH09-F05"] = dict(status="partial", binding='ChequeMovement.Action nonempty text, no approved action set, EF writes blocked')
+MAP["CASH09"]["fields"]["CASH09-F06"] = dict(status="partial", binding='ChequeMovement.ActionDate SQL date; no effective financial date validation')
+MAP["CASH09"]["fields"]["CASH09-F07"] = dict(status="partial", binding='ChequeMovement.ReceivedBankAccountId nullable company FK; no bank credit')
+MAP["CASH09"]["fields"]["CASH09-F08"] = dict(status="partial", binding='ChequeMovement.RejectionReason optional nvarchar(1000); return receivable not implemented')
+MAP["CASH09"]["fields"]["CASH09-F09"] = dict(status="partial", binding='ChequeMovement.Fee nullable decimal(20,6)>=0; no commission journal')
+MAP["CASH09"]["fields"]["CASH09-F10"] = dict(status="partial", binding='ChequeMovement.CreatedBy actor stored only; no operation authorized')
+MAP["CASH09"]["fields"]["CASH09-F11"] = dict(status="partial", binding='ChequeMovement.CreatedAt datetimeoffset(7) stored')
+MAP["CASH09"]["fields"]["CASH09-F12"] = dict(status="partial", binding='ChequeMovement.Revision int>0; no edit API or CAS transaction')
+MAP["CASH09"]["fields"]["CASH09-F13"] = dict(status="partial", binding='ChequeMovement.LastModifiedAt datetimeoffset(7)>=CreatedAt; audit events pending')
+MAP["CASH09"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + x for x in ["ChequeMovementFoundationTests.cs", "ChequeMovementSqlIntegration.cs", "ChequeSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("CASH11", "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",
        "بنية محضر جرد صندوق وسطور فئات/عدد القطع بقيمة Decimal محسوبة في SQL؛ مفتاح صندوق وفرع/قائم بالجرد ضمن الشركة وتدقيق زمني وإصدار؛ ترقية 033 ذرية قابلة للإعادة؛ كل الكتابات عبر EF محجوبة حتى اعتماد مسار الرصيد والتسوية",
        "لا توجد عملية جرد أو مقارنة رصيد دفتر أو محضر عجز/زيادة تشغيلي أو اعتماد تسوية GL03؛ الحالة المسموحة وقواعد تفعيل الجرد وصلاحيات SYS07 تتطلب مسارًا معتمدًا؛ SQL بنيوي فقط، لا HTTP/JWT/OpenAPI عمليات CASH11",
@@ -504,7 +523,7 @@ def generate():
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
         "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
-        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH03 أساس سند قبض بنيوي فقط مع حظر كتابته؛ CASH07/CASH08 أساس شيكات بنيوي فقط مع حظر كتابتها؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
+        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH03 أساس سند قبض بنيوي فقط مع حظر كتابته؛ CASH07/CASH08 أساس شيكات بنيوي فقط مع حظر كتابتها؛ CASH09 أساس حركة شيك بنيوي مع منع جميع الكتابات؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",
