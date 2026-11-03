@@ -44,6 +44,26 @@ public static class BankAccountFoundationTests
             return Task.CompletedTask;
         });
 
+        test("CASH02: rejected bank edits preserve every field and audit revision", f =>
+        {
+            var card = Create(f, "GB82 WEST 1234 5698 7654 32");
+            var originalVersion = card.Version;
+            var originalRevision = card.Revision;
+            var originalModified = card.LastModifiedAt;
+            Error("invalid_iban", () => card.Configure("CHANGED", "تعديل مرفوض",
+                "بنك آخر", "9999", "GB82 WEST 1234 5698 7654 33",
+                Guid.NewGuid(), "USD", Guid.NewGuid(), "Changed", "Changed",
+                originalModified.AddMinutes(1)));
+            Ensure(card.Code == "BANK01" && card.Name == "حساب بنكي" &&
+                card.BankName == "بنك اختباري" && card.AccountNumber == "0000012345" &&
+                card.Iban == "GB82WEST12345698765432" && card.CurrencyCode == "SAR" &&
+                card.BranchId == f.BranchId && card.LedgerAccountId == f.CashId &&
+                card.EnglishName == "Bank Account" && card.Notes == "تجريبي" &&
+                card.Version == originalVersion && card.Revision == originalRevision &&
+                card.LastModifiedAt == originalModified);
+            return Task.CompletedTask;
+        });
+
         test("CASH02-01: historical audit time cannot regress on domain mutations", f =>
         {
             var card = Create(f, null);
