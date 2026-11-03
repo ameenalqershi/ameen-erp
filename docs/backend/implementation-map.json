@@ -6,10 +6,10 @@
   "partially_implemented_screens": 35,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 347,
+    "implemented": 346,
     "audit": 49,
     "derived": 4,
-    "partial": 94,
+    "partial": 95,
     "pending": 2265
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -364,8 +364,8 @@
           "binding": "CompanyId"
         },
         "SYS06-F16": {
-          "status": "implemented",
-          "binding": "Version"
+          "status": "partial",
+          "binding": "Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented"
         },
         "SYS06-F06": {
           "status": "partial",

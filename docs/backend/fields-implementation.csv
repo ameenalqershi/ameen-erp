@@ -97,7 +97,7 @@ SYS06,SYS06-F12,حالة الحساب,required,partial,Membership.IsActive (ERP 
 SYS06,SYS06-F13,مصادقة إضافية,required,pending,,
 SYS06,SYS06-F14,أنشأه,system,pending,,
 SYS06,SYS06-F15,وقت الإنشاء,system,pending,,
-SYS06,SYS06-F16,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/memberships/{id}/status
+SYS06,SYS06-F16,رقم إصدار التعديل,system,partial,Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented,POST /companies/{companyId}/memberships/{id}/status
 SYS06,SYS06-F17,آخر تعديل,system,pending,,
 SYS07,SYS07-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F02,الفرع,conditional,partial,SecurityRole.BranchId: tenant FK only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
