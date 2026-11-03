@@ -1367,6 +1367,30 @@ public static class HostedApiIntegration
                         "SYS03-AC01 HTTPS calendar did not expose contiguous open periods");
                 }
                 Console.WriteLine("  HOST PASS SYS03-AC01 open contiguous fiscal periods over HTTPS/JWT/SQL");
+                // SYS03-FG03: leading-zero period identifiers are text;
+                // clients define dates/codes, but the server owns close state.
+                var codedFiscal = await Command(client, calendarPath,
+                    new CreateFiscalYearRequest("2034", new(2034, 1, 1), new(2034, 12, 31),
+                        new[] {
+                            new FiscalPeriodRequest("0001", new(2034, 1, 1), new(2034, 6, 30)),
+                            new FiscalPeriodRequest("0002", new(2034, 7, 1), new(2034, 12, 31))
+                        }));
+                using (var codedResponse = await client.GetAsync(calendarPath + $"/{codedFiscal.ResourceId}"))
+                using (var codedJson = JsonDocument.Parse(await codedResponse.Content.ReadAsStringAsync()))
+                {
+                    var periods = codedJson.RootElement.GetProperty("periods").EnumerateArray().ToArray();
+                    Ensure(codedResponse.StatusCode == HttpStatusCode.OK && periods.Length == 2 &&
+                        periods[0].GetProperty("code").GetString() == "0001" &&
+                        periods[0].GetProperty("startsOn").GetString() == "2034-01-01" &&
+                        periods[0].GetProperty("endsOn").GetString() == "2034-06-30" &&
+                        !periods[0].GetProperty("isClosed").GetBoolean() &&
+                        periods[1].GetProperty("code").GetString() == "0002" &&
+                        periods[1].GetProperty("startsOn").GetString() == "2034-07-01" &&
+                        periods[1].GetProperty("endsOn").GetString() == "2034-12-31" &&
+                        !periods[1].GetProperty("isClosed").GetBoolean(),
+                        "SYS03-FG03 HTTPS period identifiers/date fields or initial GL-only state differ");
+                }
+                Console.WriteLine("  HOST PASS SYS03-FG03 period codes with leading zeros and dates over HTTPS/JWT/SQL");
                 // SYS03-FG02: fiscal date boundaries survive the public
                 // HTTPS/SQL roundtrip and malformed ranges fail atomically.
                 using (var fiscalDetail = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}"))

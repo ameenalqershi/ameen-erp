@@ -57,6 +57,26 @@ public static class FiscalCalendarSqlIntegration
                 "SYS03-FG02 persisted fiscal dates/code differ in tenant SQL");
         }
         Console.WriteLine("  SQL PASS SYS03-FG02 fiscal start/end DateOnly roundtrip in SQL");
+        // SYS03-FG03 (F07-F10): a period's code is text, not a number;
+        // zero-prefixed identifiers and system-owned open state survive SQL.
+        var coded = await Call(s => s.FiscalCalendar.CreateFiscalYear(cid, owner, Fixture.Key(),
+            new("2034", new(2034, 1, 1), new(2034, 12, 31), new[] {
+                new FiscalPeriodRequest("0001", new(2034, 1, 1), new(2034, 6, 30)),
+                new FiscalPeriodRequest("0002", new(2034, 7, 1), new(2034, 12, 31))
+            }), default));
+        await using (var periodFieldsDb = Context())
+        {
+            var rows = await periodFieldsDb.Set<FiscalPeriod>()
+                .Where(x => x.CompanyId == cid && x.FiscalYearId == coded.ResourceId)
+                .OrderBy(x => x.StartsOn).ToListAsync();
+            Ensure(rows.Count == 2 && rows.All(x => !x.IsClosed && x.CompanyId == cid) &&
+                rows[0].Code == "0001" && rows[0].StartsOn == new DateOnly(2034, 1, 1) &&
+                rows[0].EndsOn == new DateOnly(2034, 6, 30) &&
+                rows[1].Code == "0002" && rows[1].StartsOn == new DateOnly(2034, 7, 1) &&
+                rows[1].EndsOn == new DateOnly(2034, 12, 31),
+                "SYS03-FG03 stored period code/dates or system-owned state differ");
+        }
+        Console.WriteLine("  SQL PASS SYS03-FG03 leading-zero period code, dates, open state and company isolation");
         Ensure((await Call(s => s.FiscalCalendar.SearchFiscalYears(cid, owner, "2027", 0, 10, default))).TotalCount == 1, "Calendar SQL search differs");
         Ensure((await Call(s => s.FiscalCalendar.ListFiscalYearAudit(cid, results[0].ResourceId, owner, 0, 10, default))).TotalCount == 1, "Duplicate calendar audit");
         Ensure((await Call(s => s.FiscalCalendar.GetFiscalYearUsage(cid, results[0].ResourceId, owner, default))).JournalCount == 0, "New calendar has usage");
