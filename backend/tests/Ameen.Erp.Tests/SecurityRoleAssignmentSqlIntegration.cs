@@ -58,6 +58,21 @@ public static class SecurityRoleAssignmentSqlIntegration
         db.Add(new SecurityRoleAssignment(companyId, Guid.NewGuid(), Guid.NewGuid()));
         try { await db.SaveChangesAsync(); throw new Exception("Unverified assignment persisted"); }
         catch (BusinessException ex) when (ex.Code == "security_role_assignment_policy_unavailable") { }
+        // SYS07-GAP01: blocked assignment administration must also reject detached
+        // update/delete attempts, not only new grants. Neither operation may reach SQL.
+        foreach (var state in new[] { EntityState.Modified, EntityState.Deleted })
+        {
+            await using var guarded = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()
+                .UseSqlServer(connection).Options);
+            var candidate = new SecurityRoleAssignment(companyId, Guid.NewGuid(), Guid.NewGuid());
+            guarded.Entry(candidate).State = state;
+            try
+            {
+                await guarded.SaveChangesAsync();
+                throw new Exception($"Unverified assignment {state} reached SQL");
+            }
+            catch (BusinessException ex) when (ex.Code == "security_role_assignment_policy_unavailable") { }
+        }
         await using var check = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()
             .UseSqlServer(connection).Options);
         try
