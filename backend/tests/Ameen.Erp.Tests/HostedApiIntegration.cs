@@ -1003,7 +1003,10 @@ public static class HostedApiIntegration
                     company.CountryCode, company.FunctionalCurrency, companyProfile, "استكمال البيانات"), method: HttpMethod.Put);
                 using (var companyDetail = await client.GetAsync(companyPath))
                 using (var json = JsonDocument.Parse(await companyDetail.Content.ReadAsStringAsync()))
-                    Ensure(json.RootElement.GetProperty("commercialRegistration").GetString() == "00042" &&
+                    Ensure(json.RootElement.GetProperty("id").GetGuid() == company.Id &&
+                        json.RootElement.GetProperty("code").GetString() == company.Code &&
+                        json.RootElement.GetProperty("name").GetString() == company.Name &&
+                        json.RootElement.GetProperty("commercialRegistration").GetString() == "00042" &&
                         json.RootElement.GetProperty("revision").GetInt32() == 2 &&
                         json.RootElement.GetProperty("englishName").GetString() == "HTTP legal name" &&
                         json.RootElement.GetProperty("notes").GetString() == "ملاحظة HTTP" &&
