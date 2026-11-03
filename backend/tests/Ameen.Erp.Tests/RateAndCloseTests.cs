@@ -51,6 +51,47 @@ public static class RateAndCloseTests
             await Error("all_branches_required", () => f.Service.ExchangeRate.GetExchangeRateUsage(f.CompanyId, rate.ResourceId, f.Limited, 0, 10, default));
             await Error("permission_denied", () => f.Service.ExchangeRate.ListExchangeRateAudit(f.CompanyId, rate.ResourceId, f.Clerk, 0, 10, default));
         });
+        test("SYS05-GAP03: quote never reserves rate and a newer effective rate invalidates an old quote atomically", async f =>
+        {
+            await Currency(f);
+            var historic = await Rate(f, Fixture.Date.AddDays(-1), 3m);
+            var auditsBeforeQuote = f.Store.Count<AuditEvent>();
+            var receiptsBeforeQuote = f.Store.Count<IdempotencyRecord>();
+            var sequencesBeforeQuote = f.Store.Count<NumberSequence>();
+            var allocationsBeforeQuote = f.Store.Count<DocumentNumberAllocation>();
+            var journalsBeforeQuote = f.Store.Count<JournalEntry>();
+
+            for (var i = 0; i < 3; i++)
+            {
+                var quote = await f.Service.ExchangeRate.QuoteExchangeRate(
+                    f.CompanyId, f.Clerk, "USD", Fixture.Date, default);
+                Ensure(quote.ExchangeRateId == historic.ResourceId && quote.RateToFunctional == 3m &&
+                    quote.CurrencyCode == "USD" && quote.FunctionalCurrency == "SAR");
+            }
+            Ensure(f.Store.Count<AuditEvent>() == auditsBeforeQuote &&
+                f.Store.Count<IdempotencyRecord>() == receiptsBeforeQuote &&
+                f.Store.Count<NumberSequence>() == sequencesBeforeQuote &&
+                f.Store.Count<DocumentNumberAllocation>() == allocationsBeforeQuote &&
+                f.Store.Count<JournalEntry>() == journalsBeforeQuote);
+
+            var latest = await Rate(f, Fixture.Date, 3.75m);
+            var refreshed = await f.Service.ExchangeRate.QuoteExchangeRate(
+                f.CompanyId, f.Clerk, "USD", Fixture.Date, default);
+            Ensure(refreshed.ExchangeRateId == latest.ResourceId && refreshed.RateToFunctional == 3.75m);
+            var auditAfterNewRate = f.Store.Count<AuditEvent>();
+            var receiptsAfterNewRate = f.Store.Count<IdempotencyRecord>();
+            await Error("stale_exchange_rate", () => f.Draft(Request(f, historic.ResourceId)));
+            Ensure(f.Store.Count<JournalEntry>() == journalsBeforeQuote &&
+                f.Store.Count<NumberSequence>() == sequencesBeforeQuote &&
+                f.Store.Count<DocumentNumberAllocation>() == allocationsBeforeQuote &&
+                f.Store.Count<AuditEvent>() == auditAfterNewRate &&
+                f.Store.Count<IdempotencyRecord>() == receiptsAfterNewRate);
+
+            var accepted = await f.Draft(Request(f, latest.ResourceId));
+            var journal = await f.Journal(accepted.ResourceId);
+            Ensure(journal.Lines.Any(x => x.ExchangeRateId == latest.ResourceId && x.ExchangeRate == 3.75m) &&
+                !journal.Lines.Any(x => x.ExchangeRateId == historic.ResourceId));
+        });
         test("SYS05: quote is advisory and newer rate requires refreshed draft choice", async f =>
         {
             await Currency(f); await Rate(f, Fixture.Date.AddDays(-1), 3m);
