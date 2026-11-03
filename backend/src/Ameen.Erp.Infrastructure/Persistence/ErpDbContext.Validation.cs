@@ -42,6 +42,15 @@ public sealed partial class ErpDbContext
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
             "cash_count_policy_unavailable",
             "لا يمكن حفظ الجرد قبل اعتماد الرصيد والتسوية والمراجعة.", ErrorKind.Conflict);
+        // SYS13-01 stores only metadata. Import/replay/preview, balance control,
+        // approvals and tenant-scoped file parsing need separate approved rules.
+        Check.That(!ChangeTracker.Entries<DataImportBatch>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<DataImportFieldMapping>().Any(e =>
+                e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "data_import_policy_unavailable",
+            "الاستيراد محجوب حتى اعتماد المعاينة والتحقق من الرصيد والتكرار والصلاحيات.",
+            ErrorKind.Conflict);
         // SYS12-01 is structural only. Country-required fields, legal print
         // content, template preview and watermarking have no approved policy.
         Check.That(!ChangeTracker.Entries<PrintTemplate>().Any(e =>
