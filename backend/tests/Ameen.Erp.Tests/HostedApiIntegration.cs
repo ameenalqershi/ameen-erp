@@ -1023,6 +1023,35 @@ public static class HostedApiIntegration
                 using (var log = await client.GetAsync(companyPath + "/profile-audit-events"))
                 using (var json = JsonDocument.Parse(await log.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Company HTTP audit differs");
+                // SYS01-FG06: prove system-owned audit fields on production HTTPS/JWT/SQL,
+                // and forbid reading the profile audit with a non-member JWT.
+                using (var auditResponse = await client.GetAsync(companyPath + "/profile-audit-events"))
+                using (var auditJson = JsonDocument.Parse(await auditResponse.Content.ReadAsStringAsync()))
+                {
+                    Ensure(auditResponse.StatusCode == HttpStatusCode.OK,
+                        "SYS01-FG06 authorized company audit was not returned");
+                    var events = auditJson.RootElement.GetProperty("items").EnumerateArray().ToArray();
+                    Ensure(events.Length == 3, "SYS01-FG06 expected exactly three profile audit events");
+                    var created = events.Single(x => x.GetProperty("action").GetString() == "company.created");
+                    var edited = events.Single(x => x.GetProperty("action").GetString() == "company.edited");
+                    var disabled = events.Single(x => x.GetProperty("action").GetString() == "company.status-changed");
+                    Ensure(events.All(x => x.GetProperty("actorId").GetString() == "runtime-admin" &&
+                        x.GetProperty("resourceId").GetGuid() == company.Id &&
+                        x.GetProperty("companyId").GetGuid() == company.Id),
+                        "SYS01-FG06 caller identity or tenant scope was not preserved");
+                    var createdAt = created.GetProperty("occurredAt").GetDateTimeOffset();
+                    var editedAt = edited.GetProperty("occurredAt").GetDateTimeOffset();
+                    var statusAt = disabled.GetProperty("occurredAt").GetDateTimeOffset();
+                    Ensure(createdAt != default && editedAt >= createdAt && statusAt >= editedAt &&
+                        companyReceipt.Version != Guid.Empty,
+                        "SYS01-FG06 server audit timestamps or concurrency token invalid");
+                }
+                Authenticate(Token("sql-clerk"));
+                using (var deniedAudit = await client.GetAsync(companyPath + "/profile-audit-events"))
+                    Ensure(deniedAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS01-FG06 unauthorized JWT could read company profile audit");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS01-FG06 actor, chronological audit, tenant scope and forbidden audit access over HTTPS/JWT/SQL");
                 await Command(client, companyPath + "/status", new SetCompanyStatusRequest(companyReceipt.Version, true, "تفعيل"));
                 Console.WriteLine("  HOST PASS SYS01 required profile, PUT edit, integer revision, inactive-company write guard and reactivation");
                 var branchesPath = companyPath + "/branches";
