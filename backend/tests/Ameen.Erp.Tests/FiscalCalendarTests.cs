@@ -109,6 +109,48 @@ public static class FiscalCalendarTests
                 f.Store.Count<AuditEvent>() == audits &&
                 f.Store.Count<IdempotencyRecord>() == receipts);
         });
+        test("SYS03-GAP03: long period recurring generation rejects multiple dues atomically but accepts one due", async f =>
+        {
+            var year = await f.Service.FiscalCalendar.CreateFiscalYear(f.CompanyId, f.Owner, Fixture.Key(), Request(), default);
+            var calendar = await f.Service.FiscalCalendar.GetFiscalCalendar(f.CompanyId, year.ResourceId, f.Owner, default);
+            var firstHalf = calendar.Periods.Single(p => p.StartsOn == new DateOnly(2027, 1, 1));
+            var member = f.Store.All<Membership>().Single(x => x.Subject == f.Clerk.Subject);
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+                new(f.Clerk.Subject, Permissions.All, true, Array.Empty<Guid>(), member.Version), default);
+            var recurring = new CreateRecurringJournalRequest(f.BranchId, "SYS03 multi due", RecurringFrequency.Monthly,
+                RecurringGenerationMode.Manual, new(2027, 1, 31), new(2027, 12, 31),
+                new[] {
+                    new RecurringLineRequest(f.CashId, null, "مدين", "SAR", 100, 0),
+                    new RecurringLineRequest(f.EquityId, null, "دائن", "SAR", 0, 100)
+                });
+            var template = await f.Service.RecurringJournal.CreateRecurringJournal(
+                f.CompanyId, f.Clerk, Fixture.Key(), recurring, default);
+            var baselineJournals = f.Store.Count<JournalEntry>();
+            var baselineGenerations = f.Store.Count<RecurringJournalGeneration>();
+            var baselineSequences = f.Store.Count<NumberSequence>();
+            var baselineAudits = f.Store.Count<AuditEvent>();
+            var baselineReceipts = f.Store.Count<IdempotencyRecord>();
+            var attemptedKey = Fixture.Key();
+            await Error("ambiguous_recurring_period", () => f.Service.RecurringJournal.GenerateRecurringJournal(
+                f.CompanyId, template.ResourceId, f.Clerk, attemptedKey,
+                new GenerateRecurringJournalRequest(template.Version, firstHalf.Id), default));
+            Ensure(f.Store.Count<JournalEntry>() == baselineJournals &&
+                f.Store.Count<RecurringJournalGeneration>() == baselineGenerations &&
+                f.Store.Count<NumberSequence>() == baselineSequences &&
+                f.Store.Count<AuditEvent>() == baselineAudits &&
+                f.Store.Count<IdempotencyRecord>() == baselineReceipts);
+            var oneDue = await f.Service.RecurringJournal.CreateRecurringJournal(
+                f.CompanyId, f.Clerk, Fixture.Key(), recurring with { Name = "SYS03 one due", EndsOn = new(2027, 1, 31) }, default);
+            var generated = await f.Service.RecurringJournal.GenerateRecurringJournal(
+                f.CompanyId, oneDue.ResourceId, f.Clerk, Fixture.Key(),
+                new GenerateRecurringJournalRequest(oneDue.Version, firstHalf.Id), default);
+            var journal = await f.Service.Journal.GetJournal(f.CompanyId, generated.ResourceId, f.Clerk, default);
+            Ensure(generated.Status == "Draft" && journal.FiscalPeriodId == firstHalf.Id &&
+                journal.RecurringTemplateId == oneDue.ResourceId &&
+                f.Store.Count<RecurringJournalGeneration>() == baselineGenerations + 1 &&
+                f.Store.Count<JournalEntry>() == baselineJournals + 1 &&
+                f.Store.Count<OutboxEvent>() == 0);
+        });
         test("SYS03 GL04: custom period with multiple recurring dates is explicitly rejected", async f =>
         {
             var year = await Create(f, Request());
