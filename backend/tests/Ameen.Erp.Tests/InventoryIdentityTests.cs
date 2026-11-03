@@ -16,6 +16,118 @@ public static class InventoryIdentityTests
     private static EditInventoryIdentityRequest Edit(InventoryIdentity x) => new(x.Version, x.Code, x.Name, x.ProductionDate, x.ExpiryDate, x.QualityStatus, x.EnglishName, x.Notes, "تصحيح");
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV05-FG01: identity card preserves generated ID tenant normalized code and Arabic name", async f =>
+        {
+            var item = await Setup(f);
+            var created = await Create(f, item, Request with
+            { Code = " card-01 ", Name = "  دفعة اختبار  ", LotNumber = "BATCH-01" });
+            var saved = await Get(f, item, created.ResourceId);
+            Ensure(saved.Id == created.ResourceId && saved.Id != Guid.Empty &&
+                saved.CompanyId == f.CompanyId && saved.Code == "CARD-01" && saved.Name == "دفعة اختبار");
+            await Error("invalid_text", () => Create(f, item, Request with { Code = "CARD-02", Name = "  " }));
+            await Error("invalid_text", () => Create(f, item, Request with { Code = "", LotNumber = "BATCH-02" }));
+            await Error("invalid_code", () => Create(f, item, Request with { Code = "invalid code" }));
+            await Error("duplicate_inventory_identity", () => Create(f, item,
+                Request with { Code = "card-01", LotNumber = "BATCH-NEW" }));
+            Ensure(f.Store.Count<InventoryIdentity>() == 1 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV05-FG02: optional English name and notes, item reference and disabled filtering", async f =>
+        {
+            var item = await Setup(f);
+            var created = await Create(f, item, Request with { EnglishName = null, Notes = null });
+            var saved = await Get(f, item, created.ResourceId);
+            Ensure(saved.EnglishName is null && saved.Notes is null && saved.ItemId == item && saved.IsActive);
+            await Error("reference_not_found", () => Create(f, Guid.NewGuid(),
+                Request with { Code = "OTHER", LotNumber = "OTHER" }));
+            var edited = await f.Service.InventoryIdentity.EditLot(f.CompanyId, item, saved.Id, f.Owner,
+                Fixture.Key(), Edit(saved) with { EnglishName = "Batch", Notes = "Tracked lot" }, default);
+            saved = await Get(f, item, saved.Id);
+            Ensure(saved.EnglishName == "Batch" && saved.Notes == "Tracked lot");
+            var stopped = await f.Service.InventoryIdentity.SetLotStatus(f.CompanyId, item, saved.Id, f.Owner,
+                Fixture.Key(), new(edited.Version, false, "تعطيل"), default);
+            saved = await Get(f, item, saved.Id);
+            Ensure(!saved.IsActive && stopped.Version == saved.Version &&
+                (await f.Service.InventoryIdentity.SearchLots(f.CompanyId, item, f.Limited,
+                    null, null, false, 0, 10, default)).TotalCount == 1 &&
+                (await f.Service.InventoryIdentity.SearchLots(f.CompanyId, item, f.Limited,
+                    null, null, true, 0, 10, default)).TotalCount == 0);
+        });
+        test("INV05-FG05: immutable audit actor/time snapshots, revision and denied stale edit", async f =>
+        {
+            var item = await Setup(f);
+            var created = await Create(f, item);
+            var saved = await Get(f, item, created.ResourceId);
+            var before = await f.Service.InventoryIdentity.ListLotAudit(f.CompanyId, item, saved.Id,
+                f.Owner, 0, 10, default);
+            Ensure(before.TotalCount == 1 && before.Items[0].Action == "inventory-lot.created" &&
+                before.Items[0].ActorId == f.Owner.Subject && before.Items[0].OccurredAt != default);
+            using (var snapshot = System.Text.Json.JsonDocument.Parse(before.Items[0].Details))
+                Ensure(snapshot.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 1);
+            await Error("version_conflict", () => f.Service.InventoryIdentity.EditLot(f.CompanyId, item,
+                saved.Id, f.Owner, Fixture.Key(), Edit(saved) with { ExpectedVersion = Guid.NewGuid() }, default));
+            Ensure((await f.Service.InventoryIdentity.ListLotAudit(f.CompanyId, item, saved.Id,
+                f.Owner, 0, 10, default)).TotalCount == 1);
+            var edited = await f.Service.InventoryIdentity.EditLot(f.CompanyId, item, saved.Id, f.Owner,
+                Fixture.Key(), Edit(saved) with { Name = "دفعة معدلة" }, default);
+            var after = await f.Service.InventoryIdentity.ListLotAudit(f.CompanyId, item, saved.Id,
+                f.Owner, 0, 10, default);
+            Ensure((await Get(f, item, saved.Id)).Revision == 2 && created.Version != edited.Version &&
+                after.TotalCount == 2 && after.Items.All(x => x.ActorId == f.Owner.Subject && x.OccurredAt != default));
+            using var eventDetails = System.Text.Json.JsonDocument.Parse(after.Items.Single(x => x.Action == "inventory-lot.edited").Details);
+            Ensure(eventDetails.RootElement.GetProperty("before").GetProperty("revision").GetInt32() == 1 &&
+                eventDetails.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 2);
+            await Error("permission_denied", () => f.Service.InventoryIdentity.ListLotAudit(f.CompanyId, item,
+                saved.Id, f.Limited, 0, 10, default));
+        });
+        test("INV05-OP01: new lot, item-scoped search, stable pages and filter", async f =>
+        {
+            var request = await ItemTests.Setup(f);
+            var item = (await f.Service.Item.CreateItem(f.CompanyId, f.Owner, Fixture.Key(),
+                request with { Tracking = ItemTracking.Lot, ShelfLifeDays = 30 }, default)).ResourceId;
+            var other = (await f.Service.Item.CreateItem(f.CompanyId, f.Owner, Fixture.Key(),
+                request with { Code = "002", Tracking = ItemTracking.Lot, ShelfLifeDays = 30,
+                    Units = request.Units.Select(x => x with { Barcode = null }).ToArray() }, default)).ResourceId;
+            foreach (var code in new[] { "OP01-A", "OP01-B" })
+                await Create(f, item, Request with { Code = code, LotNumber = "LOT-" + code });
+            await Create(f, other, Request with { Code = "OP01-A", LotNumber = "LOT-OP01-A" });
+            var one = await f.Service.InventoryIdentity.SearchLots(f.CompanyId, item, f.Limited,
+                "OP01", InventoryQualityStatus.Quarantine, true, 0, 1, default);
+            var two = await f.Service.InventoryIdentity.SearchLots(f.CompanyId, item, f.Limited,
+                "OP01", InventoryQualityStatus.Quarantine, true, 1, 1, default);
+            Ensure(one.TotalCount == 2 && two.TotalCount == 2 &&
+                one.Items.Single().Code == "OP01-A" && two.Items.Single().Code == "OP01-B" &&
+                one.Items.Single().Id != two.Items.Single().Id);
+            Ensure((await f.Service.InventoryIdentity.SearchLots(f.CompanyId, item, f.Limited,
+                "OP01", InventoryQualityStatus.Available, true, 0, 10, default)).TotalCount == 0);
+            await Error("invalid_pagination", () => f.Service.InventoryIdentity.SearchLots(f.CompanyId, item,
+                f.Owner, null, null, null, -1, 10, default));
+            Ensure(f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV05-OP02: edit and disable replay once, revision and audit unchanged on stale retry", async f =>
+        {
+            var item = await Setup(f);
+            var created = await Create(f, item);
+            var lot = await Get(f, item, created.ResourceId);
+            var key = Fixture.Key();
+            var edit = Edit(lot) with { Name = "اسم جديد" };
+            var changed = await f.Service.InventoryIdentity.EditLot(f.CompanyId, item, lot.Id,
+                f.Owner, key, edit, default);
+            Ensure(changed == await f.Service.InventoryIdentity.EditLot(f.CompanyId, item, lot.Id,
+                f.Owner, key, edit, default));
+            var statusKey = Fixture.Key();
+            var request = new SetInventoryIdentityStatusRequest(changed.Version, false, "تعطيل");
+            var disabled = await f.Service.InventoryIdentity.SetLotStatus(f.CompanyId, item, lot.Id,
+                f.Owner, statusKey, request, default);
+            Ensure(disabled == await f.Service.InventoryIdentity.SetLotStatus(f.CompanyId, item, lot.Id,
+                f.Owner, statusKey, request, default));
+            await Error("version_conflict", () => f.Service.InventoryIdentity.SetLotStatus(f.CompanyId,
+                item, lot.Id, f.Owner, Fixture.Key(), request, default));
+            lot = await Get(f, item, lot.Id);
+            Ensure(lot.Revision == 3 && lot.Name == "اسم جديد" && !lot.IsActive &&
+                (await f.Service.InventoryIdentity.ListLotAudit(f.CompanyId, item, lot.Id,
+                    f.Owner, 0, 10, default)).TotalCount == 3 &&
+                f.Store.Count<StockMovement>() == 0 && f.Store.Count<OutboxEvent>() == 0);
+        });
         test("INV05: independent lot number uniqueness search and omitted edit preservation", async f =>
         {
             var item = await Setup(f); var request = Request with { Code = "CARD-1", LotNumber = "BATCH-900" };
