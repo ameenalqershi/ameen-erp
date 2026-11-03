@@ -142,6 +142,28 @@ public static class SqlIntegration
             await f.Call(s => s.Company.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default));
             var otherAccount = await f.Call(s => s.Account.CreateAccount(other, f.Owner, Fixture.Key(),
                 new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default));
+            // SYS01-AC01: creating a legal entity bootstraps its own functional
+            // currency/membership and an independent, tenant-scoped ledger. Both
+            // entities may reuse account code 1 without sharing any postings.
+            var primaryBook = await f.Call(s => s.Report.TrialBalance(f.CompanyId, f.Clerk,
+                new(2026, 1, 1), new(2026, 12, 31), null, default));
+            var secondaryBook = await f.Call(s => s.Report.TrialBalance(other, f.Owner,
+                new(2026, 1, 1), new(2026, 12, 31), null, default));
+            Ensure(primaryBook.CompanyId == f.CompanyId && primaryBook.TotalPeriodDebit > 0 &&
+                secondaryBook.CompanyId == other && secondaryBook.Currency == "SAR" &&
+                secondaryBook.TotalPeriodDebit == 0 && secondaryBook.TotalPeriodCredit == 0 &&
+                secondaryBook.Rows.Count == 1 && secondaryBook.Rows[0].AccountId == otherAccount.ResourceId,
+                "SYS01-AC01 legal entities did not retain independent financial books");
+            await Expect("permission_denied", () => f.Call(s => s.Report.TrialBalance(other, f.Clerk,
+                new(2026, 1, 1), new(2026, 12, 31), null, default)));
+            await using (var tenantDb = f.Context())
+                Ensure(await tenantDb.Set<Company>().AnyAsync(x => x.Id == other && x.Code == "OTHER") &&
+                    await tenantDb.Set<Currency>().CountAsync(x => x.CompanyId == other && x.Code == "SAR") == 1 &&
+                    await tenantDb.Set<Membership>().CountAsync(x => x.CompanyId == other && x.Subject == f.Owner.Subject) == 1 &&
+                    await tenantDb.Set<JournalEntry>().AnyAsync(x => x.CompanyId == f.CompanyId) &&
+                    !await tenantDb.Set<JournalEntry>().AnyAsync(x => x.CompanyId == other),
+                    "SYS01-AC01 SQL company bootstrap or journal tenant separation invalid");
+            Console.WriteLine("  SQL PASS SYS01-AC01 independent legal entity, functional currency, account book and denied cross-tenant read");
             await using (var db = f.Context())
             {
                 try

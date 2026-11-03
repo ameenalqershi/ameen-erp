@@ -4,7 +4,9 @@
 
 Existing GET /api/v1/companies/{companyId}/usage and /profile-audit-events are tested without changing the API contract: an authenticated all-branch owner receives an authoritative SQL-derived company-scoped count for branches, accounts, currencies, fiscal years, journals, recurring templates and exchange rates, including the functional-currency-change guard. Audits return only company-profile actions, are pageable, and remain readable with an inactive company. The production HTTPS/JWT/SQL host checks an initial new tenant with exactly one bootstrap currency, no other usage, an inactive state and an existing three-event profile audit; an unrelated JWT must receive HTTP 403 for both resources. SQL integration independently compares the usage API with the actual database tables and checks audit pagination and non-member denial. No original specification, schema, financial policy or production endpoint changes. Completion requires passing CI on the exact sys commit; SYS01 overall remains partial due approved-country/FX-conversion gaps.
 
+## SYS01-AC01 — positive legal-entity and independent-book SQL acceptance (3 November 2026)
 
+Added a focused real-SQL acceptance path for two independent legal companies: separate functional-currency bootstrap and membership, same account code with independent account identity, posted journal totals present only in the original company, an empty secondary company trial balance, and a denied cross-tenant report read by an otherwise authorized user of the primary company. This is an explicit positive verification of SYS01 company/book isolation; it does not assume an additional hidden ledger table or complete the remaining SYS01 screen fields. Source analysis and diagrams are unchanged. CI on the exact `sys` commit remains necessary before final task acceptance.
 
 ## SYS01-FG06 — company audit-field acceptance (3 November 2026)
 
