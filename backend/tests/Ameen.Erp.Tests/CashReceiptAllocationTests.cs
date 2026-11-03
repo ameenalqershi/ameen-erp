@@ -36,6 +36,23 @@ public static class CashReceiptAllocationTests
             return Task.CompletedTask;
         });
 
+        test("CASH03-AC02: many valid invoice lines cannot overflow the allocation guard", f =>
+        {
+            var invoice = Guid.NewGuid();
+            var otherInvoice = Guid.NewGuid();
+            var upper = 99_999_999_999_999m;
+            RejectBatch("cash_receipt_allocation_exceeds_remaining", new[] {
+                new CashReceiptAllocationLine(invoice, upper, upper, 0m),
+                new CashReceiptAllocationLine(invoice, upper, upper, 0m)
+            });
+            // Different invoices are independent, even at the amount ceiling.
+            CashReceiptAllocation.ValidateBatch(new[] {
+                new CashReceiptAllocationLine(invoice, upper, upper, 0m),
+                new CashReceiptAllocationLine(otherInvoice, upper, upper, 0m)
+            });
+            return Task.CompletedTask;
+        });
+
         test("CASH03-AC02: excess allocation and settlement discount fail closed", f =>
         {
             Reject("cash_receipt_allocation_exceeds_remaining", 100m, 100m, 0.000001m);
