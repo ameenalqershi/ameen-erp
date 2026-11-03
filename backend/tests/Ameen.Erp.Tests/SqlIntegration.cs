@@ -285,6 +285,8 @@ public static class SqlIntegration
             await JournalPrintSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await PeriodExecutionHistorySqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Approver);
             await PeriodReopenHistorySqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Approver);
+            await BalancedJournalLedgerSqlAcceptance.Run(options.ConnectionString,
+                f.CompanyId, f.Clerk, f.Approver, f.Request());
         }
         finally
         {

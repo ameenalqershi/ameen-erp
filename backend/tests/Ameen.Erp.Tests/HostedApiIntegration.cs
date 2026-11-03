@@ -214,6 +214,42 @@ public static class HostedApiIntegration
                         json.RootElement.GetProperty("lastModifiedAt").GetDateTimeOffset() >= json.RootElement.GetProperty("createdAt").GetDateTimeOffset(),
                         "GL03 HTTPS workflow revision was not persisted");
                 Console.WriteLine("  HOST PASS GL03-FG08 server audit identity, integer revision, forged-input rejection and workflow over HTTPS/JWT/SQL");
+
+                // GL03-T01: a posted manual journal must be visible to the
+                // authorized account ledger under its exact document reference,
+                // with historical functional/original amounts and no duplicate.
+                var gl03LedgerPath = $"/api/v1/companies/{companyId}/reports/accounts/" +
+                    journalRequest.Lines[0].AccountId +
+                    "/ledger?from=2026-01-01&to=2026-12-31&branchId=" +
+                    journalRequest.BranchId + "&externalReference=000070-PRINT";
+                using (var postedLedger = await client.GetAsync(gl03LedgerPath))
+                using (var ledgerBody = JsonDocument.Parse(
+                    await postedLedger.Content.ReadAsStringAsync()))
+                {
+                    var ledgerRoot = ledgerBody.RootElement;
+                    var entries = ledgerRoot.GetProperty("entries");
+                    Ensure(postedLedger.StatusCode == HttpStatusCode.OK &&
+                        ledgerRoot.GetProperty("companyId").GetGuid() == companyId &&
+                        ledgerRoot.GetProperty("accountId").GetGuid() ==
+                            journalRequest.Lines[0].AccountId &&
+                        ledgerRoot.GetProperty("externalReference").GetString() == "000070-PRINT" &&
+                        entries.GetProperty("totalCount").GetInt32() == 1 &&
+                        entries.GetProperty("items").GetArrayLength() == 1 &&
+                        entries.GetProperty("items")[0].GetProperty("journalId").GetGuid() ==
+                            receipt.ResourceId &&
+                        entries.GetProperty("items")[0].GetProperty("number").GetString() ==
+                            receipt.Number &&
+                        entries.GetProperty("items")[0].GetProperty("debit").GetString() == "100" &&
+                        entries.GetProperty("items")[0].GetProperty("credit").GetString() == "0",
+                        "GL03-T01 posted journal missing or duplicated in the HTTP account ledger");
+                }
+                Authenticate(Token("gl03-t01-no-membership"));
+                using (var deniedLedger = await client.GetAsync(gl03LedgerPath))
+                    Ensure(deniedLedger.StatusCode == HttpStatusCode.Forbidden,
+                        "GL03-T01 account ledger leaked outside the JWT tenant");
+                Authenticate(Token("sql-approver"));
+                Console.WriteLine("  HOST PASS GL03-T01 balanced posted journal with exact account-ledger reference and JWT tenant denial");
+
                 using var hierarchy = await client.GetAsync($"/api/v1/companies/{companyId}/reports/trial-balance?from=2026-01-01&to=2026-12-31&accountLevel=1&showZero=false");
                 Ensure(hierarchy.StatusCode == HttpStatusCode.OK, "Production report filters failed");
                 using (var report = JsonDocument.Parse(await hierarchy.Content.ReadAsStringAsync()))
