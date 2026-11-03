@@ -252,6 +252,7 @@ public static class SqlIntegration
             await JournalHeaderFieldsSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Request());
             await JournalLineGuardAcceptance.RunSql(options.ConnectionString, f.CompanyId, f.Clerk, f.Owner, f.Request());
             await JournalReviewHistoryAcceptance.RunSql(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Owner, f.Request());
+            await GeneralOpeningPrintSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
         }
         finally
         {

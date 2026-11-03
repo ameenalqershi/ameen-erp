@@ -302,7 +302,41 @@ public static class HostedApiIntegration
                 Console.WriteLine("  HOST PASS GL05/06 preview, mixed batch with per-item keys, replay and rejection history over HTTPS/JWT/SQL");
 
                 Authenticate(Token("sql-clerk"));
-                var generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings", GeneralOpeningTests.Request(journalRequest));
+                const string printDescription = "افتتاح <script>alert(1)</script> & نهاية";
+                var generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings",
+                    GeneralOpeningTests.Request(journalRequest) with
+                    {
+                        Description = printDescription, ExternalReference = "0000048-PRINT"
+                    });
+                var printPath = $"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}/print";
+                using (var printable = await client.GetAsync(printPath))
+                {
+                    var html = await printable.Content.ReadAsStringAsync();
+                    Ensure(printable.StatusCode == HttpStatusCode.OK &&
+                        printable.Content.Headers.ContentType?.MediaType == "text/html" &&
+                        printable.Headers.TryGetValues("Cache-Control", out var cache) &&
+                        cache.Any(x => x.Contains("no-store", StringComparison.OrdinalIgnoreCase)) &&
+                        printable.Headers.TryGetValues("Content-Security-Policy", out var csp) &&
+                        csp.Any(x => x.Contains("default-src 'none'", StringComparison.Ordinal)) &&
+                        html.Contains("lang=\"ar\" dir=\"rtl\"", StringComparison.Ordinal) &&
+                        html.Contains("0000048-PRINT", StringComparison.Ordinal) &&
+                        html.Contains("&lt;script&gt;", StringComparison.Ordinal) &&
+                        !html.Contains("<script>", StringComparison.OrdinalIgnoreCase) &&
+                        html.Contains("&amp;", StringComparison.Ordinal) &&
+                        html.Contains("TB-2026", StringComparison.Ordinal) &&
+                        html.Contains("100", StringComparison.Ordinal),
+                        "GL02 print route failed HTML encoding, historical opening content or security headers");
+                }
+                Authenticate(Token("gl02-print-nonmember"));
+                using (var printDenied = await client.GetAsync(printPath))
+                    Ensure(printDenied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL02 printable opening was exposed to nonmember JWT");
+                Authenticate(Token("sql-clerk"));
+                using (var printWrongSource = await client.GetAsync(
+                    $"/api/v1/companies/{companyId}/general-openings/{receipt.ResourceId}/print"))
+                    Ensure((int)printWrongSource.StatusCode == 422,
+                        "GL02 print accepted manual journal as a general opening");
+                Console.WriteLine("  HOST PASS GL02-A07 RTL printable HTML, XSS escaping, scoped HTTPS/JWT and no mutation");
                 using (var previewResponse = await client.GetAsync($"/api/v1/companies/{companyId}/general-openings/{generalOpening.ResourceId}/impact-preview"))
                 using (var preview = JsonDocument.Parse(await previewResponse.Content.ReadAsStringAsync()))
                 {
