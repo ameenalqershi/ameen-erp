@@ -8,6 +8,118 @@ public static class ItemGroupTests
     public static EditItemGroupRequest Edit(ItemGroup x) => new(x.Version, x.Code, x.Name, x.SalesAccountId, x.ParentId, x.InventoryAccountId, x.CostAccountId, x.EnglishName, x.Notes, "تحديث");
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV02-OP01: item group create and search page stable without cross-group leaks", async f =>
+        {
+            var sales = await Sales(f);
+            await Create(f, sales, "OP01-A");
+            await Create(f, sales, "OP01-B");
+            var first = await f.Service.ItemGroup.SearchItemGroups(f.CompanyId, f.Limited, "OP01", null, true, 0, 1, default);
+            var second = await f.Service.ItemGroup.SearchItemGroups(f.CompanyId, f.Limited, "OP01", null, true, 1, 1, default);
+            Ensure(first.TotalCount == 2 && second.TotalCount == 2 &&
+                first.Items.Single().Code == "OP01-A" && second.Items.Single().Code == "OP01-B");
+            await Error("duplicate_item_group", () => Create(f, sales, "OP01-A"));
+            Ensure(f.Store.Count<ItemGroup>() == 2 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV02-OP02: group edit and deactivate replay once with stable revision and audit", async f =>
+        {
+            var created = await Create(f, await Sales(f), "OP02");
+            var group = await Get(f, created.ResourceId);
+            var key = Fixture.Key();
+            var edit = Edit(group) with { Name = "مجموعة معدلة" };
+            var updated = await f.Service.ItemGroup.EditItemGroup(f.CompanyId, group.Id, f.Owner, key, edit, default);
+            Ensure(updated == await f.Service.ItemGroup.EditItemGroup(f.CompanyId, group.Id, f.Owner, key, edit, default));
+            var statusKey = Fixture.Key();
+            var statusRequest = new SetItemGroupStatusRequest(updated.Version, false, "إيقاف");
+            var inactive = await f.Service.ItemGroup.SetItemGroupStatus(f.CompanyId, group.Id,
+                f.Owner, statusKey, statusRequest, default);
+            Ensure(inactive == await f.Service.ItemGroup.SetItemGroupStatus(f.CompanyId, group.Id,
+                f.Owner, statusKey, statusRequest, default));
+            await Error("version_conflict", () => f.Service.ItemGroup.SetItemGroupStatus(f.CompanyId, group.Id,
+                f.Owner, Fixture.Key(), statusRequest, default));
+            group = await Get(f, group.Id);
+            Ensure(group.Revision == 3 && !group.IsActive && group.Name == "مجموعة معدلة" &&
+                (await f.Service.ItemGroup.ListItemGroupAudit(f.CompanyId, group.Id, f.Owner, 0, 10, default)).TotalCount == 3 &&
+                (await f.Service.ItemGroup.SearchItemGroups(f.CompanyId, f.Limited, "OP02", null, false, 0, 10, default)).TotalCount == 1);
+        });
+        test("INV02-FG01: item-group identity, tenant, normalized code and required name", async f =>
+        {
+            var sales = await Sales(f);
+            var receipt = await f.Service.ItemGroup.CreateItemGroup(f.CompanyId, f.Owner, Fixture.Key(),
+                new(" g-001 ", "  تصنيف فرعي  ", sales), default);
+            var group = await Get(f, receipt.ResourceId);
+            Ensure(group.Id == receipt.ResourceId && group.Id != Guid.Empty && group.CompanyId == f.CompanyId &&
+                group.Code == "G-001" && group.Name == "تصنيف فرعي");
+            await Error("invalid_text", () => f.Service.ItemGroup.CreateItemGroup(f.CompanyId, f.Owner, Fixture.Key(),
+                new("BAD", " ", sales), default));
+            await Error("invalid_text", () => f.Service.ItemGroup.CreateItemGroup(f.CompanyId, f.Owner, Fixture.Key(),
+                new("", "اسم", sales), default));
+            await Error("invalid_code", () => f.Service.ItemGroup.CreateItemGroup(f.CompanyId, f.Owner, Fixture.Key(),
+                new("bad code", "اسم", sales), default));
+            await Error("duplicate_item_group", () => Create(f, sales, "g-001"));
+            Ensure((await f.Service.ItemGroup.SearchItemGroups(f.CompanyId, f.Limited,
+                "G-001", null, true, 0, 10, default)).TotalCount == 1);
+        });
+        test("INV02-FG02: optional bilingual metadata, parent and active status persist", async f =>
+        {
+            var sales = await Sales(f);
+            var parent = await Create(f, sales, "ROOT");
+            var created = await f.Service.ItemGroup.CreateItemGroup(f.CompanyId, f.Owner, Fixture.Key(),
+                new("CHILD", "فرعي", sales, parent.ResourceId), default);
+            var group = await Get(f, created.ResourceId);
+            Ensure(group.EnglishName is null && group.Notes is null && group.ParentId == parent.ResourceId && group.IsActive);
+            var edited = await f.Service.ItemGroup.EditItemGroup(f.CompanyId, group.Id, f.Owner, Fixture.Key(),
+                Edit(group) with { EnglishName = "Child", Notes = "Group note" }, default);
+            group = await Get(f, group.Id);
+            Ensure(group.EnglishName == "Child" && group.Notes == "Group note");
+            await f.Service.ItemGroup.SetItemGroupStatus(f.CompanyId, group.Id, f.Owner, Fixture.Key(),
+                new(edited.Version, false, "تعطيل"), default);
+            Ensure(!(await Get(f, group.Id)).IsActive &&
+                (await f.Service.ItemGroup.SearchItemGroups(f.CompanyId, f.Limited, "CHILD",
+                    parent.ResourceId, false, 0, 10, default)).TotalCount == 1);
+        });
+        test("INV02-FG04: group creation/edit audit actor, time, revisions and stale rejection", async f =>
+        {
+            var created = await Create(f, await Sales(f), "AUDIT");
+            var group = await Get(f, created.ResourceId);
+            var before = await f.Service.ItemGroup.ListItemGroupAudit(f.CompanyId, group.Id, f.Owner, 0, 10, default);
+            Ensure(before.TotalCount == 1 && before.Items[0].ActorId == f.Owner.Subject &&
+                before.Items[0].Action == "item-group.created" && before.Items[0].OccurredAt != default);
+            using (var json = System.Text.Json.JsonDocument.Parse(before.Items[0].Details))
+                Ensure(json.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 1);
+            await Error("version_conflict", () => f.Service.ItemGroup.EditItemGroup(f.CompanyId, group.Id,
+                f.Owner, Fixture.Key(), Edit(group) with { ExpectedVersion = Guid.NewGuid() }, default));
+            Ensure((await f.Service.ItemGroup.ListItemGroupAudit(f.CompanyId, group.Id, f.Owner, 0, 10, default)).TotalCount == 1);
+            var edited = await f.Service.ItemGroup.EditItemGroup(f.CompanyId, group.Id, f.Owner,
+                Fixture.Key(), Edit(group) with { Name = "سجل معدل" }, default);
+            var after = await f.Service.ItemGroup.ListItemGroupAudit(f.CompanyId, group.Id, f.Owner, 0, 10, default);
+            Ensure(edited.Version != created.Version && (await Get(f, group.Id)).Revision == 2 &&
+                after.TotalCount == 2 && after.Items.All(x => x.ActorId == f.Owner.Subject && x.OccurredAt != default));
+            using var detail = System.Text.Json.JsonDocument.Parse(after.Items.Single(x => x.Action == "item-group.edited").Details);
+            Ensure(detail.RootElement.GetProperty("before").GetProperty("revision").GetInt32() == 1 &&
+                detail.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 2);
+            await Error("permission_denied", () => f.Service.ItemGroup.ListItemGroupAudit(f.CompanyId,
+                group.Id, f.Limited, 0, 10, default));
+        });
+        test("INV02-OP03: group usage and audit reads expose exact references without writes", async f =>
+        {
+            var request = await ItemTests.Setup(f);
+            var group = await Get(f, request.GroupId);
+            await f.Service.Item.CreateItem(f.CompanyId, f.Owner, Fixture.Key(), request, default);
+            var beforeAudits = f.Store.Count<AuditEvent>();
+            var beforeReceipts = f.Store.Count<IdempotencyRecord>();
+            var usage = await f.Service.ItemGroup.GetItemGroupUsage(f.CompanyId, group.Id, f.Owner, default);
+            var audit = await f.Service.ItemGroup.ListItemGroupAudit(f.CompanyId, group.Id, f.Owner, 0, 10, default);
+            Ensure(usage.DirectItems == 1 && usage.SubtreeItems == 1 && usage.StructureLocked &&
+                usage.HasDeactivationBlockers && audit.TotalCount == 1 &&
+                audit.Items[0].Action == "item-group.created");
+            Ensure(f.Store.Count<AuditEvent>() == beforeAudits &&
+                f.Store.Count<IdempotencyRecord>() == beforeReceipts &&
+                f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+            await Error("all_branches_required", () => f.Service.ItemGroup.GetItemGroupUsage(f.CompanyId,
+                group.Id, f.Limited, default));
+            await Error("permission_denied", () => f.Service.ItemGroup.ListItemGroupAudit(f.CompanyId,
+                group.Id, f.Limited, 0, 10, default));
+        });
         test("INV02: group hierarchy bilingual fields and accounting references roundtrip", async f =>
         {
             var sales = await Sales(f); var parent = await Create(f, sales, "ROOT");
