@@ -38,6 +38,62 @@ public static class CashBoxTests
             return Task.CompletedTask;
         });
 
+        test("CASH01-AC07: optional balance limit can be absent without inventing overdraft policy", f =>
+        {
+            var now = new FixedClock().UtcNow;
+            var box = new CashBox(f.CompanyId, "BOX", "صندوق", f.CashId, f.BranchId,
+                Guid.NewGuid(), "SAR", null, f.Owner.Subject, now);
+            Ensure(box.BalanceLimit is null && box.Revision == 1);
+            return Task.CompletedTask;
+        });
+
+        test("CASH01-AC08: decimal balance limit boundary is exact at six places", f =>
+        {
+            var now = new FixedClock().UtcNow;
+            var box = new CashBox(f.CompanyId, "BOX", "صندوق", f.CashId, f.BranchId,
+                Guid.NewGuid(), "SAR", 0.000001m, f.Owner.Subject, now);
+            Ensure(box.BalanceLimit == 0.000001m);
+            try { box.Configure("EDIT", "اسم جديد", f.EquityId, f.OtherBranchId,
+                Guid.NewGuid(), "USD", 0.0000001m, null, null, now.AddMinutes(1));
+                throw new Exception("Expected invalid_amount"); }
+            catch (BusinessException ex) when (ex.Code == "invalid_amount") { }
+            Ensure(box.Code == "BOX" && box.BalanceLimit == 0.000001m &&
+                box.AccountId == f.CashId && box.Revision == 1);
+            return Task.CompletedTask;
+        });
+
+        test("CASH01-AC09: invalid audit time does not deactivate or advance revision", f =>
+        {
+            var now = new FixedClock().UtcNow;
+            var box = new CashBox(f.CompanyId, "BOX", "صندوق", f.CashId, f.BranchId,
+                Guid.NewGuid(), "SAR", null, f.Owner.Subject, now);
+            var version = box.Version;
+            try { box.SetActive(false, now.AddTicks(-1));
+                throw new Exception("Expected cashbox_audit_time_invalid"); }
+            catch (BusinessException ex) when (ex.Code == "cashbox_audit_time_invalid") { }
+            Ensure(box.IsActive && box.Revision == 1 && box.Version == version &&
+                box.LastModifiedAt == now);
+            return Task.CompletedTask;
+        });
+
+        test("CASH01-AC10: exhausted revision prevents edit with no tracked field mutation", f =>
+        {
+            var now = new FixedClock().UtcNow;
+            var box = new CashBox(f.CompanyId, "BOX", "صندوق", f.CashId, f.BranchId,
+                Guid.NewGuid(), "SAR", 100m, f.Owner.Subject, now);
+            typeof(CashBox).GetProperty(nameof(CashBox.Revision))!.SetValue(box, int.MaxValue);
+            var version = box.Version;
+            try { box.Configure("EDIT", "تعديل", f.EquityId, f.OtherBranchId,
+                Guid.NewGuid(), "USD", 10m, "Edited", "Edited", now.AddMinutes(1));
+                throw new Exception("Expected cashbox_revision_exhausted"); }
+            catch (BusinessException ex) when (ex.Code == "cashbox_revision_exhausted") { }
+            Ensure(box.Code == "BOX" && box.Name == "صندوق" && box.AccountId == f.CashId &&
+                box.BranchId == f.BranchId && box.CurrencyCode == "SAR" &&
+                box.BalanceLimit == 100m && box.Revision == int.MaxValue &&
+                box.Version == version && box.LastModifiedAt == now);
+            return Task.CompletedTask;
+        });
+
         test("CASH01: complete card, actor/UTC audit, search and usage", async f =>
         {
             var custodian = Custodian(f);
