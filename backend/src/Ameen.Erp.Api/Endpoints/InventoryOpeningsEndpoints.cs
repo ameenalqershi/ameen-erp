@@ -16,6 +16,10 @@ internal static class InventoryOpeningsEndpoints
             Results.Ok(await s.Search(companyId, Actor(h), branchId, state, search, offset ?? 0, limit ?? 50, ct))).Produces<Page<InventoryOpening>>().RequireAuthorization().WithTags(tag);
         app.MapGet(p + "/{id:guid}", async (Guid companyId, Guid id, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.Get(companyId, id, Actor(h), ct))).Produces<InventoryOpening>().RequireAuthorization().WithTags(tag);
+        app.MapGet(p + "/{id:guid}/print", async (Guid companyId, Guid id,
+            InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.Print(companyId, id, Actor(h), ct)))
+            .Produces<InventoryOpeningPrintDocument>().RequireAuthorization().WithTags(tag);
         app.MapGet(p + "/{id:guid}/valuation-preview", async (Guid companyId, Guid id, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.Preview(companyId, id, Actor(h), ct))).Produces<InventoryOpeningPreview>().RequireAuthorization().WithTags(tag);
         app.MapGet(p + "/{id:guid}/audit-events", async (Guid companyId, Guid id, int? offset, int? limit, InventoryOpeningService s, HttpContext h, CancellationToken ct) =>

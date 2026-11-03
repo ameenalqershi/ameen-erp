@@ -60,6 +60,39 @@ public static class InventoryOpeningSqlIntegration
         var close = await Call(s => s.PeriodClose.PreviewPeriodClose(cid, periodId, reviewer, 0, 10, default));
         Ensure(close.PendingInventoryOpeningCount >= 4 && !close.CanCloseGeneralLedger, "Pending openings omitted from close checks");
         Ensure((await Call(s => s.InventoryOpening.Search(cid, writer, branch, InventoryOpeningState.Approved, "SQL-COUNT", 0, 10, default))).TotalCount == 1, "SQL opening search failed");
+        int beforePrintAudit, beforePrintReceipts, beforePrintOutbox;
+        long beforePrintNumbers;
+        await using (var db = Context())
+        {
+            beforePrintAudit = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            beforePrintReceipts = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            beforePrintOutbox = await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid);
+            beforePrintNumbers = await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).SumAsync(x => x.LastNumber);
+        }
+        var approvedPrint = await Call(s => s.InventoryOpening.Print(cid, r.ResourceId, writer, default));
+        Ensure(approvedPrint.OpeningId == r.ResourceId && approvedPrint.Number == r.Number &&
+            approvedPrint.CurrencyCode == "SAR" && approvedPrint.ExchangeRate == 1m &&
+            approvedPrint.State == nameof(InventoryOpeningState.Approved) &&
+            approvedPrint.JournalId == null && approvedPrint.Lines.Count == 1 &&
+            approvedPrint.Lines[0].ItemCode == "OPEN-ITEM" &&
+            approvedPrint.Lines[0].UnitCode == "OPEN-U" &&
+            approvedPrint.Lines[0].Quantity == 3m &&
+            approvedPrint.TotalDocumentValue == 15m &&
+            approvedPrint.SignedEffectValue == 15m,
+            "INV06 SQL print did not preserve approved opening snapshot");
+        try
+        {
+            await Call(s => s.InventoryOpening.Print(cid, r.ResourceId,
+                new Actor("inv06-print-nonmember"), default));
+            throw new Exception("INV06 SQL print exposed company to outsider");
+        }
+        catch (BusinessException e) when (e.Code == "permission_denied") { }
+        await using (var db = Context())
+            Ensure(await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == beforePrintAudit &&
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == beforePrintReceipts &&
+                await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) == beforePrintOutbox &&
+                await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).SumAsync(x => x.LastNumber) == beforePrintNumbers,
+                "INV06 SQL print changed audit/receipts/outbox/number allocation");
         Console.WriteLine("  SQL PASS INV06 concurrent replay/numbering, valuation, audit rollback, runtime line replacement, return/correct/approve, immutable lines and close blockers");
         var clearing = await Call(s => s.Account.CreateAccount(cid, owner, Fixture.Key(), new("OPEN-CLEAR", "تسوية افتتاح", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit), default));
         var settings = await Call(s => s.InventoryOpening.GetPostingSettings(cid, owner, default));
@@ -115,6 +148,13 @@ public static class InventoryOpeningSqlIntegration
             (await Call(s => s.Item.ListItemMovements(cid, item.ResourceId, writer, 0, 1, default))).TotalCount == 1,
             "SQL INV01/INV04 usage missing posted opening");
         Console.WriteLine("  SQL PASS INV01/INV04 usage references posted document and movement via scoped API");
+        var postedPrint = await Call(s => s.InventoryOpening.Print(cid, r.ResourceId, writer, default));
+        Ensure(postedPrint.State == nameof(InventoryOpeningState.Posted) &&
+            postedPrint.JournalId == postedOpeningJournalId &&
+            postedPrint.TotalDocumentValue == approvedPrint.TotalDocumentValue &&
+            postedPrint.SignedEffectValue == approvedPrint.SignedEffectValue &&
+            postedPrint.PostedBy is not null && postedPrint.PostedAt.HasValue,
+            "INV06 SQL printed posted document lost linked journal or repriced lines");
         // GL07-C01: source-owned INV06 journal must be reversed only through INV06,
         // even though it is balanced and posted. A rejected GL request is atomic.
         int gl07Journals, gl07Audits, gl07Receipts, gl07Outbox;
@@ -253,6 +293,14 @@ public static class InventoryOpeningSqlIntegration
                 "INV04-GAP03 denied SQL item edit changed revision, audit or idempotency record");
         }
         Console.WriteLine("  SQL PASS INV04-GAP03: item identity remains immutable after full stock reversal");
+        var reversedPrint = await Call(s => s.InventoryOpening.Print(cid, reversal.ResourceId, writer, default));
+        Ensure(reversedPrint.ReversesOpeningId == r.ResourceId &&
+            reversedPrint.State == nameof(InventoryOpeningState.Posted) &&
+            reversedPrint.TotalDocumentValue == 15m &&
+            reversedPrint.SignedEffectValue == -15m &&
+            reversedPrint.Lines.Single().SignedEffectValue == -15m,
+            "INV06 SQL reversal print did not show negative historical effect");
+        Console.WriteLine("  SQL PASS INV06-OP04 read-only opening and reversal print, exact amounts, linked journal and authorization");
         var stockLedger = await Call(s => s.Report.InventoryLedger(cid, item.ResourceId, writer, Fixture.Date, Fixture.Date, branch, wh.ResourceId, null, 1, 1, default));
         Ensure(stockLedger.Rows.TotalCount == 2 && stockLedger.ClosingQuantity == 0 && stockLedger.ClosingValue == 0 && stockLedger.InValue == 15 && stockLedger.OutValue == 15 && stockLedger.Rows.Items.Single().RunningValue == 0, "SQL item ledger page balance differs");
         Ensure(stockLedger.Rows.Items.Single().DocumentUnits.Single().Quantity == -3, "SQL source document units missing");

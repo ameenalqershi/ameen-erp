@@ -60,6 +60,13 @@ public static class InventoryOpeningReversalTests
             var postKey = Fixture.Key();
             var reversed = await Post(f, approved, postKey);
             Ensure(reversed == await Post(f, approved, postKey));
+            var printedReversal = await f.Service.InventoryOpening.Print(f.CompanyId, reversed.ResourceId,
+                f.Owner, default);
+            Ensure(printedReversal.ReversesOpeningId == posted.ResourceId &&
+                printedReversal.State == nameof(InventoryOpeningState.Posted) &&
+                printedReversal.TotalDocumentValue == 10.5m &&
+                printedReversal.SignedEffectValue == -10.5m &&
+                printedReversal.Lines.Single().SignedEffectValue == -10.5m);
             var history = await f.Service.InventoryOpening.Reversals(f.CompanyId, posted.ResourceId, Writer, 0, 10, default);
             Ensure(history.TotalCount == 1 && history.Items.Single().State == InventoryOpeningState.Posted &&
                 history.Items.Single().ReversesOpeningId == posted.ResourceId);

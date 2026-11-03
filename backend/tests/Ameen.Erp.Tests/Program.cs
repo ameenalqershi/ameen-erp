@@ -602,6 +602,7 @@ InventoryStockStructuralGuardTests.Register(Test);
 InventoryOpeningTests.Register(Test);
 InventoryOpeningPostingTests.Register(Test);
 InventoryOpeningReversalTests.Register(Test);
+InventoryOpeningPrintTests.Register(Test);
 InventoryReportTests.Register(Test);
 JournalProcessingTests.Register(Test);
 JournalImpactPreviewTests.Register(Test);

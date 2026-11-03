@@ -123,6 +123,8 @@ public static class HostedApiIntegration
                         x.GetProperty("name").GetString() == "Idempotency-Key" && x.GetProperty("required").GetBoolean()), "Missing idempotency header contract");
                     Ensure(command.GetProperty("security").GetArrayLength() > 0, "Missing endpoint bearer requirement");
                     Ensure(specJson.Contains("\"decimal\"", StringComparison.Ordinal) && specJson.Contains("\"date\"", StringComparison.Ordinal), "Missing decimal/date schema");
+                    Ensure(specJson.Contains("/inventory-openings/{id}/print", StringComparison.Ordinal),
+                        "INV06 print OpenAPI path missing");
                     foreach (var route in new[] {
                         "/items/{id}/usage", "/items/{id}/stock-movements",
                         "/warehouses/{id}/usage", "/warehouses/{id}/stock-movements",
@@ -877,6 +879,20 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 6, "HTTP opening audit failed");
                 Authenticate(Token("sql-owner"));
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}/print"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("openingId").GetGuid() == opening.ResourceId &&
+                        json.RootElement.GetProperty("state").GetString() == nameof(InventoryOpeningState.Approved) &&
+                        json.RootElement.GetProperty("journalId").ValueKind == JsonValueKind.Null &&
+                        json.RootElement.GetProperty("lines")[0].GetProperty("itemCode").GetString() == "HTTP-OPEN-I" &&
+                        decimal.Parse(json.RootElement.GetProperty("totalDocumentValue").GetString()!,
+                            System.Globalization.CultureInfo.InvariantCulture) == 15m,
+                        "HTTP INV06 approved opening print lost identity/line/value");
+                Authenticate(Token("audit-no-membership"));
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}/print"))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden, "INV06 print exposed to nonmember");
+                Authenticate(Token("sql-owner"));
                 Console.WriteLine("  HOST PASS INV06 draft/valuation/submit/return/correct/approve/search/detail/audit over HTTPS/JWT/SQL");
                 var clearingAccount = await Command(client, $"/api/v1/companies/{companyId}/accounts", new CreateAccountRequest("HTTP-OPEN-CLEAR", "تسوية افتتاح", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit));
                 await Command(client, openingsPath + "/posting-settings", new ConfigureInventoryOpeningPostingRequest(null, clearingAccount.ResourceId, "إعداد"), method: HttpMethod.Put);
@@ -927,6 +943,14 @@ public static class HostedApiIntegration
                         json.RootElement.GetProperty("items").GetArrayLength() == 0,
                         "HTTP item movement pagination differs");
                 Authenticate(Token("sql-owner"));
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}/print"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("state").GetString() == nameof(InventoryOpeningState.Posted) &&
+                        json.RootElement.GetProperty("journalId").GetGuid() == postedOpeningJournalId &&
+                        decimal.Parse(json.RootElement.GetProperty("signedEffectValue").GetString()!,
+                            System.Globalization.CultureInfo.InvariantCulture) == 15m,
+                        "HTTP INV06 posted opening print lost actual GL source");
                 Console.WriteLine("  HOST PASS INV06 configure/preview/post/linked journal/stock movement over HTTPS/JWT/SQL");
                 Authenticate(Token("sql-clerk"));
                 // GL07-C01: never reverse an INV06 accounting journal independently of its
