@@ -1382,6 +1382,29 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(calendarPath + "/search?search=2026"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Calendar HTTP search failed");
+                // SYS03-OP01: a valid JWT belonging only to a different
+                // company cannot search or provision this fiscal calendar.
+                Authenticate(Token("sql-clerk"));
+                using (var deniedCalendarSearch = await client.GetAsync(calendarPath + "/search?search=2026"))
+                    Ensure(deniedCalendarSearch.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS03-OP01 unrelated JWT searched another company's fiscal years");
+                using (var deniedCalendarCreate = new HttpRequestMessage(HttpMethod.Post, calendarPath))
+                {
+                    deniedCalendarCreate.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedCalendarCreate.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateFiscalYearRequest("2030-FORGED", new(2030, 1, 1), new(2030, 12, 31)),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(deniedCalendarCreate);
+                    Ensure(rejected.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS03-OP01 unrelated JWT created another company's fiscal year");
+                }
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                using (var deniedCalendarResult = await client.GetAsync(calendarPath + "/search?search=2030-FORGED"))
+                using (var deniedCalendarJson = JsonDocument.Parse(await deniedCalendarResult.Content.ReadAsStringAsync()))
+                    Ensure(deniedCalendarResult.StatusCode == HttpStatusCode.OK &&
+                        deniedCalendarJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS03-OP01 denied calendar creation persisted an unauthorized year");
+                Console.WriteLine("  HOST PASS SYS03-OP01 tenant-scoped fiscal search/create and cross-company JWT denial");
                 using (var response = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Calendar HTTP audit failed");
