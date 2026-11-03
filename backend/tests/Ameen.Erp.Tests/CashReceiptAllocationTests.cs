@@ -36,6 +36,33 @@ public static class CashReceiptAllocationTests
             return Task.CompletedTask;
         });
 
+        test("CASH03-AC02: repeated invoice discount plus cash cannot evade aggregate cap", f =>
+        {
+            var invoice = Guid.NewGuid();
+            var independentInvoice = Guid.NewGuid();
+            // The cap applies per invoice, not to a combined total across unrelated invoices.
+            CashReceiptAllocation.ValidateBatch(new[] {
+                new CashReceiptAllocationLine(invoice, 100m, 50m, 10m),
+                new CashReceiptAllocationLine(invoice, 100m, 30m, 10m),
+                new CashReceiptAllocationLine(independentInvoice, 5m, 5m, 0m)
+            });
+            // Each line is valid alone, but the combined discount and cash exceeds the balance.
+            RejectBatch("cash_receipt_allocation_exceeds_remaining", new[] {
+                new CashReceiptAllocationLine(invoice, 100m, 50m, 10m),
+                new CashReceiptAllocationLine(invoice, 100m, 31m, 10m)
+            });
+            // Invalid amounts on any later line must not be hidden by a valid first line.
+            RejectBatch("invalid_amount", new[] {
+                new CashReceiptAllocationLine(invoice, 100m, 10m, 0m),
+                new CashReceiptAllocationLine(independentInvoice, 20m, 0.0000001m, 0m)
+            });
+            RejectBatch("invalid_amount", new[] {
+                new CashReceiptAllocationLine(invoice, 100m, 10m, 0m),
+                new CashReceiptAllocationLine(independentInvoice, -1m, 1m, 0m)
+            });
+            return Task.CompletedTask;
+        });
+
         test("CASH03-AC02: excess allocation and settlement discount fail closed", f =>
         {
             Reject("cash_receipt_allocation_exceeds_remaining", 100m, 100m, 0.000001m);
