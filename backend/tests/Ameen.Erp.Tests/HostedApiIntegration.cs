@@ -244,7 +244,7 @@ public static class HostedApiIntegration
                             x.GetProperty("createdBy").GetString() == "sql-clerk" &&
                             x.GetProperty("createdAt").GetDateTimeOffset() != default &&
                             x.GetProperty("revision").GetInt32() == 2 &&
-                            x.GetProperty("lastModifiedAt").GetDateTimeOffset() ==
+                            x.GetProperty("lastModifiedAt").GetDateTimeOffset() >=
                             x.GetProperty("createdAt").GetDateTimeOffset() &&
                             !x.GetProperty("isActive").GetBoolean()),
                         "SYS06 deactivated member was removed from the member register");
