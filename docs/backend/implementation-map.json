@@ -6,12 +6,11 @@
   "partially_implemented_screens": 35,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 347,
+    "implemented": 349,
     "audit": 47,
-    "derived": 5,
-    "partial": 96,
+    "derived": 4,
+    "partial": 95,
     "pending": 2264
-
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
