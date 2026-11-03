@@ -20,7 +20,8 @@ public static class CompanySqlIntegration
         var edits = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => Call(s => s.Company.EditCompany(cid, owner, key, request, default))));
         Ensure(edits.Distinct().Count() == 1, "Company concurrent replay differs");
         company = await Call(s => s.Company.GetCompany(cid, owner, default));
-        Ensure(company.Revision == 2 && company.CommercialRegistration == "0000123" && company.City == "مدينة SQL" && company.IsProfileComplete, "Company profile SQL differs");
+        Ensure(company.Revision == 2 && company.CommercialRegistration == "0000123" && company.City == "مدينة SQL" &&
+            company.Notes == "دليل" && company.IsProfileComplete, "SYS01-FG02 company profile SQL differs");
         Ensure((await Call(s => s.Company.ListCompanyAudit(cid, owner, 0, 20, default))).Items.Count(x => x.Action == "company.edited") == 1, "Company replay duplicated audit");
         Console.WriteLine("  SQL PASS SYS01 profile, nullable date, leading zeros and concurrent edit replay");
 
