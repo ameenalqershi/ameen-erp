@@ -88,7 +88,10 @@ public static class FiscalCalendarTests
             var yearReceipt = await Create(f, Request());
             var calendar = await f.Service.FiscalCalendar.GetFiscalCalendar(f.CompanyId, yearReceipt.ResourceId, f.Owner, default);
             var period = calendar.Periods[0];
-            var template = await f.Service.RecurringJournal.CreateRecurringJournal(f.CompanyId, f.Owner, Fixture.Key(),
+            var member = f.Store.All<Membership>().Single(x => x.Subject == f.Clerk.Subject);
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+                new(f.Clerk.Subject, Permissions.All, true, Array.Empty<Guid>(), member.Version), default);
+            var template = await f.Service.RecurringJournal.CreateRecurringJournal(f.CompanyId, f.Clerk, Fixture.Key(),
                 new CreateRecurringJournalRequest(f.BranchId, "قالب متعدد الاستحقاقات", RecurringFrequency.Monthly,
                     RecurringGenerationMode.Manual, new(2027, 1, 31), new(2027, 12, 31),
                     new[] { new RecurringLineRequest(f.CashId, null, "مدين", "SAR", 100, 0),
@@ -100,7 +103,7 @@ public static class FiscalCalendarTests
             var audits = f.Store.Count<AuditEvent>();
             var receipts = f.Store.Count<IdempotencyRecord>();
             await Error("ambiguous_recurring_period", () => f.Service.RecurringJournal.GenerateRecurringJournal(
-                f.CompanyId, template.ResourceId, f.Owner, Fixture.Key(),
+                f.CompanyId, template.ResourceId, f.Clerk, Fixture.Key(),
                 new GenerateRecurringJournalRequest(template.Version, period.Id), default));
             Ensure(f.Store.Count<JournalEntry>() == journals &&
                 f.Store.Count<RecurringJournalGeneration>() == generations &&
