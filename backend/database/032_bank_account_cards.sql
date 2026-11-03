@@ -41,8 +41,9 @@ BEGIN TRY
   CREATE UNIQUE INDEX [IX_BankAccounts_CompanyId_Code] ON [BankAccounts]([CompanyId],[Code]);
   CREATE UNIQUE INDEX [IX_BankAccounts_CompanyId_BankName_AccountNumber]
    ON [BankAccounts]([CompanyId],[BankName],[AccountNumber]);
-  CREATE UNIQUE INDEX [IX_BankAccounts_CompanyId_Iban] ON [BankAccounts]([CompanyId],[Iban])
-   WHERE [Iban] IS NOT NULL;
+  -- A filtered index binds its WHERE column at batch compilation time; defer
+  -- creation until the table exists (also safe for rollback/conflict probes).
+  EXEC(N'CREATE UNIQUE INDEX [IX_BankAccounts_CompanyId_Iban] ON [BankAccounts]([CompanyId],[Iban]) WHERE [Iban] IS NOT NULL;');
   CREATE INDEX [IX_BankAccounts_CompanyId_BranchId] ON [BankAccounts]([CompanyId],[BranchId]);
   CREATE INDEX [IX_BankAccounts_CompanyId_LedgerAccountId] ON [BankAccounts]([CompanyId],[LedgerAccountId]);
   INSERT dbo.__AmeenSchemaVersions([Version],[AppliedAt]) VALUES(32,SYSUTCDATETIME());
