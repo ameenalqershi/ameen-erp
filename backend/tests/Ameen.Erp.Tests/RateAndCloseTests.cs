@@ -33,6 +33,23 @@ public static class RateAndCloseTests
                 f.Store.Count<AuditEvent>() == auditBefore &&
                 f.Store.Count<IdempotencyRecord>() == receiptBefore);
         });
+        test("SYS05-AC02: duplicate same-day exchange rate rejects atomically and original quote remains authoritative", async f =>
+        {
+            await Currency(f);
+            var original = await Rate(f, Fixture.Date, 3.75m);
+            var beforeRates = f.Store.Count<ExchangeRate>();
+            var beforeAudit = f.Store.Count<AuditEvent>();
+            var beforeReceipts = f.Store.Count<IdempotencyRecord>();
+            await Error("duplicate_exchange_rate", () => f.Service.ExchangeRate.CreateExchangeRate(
+                f.CompanyId, f.Owner, Fixture.Key(),
+                new("USD", Fixture.Date, 4.25m, "سعر مكرر"), default));
+            Ensure(f.Store.Count<ExchangeRate>() == beforeRates &&
+                f.Store.Count<AuditEvent>() == beforeAudit &&
+                f.Store.Count<IdempotencyRecord>() == beforeReceipts);
+            var quote = await f.Service.ExchangeRate.QuoteExchangeRate(
+                f.CompanyId, f.Clerk, "USD", Fixture.Date, default);
+            Ensure(quote.ExchangeRateId == original.ResourceId && quote.RateToFunctional == 3.75m);
+        });
         test("SYS05: functional quote is one without fabricated rate and missing historical quote fails", async f =>
         {
             var own = await f.Service.ExchangeRate.QuoteExchangeRate(f.CompanyId, f.Clerk, "SAR", Fixture.Date, default);
