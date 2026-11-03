@@ -20,7 +20,8 @@ public static class CompanyTests
         });
         test("SYS01: required legal fields and profile reject null/empty without creating tenant", async f =>
         {
-            foreach (var profile in new[] { Fixture.Profile() with { LegalName = " " }, Fixture.Profile() with { City = "" }, Fixture.Profile() with { Street = new string('x', 301) } })
+            foreach (var profile in new[] { Fixture.Profile() with { LegalName = " " }, Fixture.Profile() with { City = "" },
+                Fixture.Profile() with { Street = " " }, Fixture.Profile() with { Street = new string('x', 301) } })
                 await Error("invalid_text", () => f.Service.Company.CreateCompany(f.Owner, Fixture.Key(), new(Guid.NewGuid(), "INVALID", "غير صالح", "YE", "SAR", 2, profile), default));
             await Error("company_profile_required", () => f.Service.Company.CreateCompany(f.Owner, Fixture.Key(), new(Guid.NewGuid(), "INVALID", "غير صالح", "YE", "SAR", 2, null!), default));
             Ensure(f.Store.Count<Company>() == 1);

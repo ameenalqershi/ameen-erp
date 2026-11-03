@@ -15,15 +15,18 @@ public static class CompanySqlIntegration
             await using var db = Context(); return await work(new TestServices(new SqlErpStore(db), new SqlTransactionRunner(db, new FixedClock()), new FixedClock()));
         }
         var company = await Call(s => s.Company.GetCompany(cid, owner, default));
-        var request = CompanyTests.Edit(company) with { Profile = CompanyTests.Profile(company) with { City = "مدينة SQL", CommercialRegistration = "0000123", Notes = "دليل" } };
+        var request = CompanyTests.Edit(company) with { Profile = CompanyTests.Profile(company) with { City = "مدينة SQL", CommercialRegistration = "0000123", Notes = "دليل",
+            Street = "شارع SQL", BuildingNumber = "0007", PostalCode = "00123", AdditionalNumber = "0009" } };
         var key = Fixture.Key();
         var edits = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => Call(s => s.Company.EditCompany(cid, owner, key, request, default))));
         Ensure(edits.Distinct().Count() == 1, "Company concurrent replay differs");
         company = await Call(s => s.Company.GetCompany(cid, owner, default));
         Ensure(company.Id == cid && company.Code == "SQLTEST" && company.Name == "اختبار SQL" &&
             company.Revision == 2 && company.CommercialRegistration == "0000123" && company.City == "مدينة SQL" &&
-            company.Notes == "دليل" && company.IsProfileComplete, "SYS01-FG01/FG02 company profile SQL differs");
+            company.Notes == "دليل" && company.Street == "شارع SQL" && company.BuildingNumber == "0007" &&
+            company.PostalCode == "00123" && company.AdditionalNumber == "0009" && company.IsProfileComplete, "SYS01-FG01/FG02 company profile SQL differs");
         Ensure((await Call(s => s.Company.ListCompanyAudit(cid, owner, 0, 20, default))).Items.Count(x => x.Action == "company.edited") == 1, "Company replay duplicated audit");
+        Console.WriteLine("  SQL PASS SYS01-FG05 street and zero-prefixed address identifiers persisted after replay");
         // SYS01-FG06: audit fields are server-generated events, not editable
         // company profile fields. Validate the actual persisted SQL rows.
         await using (var auditDb = Context())
