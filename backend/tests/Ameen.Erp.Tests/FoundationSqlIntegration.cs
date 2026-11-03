@@ -50,7 +50,25 @@ public static class FoundationSqlIntegration
         }
         Console.WriteLine("  SQL PASS SYS04-FG04 currency creation/modification audit, actor/time and numeric revision");
         Ensure((await Call(s => s.Currency.SearchCurrencies(cid, owner, "Euro", true, 0, 10, default))).Items.Single().Id == currency.Id, "Currency search SQL translation differs");
-        await Call(s => s.ExchangeRate.CreateExchangeRate(cid, owner, Fixture.Key(), new("EUR", Fixture.Date, 4.2m, "اختبار"), default));
+        // SYS05-FG03: a positive decimal exchange rate is stored exactly
+        // in SQL; rejected zero or excessive decimal precision is atomic.
+        var euroRate = await Call(s => s.ExchangeRate.CreateExchangeRate(
+            cid, owner, Fixture.Key(), new("EUR", Fixture.Date, 4.2m, "اختبار"), default));
+        var badRateKey = Fixture.Key();
+        await Error("invalid_exchange_rate", () => Call(s => s.ExchangeRate.CreateExchangeRate(
+            cid, owner, badRateKey,
+            new("EUR", Fixture.Date.AddDays(3), 1.12345678901m, "قيمة مرفوضة"), default)));
+        await using (var rateDb = Context())
+        {
+            var stored = await rateDb.Set<ExchangeRate>().SingleAsync(x =>
+                x.CompanyId == cid && x.Id == euroRate.ResourceId);
+            Ensure(stored.RateToFunctional == 4.2m &&
+                !await rateDb.Set<ExchangeRate>().AnyAsync(x => x.CompanyId == cid &&
+                    x.EffectiveDate == Fixture.Date.AddDays(3) && x.CurrencyCode == "EUR") &&
+                !await rateDb.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == badRateKey),
+                "SYS05-FG03 SQL rate decimal was rounded or invalid rate persisted");
+        }
+        Console.WriteLine("  SQL PASS SYS05-FG03 exact rate decimal and invalid precision rollback");
         await Error("currency_precision_in_use", () => Call(s => s.Currency.EditCurrency(cid, currency.Id, owner, Fixture.Key(), CurrencyTests.Edit(currency) with { Scale = 2 }, default)));
         Ensure((await Call(s => s.Currency.GetCurrencyUsage(cid, currency.Id, owner, default))).ExchangeRateCount == 1, "Currency usage SQL differs");
         Console.WriteLine("  SQL PASS SYS04 metadata, concurrent replay, search, usage and precision lock");

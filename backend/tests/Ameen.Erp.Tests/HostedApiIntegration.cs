@@ -737,6 +737,28 @@ public static class HostedApiIntegration
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));
                 var rate = await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date, 1.25m, "HTTP source"));
                 await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date.AddDays(1), 1.5m, "HTTP future"));
+                // SYS05-FG03: the public contract forbids a zero rate or
+                // excessive decimal precision before reserving a SQL record.
+                foreach (var invalidRate in new[] { 0m, 1.12345678901m })
+                {
+                    using var attempt = new HttpRequestMessage(HttpMethod.Post, ratesPath);
+                    attempt.Headers.Add("Idempotency-Key", Fixture.Key());
+                    attempt.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateExchangeRateRequest("NZD", Fixture.Date.AddDays(6),
+                            invalidRate, "SYS05-invalid"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(attempt);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        error.RootElement.GetProperty("code").GetString() == "invalid_exchange_rate",
+                        "SYS05-FG03 HTTPS accepted zero or overprecision exchange rate");
+                }
+                using (var invalidSearch = await client.GetAsync(ratesPath + "/search?currencyCode=NZD&source=SYS05-invalid"))
+                using (var invalidJson = JsonDocument.Parse(await invalidSearch.Content.ReadAsStringAsync()))
+                    Ensure(invalidSearch.StatusCode == HttpStatusCode.OK &&
+                        invalidJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS05-FG03 rejected exchange rate persisted in SQL");
+                Console.WriteLine("  HOST PASS SYS05-FG03 invalid decimal rate refusal over HTTPS/JWT/SQL");
                 using (var response = await client.GetAsync(ratesPath + $"/quote?currencyCode=NZD&date={Fixture.Date:yyyy-MM-dd}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("exchangeRateId").GetGuid() == rate.ResourceId &&
