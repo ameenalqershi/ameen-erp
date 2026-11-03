@@ -1,5 +1,13 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS01-FG02 — verified-field acceptance under CI (3 November 2026)
+
+Notion task SYS01-FG02 covers EnglishName (optional), IsActive (required), Notes (optional) and LegalName (required); all are mapped as implemented in docs/backend/fields-implementation.csv and persisted by Company.Configure. Focused domain tests now assert their roundtrip, CompanySqlIntegration checks notes persisted in the isolated SQL-backed service, and HostedApiIntegration checks EnglishName, Notes and LegalName through production HTTPS/JWT/SQL GET following authorized PUT. The existing host workflow verifies disabled/enabled company status, revision and audit. Related commits baa08a7691effaf16d461c60fc05e55034f1e308, 6444bf9610d5369d68d094afc2aba4d29591f1b9 and bf6430715b86e1c8863f67f0ff46bc784ebf442d require successful final CI before this atomic field task is closed. No schema/policy/analysis changes; SYS01 screen remains partial due unrelated policy gaps.
+
+## SYS01-AC02 — authenticated negative HTTP acceptance under CI (3 November 2026)
+
+Beyond the 376/376 green domain and isolated SQL evidence in [CI #41561704708](https://github.com/ameenalqershi/ameen-erp/actions/runs/41561704708), production host acceptance at 6dea75f75117f74642e2322dab9290f606379c59 requests a real HTTPS PUT signed with authorized JWT to switch an existing journal-bearing company to a valid NOK card. Expected HTTP 409 functional_currency_in_use must leave SQL-backed company currency, scale, revision, GUID token and audit count unchanged. This must pass final CI before Notion SYS01-AC02 is marked complete; it is not an implementation of a historical currency-conversion project.
+
 ## SYS01-AC02 / SYS06-AC02 — focused SYS acceptance in progress (3 November 2026)
 
 - **SYS06-AC02 (partial)**: Program.cs asserts disabled ERP membership remains persisted with a changed GUID concurrency token, a new audit record, and denied journal replay and account reads. The initial assertion used numeric version arithmetic and failed compilation; fixed on 569cae5ed48b54d6ecb541dad14bcdf4e2eabc95, which passed [branch CI #41561059527](https://github.com/ameenalqershi/ameen-erp/actions/runs/41561059527), **376/376 tests, 0 failed**, including SQL/HTTPS/JWT/OpenAPI/Release. This does **not** implement or close identity-provider login uniqueness, password-export exclusion, MFA or SYS06 as a whole. Notion SYS06-AC02 remains in progress.
