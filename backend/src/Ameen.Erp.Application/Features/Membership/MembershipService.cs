@@ -46,6 +46,32 @@ public sealed class MembershipService : ApplicationService
             return Receipt(member, member.IsActive ? "Active" : "Inactive");
         }, ct);
 
+    public async Task<MembershipUsage> GetMembershipUsage(Guid cid, Guid id, Actor actor, CancellationToken ct)
+    {
+        await AuthorizeGlobal(cid, actor, Permissions.Members, ct);
+        await AuthorizeGlobal(cid, actor, Permissions.Read, ct);
+        var member = await Required<Membership>(cid, id, ct);
+        var roles = (await store.Find<SecurityRoleAssignment>(cid, x => x.MembershipId == id, ct)).Count;
+        var warehouses = (await store.Find<Warehouse>(cid, x => x.KeeperMembershipId == id, ct)).Count;
+        var costCenters = (await store.Find<CostCenter>(cid, x => x.ResponsibleMembershipId == id, ct)).Count;
+        var journals = (await store.Find<JournalEntry>(cid, x => x.CreatedBy == member.Subject, ct)).Count;
+        var templates = (await store.Find<RecurringJournalTemplate>(cid, x => x.CreatedBy == member.Subject, ct)).Count;
+        return new(id, member.Subject, member.IsActive, roles, warehouses, costCenters, journals, templates,
+            roles + warehouses + costCenters + journals + templates > 0);
+    }
+
+    public async Task<Page<AuditEvent>> ListMembershipAudit(Guid cid, Guid id, Actor actor, int offset, int limit, CancellationToken ct)
+    {
+        Paging(offset, limit);
+        await AuthorizeGlobal(cid, actor, Permissions.Members, ct);
+        await AuthorizeGlobal(cid, actor, Permissions.Audit, ct);
+        await AuthorizeGlobal(cid, actor, Permissions.Read, ct);
+        await Required<Membership>(cid, id, ct);
+        return await store.ReadPage<AuditEvent>(cid,
+            x => x.ResourceId == id && (x.Action == "membership.granted" || x.Action == "membership.status-changed"),
+            q => q.OrderByDescending(x => x.OccurredAt).ThenBy(x => x.Id), offset, limit, ct);
+    }
+
     public async Task<Page<Membership>> ListMembers(Guid cid, Actor actor, int offset, int limit, CancellationToken ct)
     {
         Paging(offset, limit); await AuthorizeGlobal(cid, actor, Permissions.Members, ct);
