@@ -976,6 +976,67 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(auditPath + $"/{eventId}"))
                     Ensure(response.StatusCode == HttpStatusCode.Forbidden, "HTTP audit detail exposed without permission");
                 Authenticate(Token("sql-owner"));
+                // SYS14-AC02: audit endpoints are read-only even for an authorized JWT;
+                // denied mutation attempts leave the historical event and event count intact.
+                var untouchedEventPath=auditPath+$"/{eventId}";
+                string originalEvent;
+                using(var response=await client.GetAsync(untouchedEventPath))
+                {
+                    Ensure(response.StatusCode==HttpStatusCode.OK,"SYS14 cannot read event before mutation denial");
+                    originalEvent=await response.Content.ReadAsStringAsync();
+                }
+                foreach(var verb in new[]{HttpMethod.Post,HttpMethod.Put,HttpMethod.Patch,HttpMethod.Delete})
+                {
+                    foreach(var auditTarget in new[]{auditPath,untouchedEventPath})
+                    {
+                        using var request=new HttpRequestMessage(verb,auditTarget);
+                        if(verb!=HttpMethod.Delete)
+                            request.Content=new StringContent("{}",Encoding.UTF8,"application/json");
+                        using var refused=await client.SendAsync(request);
+                        Ensure(refused.StatusCode==HttpStatusCode.MethodNotAllowed,
+                            "SYS14 accepted a write verb on the read-only audit API");
+                    }
+                }
+                using(var response=await client.GetAsync(untouchedEventPath))
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        await response.Content.ReadAsStringAsync()==originalEvent,
+                        "SYS14 refused write changed persisted audit detail");
+                using(var response=await client.GetAsync(auditPath+
+                    $"?action=warehouse.created&resourceId={wh.ResourceId}"))
+                using(var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32()==1,
+                        "SYS14 refused audit mutation changed history count");
+                using(var auditContract=JsonDocument.Parse(specJson))
+                {
+                    var routes=auditContract.RootElement.GetProperty("paths");
+                    foreach(var auditRoute in new[]{
+                        "/api/v1/companies/{companyId}/audit-events",
+                        "/api/v1/companies/{companyId}/audit-events/{id}"})
+                        Ensure(routes.GetProperty(auditRoute).EnumerateObject().All(x=>x.Name=="get"),
+                            "SYS14 OpenAPI exposes an unapproved audit mutation");
+                }
+                var auditorMember=await Command(client,
+                    $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("sys14-http-revoked-auditor",
+                        new[]{Permissions.Read,Permissions.Audit},true,Array.Empty<Guid>(),null));
+                Authenticate(Token("sys14-http-revoked-auditor"));
+                using(var response=await client.GetAsync(untouchedEventPath))
+                    Ensure(response.StatusCode==HttpStatusCode.OK,
+                        "SYS14 authorized auditor could not read source event");
+                Authenticate(Token("sql-owner"));
+                await Command(client,
+                    $"/api/v1/companies/{companyId}/memberships/{auditorMember.ResourceId}/status",
+                    new SetMembershipStatusRequest(auditorMember.Version,false,"إلغاء وصول المدقق"));
+                Authenticate(Token("sys14-http-revoked-auditor"));
+                using(var response=await client.GetAsync(auditPath))
+                    Ensure(response.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS14 disabled auditor listed audit history with still-valid JWT");
+                using(var response=await client.GetAsync(untouchedEventPath))
+                    Ensure(response.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS14 disabled auditor read audit details with still-valid JWT");
+                Authenticate(Token("sql-owner"));
+                Console.WriteLine("  HOST PASS SYS14-AC02 read-only verbs/OpenAPI, revocation and preserved audit via HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS SYS14 audit filters, event detail, invalid dates and authorization over HTTPS/JWT/SQL");
                 var ratesPath = $"/api/v1/companies/{companyId}/exchange-rates";
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));

@@ -101,6 +101,28 @@ public static class AuditTests
             await Error("reference_not_found", () => f.Service.Audit.GetAuditEvent(f.CompanyId, foreign.Id, f.Owner, default));
             Ensure((await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, action: "foreign")).TotalCount == 0);
         });
+        test("SYS14-AC02: revoked Audit member loses historical list and detail without altering records", async f =>
+        {
+            var id=Guid.NewGuid();
+            var audited=Add(f,"historical-actor","test.unchanged",DateTimeOffset.UtcNow,id);
+            var details=audited.Details;
+            var auditor=new Actor("sys14-revoked-auditor");
+            await f.Service.Membership.GrantMembership(f.CompanyId,f.Owner,Fixture.Key(),
+                new(auditor.Subject,new[]{Permissions.Read,Permissions.Audit},true,Array.Empty<Guid>(),null),default);
+            Ensure((await f.Service.Audit.GetAuditEvent(f.CompanyId,audited.Id,auditor,default)).Id==audited.Id);
+            var member=f.Store.All<Membership>().Single(x=>x.Subject==auditor.Subject);
+            var disabled=await f.Service.Membership.SetMembershipStatus(f.CompanyId,member.Id,
+                f.Owner,Fixture.Key(),new(member.Version,false,"تعطيل صلاحية المدقق"),default);
+            var before=f.Store.Count<AuditEvent>();
+            var receipts=f.Store.Count<IdempotencyRecord>();
+            await Error("permission_denied",()=>f.Service.Audit.GetAuditEvent(f.CompanyId,audited.Id,auditor,default));
+            await Error("permission_denied",()=>f.Service.Audit.ListAudit(f.CompanyId,auditor,0,10,default));
+            Ensure(f.Store.Count<AuditEvent>()==before && f.Store.Count<IdempotencyRecord>()==receipts &&
+                f.Store.All<AuditEvent>().Single(x=>x.Id==audited.Id).Details==details);
+            await f.Service.Membership.SetMembershipStatus(f.CompanyId,member.Id,
+                f.Owner,Fixture.Key(),new(disabled.Version,true,"إعادة تفعيل المدقق"),default);
+            Ensure((await f.Service.Audit.GetAuditEvent(f.CompanyId,audited.Id,auditor,default)).Details==details);
+        });
         test("SYS14: reversed dates invalid pages and empty resource identifiers are rejected", async f =>
         {
             await Error("invalid_date_range", () => f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, new(2025, 2, 1), new(2025, 1, 1)));
