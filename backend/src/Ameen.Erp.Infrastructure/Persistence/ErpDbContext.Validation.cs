@@ -42,6 +42,16 @@ public sealed partial class ErpDbContext
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
             "cash_count_policy_unavailable",
             "لا يمكن حفظ الجرد قبل اعتماد الرصيد والتسوية والمراجعة.", ErrorKind.Conflict);
+        // SYS08 user/role scope metadata has no approved grant/deny evaluator,
+        // active status policy or account/customer group catalogues. Deny any
+        // insert/update/delete, including line-only mutation through direct EF.
+        Check.That(!ChangeTracker.Entries<UserDataScope>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<UserDataScopeLine>().Any(e =>
+                e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "user_data_scope_policy_unavailable",
+            "نطاق بيانات المستخدم محجوب حتى اعتماد سياسة التفويض ومجموعات الحسابات والعملاء.",
+            ErrorKind.Conflict);
         // SYS15-01 has no approved operational restore privileges, isolated
         // validation, encryption key management or backup worker. No direct
         // EF caller may activate or mutate an unapproved job configuration.
