@@ -1,5 +1,12 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS05-GAP03 — quote is advisory, never reserves an exchange rate (3 November 2026)
+
+Existing exchange-rate service logic selects the latest dated effective quote; journal creation rechecks that the explicitly supplied rate is still the latest effective rate on its accounting date. Focused acceptance on `sys` adds an application test and a production-host HTTPS/JWT/SQL test. Three repeated quotes must leave audit, idempotency, journal and numbering counters unchanged; creating a newer effective rate supersedes an earlier quote; trying to create a journal with the earlier rate must fail `stale_exchange_rate` with no persisted journal, audit, sequence or receipt; a corrected journal using the new rate succeeds with an immutable exchange-rate snapshot on its lines. This does not create financial policies, modify migrations, alter original analysis or touch production data.
+
+**Verification gate:** SYS05-GAP03 is pending full isolated-SQL, Release, API HTTPS/JWT and OpenAPI CI on the final `sys` SHA. The SYS05 screen remains partial: missing approved price categories/branch scope and historic revaluation are independent gaps. [GitHub sys](https://github.com/ameenalqershi/ameen-erp/tree/sys) and [PR #30](https://github.com/ameenalqershi/ameen-erp/pull/30) (draft, not merged).
+
+
 ## SYS04-AC01 — currency positive acceptance review (3 November 2026)
 
 The supported SYS04 positive condition is already verified end to end: currency cards persist ISO-like currency code, Arabic/English labels, fractional units, display symbol, scale and server revision; GET/detail and search return the card, and created/edited/status audit is retrievable. `CurrencyTests` exercise labels/symbol/fraction, revision and active search with identity/replay; the production `HostedApiIntegration` creates and edits GBP through authenticated HTTPS, then reads filtered SQL-backed search and audit. [CI #41558505651](https://github.com/ameenalqershi/ameen-erp/actions/runs/41558505651) and [PR CI #41558514949](https://github.com/ameenalqershi/ameen-erp/actions/runs/41558514949) passed on `sys=447da3fc9a38498af8e8112ad6179600f7bfe716`, with isolated SQL/JWT/OpenAPI/Release and full project tests. This closes only the atomic positive acceptance task `SYS04-AC01` by reconciling already-implemented behavior with Notion; country ISO reference and historical precision migration remain unresolved and excluded.
