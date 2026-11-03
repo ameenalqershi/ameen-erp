@@ -28,6 +28,74 @@ public static class InventoryOpeningPostingTests
         f.Service.InventoryOpening.Post(f.CompanyId, r.ResourceId, Writer, key ?? Fixture.Key(), p, default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV06-FG05: stock opening lines preserve item unit quantity and cost with atomic invalid rejection", async f =>
+        {
+            var (request, approved) = await Setup(f);
+            var line = request.Lines.Single();
+            var opening = await InventoryOpeningTests.Get(f, approved.ResourceId);
+            var saved = opening.Lines.Single();
+            Ensure(saved.ItemId == line.ItemId && saved.UnitId == line.UnitId &&
+                saved.Quantity == line.Quantity && saved.UnitCost == line.UnitCost &&
+                saved.BaseQuantity == 2m && saved.Value == 10.5m);
+            var initialAudits = f.Store.Count<AuditEvent>();
+            var initialReceipts = f.Store.Count<IdempotencyRecord>();
+            await Error("invalid_opening_quantity", () => InventoryOpeningTests.Create(f,
+                request with { CountReference = "INVALID-QTY", Lines = new[] { line with { Quantity = 0m } } }));
+            await Error("invalid_opening_cost", () => InventoryOpeningTests.Create(f,
+                request with { CountReference = "INVALID-COST", Lines = new[] { line with { UnitCost = -1m } } }));
+            await Error("item_unit_not_found", () => InventoryOpeningTests.Create(f,
+                request with { CountReference = "INVALID-UNIT", Lines = new[] { line with { UnitId = Guid.NewGuid() } } }));
+            Ensure(f.Store.Count<InventoryOpening>() == 1 &&
+                f.Store.Count<AuditEvent>() == initialAudits && f.Store.Count<IdempotencyRecord>() == initialReceipts &&
+                f.Store.Count<JournalEntry>() == 0 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV06-OP03: distinct reviewer approves previewed opening without premature posting", async f =>
+        {
+            var request = await InventoryOpeningTests.Setup(f);
+            var writer = InventoryOpeningTests.Writer;
+            var created = await InventoryOpeningTests.Create(f, request);
+            var submitted = await InventoryOpeningTests.Action(f, created, "submit");
+            var reviewer = await InventoryOpeningTests.Reviewer(f);
+            var preview = await f.Service.InventoryOpening.Preview(f.CompanyId, created.ResourceId, writer, default);
+            Ensure(preview.TotalValue == 10.5m && !preview.CanPost);
+            var audits = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            var approved = await InventoryOpeningTests.Action(f, submitted, "approve", reviewer);
+            var saved = await InventoryOpeningTests.Get(f, approved.ResourceId);
+            Ensure(saved.State == InventoryOpeningState.Approved && saved.ApprovedBy == reviewer.Subject &&
+                f.Store.Count<JournalEntry>() == 0 && f.Store.Count<StockMovement>() == 0 &&
+                f.Store.Count<OutboxEvent>() == 0);
+            var afterPreview = await f.Service.InventoryOpening.Preview(f.CompanyId, approved.ResourceId, writer, default);
+            Ensure(afterPreview.TotalValue == preview.TotalValue &&
+                f.Store.Count<AuditEvent>() == audits + 1 &&
+                f.Store.Count<IdempotencyRecord>() == receipts + 1);
+            await Error("opening_state_conflict", () => f.Service.InventoryOpening.Edit(f.CompanyId,
+                approved.ResourceId, writer, Fixture.Key(),
+                new(approved.Version, "ممنوع", request.Lines, "لا تعديل بعد الاعتماد"), default));
+            Ensure(f.Store.Count<JournalEntry>() == 0 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV06-AC01: approved source posts exactly one quantity/value and balanced linked GL effect", async f =>
+        {
+            var (request, approved) = await Setup(f);
+            var plan = await Plan(f, approved);
+            var posted = await Post(f, approved, plan);
+            var opening = await InventoryOpeningTests.Get(f, posted.ResourceId);
+            var movements = f.Store.All<StockMovement>().ToArray();
+            var journals = f.Store.All<JournalEntry>().ToArray();
+            Ensure(opening.State == InventoryOpeningState.Posted && movements.Length == 1 && journals.Length == 1);
+            var movement = movements[0];
+            var journal = journals[0];
+            Ensure(movement.ItemId == request.Lines[0].ItemId && movement.WarehouseId == request.WarehouseId &&
+                movement.BaseQuantity == 2m && movement.Value == 10.5m && movement.JournalId == journal.Id);
+            Ensure(journal.InventoryOpeningId == opening.Id && journal.Source == JournalSource.InventoryOpening &&
+                journal.State == JournalState.Posted &&
+                journal.Lines.Sum(x => x.FunctionalDebit) == 10.5m &&
+                journal.Lines.Sum(x => x.FunctionalCredit) == 10.5m);
+            var audit = f.Store.Count<AuditEvent>();
+            var count = await f.Service.InventoryOpening.Movements(f.CompanyId, Writer, null, null, 0, 10, default);
+            Ensure(count.TotalCount == 1 && f.Store.Count<AuditEvent>() == audit &&
+                f.Store.Count<StockMovement>() == 1 && f.Store.Count<OutboxEvent>() == 2);
+        });
         test("INV06 posting: atomic stock ledger balanced control journal provenance and replay", async f =>
         {
             var (_, r) = await Setup(f); var plan = await Plan(f, r); var key = Fixture.Key(); var posted = await Post(f, r, plan, key);
