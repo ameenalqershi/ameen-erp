@@ -1162,7 +1162,7 @@ public static class HostedApiIntegration
                         JsonDefaults.Options), Encoding.UTF8, "application/json");
                     using var rejected = await client.SendAsync(edit);
                     using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
-                    Ensure(rejected.StatusCode == HttpStatusCode.BadRequest &&
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
                         error.RootElement.GetProperty("code").GetString() == "branch_tree_cycle",
                         "SYS02-AC02 production HTTP accepted a branch cycle");
                 }
