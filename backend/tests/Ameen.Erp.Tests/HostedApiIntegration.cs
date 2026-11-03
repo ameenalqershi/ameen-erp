@@ -1219,6 +1219,15 @@ public static class HostedApiIntegration
                 Authenticate(Token("sql-clerk"));
                 await JournalHeaderFieldsHttpIntegration.Run(client, path, journalRequest);
 
+                // GL03-T02: only the authorized subsidiary source may post to control accounts.
+                Authenticate(Token("sql-owner"));
+                var gl03Control = await Command(client, $"/api/v1/companies/{companyId}/accounts",
+                    new CreateAccountRequest("GL03-HOST-CONTROL", "رقابة GL03", AccountType.Asset,
+                        null, true, true, false, null, NormalBalance.Debit));
+                Authenticate(Token("sql-clerk"));
+                await JournalLineGuardHttpIntegration.Run(client, path, journalRequest,
+                    gl03Control.ResourceId);
+
 
 
             }
