@@ -1070,7 +1070,10 @@ public static class HostedApiIntegration
                 using (var journalDetail = await client.GetAsync(path + $"/{sysExplicit.ResourceId}"))
                 using (var journalJson = JsonDocument.Parse(await journalDetail.Content.ReadAsStringAsync()))
                     Ensure(journalDetail.StatusCode == HttpStatusCode.OK &&
-                        journalJson.RootElement.GetProperty("lines")[0].GetProperty("costCenterId").GetGuid() == sysDefaultCenter.ResourceId,
+                        journalJson.RootElement.GetProperty("lines").EnumerateArray().Any(line =>
+                            line.GetProperty("accountId").GetGuid() == sysRequiredAccount.ResourceId &&
+                            line.GetProperty("costCenterId").ValueKind == JsonValueKind.String &&
+                            line.GetProperty("costCenterId").GetGuid() == sysDefaultCenter.ResourceId),
                         "SYS02-GAP02 explicit journal cost center did not persist through SQL");
                 Console.WriteLine("  HOST PASS SYS02-GAP02 branch default metadata does not inject journal cost center; required and explicit cases over HTTPS/JWT/SQL");
 
