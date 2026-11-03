@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 33,
+  "partially_implemented_screens": 34,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 328,
+    "implemented": 344,
     "audit": 49,
     "derived": 5,
     "partial": 79,
-    "pending": 2298
+    "pending": 2282
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -1939,6 +1939,78 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/ItemTests.cs; backend/tests/Ameen.Erp.Tests/ItemSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "CASH01": {
+      "api": "GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status",
+      "implemented": "بطاقة صندوق بنطاق الشركة والفرع، حساب تفصيلي فعال وعملة وأمين عضوية نشطة؛ حقول 16 كاملة وإصدار/توقيت خادم؛ إنشاء وتعديل وتعطيل وبحث واستخدام قيد مرجعي وتدقيق ذري وتكرار آمن",
+      "remaining": "لا يوجد رصيد صندوق متاح أو منع سحب على مستوى CASH04؛ عرض الاستخدام يحصي القيود المرجعية لا الرصيد؛ صلاحيات الصندوق المستقلة وسياسة التشغيل وتكامل سندات القبض والصرف لم تنفذ؛ شاشة CASH01 جزئية",
+      "fields": {
+        "CASH01-F01": {
+          "status": "implemented",
+          "binding": "CashBox.Id: server GUID"
+        },
+        "CASH01-F02": {
+          "status": "implemented",
+          "binding": "CashBox.CompanyId from route"
+        },
+        "CASH01-F03": {
+          "status": "implemented",
+          "binding": "Code"
+        },
+        "CASH01-F04": {
+          "status": "implemented",
+          "binding": "Name"
+        },
+        "CASH01-F05": {
+          "status": "implemented",
+          "binding": "EnglishName"
+        },
+        "CASH01-F06": {
+          "status": "implemented",
+          "binding": "IsActive"
+        },
+        "CASH01-F07": {
+          "status": "implemented",
+          "binding": "Notes"
+        },
+        "CASH01-F08": {
+          "status": "implemented",
+          "binding": "AccountId: active posting account"
+        },
+        "CASH01-F09": {
+          "status": "implemented",
+          "binding": "BranchId: active authorized branch"
+        },
+        "CASH01-F10": {
+          "status": "implemented",
+          "binding": "CustodianMembershipId: active membership in branch"
+        },
+        "CASH01-F11": {
+          "status": "implemented",
+          "binding": "CurrencyCode: active company currency"
+        },
+        "CASH01-F12": {
+          "status": "implemented",
+          "binding": "BalanceLimit decimal(20,6)"
+        },
+        "CASH01-F13": {
+          "status": "implemented",
+          "binding": "CreatedBy: server subject"
+        },
+        "CASH01-F14": {
+          "status": "implemented",
+          "binding": "CreatedAt: server UTC"
+        },
+        "CASH01-F15": {
+          "status": "implemented",
+          "binding": "Revision: server integer"
+        },
+        "CASH01-F16": {
+          "status": "implemented",
+          "binding": "LastModifiedAt: server UTC"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/CashBoxTests.cs; backend/tests/Ameen.Erp.Tests/CashBoxSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
     },
     "RPT01": {
       "api": "GET /companies/{companyId}/reports/trial-balance",

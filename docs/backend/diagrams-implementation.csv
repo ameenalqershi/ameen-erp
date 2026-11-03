@@ -1,7 +1,7 @@
 diagram_id,analysis_source,status,scope
 module-SYS,muhaseb-erp-analysis/diagrams/source/module-SYS.mmd,partial,تهيئة أساسية فقط؛ راجع صفوف SYS في مصفوفة الشاشات
 module-GL,muhaseb-erp-analysis/diagrams/source/module-GL.mmd,partial,دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة
-module-CASH,muhaseb-erp-analysis/diagrams/source/module-CASH.mmd,not-started,لم يبدأ التنفيذ
+module-CASH,muhaseb-erp-analysis/diagrams/source/module-CASH.mmd,partial,بطاقة الصندوق CASH01 فقط: بيانات وربط حساب/فرع/عملة/أمين وواجهات؛ أرصدة وسندات النقد والشيكات والمطابقة لم تنفذ
 module-INV,muhaseb-erp-analysis/diagrams/source/module-INV.mmd,partial,وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ
 module-SAL,muhaseb-erp-analysis/diagrams/source/module-SAL.mmd,not-started,لم يبدأ التنفيذ
 module-PUR,muhaseb-erp-analysis/diagrams/source/module-PUR.mmd,not-started,لم يبدأ التنفيذ

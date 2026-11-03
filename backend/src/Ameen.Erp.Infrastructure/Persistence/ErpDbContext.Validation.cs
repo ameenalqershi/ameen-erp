@@ -8,6 +8,8 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        Check.That(!ChangeTracker.Entries<CashBox>().Any(e => e.State == EntityState.Deleted),
+            "cashbox_delete_prohibited", "بطاقة الصندوق لا تحذف؛ استخدم التعطيل.", ErrorKind.Conflict);
         // SYS07 roles have structural references only; no membership/permission enforcement yet.
         Check.That(!ChangeTracker.Entries<SecurityRole>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
             !ChangeTracker.Entries<SecurityRoleRule>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),

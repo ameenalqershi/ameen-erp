@@ -486,22 +486,22 @@ GL14,GL14-F10,أنشأه,system,partial,"CreatedBy: server actor field, no servi
 GL14,GL14-F11,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset only,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F12,رقم إصدار التعديل,system,partial,Revision: server int plus expected-revision domain guard; no API concurrency acceptance,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F13,آخر تعديل,system,partial,LastModifiedAt: datetimeoffset only,internal EF model and SQL 027 only; no public GL14 API
-CASH01,CASH01-F01,المعرف الداخلي,system,pending,,
-CASH01,CASH01-F02,الشركة,system,pending,,
-CASH01,CASH01-F03,الرمز,required,pending,,
-CASH01,CASH01-F04,الاسم العربي,required,pending,,
-CASH01,CASH01-F05,الاسم الإنجليزي,optional,pending,,
-CASH01,CASH01-F06,فعال,required,pending,,
-CASH01,CASH01-F07,ملاحظات,optional,pending,,
-CASH01,CASH01-F08,حساب الصندوق,required,pending,,
-CASH01,CASH01-F09,الفرع,required,pending,,
-CASH01,CASH01-F10,الأمين,required,pending,,
-CASH01,CASH01-F11,العملة,required,pending,,
-CASH01,CASH01-F12,سقف الرصيد,optional,pending,,
-CASH01,CASH01-F13,أنشأه,system,pending,,
-CASH01,CASH01-F14,وقت الإنشاء,system,pending,,
-CASH01,CASH01-F15,رقم إصدار التعديل,system,pending,,
-CASH01,CASH01-F16,آخر تعديل,system,pending,,
+CASH01,CASH01-F01,المعرف الداخلي,system,implemented,CashBox.Id: server GUID,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F02,الشركة,system,implemented,CashBox.CompanyId from route,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F08,حساب الصندوق,required,implemented,AccountId: active posting account,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F09,الفرع,required,implemented,BranchId: active authorized branch,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F10,الأمين,required,implemented,CustodianMembershipId: active membership in branch,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F11,العملة,required,implemented,CurrencyCode: active company currency,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F12,سقف الرصيد,optional,implemented,"BalanceLimit decimal(20,6)",GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F13,أنشأه,system,implemented,CreatedBy: server subject,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F14,وقت الإنشاء,system,implemented,CreatedAt: server UTC,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F15,رقم إصدار التعديل,system,implemented,Revision: server integer,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F16,آخر تعديل,system,implemented,LastModifiedAt: server UTC,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
 CASH02,CASH02-F01,المعرف الداخلي,system,pending,,
 CASH02,CASH02-F02,الشركة,system,pending,,
 CASH02,CASH02-F03,الرمز,required,pending,,

@@ -7,6 +7,7 @@ public static class Endpoints
     {
         CompaniesEndpoints.Map(app);
         BranchesEndpoints.Map(app);
+        CashBoxesEndpoints.Map(app);
         WarehousesEndpoints.Map(app);
         ItemsEndpoints.Map(app);
         InventoryIdentitiesEndpoints.Map(app);

@@ -35,8 +35,36 @@ public static class SqlIntegration
                 await ApprovalRouteSqlIntegration.Upgrade(db);
                 await SecurityRoleSqlIntegration.Upgrade(db);
                 await SecurityRoleAssignmentSqlIntegration.Upgrade(db);
+                await CashBoxSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
+            // CASH01 acceptance: SQL persistence, tenant FK, atomic command replay and account guard.
+            Guid cashCustodian;
+            await using (var db = f.Context())
+                cashCustodian = await db.Set<Membership>().Where(x => x.CompanyId == f.CompanyId &&
+                    x.Subject == f.Clerk.Subject).Select(x => x.Id).SingleAsync();
+            var cashRequest = new CreateCashBoxRequest("SQL-CASH", "صندوق قاعدة البيانات",
+                f.CashId, f.BranchId, cashCustodian, "SAR", 100m);
+            var cashKey = Fixture.Key();
+            var cashReceipts = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ =>
+                f.Call(s => s.CashBox.CreateCashBox(f.CompanyId, f.Owner, cashKey, cashRequest, default))));
+            Ensure(cashReceipts.All(x => x == cashReceipts[0]), "CASH01 concurrent SQL replay diverged");
+            await using (var db = f.Context())
+            {
+                var card = await db.Set<CashBox>().SingleAsync(x => x.CompanyId == f.CompanyId);
+                Ensure(card.Id == cashReceipts[0].ResourceId && card.CurrencyCode == "SAR" &&
+                    card.BalanceLimit == 100m && card.Revision == 1 &&
+                    card.CreatedBy == f.Owner.Subject && card.CreatedAt == card.LastModifiedAt,
+                    "CASH01 SQL field or audit persistence mismatch");
+                Ensure(await db.Set<AuditEvent>().CountAsync(x =>
+                    x.CompanyId == f.CompanyId && x.Action == "cashbox.created") == 1,
+                    "CASH01 replay created extra audit events");
+            }
+            await Expect("cashbox_account_already_linked", () =>
+                f.Call(s => s.CashBox.CreateCashBox(f.CompanyId, f.Owner, Fixture.Key(),
+                    cashRequest with { Code = "SQL-CASH-2" }, default)));
+            Console.WriteLine("  SQL PASS CASH01 durable master card, audit, account uniqueness and concurrent idempotency");
+
             await JournalDocumentTypeSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await ApprovalRouteSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await SecurityRoleSqlIntegration.Guard(options.ConnectionString, f.CompanyId);

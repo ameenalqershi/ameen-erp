@@ -245,6 +245,18 @@ screen("INV04", "GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id
        {1: "Item.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "Type", 9: "GroupId", 10: "BaseUnitId", 11: "Tracking", 12: "ShelfLifeDays", 13: "ReorderLevel", 15: "Units[].UnitId", 16: "Units[].FactorToBase", 17: "Units[].Barcode", 18: "Units[].SalePrice (functional currency)", 21: "Revision"},
        [(19, "AuditEvent.ActorId: item.created"), (20, "AuditEvent.OccurredAt: item.created"), (22, "AuditEvent.OccurredAt: item.edited / item.status-changed")])
 MAP["INV04"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["ItemTests.cs", "ItemSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+screen("CASH01", "GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status",
+       "بطاقة صندوق بنطاق الشركة والفرع، حساب تفصيلي فعال وعملة وأمين عضوية نشطة؛ حقول 16 كاملة وإصدار/توقيت خادم؛ إنشاء وتعديل وتعطيل وبحث واستخدام قيد مرجعي وتدقيق ذري وتكرار آمن",
+       "لا يوجد رصيد صندوق متاح أو منع سحب على مستوى CASH04؛ عرض الاستخدام يحصي القيود المرجعية لا الرصيد؛ صلاحيات الصندوق المستقلة وسياسة التشغيل وتكامل سندات القبض والصرف لم تنفذ؛ شاشة CASH01 جزئية",
+       {1: "CashBox.Id: server GUID", 2: "CashBox.CompanyId from route", 3: "Code", 4: "Name",
+        5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "AccountId: active posting account",
+        9: "BranchId: active authorized branch", 10: "CustodianMembershipId: active membership in branch",
+        11: "CurrencyCode: active company currency", 12: "BalanceLimit decimal(20,6)",
+        13: "CreatedBy: server subject", 14: "CreatedAt: server UTC",
+        15: "Revision: server integer", 16: "LastModifiedAt: server UTC"})
+MAP["CASH01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["CashBoxTests.cs", "CashBoxSqlIntegration.cs", "SqlIntegration.cs", "OpenApiSnapshotTests.cs"])
+
 screen("RPT01", "GET /companies/{companyId}/reports/trial-balance",
        "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج", "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
        {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 9: "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)", 10: "query.costCenterId", 11: "query.showZero"})
@@ -347,6 +359,7 @@ def generate():
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
         "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
+        "module-CASH": "بطاقة الصندوق CASH01 فقط: بيانات وربط حساب/فرع/عملة/أمين وواجهات؛ أرصدة وسندات النقد والشيكات والمطابقة لم تنفذ",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",
