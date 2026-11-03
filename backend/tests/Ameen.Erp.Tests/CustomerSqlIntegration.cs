@@ -54,13 +54,25 @@ public static class CustomerSqlIntegration
                  {5},{country},{actor},{now},{1},{now},{"0007"},{"0050"})");
         db.ChangeTracker.Clear();
         var saved=await db.Set<Customer>().AsNoTracking().SingleAsync(x=>x.CompanyId==companyId && x.Id==customerId);
-        Ensure(saved.Code=="00045" && saved.Name=="عميل" && saved.EnglishName=="Customer" &&
-          saved.LegalName=="اسم قانوني" && saved.CreditLimit==12.123456m && saved.CreditDays==5 &&
-          saved.BuildingNumber=="0007" && saved.PostalCode=="0050" &&
-          saved.CustomerCategoryId==category && saved.CountryId==country &&
-          saved.ControlAccountId==controlAccountId && saved.TransactionCurrencyId==currencyId &&
-          saved.CreatedBy==actor && saved.CreatedAt==now && saved.LastModifiedAt==now && saved.Revision==1,
-          "SAL01 EF/SQL roundtrip mismatch");
+        var checkedFields = new (string Name, bool Match)[] {
+          ("code",saved.Code=="00045"),("arabic-name",saved.Name=="عميل"),
+          ("english-name",saved.EnglishName=="Customer"),
+          ("legal-name",saved.LegalName=="اسم قانوني"),
+          ("credit-limit",saved.CreditLimit==12.123456m),
+          ("credit-days",saved.CreditDays==5),
+          ("building",saved.BuildingNumber=="0007"),
+          ("postal",saved.PostalCode=="0050"),
+          ("category",saved.CustomerCategoryId==category),
+          ("country",saved.CountryId==country),
+          ("account",saved.ControlAccountId==controlAccountId),
+          ("currency",saved.TransactionCurrencyId==currencyId),
+          ("creator",saved.CreatedBy==actor),
+          ("created-at",saved.CreatedAt==now),
+          ("modified-at",saved.LastModifiedAt==now),
+          ("revision",saved.Revision==1)
+        };
+        var mismatched=string.Join(",",checkedFields.Where(x=>!x.Match).Select(x=>x.Name));
+        Ensure(mismatched.Length==0,"SAL01 EF/SQL roundtrip mismatch: "+mismatched);
         await RejectSql("other account",db.Database.ExecuteSqlInterpolatedAsync(
           $"UPDATE dbo.Customers SET ControlAccountId={Guid.NewGuid()} WHERE CompanyId={companyId} AND Id={customerId}"),547);
         await RejectSql("other currency",db.Database.ExecuteSqlInterpolatedAsync(
