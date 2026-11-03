@@ -199,6 +199,7 @@ public static class SqlIntegration
             await FinancialMappingSqlIntegration.Run(options.ConnectionString,f.CompanyId,f.Owner,f.Request());
             await JournalHeaderFieldsSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Request());
             await JournalLineGuardAcceptance.RunSql(options.ConnectionString, f.CompanyId, f.Clerk, f.Owner, f.Request());
+            await JournalReviewHistoryAcceptance.RunSql(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Owner, f.Request());
         }
         finally
         {

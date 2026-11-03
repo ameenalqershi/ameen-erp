@@ -519,6 +519,7 @@ GeneralOpeningReversalTests.Register(Test);
 DraftJournalHeaderTests.Register(Test);
 JournalHeaderFieldsTests.Register(Test);
 JournalLineGuardAcceptance.Register(Test);
+JournalReviewHistoryAcceptance.Register(Test);
 ItemTests.Register(Test);
 ItemGroupUsageTests.Register(Test);
 CostCenterTests.Register(Test);

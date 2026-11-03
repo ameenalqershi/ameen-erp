@@ -234,6 +234,23 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(path + $"/{receipt.ResourceId}/processing-history"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP processing history duplicated");
+                // GL05-A05: historical decisions are visible to authorized auditors,
+                // paginated over production HTTPS/JWT/SQL, and hidden from the author.
+                Authenticate(Token("sql-owner"));
+                using (var h = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}/processing-history?offset=0&limit=1"))
+                using (var j = JsonDocument.Parse(await h.Content.ReadAsStringAsync()))
+                    Ensure(h.StatusCode == HttpStatusCode.OK &&
+                        j.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        j.RootElement.GetProperty("items").GetArrayLength() == 1 &&
+                        j.RootElement.GetProperty("items")[0].GetProperty("action").GetString() ==
+                            "journal.processing-succeeded",
+                        "GL05 HTTP review decision not retrievable with auditor permission");
+                Authenticate(Token("sql-clerk"));
+                using (var gl05HistoryDenied = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}/processing-history"))
+                    Ensure(gl05HistoryDenied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL05 HTTP creator retrieved privileged review audit history");
+                Authenticate(Token("sql-approver"));
+                Console.WriteLine("  HOST PASS GL05-A05 scoped review outcome/history with paging and JWT audit permission");
                 // Finish the additional approved journal so it cannot interfere with later close checks.
                 using (var response = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
