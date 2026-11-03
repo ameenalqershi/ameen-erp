@@ -8,6 +8,15 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // CASH11 is structural-only. No approved count-to-ledger snapshot, adjustment
+        // authorization, lifecycle or branch permissions exist yet. Prevent writes
+        // through any EF caller, including child-only changes and deletions.
+        Check.That(!ChangeTracker.Entries<CashCount>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<CashCountLine>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cash_count_policy_unavailable",
+            "لا يمكن حفظ الجرد قبل اعتماد الرصيد والتسوية والمراجعة.", ErrorKind.Conflict);
         // CASH02 is schema-only until conditional IBAN / beneficiary-change review and permissions are approved.
         Check.That(!ChangeTracker.Entries<BankAccount>().Any(e =>
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),

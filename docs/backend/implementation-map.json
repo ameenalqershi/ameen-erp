@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 35,
+  "partially_implemented_screens": 36,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 47,
     "derived": 4,
-    "partial": 95,
-    "pending": 2264
+    "partial": 108,
+    "pending": 2251
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2092,6 +2092,66 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/BankAccountFoundationTests.cs; backend/tests/Ameen.Erp.Tests/BankAccountSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "CASH11": {
+      "api": "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",
+      "implemented": "بنية محضر جرد صندوق وسطور فئات/عدد القطع بقيمة Decimal محسوبة في SQL؛ مفتاح صندوق وفرع/قائم بالجرد ضمن الشركة وتدقيق زمني وإصدار؛ ترقية 033 ذرية قابلة للإعادة؛ كل الكتابات عبر EF محجوبة حتى اعتماد مسار الرصيد والتسوية",
+      "remaining": "لا توجد عملية جرد أو مقارنة رصيد دفتر أو محضر عجز/زيادة تشغيلي أو اعتماد تسوية GL03؛ الحالة المسموحة وقواعد تفعيل الجرد وصلاحيات SYS07 تتطلب مسارًا معتمدًا؛ SQL بنيوي فقط، لا HTTP/JWT/OpenAPI عمليات CASH11",
+      "fields": {
+        "CASH11-F01": {
+          "status": "partial",
+          "binding": "CashCount.CompanyId: tenant primary key and SQL FK; no API"
+        },
+        "CASH11-F02": {
+          "status": "partial",
+          "binding": "CashCount.BranchId: nullable tenant FK; no branch operation permission yet"
+        },
+        "CASH11-F03": {
+          "status": "partial",
+          "binding": "CashCount.State: text slot with nonempty SQL check; lifecycle values not approved; EF writes blocked"
+        },
+        "CASH11-F04": {
+          "status": "partial",
+          "binding": "CashCount.CashBoxId: tenant composite FK; no balance lookup"
+        },
+        "CASH11-F05": {
+          "status": "partial",
+          "binding": "CashCount.CutoffAt: datetimeoffset(7); no ledger snapshot"
+        },
+        "CASH11-F06": {
+          "status": "partial",
+          "binding": "CashCount.CountedByMembershipId: tenant FK; active membership/permission blocked"
+        },
+        "CASH11-F07": {
+          "status": "partial",
+          "binding": "CashCountLine.Denomination: decimal(20,6) >0; no currency denominations catalogue"
+        },
+        "CASH11-F08": {
+          "status": "partial",
+          "binding": "CashCountLine.PieceCount: nonnegative int"
+        },
+        "CASH11-F09": {
+          "status": "partial",
+          "binding": "CashCountLine.CountedValue: SQL persisted computed decimal(20,6)"
+        },
+        "CASH11-F10": {
+          "status": "partial",
+          "binding": "CashCount.CreatedBy: stored only; no operational subject validation"
+        },
+        "CASH11-F11": {
+          "status": "partial",
+          "binding": "CashCount.CreatedAt: datetimeoffset(7) stored only"
+        },
+        "CASH11-F12": {
+          "status": "partial",
+          "binding": "CashCount.Revision: positive server integer structural only; no edit API"
+        },
+        "CASH11-F13": {
+          "status": "partial",
+          "binding": "CashCount.LastModifiedAt: datetimeoffset(7) >= CreatedAt; no edit API"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/CashCountFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashCountSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "RPT01": {
       "api": "GET /companies/{companyId}/reports/trial-balance",

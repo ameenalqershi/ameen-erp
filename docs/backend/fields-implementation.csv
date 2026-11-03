@@ -686,19 +686,19 @@ CASH10,CASH10-F14,أنشأه,system,pending,,
 CASH10,CASH10-F15,وقت الإنشاء,system,pending,,
 CASH10,CASH10-F16,رقم إصدار التعديل,system,pending,,
 CASH10,CASH10-F17,آخر تعديل,system,pending,,
-CASH11,CASH11-F01,الشركة,system,pending,,
-CASH11,CASH11-F02,الفرع,conditional,pending,,
-CASH11,CASH11-F03,الحالة,system,pending,,
-CASH11,CASH11-F04,الصندوق,required,pending,,
-CASH11,CASH11-F05,وقت القطع,required,pending,,
-CASH11,CASH11-F06,القائم بالجرد,required,pending,,
-CASH11,CASH11-F07,الفئة النقدية,required,pending,,
-CASH11,CASH11-F08,عدد القطع,required,pending,,
-CASH11,CASH11-F09,القيمة المعدودة,system,pending,,
-CASH11,CASH11-F10,أنشأه,system,pending,,
-CASH11,CASH11-F11,وقت الإنشاء,system,pending,,
-CASH11,CASH11-F12,رقم إصدار التعديل,system,pending,,
-CASH11,CASH11-F13,آخر تعديل,system,pending,,
+CASH11,CASH11-F01,الشركة,system,partial,CashCount.CompanyId: tenant primary key and SQL FK; no API,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F02,الفرع,conditional,partial,CashCount.BranchId: nullable tenant FK; no branch operation permission yet,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F03,الحالة,system,partial,CashCount.State: text slot with nonempty SQL check; lifecycle values not approved; EF writes blocked,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F04,الصندوق,required,partial,CashCount.CashBoxId: tenant composite FK; no balance lookup,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F05,وقت القطع,required,partial,CashCount.CutoffAt: datetimeoffset(7); no ledger snapshot,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F06,القائم بالجرد,required,partial,CashCount.CountedByMembershipId: tenant FK; active membership/permission blocked,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F07,الفئة النقدية,required,partial,"CashCountLine.Denomination: decimal(20,6) >0; no currency denominations catalogue",internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F08,عدد القطع,required,partial,CashCountLine.PieceCount: nonnegative int,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F09,القيمة المعدودة,system,partial,"CashCountLine.CountedValue: SQL persisted computed decimal(20,6)",internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F10,أنشأه,system,partial,CashCount.CreatedBy: stored only; no operational subject validation,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F11,وقت الإنشاء,system,partial,CashCount.CreatedAt: datetimeoffset(7) stored only,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F12,رقم إصدار التعديل,system,partial,CashCount.Revision: positive server integer structural only; no edit API,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F13,آخر تعديل,system,partial,CashCount.LastModifiedAt: datetimeoffset(7) >= CreatedAt; no edit API,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
 INV01,INV01-F01,المعرف الداخلي,system,implemented,Warehouse.Id,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
 INV01,INV01-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
 INV01,INV01-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses

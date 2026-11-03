@@ -291,6 +291,29 @@ for n, binding in {
 MAP["CASH02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in
     ["BankAccountFoundationTests.cs", "BankAccountSqlIntegration.cs", "SqlIntegration.cs"])
 
+screen("CASH11", "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",
+       "بنية محضر جرد صندوق وسطور فئات/عدد القطع بقيمة Decimal محسوبة في SQL؛ مفتاح صندوق وفرع/قائم بالجرد ضمن الشركة وتدقيق زمني وإصدار؛ ترقية 033 ذرية قابلة للإعادة؛ كل الكتابات عبر EF محجوبة حتى اعتماد مسار الرصيد والتسوية",
+       "لا توجد عملية جرد أو مقارنة رصيد دفتر أو محضر عجز/زيادة تشغيلي أو اعتماد تسوية GL03؛ الحالة المسموحة وقواعد تفعيل الجرد وصلاحيات SYS07 تتطلب مسارًا معتمدًا؛ SQL بنيوي فقط، لا HTTP/JWT/OpenAPI عمليات CASH11",
+       {})
+for n, binding in {
+    1:"CashCount.CompanyId: tenant primary key and SQL FK; no API",
+    2:"CashCount.BranchId: nullable tenant FK; no branch operation permission yet",
+    3:"CashCount.State: text slot with nonempty SQL check; lifecycle values not approved; EF writes blocked",
+    4:"CashCount.CashBoxId: tenant composite FK; no balance lookup",
+    5:"CashCount.CutoffAt: datetimeoffset(7); no ledger snapshot",
+    6:"CashCount.CountedByMembershipId: tenant FK; active membership/permission blocked",
+    7:"CashCountLine.Denomination: decimal(20,6) >0; no currency denominations catalogue",
+    8:"CashCountLine.PieceCount: nonnegative int",
+    9:"CashCountLine.CountedValue: SQL persisted computed decimal(20,6)",
+    10:"CashCount.CreatedBy: stored only; no operational subject validation",
+    11:"CashCount.CreatedAt: datetimeoffset(7) stored only",
+    12:"CashCount.Revision: positive server integer structural only; no edit API",
+    13:"CashCount.LastModifiedAt: datetimeoffset(7) >= CreatedAt; no edit API"
+}.items():
+    MAP["CASH11"]["fields"][f"CASH11-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["CASH11"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name
+    for name in ["CashCountFoundationTests.cs", "CashCountSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("RPT01", "GET /companies/{companyId}/reports/trial-balance",
        "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج", "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
        {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 9: "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)", 10: "query.costCenterId", 11: "query.showZero"})
@@ -390,7 +413,7 @@ def generate():
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
         "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
-        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
+        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",
