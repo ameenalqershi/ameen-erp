@@ -92,6 +92,8 @@ public sealed class BankAccount : CompanyEntity
     {
         Check.That(now >= CreatedAt && now >= LastModifiedAt,
             "bank_account_audit_time_invalid", "وقت التعديل لا يسبق وقت إنشاء الحساب البنكي.");
+        Check.That(Revision < int.MaxValue, "bank_account_revision_exhausted",
+            "بلغ إصدار بطاقة الحساب البنكي الحد الأقصى.", ErrorKind.Conflict);
         IsActive = active;
         Advance(now);
     }

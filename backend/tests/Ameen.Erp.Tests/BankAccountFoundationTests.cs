@@ -64,6 +64,20 @@ public static class BankAccountFoundationTests
             return Task.CompletedTask;
         });
 
+        test("CASH02: exhausted revision rejects deactivate without mutation", f =>
+        {
+            var card = Create(f, null);
+            typeof(BankAccount).GetProperty(nameof(BankAccount.Revision))!
+                .SetValue(card, int.MaxValue);
+            var version = card.Version;
+            var modified = card.LastModifiedAt;
+            Error("bank_account_revision_exhausted", () =>
+                card.SetActive(false, modified.AddMinutes(1)));
+            Ensure(card.IsActive && card.Revision == int.MaxValue &&
+                card.Version == version && card.LastModifiedAt == modified);
+            return Task.CompletedTask;
+        });
+
         test("CASH02-01: historical audit time cannot regress on domain mutations", f =>
         {
             var card = Create(f, null);
