@@ -33,6 +33,15 @@ public sealed partial class ErpDbContext
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
             "cash_receipt_policy_unavailable",
             "لا يمكن حفظ سند قبض قبل اعتماد التحصيل والفواتير والشيكات والترحيل.", ErrorKind.Conflict);
+        // CASH06 HR03 holder, advance type values, settlement and additional
+        // disbursement are unapproved; no financial-looking write is allowed.
+        Check.That(!ChangeTracker.Entries<CashAdvance>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<CashAdvanceLine>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cash_advance_policy_unavailable",
+            "لا يمكن حفظ عهدة أو تسوية قبل اعتماد صاحب العهدة وربط المصروف ودورة الصرف.",
+            ErrorKind.Conflict);
         // CASH11 is structural-only. No approved count-to-ledger snapshot, adjustment
         // authorization, lifecycle or branch permissions exist yet. Prevent writes
         // through any EF caller, including child-only changes and deletions.

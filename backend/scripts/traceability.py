@@ -351,6 +351,39 @@ MAP["CASH03"]["test_file"] = "; ".join(
     ["CashReceiptAllocationTests.cs", "CashReceiptFoundationTests.cs",
      "CashReceiptSqlIntegration.cs", "SqlIntegration.cs"])
 
+screen("CASH06", "internal EF/SQL schema 039 only; no live advance/settlement API or GL posting",
+       "بنية 23 حقلًا أصليًا لعنوان وسطور العهد والسلف التشغيلية: جداول SQL 039 وEF مع مبالغ دقيقة وسعر صرف وفحص مراجع الشركة والفرع والسنة والعملة، وتسجيل وقت/إصدار تدقيق، ومنع الكتابة تشغيلًا",
+       "HR03 صاحب العهدة والمصروف الفعلي غير موصولين، ولا قائمة أنواع/حالات العهدة المعتمدة ولا سياسة رد النقد أو الزيادة أو تسوية ذمم GL06؛ كل EF writes محجوبة، وCASH06 API/HTTPS/JWT/Outbox/موافقات غير منفذة",
+       {})
+for n, binding in {
+    1:"CashAdvance.Id internal GUID only",
+    2:"CashAdvance.CompanyId tenant primary key",
+    3:"CashAdvance.BranchId tenant composite FK; operational permission pending",
+    4:"CashAdvance.FiscalYearId tenant FK; fiscal closure not checked",
+    5:"CashAdvance.Number nvarchar(64) preserves leading zeroes; no SYS10 scope",
+    6:"CashAdvance.DocumentDate SQL date",
+    7:"CashAdvance.AccountingDate SQL date; not posted",
+    8:"CashAdvance.CurrencyCode tenant composite FK",
+    9:"CashAdvance.ExchangeRate decimal(20,10)>0; no dated SYS05 policy",
+    10:"CashAdvance.Description nvarchar(1000)",
+    11:"CashAdvance.ExternalReference nullable nvarchar(100)",
+    12:"CashAdvance.State nonempty text; approved lifecycle missing",
+    13:"CashAdvance.HolderId GUID stored only; HR03 master FK unavailable",
+    14:"CashAdvance.AdvanceType nonempty text; approved choices unavailable",
+    15:"CashAdvance.Amount decimal(20,6)>0; no cash debit",
+    16:"CashAdvance.ExpectedSettlementDate SQL date; no workflow timing",
+    17:"CashAdvanceLine.ExpenseReferenceId nullable GUID, no approved expense FK",
+    18:"CashAdvanceLine.SettlementAmount nullable decimal(20,6)>=0, no real settlement",
+    19:"CashAdvanceLine.AttachmentReference nullable nvarchar(300)",
+    20:"CashAdvance.CreatedBy stored actor text; API actor validation pending",
+    21:"CashAdvance.CreatedAt datetimeoffset(7) stored only",
+    22:"CashAdvance.Revision >0 SQL, no operational edit",
+    23:"CashAdvance.LastModifiedAt datetimeoffset(7)>=CreatedAt, no audit workflow"
+}.items():
+    MAP["CASH06"]["fields"][f"CASH06-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["CASH06"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + x for x in
+    ["CashAdvanceFoundationTests.cs", "CashAdvanceSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("CASH07", "internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API",
        "بنية الشيك الوارد 035 تخزن 22 حقلًا أصليًا بدقة decimal(20,6) وdecimal(20,10)، ورقم شيك بأصفار بادئة؛ فرع وسنة وعملة وحساب تحت التحصيل بمفاتيح مركبة للشركة؛ EF يمنع جميع كتابات الشيك، ترقية ذرية قابلة للإعادة واختبارات SQL مؤقتة",
        "CASH03 القبض والتحصيل وCASH09 دورة حالات الشيك وGL06 الترحيل والذمة وسداد/إعادة دين الدافع غير متصلة؛ فريد بنك/دافع وفق سياسة غير محسومة، لا unique FK مفترض للدافع ولا حركات بنك ولا API/JWT تشغيلية",

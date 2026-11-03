@@ -591,6 +591,7 @@ BranchTests.Register(Test);
 CashBoxTests.Register(Test);
 BankAccountFoundationTests.Register(Test);
 CashCountFoundationTests.Register(Test);
+CashAdvanceFoundationTests.Register(Test);
 PaymentTermFoundationTests.Register(Test);
 CashReceiptAllocationTests.Register(Test);
 CashReceiptFoundationTests.Register(Test);

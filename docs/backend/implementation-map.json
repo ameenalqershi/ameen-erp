@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 41,
+  "partially_implemented_screens": 42,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 47,
     "derived": 4,
-    "partial": 203,
-    "pending": 2156
+    "partial": 226,
+    "pending": 2133
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2260,6 +2260,106 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CashReceiptAllocationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "CASH06": {
+      "api": "internal EF/SQL schema 039 only; no live advance/settlement API or GL posting",
+      "implemented": "بنية 23 حقلًا أصليًا لعنوان وسطور العهد والسلف التشغيلية: جداول SQL 039 وEF مع مبالغ دقيقة وسعر صرف وفحص مراجع الشركة والفرع والسنة والعملة، وتسجيل وقت/إصدار تدقيق، ومنع الكتابة تشغيلًا",
+      "remaining": "HR03 صاحب العهدة والمصروف الفعلي غير موصولين، ولا قائمة أنواع/حالات العهدة المعتمدة ولا سياسة رد النقد أو الزيادة أو تسوية ذمم GL06؛ كل EF writes محجوبة، وCASH06 API/HTTPS/JWT/Outbox/موافقات غير منفذة",
+      "fields": {
+        "CASH06-F01": {
+          "status": "partial",
+          "binding": "CashAdvance.Id internal GUID only"
+        },
+        "CASH06-F02": {
+          "status": "partial",
+          "binding": "CashAdvance.CompanyId tenant primary key"
+        },
+        "CASH06-F03": {
+          "status": "partial",
+          "binding": "CashAdvance.BranchId tenant composite FK; operational permission pending"
+        },
+        "CASH06-F04": {
+          "status": "partial",
+          "binding": "CashAdvance.FiscalYearId tenant FK; fiscal closure not checked"
+        },
+        "CASH06-F05": {
+          "status": "partial",
+          "binding": "CashAdvance.Number nvarchar(64) preserves leading zeroes; no SYS10 scope"
+        },
+        "CASH06-F06": {
+          "status": "partial",
+          "binding": "CashAdvance.DocumentDate SQL date"
+        },
+        "CASH06-F07": {
+          "status": "partial",
+          "binding": "CashAdvance.AccountingDate SQL date; not posted"
+        },
+        "CASH06-F08": {
+          "status": "partial",
+          "binding": "CashAdvance.CurrencyCode tenant composite FK"
+        },
+        "CASH06-F09": {
+          "status": "partial",
+          "binding": "CashAdvance.ExchangeRate decimal(20,10)>0; no dated SYS05 policy"
+        },
+        "CASH06-F10": {
+          "status": "partial",
+          "binding": "CashAdvance.Description nvarchar(1000)"
+        },
+        "CASH06-F11": {
+          "status": "partial",
+          "binding": "CashAdvance.ExternalReference nullable nvarchar(100)"
+        },
+        "CASH06-F12": {
+          "status": "partial",
+          "binding": "CashAdvance.State nonempty text; approved lifecycle missing"
+        },
+        "CASH06-F13": {
+          "status": "partial",
+          "binding": "CashAdvance.HolderId GUID stored only; HR03 master FK unavailable"
+        },
+        "CASH06-F14": {
+          "status": "partial",
+          "binding": "CashAdvance.AdvanceType nonempty text; approved choices unavailable"
+        },
+        "CASH06-F15": {
+          "status": "partial",
+          "binding": "CashAdvance.Amount decimal(20,6)>0; no cash debit"
+        },
+        "CASH06-F16": {
+          "status": "partial",
+          "binding": "CashAdvance.ExpectedSettlementDate SQL date; no workflow timing"
+        },
+        "CASH06-F17": {
+          "status": "partial",
+          "binding": "CashAdvanceLine.ExpenseReferenceId nullable GUID, no approved expense FK"
+        },
+        "CASH06-F18": {
+          "status": "partial",
+          "binding": "CashAdvanceLine.SettlementAmount nullable decimal(20,6)>=0, no real settlement"
+        },
+        "CASH06-F19": {
+          "status": "partial",
+          "binding": "CashAdvanceLine.AttachmentReference nullable nvarchar(300)"
+        },
+        "CASH06-F20": {
+          "status": "partial",
+          "binding": "CashAdvance.CreatedBy stored actor text; API actor validation pending"
+        },
+        "CASH06-F21": {
+          "status": "partial",
+          "binding": "CashAdvance.CreatedAt datetimeoffset(7) stored only"
+        },
+        "CASH06-F22": {
+          "status": "partial",
+          "binding": "CashAdvance.Revision >0 SQL, no operational edit"
+        },
+        "CASH06-F23": {
+          "status": "partial",
+          "binding": "CashAdvance.LastModifiedAt datetimeoffset(7)>=CreatedAt, no audit workflow"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/CashAdvanceFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashAdvanceSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "CASH07": {
       "api": "internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API",
