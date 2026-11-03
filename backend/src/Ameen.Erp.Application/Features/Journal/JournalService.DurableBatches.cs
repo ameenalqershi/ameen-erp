@@ -19,7 +19,7 @@ public sealed partial class JournalService
                 ? new CommandReceipt(rid, version, status, x.ReceiptNumber) : null,
             x.ErrorCode)).ToArray();
         var succeeded = rows.Count(x => x.Succeeded);
-        return new(batch.Id, batch.Version, batch.Revision, batch.Action, batch.CreatedAt, batch.LastModifiedAt,
+        return new(batch.Id, batch.Version, batch.Revision, batch.Action, batch.ActorId, batch.CreatedAt, batch.LastModifiedAt,
             batch.FinishedAt, rows.Length == batch.ItemCount && succeeded == rows.Length,
             succeeded, rows.Count(x => !x.Succeeded), rows);
     }

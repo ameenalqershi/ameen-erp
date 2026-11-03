@@ -89,6 +89,7 @@ public static class JournalProcessingTests
                 stored.FinishedAt != null && stored.Rows()[1].RejectionRecorded);
             var detail = await f.Service.Journal.DurableBatch(f.CompanyId, f.Approver, key, default);
             Ensure(detail.BatchId == stored.Id && detail.Revision == 3 &&
+                detail.CreatedBy == stored.ActorId && detail.CreatedBy == f.Approver.Subject &&
                 detail.LastModifiedAt == stored.LastModifiedAt && detail.LastModifiedAt >= detail.CreatedAt &&
                 detail.Rows.SequenceEqual(result.Rows) && !detail.AllSucceeded &&
                 detail.FailedCount == 1);
