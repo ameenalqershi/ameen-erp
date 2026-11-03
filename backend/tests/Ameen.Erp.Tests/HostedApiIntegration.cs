@@ -365,6 +365,63 @@ public static class HostedApiIntegration
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Recurring HTTP usage differs");
                 Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
 
+                // SYS03-GAP03: an explicitly configured half-year contains multiple monthly
+                // occurrences. The production generation endpoint must fail closed before
+                // numbering, journal persistence, generation history or audit writes.
+                Authenticate(Token("sql-owner"));
+                var ambiguousYear = await Command(client, $"/api/v1/companies/{companyId}/fiscal-years",
+                    new CreateFiscalYearRequest("2035", new(2035, 1, 1), new(2035, 12, 31),
+                        new[] { new FiscalPeriodRequest("2035-H1", new(2035, 1, 1), new(2035, 6, 30)),
+                            new FiscalPeriodRequest("2035-H2", new(2035, 7, 1), new(2035, 12, 31)) }));
+                Guid ambiguousPeriodId;
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/fiscal-years/{ambiguousYear.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("periods").GetArrayLength() == 2,
+                        "SYS03-GAP03 custom half-year not stored over SQL");
+                    ambiguousPeriodId = json.RootElement.GetProperty("periods")[0].GetProperty("id").GetGuid();
+                }
+                Authenticate(Token("sql-clerk"));
+                var ambiguousTemplate = await Command(client, recurringPath,
+                    recurringRequest with { Name = "SYS03-GAP03 ambiguous period", StartsOn = new(2035, 1, 31),
+                        EndsOn = new(2035, 12, 31) });
+                var ambiguousHistoryPath = recurringPath + $"/{ambiguousTemplate.ResourceId}/generations";
+                var ambiguousAuditPath = recurringPath + $"/{ambiguousTemplate.ResourceId}/audit-events";
+                string historyBefore, auditBefore, journalBefore;
+                using (var history = await client.GetAsync(ambiguousHistoryPath))
+                using (var audit = await client.GetAsync(ambiguousAuditPath))
+                using (var journals = await client.GetAsync(path + "?source=Recurring"))
+                {
+                    Ensure(history.StatusCode == HttpStatusCode.OK && audit.StatusCode == HttpStatusCode.OK &&
+                        journals.StatusCode == HttpStatusCode.OK, "SYS03-GAP03 preflight reads failed");
+                    historyBefore = await history.Content.ReadAsStringAsync();
+                    auditBefore = await audit.Content.ReadAsStringAsync();
+                    journalBefore = await journals.Content.ReadAsStringAsync();
+                }
+                using (var request = new HttpRequestMessage(HttpMethod.Post, recurringPath + $"/{ambiguousTemplate.ResourceId}/generate"))
+                {
+                    request.Headers.Add("Idempotency-Key", Fixture.Key());
+                    request.Content = new StringContent(JsonSerializer.Serialize(
+                        new GenerateRecurringJournalRequest(ambiguousTemplate.Version, ambiguousPeriodId), JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var refused = await client.SendAsync(request);
+                    using var problem = JsonDocument.Parse(await refused.Content.ReadAsStringAsync());
+                    Ensure((int)refused.StatusCode == 422 &&
+                        problem.RootElement.GetProperty("code").GetString() == "ambiguous_recurring_period",
+                        "SYS03-GAP03 HTTP did not reject multiple monthly due dates in one fiscal period");
+                }
+                using (var history = await client.GetAsync(ambiguousHistoryPath))
+                using (var audit = await client.GetAsync(ambiguousAuditPath))
+                using (var journals = await client.GetAsync(path + "?source=Recurring"))
+                    Ensure(history.StatusCode == HttpStatusCode.OK && audit.StatusCode == HttpStatusCode.OK &&
+                        journals.StatusCode == HttpStatusCode.OK &&
+                        await history.Content.ReadAsStringAsync() == historyBefore &&
+                        await audit.Content.ReadAsStringAsync() == auditBefore &&
+                        await journals.Content.ReadAsStringAsync() == journalBefore,
+                        "SYS03-GAP03 rejected due generation changed journal, generation history or audit");
+                Console.WriteLine("  HOST PASS SYS03-GAP03 ambiguous custom period rejects without journal, audit or generation over HTTPS/JWT/SQL");
+
+
                 var scheduledBody = JsonSerializer.SerializeToNode(
                     recurringRequest with { Name = "HTTP automatically scheduled", GenerationMode = RecurringGenerationMode.Scheduled }, JsonDefaults.Options)!.AsObject();
                 scheduledBody.Remove("endsOn");
