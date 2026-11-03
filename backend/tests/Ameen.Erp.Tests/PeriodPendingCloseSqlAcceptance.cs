@@ -25,7 +25,7 @@ public static class PeriodPendingCloseSqlAcceptance
         // Unique disposable year prevents dependence on other test suites'
         // shared periods, historical close/reopen audit and journal state.
         var year = await Call(s => s.FiscalCalendar.CreateFiscalYear(cid, owner,
-            Fixture.Key(), new("GL11-T02-SQL-2046",
+            Fixture.Key(), new("GL11-T02-2046",
                 new DateOnly(2046, 1, 1), new DateOnly(2046, 12, 31)), default));
         FiscalPeriod period;
         await using (var db = Db())
