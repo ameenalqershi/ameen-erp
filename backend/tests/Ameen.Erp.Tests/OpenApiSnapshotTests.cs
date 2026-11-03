@@ -62,6 +62,28 @@ public static class OpenApiSnapshotTests
             var edit = schemas.GetProperty("EditJournalRequest");
             if (edit.GetProperty("required").EnumerateArray().Any(x => x.GetString() is "automaticReversal" or "reversalDate"))
                 throw new Exception("Legacy journal edit clients must remain compatible");
+            // CASH01: production OpenAPI must expose all original cashbox card fields
+            // and secure, idempotent master-card mutations.
+            var cashBoxProperties = schemas.GetProperty("CashBox").GetProperty("properties");
+            foreach (var name in new[] { "companyId", "id", "code", "name", "englishName", "isActive",
+                "notes", "accountId", "branchId", "custodianMembershipId", "currencyCode",
+                "balanceLimit", "createdBy", "createdAt", "revision", "lastModifiedAt" })
+                if (!cashBoxProperties.TryGetProperty(name, out _))
+                    throw new Exception("CASH01 original field missing from OpenAPI: " + name);
+            var cashPaths = json.RootElement.GetProperty("paths");
+            var cashCreate = cashPaths.GetProperty("/api/v1/companies/{companyId}/cash-boxes").GetProperty("post");
+            if (cashCreate.GetProperty("security").GetArrayLength() == 0 ||
+                !cashCreate.GetProperty("parameters").EnumerateArray().Any(p =>
+                    p.GetProperty("name").GetString() == "Idempotency-Key"))
+                throw new Exception("CASH01 create requires JWT and idempotency key");
+            foreach (var path in new[] {
+                "/api/v1/companies/{companyId}/cash-boxes/search",
+                "/api/v1/companies/{companyId}/cash-boxes/{id}",
+                "/api/v1/companies/{companyId}/cash-boxes/{id}/status",
+                "/api/v1/companies/{companyId}/cash-boxes/{id}/usage",
+                "/api/v1/companies/{companyId}/cash-boxes/{id}/audit-events" })
+                if (!cashPaths.TryGetProperty(path, out _))
+                    throw new Exception("CASH01 operation missing from OpenAPI: " + path);
             var artifacts = Environment.GetEnvironmentVariable("AMEEN_TEST_ARTIFACTS");
             foreach (var name in new[] { "CreateRecurringJournalRequest", "EditRecurringJournalRequest" })
             {

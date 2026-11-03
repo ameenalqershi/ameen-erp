@@ -1947,7 +1947,75 @@ public static class HostedApiIntegration
                 await JournalLineGuardHttpIntegration.Run(client, path, journalRequest,
                     gl03Control.ResourceId);
 
+                // CASH01: production HTTPS/OIDC/JWT/SQL acceptance, including non-member
+                // rejection and concurrency/replay, on a fresh dedicated posting account.
+                Authenticate(Token("sql-owner"));
+                var cashHostAccount = await Command(client, $"/api/v1/companies/{companyId}/accounts",
+                    new CreateAccountRequest("CASH01-HOST", "حساب الصندوق التجريبي",
+                        AccountType.Asset, null, true, false, false, null, NormalBalance.Debit));
+                var cashHostCustodian = await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("cash01-host-custodian", new[] { Permissions.Read },
+                        false, new[] { journalRequest.BranchId }, null));
+                var cashPath = $"/api/v1/companies/{companyId}/cash-boxes";
+                var cashBody = new CreateCashBoxRequest("CASH01-HOST", "صندوق اختباري",
+                    cashHostAccount.ResourceId, journalRequest.BranchId,
+                    cashHostCustodian.ResourceId, "SAR", 100m, "Host Cash Box", "قبول");
+                var cashHostKey = Fixture.Key();
+                var cashHostReceipt = await Command(client, cashPath, cashBody, cashHostKey);
+                Ensure(cashHostReceipt == await Command(client, cashPath, cashBody, cashHostKey),
+                    "CASH01 production HTTPS replay returned a different receipt");
+                using (var cashDetail = await client.GetAsync(cashPath + $"/{cashHostReceipt.ResourceId}"))
+                using (var cashJson = JsonDocument.Parse(await cashDetail.Content.ReadAsStringAsync()))
+                    Ensure(cashDetail.StatusCode == HttpStatusCode.OK &&
+                        cashJson.RootElement.GetProperty("createdBy").GetString() == "sql-owner" &&
+                        cashJson.RootElement.GetProperty("revision").GetInt32() == 1 &&
+                        cashJson.RootElement.GetProperty("custodianMembershipId").GetGuid() ==
+                            cashHostCustodian.ResourceId,
+                        "CASH01 HTTPS/JWT card identity, revision or custodian mismatch");
 
+                Authenticate(Token("cash01-nonmember"));
+                using (var deniedCash = await client.GetAsync(cashPath + $"/{cashHostReceipt.ResourceId}"))
+                    Ensure(deniedCash.StatusCode == HttpStatusCode.Forbidden,
+                        "CASH01 non-member JWT read a tenant card");
+                Authenticate(Token("sql-owner"));
+
+                using (var duplicateCash = new HttpRequestMessage(HttpMethod.Post, cashPath))
+                {
+                    duplicateCash.Headers.Add("Idempotency-Key", Fixture.Key());
+                    duplicateCash.Content = new StringContent(JsonSerializer.Serialize(
+                        cashBody with { Code = "CASH01-HOST-SECOND" }, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var deniedDuplicate = await client.SendAsync(duplicateCash);
+                    using var error = JsonDocument.Parse(await deniedDuplicate.Content.ReadAsStringAsync());
+                    Ensure(deniedDuplicate.StatusCode == HttpStatusCode.Conflict &&
+                        error.RootElement.GetProperty("code").GetString() == "cashbox_account_already_linked",
+                        "CASH01 duplicate posting-account dimension accepted on production HTTPS");
+                }
+
+                var cashEdit = new EditCashBoxRequest(cashHostReceipt.Version, "CASH01-UPDATED",
+                    "صندوق معدل", cashBody.AccountId, cashBody.BranchId,
+                    cashBody.CustodianMembershipId, "SAR", 10m, "Updated", "audit", "تحديث");
+                var cashEdited = await Command(client, cashPath + $"/{cashHostReceipt.ResourceId}",
+                    cashEdit, method: HttpMethod.Put);
+                Ensure(cashEdited.Version != cashHostReceipt.Version,
+                    "CASH01 production optimistic concurrency did not advance");
+                using (var staleCash = new HttpRequestMessage(HttpMethod.Put,
+                    cashPath + $"/{cashHostReceipt.ResourceId}"))
+                {
+                    staleCash.Headers.Add("Idempotency-Key", Fixture.Key());
+                    staleCash.Content = new StringContent(JsonSerializer.Serialize(cashEdit, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var deniedStale = await client.SendAsync(staleCash);
+                    Ensure(deniedStale.StatusCode == HttpStatusCode.Conflict,
+                        "CASH01 stale edit was not rejected by production HTTPS");
+                }
+                using (var cashAudit = await client.GetAsync(cashPath +
+                    $"/{cashHostReceipt.ResourceId}/audit-events"))
+                using (var cashAuditJson = JsonDocument.Parse(await cashAudit.Content.ReadAsStringAsync()))
+                    Ensure(cashAudit.StatusCode == HttpStatusCode.OK &&
+                        cashAuditJson.RootElement.GetProperty("totalCount").GetInt32() == 2,
+                        "CASH01 production audit has duplicate or missing create/edit events");
+                Console.WriteLine("  HOST PASS CASH01 SQL-backed HTTPS/OIDC/JWT create/read/edit/replay, account uniqueness, stale edit and audit");
 
             }
             finally { await api.StopAsync(); }

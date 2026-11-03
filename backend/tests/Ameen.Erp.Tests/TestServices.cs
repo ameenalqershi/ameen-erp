@@ -7,6 +7,7 @@ public sealed class TestServices
 {
     public AccountService Account { get; }
     public AuditService Audit { get; }
+    public CashBoxService CashBox { get; }
     public BranchService Branch { get; }
     public CompanyService Company { get; }
     public CostCenterService CostCenter { get; }
@@ -34,6 +35,7 @@ public sealed class TestServices
         Account = new AccountService(store, transactions, clock, Currency);
         Audit = new AuditService(store, transactions, clock);
         Branch = new BranchService(store, transactions, clock);
+        CashBox = new CashBoxService(store, transactions, clock);
         Company = new CompanyService(store, transactions, clock, Currency);
         CostCenter = new CostCenterService(store, transactions, clock, Branch);
         ExchangeRate = new ExchangeRateService(store, transactions, clock, Currency);
