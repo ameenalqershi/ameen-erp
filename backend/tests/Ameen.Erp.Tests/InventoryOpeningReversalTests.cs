@@ -24,6 +24,28 @@ public static class InventoryOpeningReversalTests
         f.Service.InventoryOpening.PostReversal(f.CompanyId, r.ResourceId, Writer, key ?? Fixture.Key(), new(r.Version), default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV01/INV04/INV05-OP03: reversal remains visible as separate historical movement and source", async f =>
+        {
+            var source = await Setup(f, ItemTracking.Serial);
+            var original = await InventoryOpeningTests.Get(f, source.ResourceId);
+            var line = original.Lines.Single();
+            var id = line.IdentityId!.Value;
+            var approved = await Approve(f, await Create(f, source));
+            await Post(f, approved);
+            var item = await f.Service.Item.GetItemUsage(f.CompanyId, line.ItemId, f.Owner, default);
+            var warehouse = await f.Service.Warehouse.GetWarehouseUsage(f.CompanyId, original.WarehouseId, f.Owner, default);
+            var serial = await f.Service.InventoryIdentity.GetSerialUsage(f.CompanyId, line.ItemId, id, f.Owner, default);
+            Ensure(item.MovementCount == 2 && warehouse.MovementCount == 2 && serial.MovementCount == 2 &&
+                serial.OpeningDocumentCount == 2 && serial.ReversalMovementCount == 1 &&
+                (await f.Service.InventoryIdentity.ListSerialMovements(f.CompanyId, line.ItemId, id,
+                    f.Owner, 0, 1, default)).TotalCount == 2);
+            var all = await f.Service.InventoryIdentity.ListSerialMovements(f.CompanyId, line.ItemId, id,
+                f.Owner, 0, 10, default);
+            Ensure(all.Items.Count == 2 && all.Items.Sum(x => x.BaseQuantity) == 0 &&
+                all.Items.Sum(x => x.Value) == 0 &&
+                all.Items.Count(x => x.ReversesMovementId is not null) == 1 &&
+                all.Items.Select(x => x.OpeningId).Distinct().Count() == 2);
+        });
         test("INV06 reversal: approved source reversal preserves history and nets stock and ledger to zero", async f =>
         {
             var source = await Setup(f, ItemTracking.Serial); var draft = await Create(f, source);

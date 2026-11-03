@@ -108,6 +108,13 @@ public static class InventoryOpeningSqlIntegration
             try { await db.SaveChangesAsync(); throw new Exception("Stock delete accepted"); }
             catch (BusinessException e) when (e.Code == "stock_movement_immutable") { }
         }
+        var itemUsagePosted = await Call(s => s.Item.GetItemUsage(cid, item.ResourceId, writer, default));
+        var warehouseUsagePosted = await Call(s => s.Warehouse.GetWarehouseUsage(cid, wh.ResourceId, writer, default));
+        Ensure(itemUsagePosted.MovementCount == 1 && itemUsagePosted.OpeningDocumentCount == 1 &&
+            warehouseUsagePosted.MovementCount == 1 && warehouseUsagePosted.OpeningDocumentCount == 1 &&
+            (await Call(s => s.Item.ListItemMovements(cid, item.ResourceId, writer, 0, 1, default))).TotalCount == 1,
+            "SQL INV01/INV04 usage missing posted opening");
+        Console.WriteLine("  SQL PASS INV01/INV04 usage references posted document and movement via scoped API");
         // GL07-C01: source-owned INV06 journal must be reversed only through INV06,
         // even though it is balanced and posted. A rejected GL request is atomic.
         int gl07Journals, gl07Audits, gl07Receipts, gl07Outbox;
@@ -210,6 +217,15 @@ public static class InventoryOpeningSqlIntegration
             Ensure(originalJournal.State == JournalState.Reversed && originalJournal.ReversalJournalId == reverseJournal.Id && reverseJournal.ReversesJournalId == originalJournal.Id, "Reverse provenance differs");
             Ensure(originalJournal.Lines.Single(x => x.Position == 1).FunctionalDebit == reverseJournal.Lines.Single(x => x.Position == 1).FunctionalCredit, "Historical journal value differs");
         }
+        var itemUsageReversed = await Call(s => s.Item.GetItemUsage(cid, item.ResourceId, writer, default));
+        var warehouseUsageReversed = await Call(s => s.Warehouse.GetWarehouseUsage(cid, wh.ResourceId, writer, default));
+        Ensure(itemUsageReversed.MovementCount == 2 && itemUsageReversed.OpeningDocumentCount == 2 &&
+            itemUsageReversed.ReversalMovementCount == 1 &&
+            warehouseUsageReversed.MovementCount == 2 && warehouseUsageReversed.OpeningDocumentCount == 2 &&
+            warehouseUsageReversed.ReversalMovementCount == 1 &&
+            (await Call(s => s.Warehouse.ListWarehouseMovements(cid, wh.ResourceId, writer, 1, 1, default))).TotalCount == 2,
+            "SQL INV01/INV04 usage lost historical original/reversal document");
+        Console.WriteLine("  SQL PASS INV01/INV04 usage retains original and reversal source history, paging and ledger count");
         var stockLedger = await Call(s => s.Report.InventoryLedger(cid, item.ResourceId, writer, Fixture.Date, Fixture.Date, branch, wh.ResourceId, null, 1, 1, default));
         Ensure(stockLedger.Rows.TotalCount == 2 && stockLedger.ClosingQuantity == 0 && stockLedger.ClosingValue == 0 && stockLedger.InValue == 15 && stockLedger.OutValue == 15 && stockLedger.Rows.Items.Single().RunningValue == 0, "SQL item ledger page balance differs");
         Ensure(stockLedger.Rows.Items.Single().DocumentUnits.Single().Quantity == -3, "SQL source document units missing");

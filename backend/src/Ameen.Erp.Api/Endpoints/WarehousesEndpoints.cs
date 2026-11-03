@@ -19,6 +19,10 @@ internal static class WarehousesEndpoints
             Results.Ok(await s.EditWarehouse(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV01 Warehouses");
         app.MapPost(p + "/warehouses/{id:guid}/status", async (Guid companyId, Guid id, SetWarehouseStatusRequest r, WarehouseService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.SetWarehouseStatus(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV01 Warehouses");
+        app.MapGet(p + "/warehouses/{id:guid}/usage", async (Guid companyId, Guid id, WarehouseService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetWarehouseUsage(companyId, id, Actor(h), ct))).Produces<InventoryResourceUsage>().RequireAuthorization().WithTags("INV01 Warehouses");
+        app.MapGet(p + "/warehouses/{id:guid}/stock-movements", async (Guid companyId, Guid id, int? offset, int? limit, WarehouseService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListWarehouseMovements(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<StockMovement>>().RequireAuthorization().WithTags("INV01 Warehouses");
         app.MapGet(p + "/warehouses/{id:guid}/audit-events", async (Guid companyId, Guid id, int? offset, int? limit, WarehouseService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ListWarehouseAudit(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("INV01 Warehouses");
         app.MapGet(p + "/accounts/{id:guid}/warehouses", async (Guid companyId, Guid id, int? offset, int? limit, WarehouseService s, HttpContext h, CancellationToken ct) =>
