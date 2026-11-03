@@ -21,6 +21,47 @@ public static class ItemGroupUsageTests
         f.Service.ItemGroup.ListItemGroupItems(f.CompanyId, group, f.Owner, descendants, active, offset, limit, default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV02-AC01: item classification persists mapped accounts without unauthorized parent inheritance", async f =>
+        {
+            var request = await ItemTests.Setup(f);
+            var root = await f.Service.ItemGroup.GetItemGroup(f.CompanyId, request.GroupId, f.Owner, default);
+            Ensure(root.SalesAccountId != Guid.Empty && root.InventoryAccountId is not null &&
+                root.CostAccountId is not null && root.IsActive);
+            var item = await f.Service.Item.CreateItem(f.CompanyId, f.Owner, Fixture.Key(),
+                request with { Code = "CLASS-01" }, default);
+            var saved = await f.Service.Item.GetItem(f.CompanyId, item.ResourceId, f.Owner, default);
+            var mapped = await f.Service.ItemGroup.GetItemGroup(f.CompanyId, saved.GroupId, f.Owner, default);
+            Ensure(saved.GroupId == root.Id && saved.Type == ItemType.Goods &&
+                mapped.SalesAccountId == root.SalesAccountId &&
+                mapped.InventoryAccountId == root.InventoryAccountId &&
+                mapped.CostAccountId == root.CostAccountId &&
+                (await f.Service.ItemGroup.ListItemGroupItems(f.CompanyId, root.Id, f.Owner,
+                    false, true, 0, 10, default)).Items.Single().Id == item.ResourceId);
+
+            var childWithoutStock = await f.Service.ItemGroup.CreateItemGroup(f.CompanyId,
+                f.Owner, Fixture.Key(), new("CLASS-SALES", "خدمات", root.SalesAccountId,
+                    root.Id), default);
+            var child = await f.Service.ItemGroup.GetItemGroup(f.CompanyId, childWithoutStock.ResourceId,
+                f.Owner, default);
+            Ensure(child.ParentId == root.Id && child.InventoryAccountId is null &&
+                child.CostAccountId is null && child.SalesAccountId == root.SalesAccountId);
+            var service = await f.Service.Item.CreateItem(f.CompanyId, f.Owner, Fixture.Key(),
+                request with { Code = "CLASS-SERVICE", Type = ItemType.Service,
+                    Tracking = ItemTracking.None, GroupId = child.Id,
+                    ShelfLifeDays = null, ReorderLevel = null,
+                    Units = request.Units.Select(x => x with { Barcode = null }).ToArray() }, default);
+            Ensure((await f.Service.Item.GetItem(f.CompanyId, service.ResourceId,
+                f.Owner, default)).GroupId == child.Id);
+
+            var audit = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            await Error("stock_accounts_required", () => f.Service.Item.CreateItem(f.CompanyId,
+                f.Owner, Fixture.Key(), request with { Code = "NO-IMPLICIT-INHERIT",
+                    GroupId = child.Id, Units = request.Units.Select(x => x with { Barcode = null }).ToArray() }, default));
+            Ensure(f.Store.Count<AuditEvent>() == audit && f.Store.Count<IdempotencyRecord>() == receipts &&
+                f.Store.Count<Item>() == 2 && f.Store.Count<JournalEntry>() == 0 &&
+                f.Store.Count<StockMovement>() == 0);
+        });
         test("INV02-GAP02: stocked items require both accounts and lock mapped group structure", async f =>
         {
             var request = await ItemTests.Setup(f);
