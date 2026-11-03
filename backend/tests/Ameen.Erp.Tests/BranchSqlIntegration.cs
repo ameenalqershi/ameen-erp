@@ -16,6 +16,32 @@ public static class BranchSqlIntegration
         }
         var parent = await Call(s => s.Branch.CreateBranch(cid, owner, Fixture.Key(), new("SQL-PARENT", "أب", "مدينة", "عنوان"), default));
         var child = await Call(s => s.Branch.CreateBranch(cid, owner, Fixture.Key(), new("SQL-CHILD", "ابن", "مدينة", "عنوان", parent.ResourceId), default));
+        // SYS02-FG01: the server creates an independent branch identity within
+        // the authenticated company; text codes retain leading zeros in SQL.
+        const string sys02Code = "0007";
+        const string sys02ArabicName = "فرع صنعاء ٠١";
+        var fg01 = await Call(s => s.Branch.CreateBranch(cid, owner, Fixture.Key(),
+            new(sys02Code, sys02ArabicName, "صنعاء", "عنوان"), default));
+        Ensure(fg01.ResourceId != Guid.Empty && fg01.ResourceId != parent.ResourceId &&
+            fg01.ResourceId != child.ResourceId, "SYS02-FG01 branch identity was not generated uniquely");
+        await using (var identityDb = Context())
+        {
+            var stored = await identityDb.Set<Branch>().SingleAsync(x => x.CompanyId == cid && x.Id == fg01.ResourceId);
+            Ensure(stored.CompanyId == cid && stored.Code == sys02Code && stored.Name == sys02ArabicName &&
+                stored.ParentId is null, "SYS02-FG01 company/code/Arabic name did not round-trip in SQL");
+            var createdAudit = await identityDb.Set<AuditEvent>().SingleAsync(x =>
+                x.CompanyId == cid && x.ResourceId == fg01.ResourceId && x.Action == "branch.created");
+            Ensure(createdAudit.ActorId == owner.Subject && createdAudit.OccurredAt != default,
+                "SYS02-FG01 generated branch lacks its scoped creation audit");
+        }
+        var duplicateKey = Fixture.Key();
+        await Error("duplicate_code", () => Call(s => s.Branch.CreateBranch(cid, owner, duplicateKey,
+            new(sys02Code, "رمز مكرر", "مدينة", "عنوان"), default)));
+        await using (var identityDb = Context())
+            Ensure(await identityDb.Set<Branch>().CountAsync(x => x.CompanyId == cid && x.Code == sys02Code) == 1 &&
+                !await identityDb.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == duplicateKey),
+                "SYS02-FG01 duplicate code changed SQL or recorded a rejected command");
+        Console.WriteLine("  SQL PASS SYS02-FG01 generated branch ID, tenant, leading-zero code, Arabic name and duplicate rejection");
         // SYS02-OP03: a branch usage report includes only its own subtree,
         // and audit identity remains linked to the proper tenant in SQL.
         var parentUsage = await Call(s => s.Branch.GetBranchUsage(cid, parent.ResourceId, owner, default));

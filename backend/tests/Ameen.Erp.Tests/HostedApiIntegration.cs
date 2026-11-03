@@ -1150,6 +1150,32 @@ public static class HostedApiIntegration
                 var childBranch = await Command(client, branchesPath, new CreateBranchRequest("CHILD", "ابن", "مدينة", "عنوان", parentBranch.ResourceId));
                 childBranch = await Command(client, branchesPath + $"/{childBranch.ResourceId}",
                     new EditBranchRequest(childBranch.Version, "CHILD", "ابن معدل", "مدينة", "عنوان 001", parentBranch.ResourceId, null, "HTTP child", null, "تحديث"), method: HttpMethod.Put);
+                // SYS02-FG01: the public API returns the generated IDs, company
+                // reference and original Arabic name; duplicate codes are refused.
+                Ensure(parentBranch.ResourceId != Guid.Empty && childBranch.ResourceId != Guid.Empty &&
+                    parentBranch.ResourceId != childBranch.ResourceId,
+                    "SYS02-FG01 public create did not generate independent branch IDs");
+                using (var branchResponse = await client.GetAsync(branchesPath + $"/{parentBranch.ResourceId}"))
+                using (var branchJson = JsonDocument.Parse(await branchResponse.Content.ReadAsStringAsync()))
+                    Ensure(branchResponse.StatusCode == HttpStatusCode.OK &&
+                        branchJson.RootElement.GetProperty("id").GetGuid() == parentBranch.ResourceId &&
+                        branchJson.RootElement.GetProperty("companyId").GetGuid() == companyId &&
+                        branchJson.RootElement.GetProperty("code").GetString() == "PARENT" &&
+                        branchJson.RootElement.GetProperty("name").GetString() == "أب",
+                        "SYS02-FG01 public GET returned incorrect branch identity/company/code/name");
+                using (var duplicate = new HttpRequestMessage(HttpMethod.Post, branchesPath))
+                {
+                    duplicate.Headers.Add("Idempotency-Key", Fixture.Key());
+                    duplicate.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateBranchRequest("PARENT", "رمز مكرر", "مدينة", "عنوان"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var result = await client.SendAsync(duplicate);
+                    using var error = JsonDocument.Parse(await result.Content.ReadAsStringAsync());
+                    Ensure(result.StatusCode == HttpStatusCode.Conflict &&
+                        error.RootElement.GetProperty("code").GetString() == "duplicate_code",
+                        "SYS02-FG01 HTTP accepted duplicate branch code");
+                }
+                Console.WriteLine("  HOST PASS SYS02-FG01 generated ID, company reference, Arabic name and duplicate denial over HTTPS/JWT/SQL");
                 // SYS02-AC02: reject a self-parent and an ancestor->descendant
                 // cycle over the production HTTPS/JWT route without changing SQL state.
                 async Task RejectBranchCycle(Guid branchId, Guid version, Guid invalidParent)
