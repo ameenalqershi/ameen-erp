@@ -737,6 +737,30 @@ public static class HostedApiIntegration
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));
                 var rate = await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date, 1.25m, "HTTP source"));
                 await Command(client, ratesPath, new CreateExchangeRateRequest("NZD", Fixture.Date.AddDays(1), 1.5m, "HTTP future"));
+                // SYS05-OP01: a valid JWT for an unrelated tenant cannot
+                // search for or provision an effective exchange rate.
+                Authenticate(Token("sys04-unrelated-user"));
+                using (var deniedRateSearch = await client.GetAsync(ratesPath + "/search?currencyCode=NZD"))
+                    Ensure(deniedRateSearch.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP01 unrelated JWT searched another company's rate history");
+                using (var deniedRateCreate = new HttpRequestMessage(HttpMethod.Post, ratesPath))
+                {
+                    deniedRateCreate.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedRateCreate.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateExchangeRateRequest("NZD", Fixture.Date.AddDays(7),
+                            1.2345m, "SYS05-OP01-DENIED"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var denied = await client.SendAsync(deniedRateCreate);
+                    Ensure(denied.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP01 unrelated JWT provisioned another company's rate");
+                }
+                Authenticate(Token("sql-owner"));
+                using (var rateSearch = await client.GetAsync(ratesPath + "/search?source=SYS05-OP01-DENIED"))
+                using (var rateSearchJson = JsonDocument.Parse(await rateSearch.Content.ReadAsStringAsync()))
+                    Ensure(rateSearch.StatusCode == HttpStatusCode.OK &&
+                        rateSearchJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS05-OP01 denied rate creation persisted a SQL record");
+                Console.WriteLine("  HOST PASS SYS05-OP01 rate search/create authorization and denied foreign JWT over HTTPS/SQL");
                 // SYS05-FG03: the public contract forbids a zero rate or
                 // excessive decimal precision before reserving a SQL record.
                 foreach (var invalidRate in new[] { 0m, 1.12345678901m })
