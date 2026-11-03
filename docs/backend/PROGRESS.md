@@ -1094,3 +1094,8 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | BR20 | not-started | لم تنفذ ضرائب أو ملفات تشريعية أو تكاملات دولة | none |
 
 <!-- generated-progress:end -->
+
+
+## SYS10-02 — reconcile live field traceability (2026-11-03)
+
+Confirmed against the original read-only SYS10 dictionary and current `DocumentNumberSeries`/`NumberingService` implementation that `SYS10-F05 FiscalYearId`, `SYS10-F06 Prefix`, and `SYS10-F07 NextNumber` are now publicly configurable or selected with validation, immutable allocated history and protected SQL transactions. The old `derived`/`partial` text in `docs/backend/fields-implementation.csv` referred to the legacy journal fallback and was stale after the configured SYS10 number-series feature was integrated. Updated only these three implementation-trace rows; source analysis under `muhaseb-erp-analysis/` is unchanged. Acceptance evidence: `backend/tests/Ameen.Erp.Tests/NumberingTests.cs`, `NumberingSqlIntegration.cs`, `HostedApiIntegration.cs`, and SYS10-A01/AC02/CTRL01/FG02 tasks in Notion. Tax numbering remains explicitly blocked until an approved country profile/TAX05 policy; no tax series or policy was inferred. This documentation correction alone does not implement TAX05.

@@ -6,10 +6,10 @@
   "partially_implemented_screens": 35,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 344,
+    "implemented": 347,
     "audit": 49,
-    "derived": 5,
-    "partial": 96,
+    "derived": 4,
+    "partial": 94,
     "pending": 2265
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -567,16 +567,16 @@
           "binding": "DocumentKind: Journal/InventoryOpening; TaxInvoice guarded by country prerequisite"
         },
         "SYS10-F05": {
-          "status": "derived",
-          "binding": "scope JV:FiscalYear.Id"
+          "status": "implemented",
+          "binding": "FiscalYearId"
         },
         "SYS10-F06": {
-          "status": "partial",
-          "binding": "fixed JV-{yearCode}-"
+          "status": "implemented",
+          "binding": "Prefix: optional user text"
         },
         "SYS10-F07": {
-          "status": "partial",
-          "binding": "NumberSequence.LastNumber + 1; internal only"
+          "status": "implemented",
+          "binding": "NextNumber: monotonic server allocation and explicit forward edit"
         },
         "SYS10-F08": {
           "status": "implemented",
