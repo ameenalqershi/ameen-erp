@@ -61,6 +61,45 @@ public static class AuditSqlIntegration
         await service.ListAudit(cid,owner,0,5,default,action:"company.edited");
         Ensure(await db.Set<AuditEvent>().CountAsync(x=>x.CompanyId==cid)==beforeCount);
         Console.WriteLine("  SQL PASS SYS14-AC01 tracked company-edit actor, time, before/after, source drill and read-only history");
+        // SYS14-AC02: SQL-backed revocation must immediately reject a still-valid subject,
+        // and a denial must not change historical audit rows or create idempotency receipts.
+        ErpDbContext OtherContext() => new(new DbContextOptionsBuilder<ErpDbContext>()
+            .UseSqlServer(connection).Options);
+        async Task<T> Call<T>(Func<TestServices,Task<T>> fn)
+        {
+            await using var other=OtherContext();
+            return await fn(new TestServices(new SqlErpStore(other),
+                new SqlTransactionRunner(other,new FixedClock()),new FixedClock()));
+        }
+        async Task Denied(Func<Task> fn)
+        {
+            try { await fn(); throw new Exception("SYS14 SQL disabled auditor read history"); }
+            catch(BusinessException ex) when(ex.Code=="permission_denied") { }
+        }
+        var auditor=new Actor("sys14-sql-revoked-auditor");
+        var grant=await Call(s=>s.Membership.GrantMembership(cid,owner,Fixture.Key(),
+            new(auditor.Subject,new[]{Permissions.Audit,Permissions.Read},true,Array.Empty<Guid>(),null),default));
+        Ensure((await Call(s=>s.Audit.GetAuditEvent(cid,first.Id,auditor,default))).Id==first.Id);
+        var disabled=await Call(s=>s.Membership.SetMembershipStatus(cid,grant.ResourceId,owner,
+            Fixture.Key(),new(grant.Version,false,"تعطيل التدقيق"),default));
+        int auditBefore,receiptsBefore;
+        string original;
+        await using(var verify=OtherContext())
+        {
+            auditBefore=await verify.Set<AuditEvent>().CountAsync(x=>x.CompanyId==cid);
+            receiptsBefore=await verify.Set<IdempotencyRecord>().CountAsync(x=>x.CompanyId==cid);
+            original=(await verify.Set<AuditEvent>().AsNoTracking().SingleAsync(x=>x.Id==first.Id)).Details;
+        }
+        await Denied(()=>Call(s=>s.Audit.GetAuditEvent(cid,first.Id,auditor,default)));
+        await Denied(()=>Call(s=>s.Audit.ListAudit(cid,auditor,0,10,default)));
+        await using(var verify=OtherContext())
+            Ensure(await verify.Set<AuditEvent>().CountAsync(x=>x.CompanyId==cid)==auditBefore &&
+                await verify.Set<IdempotencyRecord>().CountAsync(x=>x.CompanyId==cid)==receiptsBefore &&
+                (await verify.Set<AuditEvent>().AsNoTracking().SingleAsync(x=>x.Id==first.Id)).Details==original);
+        await Call(s=>s.Membership.SetMembershipStatus(cid,grant.ResourceId,owner,
+            Fixture.Key(),new(disabled.Version,true,"إعادة تفعيل"),default));
+        Ensure((await Call(s=>s.Audit.GetAuditEvent(cid,first.Id,auditor,default))).Details==original);
+        Console.WriteLine("  SQL PASS SYS14-AC02 revoked Audit membership, atomic denied reads, retained history and restore");
         Console.WriteLine("  SQL PASS SYS14 exact actor/action filters including case and trailing spaces, leap-day boundaries, pagination and event detail");
     }
     private static void Ensure(bool value) { if (!value) throw new Exception("SQL audit filtering assertion failed"); }
