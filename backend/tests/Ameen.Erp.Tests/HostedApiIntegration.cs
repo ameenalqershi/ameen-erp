@@ -781,6 +781,25 @@ public static class HostedApiIntegration
                 using (var log = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await log.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Currency HTTP audit failed");
+
+                // SYS04-OP03: usage remains readable when disabled, and both
+                // usage and audit must enforce tenant-level authorization.
+                using (var usage = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await usage.Content.ReadAsStringAsync()))
+                    Ensure(usage.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("currencyId").GetGuid() == currencyCard.ResourceId &&
+                        !json.RootElement.GetProperty("isFunctionalCurrency").GetBoolean() &&
+                        json.RootElement.GetProperty("accountCount").GetInt32() == 0,
+                        "SYS04-OP03 currency usage lost disabled card or tenant identity");
+                Authenticate(Token("sys04-unrelated-user"));
+                using (var forbiddenUsage = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/usage"))
+                    Ensure(forbiddenUsage.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS04-OP03 unrelated actor read currency usage");
+                using (var forbiddenAudit = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/audit-events"))
+                    Ensure(forbiddenAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS04-OP03 unrelated actor read currency audit");
+                Authenticate(Token("sql-owner"));
+                Console.WriteLine("  HOST PASS SYS04-OP03 currency usage, audit, disabled history and forbidden access over HTTPS/JWT/SQL");
                 var centersPath = $"/api/v1/companies/{companyId}/cost-centers";
                 var rootCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-ROOT", "مركز عام", null));
                 var childCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-CHILD", "مركز فرعي", journalRequest.BranchId, rootCenter.ResourceId, EnglishName: "HTTP center"));
