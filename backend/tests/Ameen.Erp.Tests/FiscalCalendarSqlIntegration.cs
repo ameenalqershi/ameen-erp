@@ -53,6 +53,31 @@ public static class FiscalCalendarSqlIntegration
             fiscalUsage.RecurringGenerationCount == 0,
             "SYS03-OP03 SQL usage counts differ");
         Console.WriteLine("  SQL PASS SYS03-OP03 persisted audit and zero-usage calendar snapshot");
+        // SYS03-AC02: direct SQL contract rejects a one-day gap without
+        // saving a fiscal year, its periods, an audit or an idempotency receipt.
+        var gapKey = Fixture.Key();
+        var auditsBeforeGap = 0;
+        await using (var beforeGap = Context())
+            auditsBeforeGap = await beforeGap.Set<AuditEvent>().CountAsync(x =>
+                x.CompanyId == cid && x.Action == "fiscal-year.created");
+        try
+        {
+            await Call(s => s.FiscalCalendar.CreateFiscalYear(cid, owner, gapKey,
+                new("2032-GAP", new(2032, 1, 1), new(2032, 12, 31), new[] {
+                    new FiscalPeriodRequest("2032-P1", new(2032, 1, 1), new(2032, 6, 30)),
+                    new FiscalPeriodRequest("2032-P2", new(2032, 7, 2), new(2032, 12, 31))
+                }), default));
+            throw new Exception("SYS03-AC02 SQL accepted a gap between fiscal periods");
+        }
+        catch (BusinessException e) when (e.Code == "invalid_period_coverage") { }
+        await using (var afterGap = Context())
+            Ensure(!await afterGap.Set<FiscalYear>().AnyAsync(x => x.CompanyId == cid && x.Code == "2032-GAP") &&
+                !await afterGap.Set<FiscalPeriod>().AnyAsync(x => x.CompanyId == cid && x.Code.StartsWith("2032-P")) &&
+                !await afterGap.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == gapKey) &&
+                await afterGap.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid &&
+                    x.Action == "fiscal-year.created") == auditsBeforeGap,
+                "SYS03-AC02 SQL rejected gap persisted a partial calendar, audit or receipt");
+        Console.WriteLine("  SQL PASS SYS03-AC02 uncovered period gap rejected atomically");
         async Task<string> Create(string code)
         {
             try { await Call(s => s.FiscalCalendar.CreateFiscalYear(cid, owner, Fixture.Key(), new(code, new(2028, 1, 1), new(2028, 12, 31)), default)); return "ok"; }

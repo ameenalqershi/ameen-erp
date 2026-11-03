@@ -1382,6 +1382,37 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(calendarPath + "/search?search=2026"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Calendar HTTP search failed");
+                // SYS03-AC02: no gaps or overlaps in approved fiscal-year
+                // coverage; re-opening closed periods remains a GL12 action.
+                async Task RejectPeriodCoverage(CreateFiscalYearRequest invalidRequest)
+                {
+                    using var post = new HttpRequestMessage(HttpMethod.Post, calendarPath);
+                    post.Headers.Add("Idempotency-Key", Fixture.Key());
+                    post.Content = new StringContent(JsonSerializer.Serialize(
+                        invalidRequest, JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(post);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        error.RootElement.GetProperty("code").GetString() == "invalid_period_coverage",
+                        "SYS03-AC02 HTTP accepted an uncovered or overlapping fiscal period");
+                }
+                await RejectPeriodCoverage(new("2032-GAP", new(2032, 1, 1), new(2032, 12, 31), new[] {
+                    new FiscalPeriodRequest("2032-P1", new(2032, 1, 1), new(2032, 6, 30)),
+                    new FiscalPeriodRequest("2032-P2", new(2032, 7, 2), new(2032, 12, 31))
+                }));
+                await RejectPeriodCoverage(new("2033-OVERLAP", new(2033, 1, 1), new(2033, 12, 31), new[] {
+                    new FiscalPeriodRequest("2033-P1", new(2033, 1, 1), new(2033, 6, 30)),
+                    new FiscalPeriodRequest("2033-P2", new(2033, 6, 30), new(2033, 12, 31))
+                }));
+                foreach (var rejectedYear in new[] { "2032", "2033" })
+                {
+                    using var response = await client.GetAsync(calendarPath + "/search?search=" + rejectedYear);
+                    using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS03-AC02 refused fiscal coverage created a partial year in SQL");
+                }
+                Console.WriteLine("  HOST PASS SYS03-AC02 fiscal gaps/overlaps refused atomically over HTTPS/JWT/SQL");
                 // SYS03-OP01: a valid JWT belonging only to a different
                 // company cannot search or provision this fiscal calendar.
                 Authenticate(Token("sql-clerk"));
