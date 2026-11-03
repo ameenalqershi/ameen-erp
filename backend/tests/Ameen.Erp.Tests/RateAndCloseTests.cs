@@ -144,7 +144,12 @@ public static class RateAndCloseTests
                 firstPage.History.Items[0].Id != secondPage.History.Items[0].Id &&
                 new[] { firstPage.History.Items[0].Action, secondPage.History.Items[0].Action }
                     .OrderBy(x => x).SequenceEqual(new[] { "period.closed", "period.reopened" }) &&
-                System.Text.Json.JsonDocument.Parse(firstPage.History.Items[0].Details).RootElement.GetProperty("reason").GetString() == "إعادة فتح اختبار السجل");
+                // FixedClock gives both events the same instant: the stable ID
+                // tie-breaker is not their chronological order.
+                System.Text.Json.JsonDocument.Parse(
+                    new[] { firstPage.History.Items[0], secondPage.History.Items[0] }
+                    .Single(x => x.Action == "period.reopened").Details)
+                    .RootElement.GetProperty("reason").GetString() == "إعادة فتح اختبار السجل");
 
             var reader = new Actor("gl11-close-reader-no-audit");
             await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
