@@ -125,6 +125,44 @@ public static class HostedApiIntegration
                     Ensure(specJson.Contains("\"decimal\"", StringComparison.Ordinal) && specJson.Contains("\"date\"", StringComparison.Ordinal), "Missing decimal/date schema");
                 }
 
+                // SYS06-AC02: exercise the production HTTPS/OIDC/JWT endpoint and revocation boundary.
+                var memberPath = $"/api/v1/companies/{companyId}/memberships";
+                var subject = "sys06-http-revoked";
+                var httpMember = await Command(client, memberPath,
+                    new GrantMembershipRequest(subject, new[] { Permissions.Read },
+                        true, Array.Empty<Guid>(), null));
+                Authenticate(Token(subject));
+                using (var canRead = await client.GetAsync($"/api/v1/companies/{companyId}/branches"))
+                    Ensure(canRead.StatusCode == HttpStatusCode.OK,
+                        "SYS06 active read-only JWT was incorrectly denied");
+                Authenticate(Token("sql-clerk"));
+                var revoked = await Command(client, memberPath + $"/{httpMember.ResourceId}/status",
+                    new SetMembershipStatusRequest(httpMember.Version, false, "إلغاء صلاحية القراءة"));
+                Authenticate(Token(subject));
+                using (var revokedResponse = await client.GetAsync($"/api/v1/companies/{companyId}/branches"))
+                    Ensure(revokedResponse.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS06 revoked JWT continued reading tenant branches");
+                Authenticate(Token("sql-clerk"));
+                using (var current = await client.GetAsync(memberPath + "?limit=200"))
+                using (var json = JsonDocument.Parse(await current.Content.ReadAsStringAsync()))
+                {
+                    Ensure(current.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("items").EnumerateArray().Any(x =>
+                            x.GetProperty("id").GetGuid() == httpMember.ResourceId &&
+                            !x.GetProperty("isActive").GetBoolean()),
+                        "SYS06 deactivated member was removed from the member register");
+                    Ensure(!json.RootElement.GetRawText().Contains("\"password\":", StringComparison.OrdinalIgnoreCase),
+                        "SYS06 membership listing exposed a password field");
+                }
+                await Command(client, memberPath + $"/{httpMember.ResourceId}/status",
+                    new SetMembershipStatusRequest(revoked.Version, true, "إعادة تفعيل معتمدة"));
+                Authenticate(Token(subject));
+                using (var restored = await client.GetAsync($"/api/v1/companies/{companyId}/branches"))
+                    Ensure(restored.StatusCode == HttpStatusCode.OK,
+                        "SYS06 explicitly restored JWT could not read branches");
+                Authenticate(Token("sql-clerk"));
+                Console.WriteLine("  HOST PASS SYS06 membership revoke/restore, retained identity and no password field over HTTPS/JWT/SQL");
+
                 var path = $"/api/v1/companies/{companyId}/journals";
                 using var unknownField = new HttpRequestMessage(HttpMethod.Post, path);
                 unknownField.Headers.Add("Idempotency-Key", Fixture.Key());
