@@ -1483,6 +1483,83 @@ public static class HostedApiIntegration
                 Authenticate(Token("sql-approver"));
                 Console.WriteLine("  HOST PASS GL11-A05 scoped execution result/history over HTTPS/JWT/SQL");
 
+                // GL11-T01 / GL11-A04: a dedicated empty fiscal period may
+                // close over the actual HTTPS OIDC/JWT pipeline exactly once.
+                // This is GL period close only; it does not close income or
+                // expense balances into retained earnings for the ERP year.
+                Authenticate(Token("sql-owner"));
+                var gl11PositiveYear = await Command(client,
+                    $"/api/v1/companies/{companyId}/fiscal-years",
+                    new CreateFiscalYearRequest("GL11-HTTPS-2053",
+                        new DateOnly(2053, 1, 1), new DateOnly(2053, 12, 31)));
+                FiscalPeriod gl11PositivePeriod;
+                await using (var gl11PositiveDb = new ErpDbContext(
+                    new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options))
+                {
+                    gl11PositivePeriod = await gl11PositiveDb.Set<FiscalPeriod>().AsNoTracking()
+                        .SingleAsync(x => x.CompanyId == companyId &&
+                            x.FiscalYearId == gl11PositiveYear.ResourceId &&
+                            x.StartsOn == new DateOnly(2053, 1, 1));
+                }
+                var gl11PositivePath = $"/api/v1/companies/{companyId}/periods/{gl11PositivePeriod.Id}";
+                Authenticate(Token("sql-approver"));
+                var gl11PositiveBefore = await ReadOnlyCounts(connection, companyId);
+                using (var gl11PositivePreviewResponse = await client.GetAsync(
+                    gl11PositivePath + "/close-preview?offset=0&limit=5"))
+                using (var gl11PositivePreviewBody = JsonDocument.Parse(
+                    await gl11PositivePreviewResponse.Content.ReadAsStringAsync()))
+                {
+                    var gl11PositivePreview = gl11PositivePreviewBody.RootElement;
+                    Ensure(gl11PositivePreviewResponse.StatusCode == HttpStatusCode.OK &&
+                        gl11PositivePreview.GetProperty("generalLedgerOnly").GetBoolean() &&
+                        gl11PositivePreview.GetProperty("canCloseGeneralLedger").GetBoolean() &&
+                        gl11PositivePreview.GetProperty("expectedVersion").GetGuid() == gl11PositivePeriod.Version &&
+                        gl11PositivePreview.GetProperty("unpostedJournalCount").GetInt32() == 0 &&
+                        gl11PositivePreview.GetProperty("issues").GetProperty("totalCount").GetInt32() == 0,
+                        "GL11-T01 empty dedicated period was not safely closeable over HTTPS");
+                }
+                Ensure(gl11PositiveBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T01 preview altered SQL ledger, audit, receipt or outbox");
+                var gl11PositiveKey = Fixture.Key();
+                var gl11PositiveReason = "GL11 HTTPS قبول إقفال الفترة في الأستاذ";
+                var gl11PositiveRequest = new ChangePeriodRequest(gl11PositivePeriod.Version,
+                    gl11PositiveReason);
+                var gl11PositiveClosed = await Command(client, gl11PositivePath + "/close",
+                    gl11PositiveRequest, gl11PositiveKey);
+                var gl11PositiveReplay = await Command(client, gl11PositivePath + "/close",
+                    gl11PositiveRequest, gl11PositiveKey);
+                Ensure(gl11PositiveClosed == gl11PositiveReplay &&
+                    gl11PositiveClosed.Status == "Closed" &&
+                    gl11PositiveClosed.Version != gl11PositivePeriod.Version,
+                    "GL11-T01 HTTPS close or exact idempotency replay diverged");
+                var gl11PositiveAfter = await ReadOnlyCounts(connection, companyId);
+                Ensure(gl11PositiveAfter.Journals == gl11PositiveBefore.Journals &&
+                    gl11PositiveAfter.Audits == gl11PositiveBefore.Audits + 1 &&
+                    gl11PositiveAfter.Receipts == gl11PositiveBefore.Receipts + 1 &&
+                    gl11PositiveAfter.Outbox == gl11PositiveBefore.Outbox,
+                    "GL11-T01 HTTPS close created duplicate receipts, audit or ledger side effects");
+                using (var gl11PositiveHistoryResponse = await client.GetAsync(
+                    gl11PositivePath + "/execution-history?offset=0&limit=5"))
+                using (var gl11PositiveHistoryBody = JsonDocument.Parse(
+                    await gl11PositiveHistoryResponse.Content.ReadAsStringAsync()))
+                {
+                    var gl11PositiveSummary = gl11PositiveHistoryBody.RootElement;
+                    var gl11PositiveHistory = gl11PositiveSummary.GetProperty("history");
+                    Ensure(gl11PositiveHistoryResponse.StatusCode == HttpStatusCode.OK &&
+                        gl11PositiveSummary.GetProperty("isClosed").GetBoolean() &&
+                        gl11PositiveSummary.GetProperty("version").GetGuid() == gl11PositiveClosed.Version &&
+                        gl11PositiveHistory.GetProperty("totalCount").GetInt32() == 1 &&
+                        gl11PositiveHistory.GetProperty("items")[0].GetProperty("action").GetString() == "period.closed" &&
+                        gl11PositiveHistory.GetProperty("items")[0].GetProperty("actorId").GetString() == "sql-approver" &&
+                        JsonDocument.Parse(gl11PositiveHistory.GetProperty("items")[0]
+                            .GetProperty("details").GetString()!).RootElement
+                            .GetProperty("reason").GetString() == gl11PositiveReason,
+                        "GL11-T01 HTTPS close decision was not persisted in readable execution history");
+                }
+                Ensure(gl11PositiveAfter == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T01 execution history read changed SQL state");
+                Console.WriteLine("  HOST PASS GL11-T01 eligible HTTPS period close, stable replay, one SQL audit/receipt, scoped history and no ledger side effects");
+
                 // GL12-A05: choose a truly closeable and otherwise unused
                 // test period; never override the period-close safety guard.
                 Guid gl12Period = Guid.Empty;
