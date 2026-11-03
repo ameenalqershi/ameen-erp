@@ -893,9 +893,12 @@ public static class HostedApiIntegration
                         json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
                         json.RootElement.GetProperty("items").GetArrayLength() == 0,
                         "SYS05-OP03 SQL-backed usage paging is unstable");
+                // SQL fixture sql-clerk has Permissions.All, including Audit.
+                // Reuse the explicit read-only member established for GL05 acceptance.
+                Authenticate(Token("gl05-review-readonly"));
                 using (var deniedAudit = await client.GetAsync(rateAuditPath))
                     Ensure(deniedAudit.StatusCode == HttpStatusCode.Forbidden,
-                        "SYS05-OP03 read-only clerk accessed protected rate audit");
+                        "SYS05-OP03 read-only member accessed protected rate audit");
                 Authenticate(Token("audit-no-membership"));
                 using (var deniedUsage = await client.GetAsync(rateUsagePath))
                     Ensure(deniedUsage.StatusCode == HttpStatusCode.Forbidden,
