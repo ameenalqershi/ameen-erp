@@ -366,6 +366,63 @@ public static class HostedApiIntegration
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "Recurring HTTP usage differs");
                 Console.WriteLine("  HOST PASS recurring template, scheduled draft, source protection, replay and usage calendar over signed JWT/HTTPS/SQL");
 
+                // SYS03-GAP03: an explicitly configured half-year contains multiple monthly
+                // occurrences. The production generation endpoint must fail closed before
+                // numbering, journal persistence, generation history or audit writes.
+                Authenticate(Token("sql-owner"));
+                var ambiguousYear = await Command(client, $"/api/v1/companies/{companyId}/fiscal-years",
+                    new CreateFiscalYearRequest("2035", new(2035, 1, 1), new(2035, 12, 31),
+                        new[] { new FiscalPeriodRequest("2035-H1", new(2035, 1, 1), new(2035, 6, 30)),
+                            new FiscalPeriodRequest("2035-H2", new(2035, 7, 1), new(2035, 12, 31)) }));
+                Guid ambiguousPeriodId;
+                using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/fiscal-years/{ambiguousYear.ResourceId}"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("periods").GetArrayLength() == 2,
+                        "SYS03-GAP03 custom half-year not stored over SQL");
+                    ambiguousPeriodId = json.RootElement.GetProperty("periods")[0].GetProperty("id").GetGuid();
+                }
+                Authenticate(Token("sql-clerk"));
+                var ambiguousTemplate = await Command(client, recurringPath,
+                    recurringRequest with { Name = "SYS03-GAP03 ambiguous period", StartsOn = new(2035, 1, 31),
+                        EndsOn = new(2035, 12, 31) });
+                var ambiguousHistoryPath = recurringPath + $"/{ambiguousTemplate.ResourceId}/generations";
+                var ambiguousAuditPath = recurringPath + $"/{ambiguousTemplate.ResourceId}/audit-events";
+                string historyBefore, ambiguousAuditSnapshot, journalBefore;
+                using (var history = await client.GetAsync(ambiguousHistoryPath))
+                using (var audit = await client.GetAsync(ambiguousAuditPath))
+                using (var journals = await client.GetAsync(path + "?source=Recurring"))
+                {
+                    Ensure(history.StatusCode == HttpStatusCode.OK && audit.StatusCode == HttpStatusCode.OK &&
+                        journals.StatusCode == HttpStatusCode.OK, "SYS03-GAP03 preflight reads failed");
+                    historyBefore = await history.Content.ReadAsStringAsync();
+                    ambiguousAuditSnapshot = await audit.Content.ReadAsStringAsync();
+                    journalBefore = await journals.Content.ReadAsStringAsync();
+                }
+                using (var request = new HttpRequestMessage(HttpMethod.Post, recurringPath + $"/{ambiguousTemplate.ResourceId}/generate"))
+                {
+                    request.Headers.Add("Idempotency-Key", Fixture.Key());
+                    request.Content = new StringContent(JsonSerializer.Serialize(
+                        new GenerateRecurringJournalRequest(ambiguousTemplate.Version, ambiguousPeriodId), JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var refused = await client.SendAsync(request);
+                    using var problem = JsonDocument.Parse(await refused.Content.ReadAsStringAsync());
+                    Ensure((int)refused.StatusCode == 422 &&
+                        problem.RootElement.GetProperty("code").GetString() == "ambiguous_recurring_period",
+                        "SYS03-GAP03 HTTP did not reject multiple monthly due dates in one fiscal period");
+                }
+                using (var history = await client.GetAsync(ambiguousHistoryPath))
+                using (var audit = await client.GetAsync(ambiguousAuditPath))
+                using (var journals = await client.GetAsync(path + "?source=Recurring"))
+                    Ensure(history.StatusCode == HttpStatusCode.OK && audit.StatusCode == HttpStatusCode.OK &&
+                        journals.StatusCode == HttpStatusCode.OK &&
+                        await history.Content.ReadAsStringAsync() == historyBefore &&
+                        await audit.Content.ReadAsStringAsync() == ambiguousAuditSnapshot &&
+                        await journals.Content.ReadAsStringAsync() == journalBefore,
+                        "SYS03-GAP03 rejected due generation changed journal, generation history or audit");
+                Console.WriteLine("  HOST PASS SYS03-GAP03 ambiguous custom period rejects without journal, audit or generation over HTTPS/JWT/SQL");
+
+
                 var scheduledBody = JsonSerializer.SerializeToNode(
                     recurringRequest with { Name = "HTTP automatically scheduled", GenerationMode = RecurringGenerationMode.Scheduled }, JsonDefaults.Options)!.AsObject();
                 scheduledBody.Remove("endsOn");
@@ -683,6 +740,86 @@ public static class HostedApiIntegration
                         json.RootElement.GetProperty("generalLedgerOnly").GetBoolean() && json.RootElement.GetProperty("issues").GetProperty("items").GetArrayLength() == 1,
                         "SQL/HTTP close preview did not expose pending blockers");
                 Console.WriteLine("  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL");
+
+                // SYS05-GAP03: a quotation does not hold its rate; the next journal
+                // must accept the latest effective reference at the document date.
+                Authenticate(Token("sql-owner"));
+                var sys05QuotedDate = Fixture.Date.AddDays(2);
+                var sys05QuotePath = ratesPath + "/quote?currencyCode=NZD&date=" +
+                    sys05QuotedDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+                Guid sys05PriorQuotedRate;
+                using (var sys05BeforeRate = await client.GetAsync(sys05QuotePath))
+                using (var sys05BeforeJson = JsonDocument.Parse(await sys05BeforeRate.Content.ReadAsStringAsync()))
+                {
+                    Ensure(sys05BeforeRate.StatusCode == HttpStatusCode.OK, "SYS05-GAP03 baseline quote failed");
+                    sys05PriorQuotedRate = sys05BeforeJson.RootElement.GetProperty("exchangeRateId").GetGuid();
+                }
+                string sys05AuditSnapshot;
+                using (var sys05BeforeAudit = await client.GetAsync(ratesPath + $"/{rate.ResourceId}/audit-events"))
+                    sys05AuditSnapshot = await sys05BeforeAudit.Content.ReadAsStringAsync();
+                using (var sys05RepeatedQuote = await client.GetAsync(sys05QuotePath))
+                using (var sys05RepeatedJson = JsonDocument.Parse(await sys05RepeatedQuote.Content.ReadAsStringAsync()))
+                    Ensure(sys05RepeatedQuote.StatusCode == HttpStatusCode.OK &&
+                        sys05RepeatedJson.RootElement.GetProperty("exchangeRateId").GetGuid() == sys05PriorQuotedRate,
+                        "SYS05-GAP03 identical quote was not stable before a newer rate");
+                using (var sys05AfterAudit = await client.GetAsync(ratesPath + $"/{rate.ResourceId}/audit-events"))
+                    Ensure(sys05AuditSnapshot == await sys05AfterAudit.Content.ReadAsStringAsync(),
+                        "SYS05-GAP03 read-only quote modified the exchange-rate audit");
+
+                var sys05NewEffective = await Command(client, ratesPath,
+                    new CreateExchangeRateRequest("NZD", sys05QuotedDate, 1.75m, "SYS05 newer"));
+                using (var sys05Refreshed = await client.GetAsync(sys05QuotePath))
+                using (var sys05RefreshedJson = JsonDocument.Parse(await sys05Refreshed.Content.ReadAsStringAsync()))
+                    Ensure(sys05Refreshed.StatusCode == HttpStatusCode.OK &&
+                        sys05RefreshedJson.RootElement.GetProperty("exchangeRateId").GetGuid() == sys05NewEffective.ResourceId &&
+                        sys05RefreshedJson.RootElement.GetProperty("rateToFunctional").GetString() == "1.75",
+                        "SYS05-GAP03 previous quote wrongly reserved an outdated rate");
+
+                Authenticate(Token("sql-clerk"));
+                var sys05JournalPath = path + "?source=Manual";
+                int sys05JournalsBefore;
+                using (var sys05List = await client.GetAsync(sys05JournalPath))
+                using (var sys05ListJson = JsonDocument.Parse(await sys05List.Content.ReadAsStringAsync()))
+                {
+                    Ensure(sys05List.StatusCode == HttpStatusCode.OK, "SYS05-GAP03 baseline journal list failed");
+                    sys05JournalsBefore = sys05ListJson.RootElement.GetProperty("totalCount").GetInt32();
+                }
+                var sys05JournalRequest = journalRequest with {
+                    DocumentDate = sys05QuotedDate, AccountingDate = sys05QuotedDate,
+                    Lines = journalRequest.Lines.Select(x => x with {
+                        CurrencyCode = "NZD", ExchangeRateId = sys05PriorQuotedRate }).ToArray()
+                };
+                using (var sys05StaleCommand = new HttpRequestMessage(HttpMethod.Post, path))
+                {
+                    sys05StaleCommand.Headers.Add("Idempotency-Key", Fixture.Key());
+                    sys05StaleCommand.Content = new StringContent(
+                        JsonSerializer.Serialize(sys05JournalRequest, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var sys05Denied = await client.SendAsync(sys05StaleCommand);
+                    using var sys05Problem = JsonDocument.Parse(await sys05Denied.Content.ReadAsStringAsync());
+                    Ensure(sys05Denied.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        sys05Problem.RootElement.GetProperty("code").GetString() == "stale_exchange_rate",
+                        "SYS05-GAP03 stale quote was accepted at journal creation");
+                }
+                using (var sys05ListAfter = await client.GetAsync(sys05JournalPath))
+                using (var sys05ListAfterJson = JsonDocument.Parse(await sys05ListAfter.Content.ReadAsStringAsync()))
+                    Ensure(sys05ListAfter.StatusCode == HttpStatusCode.OK &&
+                        sys05ListAfterJson.RootElement.GetProperty("totalCount").GetInt32() == sys05JournalsBefore,
+                        "SYS05-GAP03 rejected old quote persisted a journal");
+                var sys05AcceptedJournal = await Command(client, path,
+                    sys05JournalRequest with {
+                        Lines = sys05JournalRequest.Lines.Select(x => x with {
+                            ExchangeRateId = sys05NewEffective.ResourceId }).ToArray()
+                    });
+                using (var sys05Persisted = await client.GetAsync(path + $"/{sys05AcceptedJournal.ResourceId}"))
+                using (var sys05PersistedJson = JsonDocument.Parse(await sys05Persisted.Content.ReadAsStringAsync()))
+                    Ensure(sys05Persisted.StatusCode == HttpStatusCode.OK &&
+                        sys05PersistedJson.RootElement.GetProperty("lines").EnumerateArray().All(x =>
+                            x.GetProperty("exchangeRateId").GetGuid() == sys05NewEffective.ResourceId &&
+                            x.GetProperty("exchangeRate").GetString() == "1.75"),
+                        "SYS05-GAP03 new rate not captured as journal snapshot");
+                Console.WriteLine("  HOST PASS SYS05-GAP03 quote advisory, stale-rate rejection, fresh snapshot over HTTPS/JWT/SQL");
+
                 Authenticate(Token("sql-owner"));
                 var accountPath = $"/api/v1/companies/{companyId}/accounts";
                 var card = await Command(client, accountPath, new CreateAccountRequest("HTTP-GL01", "حساب HTTP", AccountType.Asset,
@@ -725,6 +862,62 @@ public static class HostedApiIntegration
                 using (var log = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await log.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Currency HTTP audit failed");
+
+                // SYS04-OP03: usage remains readable when disabled, and both
+                // usage and audit must enforce tenant-level authorization.
+                using (var usage = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await usage.Content.ReadAsStringAsync()))
+                    Ensure(usage.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("currencyId").GetGuid() == currencyCard.ResourceId &&
+                        !json.RootElement.GetProperty("isFunctionalCurrency").GetBoolean() &&
+                        json.RootElement.GetProperty("accountCount").GetInt32() == 0,
+                        "SYS04-OP03 currency usage lost disabled card or tenant identity");
+                Authenticate(Token("sys04-unrelated-user"));
+                using (var forbiddenUsage = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/usage"))
+                    Ensure(forbiddenUsage.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS04-OP03 unrelated actor read currency usage");
+                using (var forbiddenAudit = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/audit-events"))
+                    Ensure(forbiddenAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS04-OP03 unrelated actor read currency audit");
+                Authenticate(Token("sql-owner"));
+                Console.WriteLine("  HOST PASS SYS04-OP03 currency usage, audit, disabled history and forbidden access over HTTPS/JWT/SQL");
+
+                // SYS04-AC02: an existing account reference freezes currency
+                // precision even if no journal has been posted. The rejection
+                // must not mutate the card version or its audit history.
+                var sys04UsedCurrency = await Command(client, currenciesPath,
+                    new CreateCurrencyRequest("CAD", 2, "دولار كندي", "Canadian dollar"));
+                await Command(client, $"/api/v1/companies/{companyId}/accounts",
+                    new CreateAccountRequest("SYS04-CAD-REF", "حساب كندي", AccountType.Asset,
+                        null, true, false, false, "CAD", NormalBalance.Debit));
+                using (var negativeEdit = new HttpRequestMessage(HttpMethod.Put,
+                    currenciesPath + $"/{sys04UsedCurrency.ResourceId}"))
+                {
+                    negativeEdit.Headers.Add("Idempotency-Key", Fixture.Key());
+                    negativeEdit.Content = new StringContent(JsonSerializer.Serialize(
+                        new EditCurrencyRequest(sys04UsedCurrency.Version, 3, "دولار كندي",
+                            "Canadian dollar", null, null, null, "محاولة تغيير دقة مستخدمة"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejectedPrecision = await client.SendAsync(negativeEdit);
+                    using var error = JsonDocument.Parse(await rejectedPrecision.Content.ReadAsStringAsync());
+                    Ensure(rejectedPrecision.StatusCode == HttpStatusCode.Conflict &&
+                        error.RootElement.GetProperty("code").GetString() == "currency_precision_in_use",
+                        "SYS04-AC02 referenced currency accepted retrospective precision change");
+                }
+                using (var detail = await client.GetAsync(currenciesPath + $"/{sys04UsedCurrency.ResourceId}"))
+                using (var json = JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                    Ensure(detail.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("scale").GetInt32() == 2 &&
+                        json.RootElement.GetProperty("revision").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("version").GetGuid() == sys04UsedCurrency.Version,
+                        "SYS04-AC02 rejected precision edit mutated currency state");
+                using (var history = await client.GetAsync(currenciesPath + $"/{sys04UsedCurrency.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await history.Content.ReadAsStringAsync()))
+                    Ensure(history.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1,
+                        "SYS04-AC02 rejected precision edit wrote currency audit");
+                Console.WriteLine("  HOST PASS SYS04-AC02 referenced currency precision edit refused atomically over HTTPS/JWT/SQL");
+
                 var centersPath = $"/api/v1/companies/{companyId}/cost-centers";
                 var rootCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-ROOT", "مركز عام", null));
                 var childCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-CHILD", "مركز فرعي", journalRequest.BranchId, rootCenter.ResourceId, EnglishName: "HTTP center"));
@@ -801,6 +994,44 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("journalCount").GetInt32() == 0, "Calendar HTTP usage failed");
                 Console.WriteLine("  HOST PASS SYS03 explicit periods, calendar state, search, usage and audit over HTTPS/JWT/SQL");
+
+                // SYS03-GAP04: closing a fiscal year is a GL12 period operation, never a delete
+                // or an untracked activation toggle on the SYS03 master card.
+                var fiscalDetailPath = calendarPath + $"/{fiscalYear.ResourceId}";
+                using (var before = await client.GetAsync(fiscalDetailPath))
+                using (var auditBefore = await client.GetAsync(fiscalDetailPath + "/audit-events"))
+                {
+                    Ensure(before.StatusCode == HttpStatusCode.OK && auditBefore.StatusCode == HttpStatusCode.OK,
+                        "SYS03-GAP04 baseline calendar or audit not accessible");
+                    var beforeBody = await before.Content.ReadAsStringAsync();
+                    var auditBeforeBody = await auditBefore.Content.ReadAsStringAsync();
+
+                    using var deniedDelete = await client.DeleteAsync(fiscalDetailPath);
+                    Ensure(deniedDelete.StatusCode == HttpStatusCode.MethodNotAllowed,
+                        "SYS03-GAP04 fiscal year could be deleted instead of closed");
+                    using var disable = new HttpRequestMessage(HttpMethod.Post, fiscalDetailPath + "/status");
+                    disable.Headers.Add("Idempotency-Key", Fixture.Key());
+                    disable.Content = new StringContent("{\"isActive\":false}", Encoding.UTF8, "application/json");
+                    using var deniedDisable = await client.SendAsync(disable);
+                    Ensure(deniedDisable.StatusCode == HttpStatusCode.NotFound,
+                        "SYS03-GAP04 fiscal year accepted an unsupported disable endpoint");
+
+                    using var after = await client.GetAsync(fiscalDetailPath);
+                    using var auditAfter = await client.GetAsync(fiscalDetailPath + "/audit-events");
+                    Ensure(after.StatusCode == HttpStatusCode.OK && auditAfter.StatusCode == HttpStatusCode.OK &&
+                        await after.Content.ReadAsStringAsync() == beforeBody &&
+                        await auditAfter.Content.ReadAsStringAsync() == auditBeforeBody,
+                        "SYS03-GAP04 rejected operations changed fiscal periods, state, or audit");
+                }
+                using (var openApi = JsonDocument.Parse(specJson))
+                {
+                    var routes = openApi.RootElement.GetProperty("paths");
+                    Ensure(!routes.GetProperty("/api/v1/companies/{companyId}/fiscal-years/{id}").TryGetProperty("delete", out _) &&
+                        !routes.TryGetProperty("/api/v1/companies/{companyId}/fiscal-years/{id}/status", out _),
+                        "SYS03-GAP04 unsupported lifecycle endpoints appeared in OpenAPI");
+                }
+                Console.WriteLine("  HOST PASS SYS03-GAP04 no delete/disable bypass; unchanged calendar and audit over HTTPS/JWT/SQL");
+
 
                 using var preflight = new HttpRequestMessage(HttpMethod.Options, path);
                 preflight.Headers.Add("Origin", "https://permitted.example");
@@ -916,6 +1147,73 @@ public static class HostedApiIntegration
                     using var mapDenied=await client.SendAsync(denyRequest);Ensure(mapDenied.StatusCode==HttpStatusCode.Forbidden,"GL13 HTTP unauthorized configuration accepted");
                 }
                 Console.WriteLine("  HOST PASS GL13 create/edit/status/search/usage/audit/review, server field types, spoof rejection and unclassified errors over HTTPS/JWT/SQL");
+
+                // SYS02-GAP02: a branch default cost center is master-data configuration,
+                // never a silent value inserted into journal lines.
+                Authenticate(Token("sql-owner"));
+                var sysDefaultBranchPath = $"/api/v1/companies/{companyId}/branches";
+                var sysDefaultBranch = await Command(client, sysDefaultBranchPath,
+                    new CreateBranchRequest("SYS02-DEFAULT-HTTP", "فرع افتراضي", "مدينة", "عنوان"));
+                var sysDefaultCenter = await Command(client, $"/api/v1/companies/{companyId}/cost-centers",
+                    new CreateCostCenterRequest("SYS02-DEFAULT-CENTER", "مركز افتراضي", sysDefaultBranch.ResourceId));
+                sysDefaultBranch = await Command(client, sysDefaultBranchPath + $"/{sysDefaultBranch.ResourceId}",
+                    new EditBranchRequest(sysDefaultBranch.Version, "SYS02-DEFAULT-HTTP", "فرع افتراضي",
+                        "مدينة", "عنوان", null, sysDefaultCenter.ResourceId, null, null, "تعيين مركز افتراضي"),
+                    method: HttpMethod.Put);
+                using (var branchDetail = await client.GetAsync(sysDefaultBranchPath + $"/{sysDefaultBranch.ResourceId}"))
+                using (var branchJson = JsonDocument.Parse(await branchDetail.Content.ReadAsStringAsync()))
+                    Ensure(branchDetail.StatusCode == HttpStatusCode.OK &&
+                        branchJson.RootElement.GetProperty("defaultCostCenterId").GetGuid() == sysDefaultCenter.ResourceId,
+                        "SYS02-GAP02 branch default center not persisted in SQL");
+
+                await Command(client, $"/api/v1/companies/{companyId}/fiscal-years",
+                    new CreateFiscalYearRequest("SYS02-2036", new(2036, 1, 1), new(2036, 12, 31)));
+                var sysDefaultJournal = journalRequest with {
+                    BranchId = sysDefaultBranch.ResourceId, DocumentDate = new(2036, 1, 15), AccountingDate = new(2036, 1, 15)
+                };
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("sys02-gap02-drafter", new[] { Permissions.Read, Permissions.Draft },
+                        false, new[] { sysDefaultBranch.ResourceId }, null));
+                Authenticate(Token("sys02-gap02-drafter"));
+                var sysOrdinary = await Command(client, path, sysDefaultJournal);
+                using (var journalDetail = await client.GetAsync(path + $"/{sysOrdinary.ResourceId}"))
+                using (var journalJson = JsonDocument.Parse(await journalDetail.Content.ReadAsStringAsync()))
+                    Ensure(journalDetail.StatusCode == HttpStatusCode.OK &&
+                        journalJson.RootElement.GetProperty("lines").EnumerateArray().All(x =>
+                            x.GetProperty("costCenterId").ValueKind == JsonValueKind.Null),
+                        "SYS02-GAP02 default center was silently injected into an unassigned journal line");
+                Authenticate(Token("sql-owner"));
+                var sysRequiredAccount = await Command(client, $"/api/v1/companies/{companyId}/accounts",
+                    new CreateAccountRequest("SYS02-REQUIRES-CC", "حساب يحتاج مركز تكلفة", AccountType.Expense,
+                        null, true, false, true, null, NormalBalance.Debit));
+                Authenticate(Token("sys02-gap02-drafter"));
+                var sysMissingCenter = sysDefaultJournal with { Lines = sysDefaultJournal.Lines
+                    .Select((line, index) => index == 0
+                        ? line with { AccountId = sysRequiredAccount.ResourceId, CostCenterId = null } : line).ToArray() };
+                using (var malformed = new HttpRequestMessage(HttpMethod.Post, path))
+                {
+                    malformed.Headers.Add("Idempotency-Key", Fixture.Key());
+                    malformed.Content = new StringContent(JsonSerializer.Serialize(sysMissingCenter, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var deniedCenter = await client.SendAsync(malformed);
+                    using var error = JsonDocument.Parse(await deniedCenter.Content.ReadAsStringAsync());
+                    Ensure((int)deniedCenter.StatusCode == 422 &&
+                        error.RootElement.GetProperty("code").GetString() == "cost_center_required",
+                        "SYS02-GAP02 required center was improperly substituted from branch default");
+                }
+                var sysExplicit = await Command(client, path,
+                    sysMissingCenter with { Lines = sysMissingCenter.Lines.Select((line, index) =>
+                        index == 0 ? line with { CostCenterId = sysDefaultCenter.ResourceId } : line).ToArray() });
+                using (var journalDetail = await client.GetAsync(path + $"/{sysExplicit.ResourceId}"))
+                using (var journalJson = JsonDocument.Parse(await journalDetail.Content.ReadAsStringAsync()))
+                    Ensure(journalDetail.StatusCode == HttpStatusCode.OK &&
+                        journalJson.RootElement.GetProperty("lines").EnumerateArray().Any(line =>
+                            line.GetProperty("accountId").GetGuid() == sysRequiredAccount.ResourceId &&
+                            line.GetProperty("costCenterId").ValueKind == JsonValueKind.String &&
+                            line.GetProperty("costCenterId").GetGuid() == sysDefaultCenter.ResourceId),
+                        "SYS02-GAP02 explicit journal cost center did not persist through SQL");
+                Console.WriteLine("  HOST PASS SYS02-GAP02 branch default metadata does not inject journal cost center; required and explicit cases over HTTPS/JWT/SQL");
+
 
 
             }
