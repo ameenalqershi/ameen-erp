@@ -79,6 +79,58 @@ Test("BR03 AT02: closed period rejects journal", async f =>
     await f.Service.PeriodClose.ChangePeriod(f.CompanyId, period.Id, f.Approver, Fixture.Key(), new(period.Version, "إقفال اختباري"), true, default);
     await Error("period_closed", () => f.Draft());
 });
+Test("GL03 AT02: an open document date cannot bypass a closed accounting period", async f =>
+{
+    var closed = f.Store.All<FiscalPeriod>().Single(x => x.StartsOn == new DateOnly(2026, 10, 1));
+    await f.Service.PeriodClose.ChangePeriod(f.CompanyId, closed.Id, f.Approver, Fixture.Key(),
+        new(closed.Version, "إقفال اختباري"), true, default);
+    var november = new DateOnly(2026, 11, 2);
+    var journals = f.Store.Count<JournalEntry>();
+    var audits = f.Store.Count<AuditEvent>();
+    var receipts = f.Store.Count<IdempotencyRecord>();
+    try
+    {
+        await f.Draft(f.Request() with { DocumentDate = november });
+        throw new Exception("Document date bypassed a closed accounting period");
+    }
+    catch (BusinessException ex) when (ex.Code == "period_closed")
+    {
+        Assert(ex.Message.Contains(closed.Code, StringComparison.Ordinal),
+            "Closed-period error must identify the accounting period");
+    }
+    Assert(f.Store.Count<JournalEntry>() == journals && f.Store.Count<AuditEvent>() == audits &&
+        f.Store.Count<IdempotencyRecord>() == receipts && f.Store.Count<OutboxEvent>() == 0,
+        "Rejected closed-period draft had durable side effects");
+
+    // The converse is valid: the document date alone does not determine posting period.
+    var valid = await f.Draft(f.Request(date: november) with { DocumentDate = Fixture.Date });
+    var original = await f.Journal(valid.ResourceId);
+    Assert(original.DocumentDate == Fixture.Date && original.AccountingDate == november);
+    audits = f.Store.Count<AuditEvent>();
+    receipts = f.Store.Count<IdempotencyRecord>();
+    var invalidHeader = new DraftJournalHeaderRequest(f.BranchId, november, Fixture.Date,
+        "AT02-BYPASS", null);
+    try
+    {
+        await f.Service.Journal.EditJournal(f.CompanyId, valid.ResourceId, f.Clerk, Fixture.Key(),
+            new(valid.Version, "محاولة تغيير تاريخ الوثيقة", f.Request().Lines, invalidHeader), default);
+        throw new Exception("Draft header edit bypassed a closed accounting period");
+    }
+    catch (BusinessException ex) when (ex.Code == "period_closed")
+    {
+        Assert(ex.Message.Contains(closed.Code, StringComparison.Ordinal),
+            "Edited journal must identify the closed accounting period");
+    }
+    var after = await f.Journal(valid.ResourceId);
+    Assert(after.Version == original.Version && after.DocumentDate == original.DocumentDate &&
+        after.AccountingDate == original.AccountingDate && after.FiscalPeriodId == original.FiscalPeriodId &&
+        after.Number == original.Number && f.Store.Count<AuditEvent>() == audits &&
+        f.Store.Count<IdempotencyRecord>() == receipts && f.Store.Count<OutboxEvent>() == 0,
+        "Rejected closed-period header edit modified the draft or its history");
+    await f.Post(valid);
+    Assert((await f.Journal(valid.ResourceId)).State == JournalState.Posted,
+        "Valid accounting date in an open period must remain postable");
+});
 Test("BR03: period closure rejects outstanding drafts", async f =>
 {
     await f.Draft(); var period = f.Store.All<FiscalPeriod>().Single(x => x.StartsOn.Month == 10);
