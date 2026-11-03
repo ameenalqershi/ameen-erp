@@ -22,6 +22,18 @@ public static class FoundationSqlIntegration
         Ensure(edits.Distinct().Count() == 1, "Currency concurrent replay differs");
         currency = await Call(s => s.Currency.GetCurrency(cid, currency.Id, owner, default));
         Ensure(currency.Revision == 2 && currency.Scale == 3 && currency.DisplaySymbol == "€", "Currency metadata persistence differs");
+        // SYS04-FG03: precision is a persisted integer while the display
+        // symbol and fraction are independent UTF-8/Unicode text metadata.
+        Ensure(currency.FractionName == "سنت", "SYS04-FG03 fraction name lost during precision edit");
+        await using (var currencyFieldsDb = Context())
+        {
+            var row = await currencyFieldsDb.Set<Currency>().SingleAsync(x =>
+                x.CompanyId == cid && x.Id == currencyReceipt.ResourceId);
+            Ensure(row.Scale == 3 && row.DisplaySymbol == "€" &&
+                row.FractionName == "سنت" && row.Revision == 2,
+                "SYS04-FG03 SQL currency precision/symbol/fraction roundtrip differs");
+        }
+        Console.WriteLine("  SQL PASS SYS04-FG03 precision and Unicode symbol/fraction persisted after edit");
         Ensure((await Call(s => s.Currency.SearchCurrencies(cid, owner, "Euro", true, 0, 10, default))).Items.Single().Id == currency.Id, "Currency search SQL translation differs");
         await Call(s => s.ExchangeRate.CreateExchangeRate(cid, owner, Fixture.Key(), new("EUR", Fixture.Date, 4.2m, "اختبار"), default));
         await Error("currency_precision_in_use", () => Call(s => s.Currency.EditCurrency(cid, currency.Id, owner, Fixture.Key(), CurrencyTests.Edit(currency) with { Scale = 2 }, default)));

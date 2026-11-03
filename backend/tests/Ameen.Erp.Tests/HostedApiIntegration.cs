@@ -885,6 +885,35 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await log.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Currency HTTP audit failed");
 
+                // SYS04-FG03: display metadata and changed integer scale
+                // survive authorized PUT and a disabled-card HTTPS GET.
+                using (var currencyProfile = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}"))
+                using (var currencyJson = JsonDocument.Parse(await currencyProfile.Content.ReadAsStringAsync()))
+                    Ensure(currencyProfile.StatusCode == HttpStatusCode.OK &&
+                        currencyJson.RootElement.GetProperty("scale").GetInt32() == 3 &&
+                        currencyJson.RootElement.GetProperty("displaySymbol").GetString() == "£" &&
+                        currencyJson.RootElement.GetProperty("fractionName").GetString() == "بنس" &&
+                        currencyJson.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        !currencyJson.RootElement.GetProperty("isActive").GetBoolean(),
+                        "SYS04-FG03 currency scale/symbol/fraction did not persist over HTTPS/SQL");
+                using (var invalidScale = new HttpRequestMessage(HttpMethod.Post, currenciesPath))
+                {
+                    invalidScale.Headers.Add("Idempotency-Key", Fixture.Key());
+                    invalidScale.Content = new StringContent(JsonSerializer.Serialize(
+                        new CreateCurrencyRequest("AUD", 7, "دولار أسترالي", DisplaySymbol: "A$"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(invalidScale);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        error.RootElement.GetProperty("code").GetString() == "invalid_scale",
+                        "SYS04-FG03 HTTP accepted out-of-bounds currency precision");
+                }
+                using (var rejectedSearch = await client.GetAsync(currenciesPath + "/search?search=AUD"))
+                using (var rejectedJson = JsonDocument.Parse(await rejectedSearch.Content.ReadAsStringAsync()))
+                    Ensure(rejectedSearch.StatusCode == HttpStatusCode.OK &&
+                        rejectedJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "SYS04-FG03 invalid currency precision persisted a card");
+                Console.WriteLine("  HOST PASS SYS04-FG03 integer precision and Unicode metadata over HTTPS/JWT/SQL");
                 // SYS04-OP03: usage remains readable when disabled, and both
                 // usage and audit must enforce tenant-level authorization.
                 using (var usage = await client.GetAsync(currenciesPath + $"/{currencyCard.ResourceId}/usage"))
