@@ -1538,6 +1538,50 @@ public static class HostedApiIntegration
                     gl11PositiveAfter.Receipts == gl11PositiveBefore.Receipts + 1 &&
                     gl11PositiveAfter.Outbox == gl11PositiveBefore.Outbox,
                     "GL11-T01 HTTPS close created duplicate receipts, audit or ledger side effects");
+                // GL11-T02/BR09: idempotent replay is only valid for the
+                // identical request. Neither a mutated same-key payload nor
+                // a fresh-key second close may produce another audited close.
+                async Task RejectGl11HttpClose(string key,
+                    ChangePeriodRequest requestBody, string errorCode)
+                {
+                    using var conflictRequest = new HttpRequestMessage(HttpMethod.Post,
+                        gl11PositivePath + "/close");
+                    conflictRequest.Headers.Add("Idempotency-Key", key);
+                    conflictRequest.Content = new StringContent(
+                        JsonSerializer.Serialize(requestBody, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var conflictResponse = await client.SendAsync(conflictRequest);
+                    using var conflictProblem = JsonDocument.Parse(
+                        await conflictResponse.Content.ReadAsStringAsync());
+                    Ensure(conflictResponse.StatusCode == HttpStatusCode.Conflict &&
+                        conflictProblem.RootElement.GetProperty("code").GetString() == errorCode,
+                        "GL11-T02 HTTPS close failed to reject " + errorCode);
+                }
+                await RejectGl11HttpClose(gl11PositiveKey,
+                    gl11PositiveRequest with { Reason = "نص مغاير بنفس مفتاح الإقفال" },
+                    "idempotency_conflict");
+                var gl11SecondCloseKey = Fixture.Key();
+                await RejectGl11HttpClose(gl11SecondCloseKey,
+                    new ChangePeriodRequest(gl11PositiveClosed.Version,
+                        "محاولة إقفال ثانٍ بفترة مغلقة"), "period_state_conflict");
+                Ensure(gl11PositiveAfter == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T02 conflicting HTTPS closes changed audit, receipts or ledger");
+                await using (var gl11ConflictDb = new ErpDbContext(
+                    new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options))
+                {
+                    var savedPeriod = await gl11ConflictDb.Set<FiscalPeriod>().AsNoTracking()
+                        .SingleAsync(x => x.CompanyId == companyId &&
+                            x.Id == gl11PositivePeriod.Id);
+                    Ensure(savedPeriod.IsClosed && savedPeriod.Version == gl11PositiveClosed.Version &&
+                        !await gl11ConflictDb.Set<IdempotencyRecord>().AnyAsync(x =>
+                            x.CompanyId == companyId && x.Key == gl11SecondCloseKey) &&
+                        await gl11ConflictDb.Set<AuditEvent>().CountAsync(x =>
+                            x.CompanyId == companyId && x.ResourceId == gl11PositivePeriod.Id &&
+                            x.Action == "period.closed") == 1,
+                        "GL11-T02 HTTPS conflicting close consumed receipt or duplicated audit");
+                }
+                Console.WriteLine("  HOST PASS GL11-T02 HTTPS altered replay/second-key close deny 409, SQL audit and receipts unchanged");
+
                 using (var gl11PositiveHistoryResponse = await client.GetAsync(
                     gl11PositivePath + "/execution-history?offset=0&limit=5"))
                 using (var gl11PositiveHistoryBody = JsonDocument.Parse(
