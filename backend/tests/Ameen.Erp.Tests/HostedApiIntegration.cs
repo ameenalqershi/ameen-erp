@@ -817,7 +817,7 @@ public static class HostedApiIntegration
                         "SYS03-GAP04 fiscal year could be deleted instead of closed");
                     using var disable = new HttpRequestMessage(HttpMethod.Post, fiscalDetailPath + "/status");
                     disable.Headers.Add("Idempotency-Key", Fixture.Key());
-                    disable.Content = new StringContent("{\\"isActive\\":false}", Encoding.UTF8, "application/json");
+                    disable.Content = new StringContent("{\"isActive\":false}", Encoding.UTF8, "application/json");
                     using var deniedDisable = await client.SendAsync(disable);
                     Ensure(deniedDisable.StatusCode == HttpStatusCode.NotFound,
                         "SYS03-GAP04 fiscal year accepted an unsupported disable endpoint");
