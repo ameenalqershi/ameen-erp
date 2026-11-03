@@ -53,10 +53,18 @@ public static class ScheduledReversalSqlIntegration
         original = await Call(s => s.Journal.TransitionJournal(cid, original.ResourceId, clerk, Fixture.Key(), new(original.Version), "post", default));
         var runs = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Call(s =>
             s.Journal.RunScheduledReversals(cid, clerk, request.ReversalDate!.Value, 100, default))));
-        Ensure(runs.All(x => x.GeneratedCount == 1 && x.FailedCount == 0) &&
-            runs.Select(x => x.Rows.Single().ReversalJournalId).Distinct().Count() == 1,
-            "Concurrent scheduled runs did not replay one command");
-        var reversalId = runs[0].Rows.Single().ReversalJournalId!.Value;
+        // A concurrent worker may start after the first reservation commits and
+        // legitimately select no due journal. Any worker that selected the original
+        // must still succeed and return the one durable reversal identity.
+        var selected = runs.SelectMany(x => x.Rows).ToArray();
+        Ensure(runs.All(x => x.FailedCount == 0 && x.SelectedCount == x.GeneratedCount &&
+                x.GeneratedCount == x.Rows.Length) &&
+            selected.Length > 0 &&
+            selected.All(x => x.OriginalJournalId == original.ResourceId &&
+                x.Succeeded && x.ErrorCode is null && x.ReversalJournalId is not null) &&
+            selected.Select(x => x.ReversalJournalId).Distinct().Count() == 1,
+            "Concurrent scheduled runs failed or produced inconsistent reversals");
+        var reversalId = selected[0].ReversalJournalId!.Value;
         await using (var db = Context())
         {
             var reversal = await db.Set<JournalEntry>().SingleAsync(x => x.CompanyId == cid && x.Id == reversalId);
@@ -65,6 +73,9 @@ public static class ScheduledReversalSqlIntegration
                 reversal.ReversesJournalId == original.ResourceId && source.PendingReversalJournalId == reversalId &&
                 reversal.Lines.Sum(x => x.FunctionalCredit) == request.Lines.Sum(x => x.Debit),
                 "SQL scheduled inverse is not a linked historical draft");
+            Ensure(await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid &&
+                x.ReversesJournalId == original.ResourceId) == 1,
+                "Concurrent scheduled runs persisted duplicate linked reversals");
             Ensure(await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS [Value] FROM sys.indexes WHERE name='IX_Journals_CompanyId_AutomaticReversalDate_State_BranchId' AND filter_definition IS NOT NULL").SingleAsync() == 1,
                 "Filtered due index missing");
         }
