@@ -291,6 +291,7 @@ public static class SqlIntegration
             await JournalReviewHistoryAcceptance.RunSql(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Owner, f.Request());
             await JournalReviewAuditFieldsSqlAcceptance.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await GeneralOpeningPrintSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
+            await GeneralOpeningControlGuardSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
             await JournalPrintSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await PeriodExecutionHistorySqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Approver);
             await PeriodReopenHistorySqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Approver);
