@@ -1,5 +1,10 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS04-OP03 — currency usage/audit HTTP acceptance (3 November 2026)
+
+Added a focused production-host HTTPS/JWT/SQL assertion to the existing currency workflow: a disabled currency still yields an authoritative tenant-scoped usage snapshot with `currencyId`, `isFunctionalCurrency` and reference counts; unrelated JWT subjects receive HTTP 403 for usage and audit access. The existing production test already checks three creation/edit/status audit events, while `CurrencyTests` covers historical usage, global scope, functional currency references, and unauthorized audit. This is evidence for Notion `SYS04-OP03` only, with no currency entity/API contract/migration/analysis changes. **Pending exact-head branch and PR CI** (isolated SQL, HTTPS/JWT, OpenAPI, Release) before completion.
+
+
 ## SYS04-OP02 — currency save/edit/deactivation acceptance evidence review (3 November 2026)
 
 Existing authorized `CurrencyService.EditCurrency` / `SetCurrencyStatus` preserve optimistic version checks, idempotency, atomic audit and mandatory reasons. Scale edits are denied for a functional currency and for currencies already used by account cards, historical rates, journals, and recurring templates; a functional currency cannot be disabled. `CurrencyTests` cover successful edit/replay/version, disabled state, functional/used precision protection, in-use reports, permission denial and transaction rollback. `HostedApiIntegration` exercises currency edit via PUT, status via POST, audited status, and filtered search on production HTTPS/JWT/SQL. [Branch CI #41557936570](https://github.com/ameenalqershi/ameen-erp/actions/runs/41557936570) and [PR CI #41557943713](https://github.com/ameenalqershi/ameen-erp/actions/runs/41557943713) passed at `fb7561a263d5c7698d6b285c8e0aed8de6c8bbf9`: **374/374 tests, 0 failed**, isolated SQL, HTTPS/JWT, OpenAPI and Release. `SYS04-OP02` was already correctly implemented; only its Notion acceptance status and evidence were stale. No new currency policy, schema, production data or original analysis changed. SYS04 broader ISO/historical-migration gaps remain.
