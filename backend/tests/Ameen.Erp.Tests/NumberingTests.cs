@@ -183,6 +183,33 @@ public static class NumberingTests
             Ensure(opening.Number=="STOCK-000077" && usage.Items.Single().DocumentId==opening.ResourceId && usage.Items.Single().ReservedBy==InventoryOpeningTests.Writer.Subject);
             Ensure(!f.Store.All<Membership>().Single(x=>x.Subject==InventoryOpeningTests.Writer.Subject).Has(Permissions.Configure));
         });
+        test("SYS10-03: scoped member cannot read or allocate another branch series or tenant",async f=>
+        {
+            var scopeA=(await f.Service.Branch.CreateBranch(f.CompanyId,f.Owner,Fixture.Key(),
+                new("SYS10-SCOPE-A","فرع أ","مدينة","عنوان"),default)).ResourceId;
+            var scopeB=(await f.Service.Branch.CreateBranch(f.CompanyId,f.Owner,Fixture.Key(),
+                new("SYS10-SCOPE-B","فرع ب","مدينة","عنوان"),default)).ResourceId;
+            var own=await Create(f,Request(f,scopeA));
+            var other=await Create(f,Request(f,scopeB));
+            var reader=new Actor("sys10-scoped-reader");
+            await f.Service.Membership.GrantMembership(f.CompanyId,f.Owner,Fixture.Key(),
+                new(reader.Subject,new[]{Permissions.Read},false,new[]{scopeA},null),default);
+            var visible=await f.Service.Numbering.Get(f.CompanyId,own.ResourceId,reader,default);
+            Ensure(visible.Id==own.ResourceId);
+            var search=await f.Service.Numbering.Search(f.CompanyId,reader,null,null,null,0,20,default);
+            Ensure(search.Items.Count==1 && search.Items[0].Id==own.ResourceId);
+            var audits=f.Store.Count<AuditEvent>();
+            var receipts=f.Store.Count<IdempotencyRecord>();
+            var allocations=f.Store.Count<DocumentNumberAllocation>();
+            await Error("branch_access_denied",()=>f.Service.Numbering.Get(f.CompanyId,other.ResourceId,reader,default));
+            await Error("permission_denied",()=>f.Service.Numbering.Get(Guid.NewGuid(),own.ResourceId,reader,default));
+            await Error("permission_denied",()=>f.Service.Numbering.Changes(f.CompanyId,own.ResourceId,reader,0,10,default));
+            await Error("permission_denied",()=>f.Service.Numbering.Reserve(f.CompanyId,own.ResourceId,reader,
+                Fixture.Key(),new ReserveDocumentNumberRequest(own.Version,scopeA),default));
+            Ensure(f.Store.Count<AuditEvent>()==audits && f.Store.Count<IdempotencyRecord>()==receipts &&
+                f.Store.Count<DocumentNumberAllocation>()==allocations &&
+                (await f.Service.Numbering.Get(f.CompanyId,own.ResourceId,f.Owner,default)).NextNumber==10);
+        });
         test("SYS10 allocation history is immutable in persistence",async f=>
         {
             await Create(f);await f.Draft();var a=f.Store.All<DocumentNumberAllocation>().Single();

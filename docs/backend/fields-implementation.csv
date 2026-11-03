@@ -97,7 +97,7 @@ SYS06,SYS06-F12,حالة الحساب,required,partial,Membership.IsActive (ERP 
 SYS06,SYS06-F13,مصادقة إضافية,required,pending,,
 SYS06,SYS06-F14,أنشأه,system,pending,,
 SYS06,SYS06-F15,وقت الإنشاء,system,pending,,
-SYS06,SYS06-F16,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/memberships/{id}/status
+SYS06,SYS06-F16,رقم إصدار التعديل,system,partial,Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented,POST /companies/{companyId}/memberships/{id}/status
 SYS06,SYS06-F17,آخر تعديل,system,pending,,
 SYS07,SYS07-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F02,الفرع,conditional,partial,SecurityRole.BranchId: tenant FK only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
@@ -146,9 +146,9 @@ SYS10,SYS10-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{c
 SYS10,SYS10-F02,الفرع,conditional,implemented,"BranchId: optional company-wide or explicit branch, global configuration/read requires all branches",GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F03,الحالة,system,implemented,IsActive,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F04,نوع المستند,required,implemented,DocumentKind: Journal/InventoryOpening; TaxInvoice guarded by country prerequisite,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
-SYS10,SYS10-F05,السنة,required,derived,scope JV:FiscalYear.Id,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
-SYS10,SYS10-F06,البادئة,optional,partial,fixed JV-{yearCode}-,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
-SYS10,SYS10-F07,الرقم التالي,required,partial,NumberSequence.LastNumber + 1; internal only,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F05,السنة,required,implemented,FiscalYearId,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F06,البادئة,optional,implemented,Prefix: optional user text,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F07,الرقم التالي,required,implemented,NextNumber: monotonic server allocation and explicit forward edit,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F08,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F09,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F10,رقم إصدار التعديل,system,implemented,Revision: integer separate from Version UUID,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events

@@ -125,6 +125,79 @@ public static class HostedApiIntegration
                     Ensure(specJson.Contains("\"decimal\"", StringComparison.Ordinal) && specJson.Contains("\"date\"", StringComparison.Ordinal), "Missing decimal/date schema");
                 }
 
+                // SYS06-OP03: expose retained member references and audit only to authorized tenant staff.
+                var usageMember = await Command(client,
+                    $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("sys06-http-usage-reader",
+                        new[] { Permissions.Read, Permissions.Members }, true, Array.Empty<Guid>(), null));
+                var usagePath = $"/api/v1/companies/{companyId}/memberships/{usageMember.ResourceId}/usage";
+                var historyPath = $"/api/v1/companies/{companyId}/memberships/{usageMember.ResourceId}/audit-events";
+                Ensure(specJson.Contains("/memberships/{id}/usage", StringComparison.Ordinal) &&
+                    specJson.Contains("/memberships/{id}/audit-events", StringComparison.Ordinal),
+                    "SYS06 usage/audit OpenAPI contract missing");
+                Authenticate(Token("sys06-http-usage-reader"));
+                using (var response = await client.GetAsync(usagePath))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("membershipId").GetGuid() == usageMember.ResourceId &&
+                        json.RootElement.GetProperty("subject").GetString() == "sys06-http-usage-reader" &&
+                        !json.RootElement.GetProperty("hasReferences").GetBoolean(),
+                        "SYS06 HTTPS usage did not return only the tenant member");
+                using (var response = await client.GetAsync(historyPath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS06 member admin without Audit read sensitive history");
+                Authenticate(Token("sql-clerk"));
+                using (var response = await client.GetAsync(historyPath + "?limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 1,
+                        "SYS06 privileged HTTPS audit did not read creation history");
+                Authenticate(Token("sys06-op03-nonmember"));
+                using (var response = await client.GetAsync(usagePath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS06 nonmember leaked usage of a tenant member");
+                Authenticate(Token("sql-clerk"));
+                Console.WriteLine("  HOST PASS SYS06 membership usage/audit tenant and Audit permission over HTTPS/JWT/SQL");
+
+                // SYS06-AC02: exercise the production HTTPS/OIDC/JWT endpoint and revocation boundary.
+                var memberPath = $"/api/v1/companies/{companyId}/memberships";
+                var subject = "sys06-http-revoked";
+                var httpMember = await Command(client, memberPath,
+                    new GrantMembershipRequest(subject, new[] { Permissions.Read },
+                        true, Array.Empty<Guid>(), null));
+                Authenticate(Token(subject));
+                using (var canRead = await client.GetAsync($"/api/v1/companies/{companyId}/branches"))
+                    Ensure(canRead.StatusCode == HttpStatusCode.OK,
+                        "SYS06 active read-only JWT was incorrectly denied");
+                Authenticate(Token("sql-clerk"));
+                var revoked = await Command(client, memberPath + $"/{httpMember.ResourceId}/status",
+                    new SetMembershipStatusRequest(httpMember.Version, false, "إلغاء صلاحية القراءة"));
+                Authenticate(Token(subject));
+                using (var revokedResponse = await client.GetAsync($"/api/v1/companies/{companyId}/branches"))
+                    Ensure(revokedResponse.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS06 revoked JWT continued reading tenant branches");
+                Authenticate(Token("sql-clerk"));
+                using (var current = await client.GetAsync(memberPath + "?limit=200"))
+                using (var json = JsonDocument.Parse(await current.Content.ReadAsStringAsync()))
+                {
+                    Ensure(current.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("items").EnumerateArray().Any(x =>
+                            x.GetProperty("id").GetGuid() == httpMember.ResourceId &&
+                            !x.GetProperty("isActive").GetBoolean()),
+                        "SYS06 deactivated member was removed from the member register");
+                    Ensure(!json.RootElement.GetRawText().Contains("\"password\":", StringComparison.OrdinalIgnoreCase),
+                        "SYS06 membership listing exposed a password field");
+                }
+                await Command(client, memberPath + $"/{httpMember.ResourceId}/status",
+                    new SetMembershipStatusRequest(revoked.Version, true, "إعادة تفعيل معتمدة"));
+                Authenticate(Token(subject));
+                using (var restored = await client.GetAsync($"/api/v1/companies/{companyId}/branches"))
+                    Ensure(restored.StatusCode == HttpStatusCode.OK,
+                        "SYS06 explicitly restored JWT could not read branches");
+                Authenticate(Token("sql-clerk"));
+                Console.WriteLine("  HOST PASS SYS06 membership revoke/restore, retained identity and no password field over HTTPS/JWT/SQL");
+
                 var path = $"/api/v1/companies/{companyId}/journals";
                 using var unknownField = new HttpRequestMessage(HttpMethod.Post, path);
                 unknownField.Headers.Add("Idempotency-Key", Fixture.Key());
@@ -838,6 +911,63 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(auditPath + $"/{eventId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("resourceId").GetGuid() == wh.ResourceId, "HTTP audit event detail failed");
+                // SYS14-GAP02: old clients may omit both dates, or provide one UTC bound.
+                foreach(var suffix in new[]{
+                    $"?actorId=sql-owner&action=warehouse.created&resourceId={wh.ResourceId}",
+                    $"?from=2026-01-01&actorId=sql-owner&action=warehouse.created&resourceId={wh.ResourceId}",
+                    $"?to=2026-12-31&actorId=sql-owner&action=warehouse.created&resourceId={wh.ResourceId}"})
+                {
+                    using var response=await client.GetAsync(auditPath+suffix);
+                    using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32()==1 &&
+                        json.RootElement.GetProperty("items")[0].GetProperty("resourceId").GetGuid()==wh.ResourceId,
+                        "SYS14 optional/one-sided date request failed HTTPS JWT tenant read");
+                }
+                foreach(var suffix in new[]{
+                    $"?from=2027-01-01&action=warehouse.created&resourceId={wh.ResourceId}",
+                    $"?to=2025-12-31&action=warehouse.created&resourceId={wh.ResourceId}"})
+                {
+                    using var response=await client.GetAsync(auditPath+suffix);
+                    using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32()==0,
+                        "SYS14 one-sided UTC date limit ignored");
+                }
+                Console.WriteLine("  HOST PASS SYS14-GAP02 no/one-sided UTC date filters over HTTPS/JWT/SQL");
+                // SYS14-AC01: audit details link to a real tenant-scoped source via resourceId/action.
+                Guid companyEditEvent;
+                using (var response=await client.GetAsync(auditPath+
+                    $"?actorId=sql-owner&action=company.edited&resourceId={companyId}&limit=1"))
+                using (var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32()>0,
+                        "SYS14 HTTP could not find a real company edit event");
+                    companyEditEvent=json.RootElement.GetProperty("items")[0].GetProperty("id").GetGuid();
+                }
+                using (var response=await client.GetAsync(auditPath+$"/{companyEditEvent}"))
+                using (var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("actorId").GetString()=="sql-owner" &&
+                        json.RootElement.GetProperty("action").GetString()=="company.edited" &&
+                        json.RootElement.GetProperty("resourceId").GetGuid()==companyId &&
+                        json.RootElement.GetProperty("companyId").GetGuid()==companyId &&
+                        json.RootElement.GetProperty("occurredAt").GetDateTimeOffset()!=default,
+                        "SYS14 HTTP audit event lost action, actor, resource or time");
+                    using var details=JsonDocument.Parse(json.RootElement.GetProperty("details").GetString()!);
+                    Ensure(details.RootElement.TryGetProperty("before",out _) &&
+                        details.RootElement.TryGetProperty("after",out _),
+                        "SYS14 HTTP company edit missing before-after history");
+                }
+                using (var response=await client.GetAsync($"/api/v1/companies/{companyId}"))
+                using (var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("id").GetGuid()==companyId,
+                        "SYS14 HTTP source drill could not resolve the event's company");
+                Console.WriteLine("  HOST PASS SYS14-AC01 action/actor/time/before-after/source drill via HTTPS/JWT/SQL");
+
                 using (var response = await client.GetAsync(auditPath + "?from=2026-12-31&to=2026-01-01"))
                     Ensure(response.StatusCode == HttpStatusCode.UnprocessableEntity, "HTTP reversed audit dates accepted");
                 using (var response = await client.GetAsync(auditPath + "?from=bad-date"))
@@ -846,6 +976,67 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(auditPath + $"/{eventId}"))
                     Ensure(response.StatusCode == HttpStatusCode.Forbidden, "HTTP audit detail exposed without permission");
                 Authenticate(Token("sql-owner"));
+                // SYS14-AC02: audit endpoints are read-only even for an authorized JWT;
+                // denied mutation attempts leave the historical event and event count intact.
+                var untouchedEventPath=auditPath+$"/{eventId}";
+                string originalEvent;
+                using(var response=await client.GetAsync(untouchedEventPath))
+                {
+                    Ensure(response.StatusCode==HttpStatusCode.OK,"SYS14 cannot read event before mutation denial");
+                    originalEvent=await response.Content.ReadAsStringAsync();
+                }
+                foreach(var verb in new[]{HttpMethod.Post,HttpMethod.Put,HttpMethod.Patch,HttpMethod.Delete})
+                {
+                    foreach(var auditTarget in new[]{auditPath,untouchedEventPath})
+                    {
+                        using var request=new HttpRequestMessage(verb,auditTarget);
+                        if(verb!=HttpMethod.Delete)
+                            request.Content=new StringContent("{}",Encoding.UTF8,"application/json");
+                        using var refused=await client.SendAsync(request);
+                        Ensure(refused.StatusCode==HttpStatusCode.MethodNotAllowed,
+                            "SYS14 accepted a write verb on the read-only audit API");
+                    }
+                }
+                using(var response=await client.GetAsync(untouchedEventPath))
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        await response.Content.ReadAsStringAsync()==originalEvent,
+                        "SYS14 refused write changed persisted audit detail");
+                using(var response=await client.GetAsync(auditPath+
+                    $"?action=warehouse.created&resourceId={wh.ResourceId}"))
+                using(var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32()==1,
+                        "SYS14 refused audit mutation changed history count");
+                using(var auditContract=JsonDocument.Parse(specJson))
+                {
+                    var routes=auditContract.RootElement.GetProperty("paths");
+                    foreach(var auditRoute in new[]{
+                        "/api/v1/companies/{companyId}/audit-events",
+                        "/api/v1/companies/{companyId}/audit-events/{id}"})
+                        Ensure(routes.GetProperty(auditRoute).EnumerateObject().All(x=>x.Name=="get"),
+                            "SYS14 OpenAPI exposes an unapproved audit mutation");
+                }
+                var auditorMember=await Command(client,
+                    $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("sys14-http-revoked-auditor",
+                        new[]{Permissions.Read,Permissions.Audit},true,Array.Empty<Guid>(),null));
+                Authenticate(Token("sys14-http-revoked-auditor"));
+                using(var response=await client.GetAsync(untouchedEventPath))
+                    Ensure(response.StatusCode==HttpStatusCode.OK,
+                        "SYS14 authorized auditor could not read source event");
+                Authenticate(Token("sql-owner"));
+                await Command(client,
+                    $"/api/v1/companies/{companyId}/memberships/{auditorMember.ResourceId}/status",
+                    new SetMembershipStatusRequest(auditorMember.Version,false,"إلغاء وصول المدقق"));
+                Authenticate(Token("sys14-http-revoked-auditor"));
+                using(var response=await client.GetAsync(auditPath))
+                    Ensure(response.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS14 disabled auditor listed audit history with still-valid JWT");
+                using(var response=await client.GetAsync(untouchedEventPath))
+                    Ensure(response.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS14 disabled auditor read audit details with still-valid JWT");
+                Authenticate(Token("sql-owner"));
+                Console.WriteLine("  HOST PASS SYS14-AC02 read-only verbs/OpenAPI, revocation and preserved audit via HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS SYS14 audit filters, event detail, invalid dates and authorization over HTTPS/JWT/SQL");
                 var ratesPath = $"/api/v1/companies/{companyId}/exchange-rates";
                 await Command(client, $"/api/v1/companies/{companyId}/currencies", new CreateCurrencyRequest("NZD", 2, "دولار نيوزيلندي"));
@@ -1992,6 +2183,46 @@ public static class HostedApiIntegration
                 using(var search=await client.GetAsync(numPath+"?search=HTTPNUM-&isActive=false"))
                 using(var json=JsonDocument.Parse(await search.Content.ReadAsStringAsync()))
                     Ensure(search.StatusCode==HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32()==1,"SYS10 HTTP search/status filter differs");
+                // SYS10-03: the same production JWT can read its branch series but not audit or allocate it.
+                await Command(client,$"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("sys10-http-scoped-reader",new[]{Permissions.Read},
+                        false,new[]{numBranch.ResourceId},null));
+                var foreignBranch=await Command(client,$"/api/v1/companies/{companyId}/branches",
+                    new CreateBranchRequest("SYS10-HTTP-OTHER","فرع آخر","مدينة","عنوان"));
+                var foreignSeries=await Command(client,numPath,
+                    new CreateNumberSeriesRequest(NumberingDocumentKind.Journal,yearId,400,"SYS10-FOREIGN-",foreignBranch.ResourceId));
+                Authenticate(Token("sys10-http-scoped-reader"));
+                using(var ownResponse=await client.GetAsync(numPath+$"/{numCard.ResourceId}"))
+                    Ensure(ownResponse.StatusCode==HttpStatusCode.OK,
+                        "SYS10 scoped JWT could not read its own branch series");
+                using(var otherResponse=await client.GetAsync(numPath+$"/{foreignSeries.ResourceId}"))
+                    Ensure(otherResponse.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS10 scoped JWT read series from an unauthorized branch");
+                using(var hidden=await client.GetAsync(numPath+"?limit=100"))
+                using(var json=JsonDocument.Parse(await hidden.Content.ReadAsStringAsync()))
+                    Ensure(hidden.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("items").EnumerateArray().All(x=>
+                            x.GetProperty("branchId").GetGuid()==numBranch.ResourceId),
+                        "SYS10 search leaked other branch number-series cards");
+                using(var auditDenied=await client.GetAsync(numPath+$"/{numCard.ResourceId}/audit-events"))
+                    Ensure(auditDenied.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS10 scoped JWT read audit without Audit permission");
+                using(var reserveRequest=new HttpRequestMessage(HttpMethod.Post,numPath+$"/{numCard.ResourceId}/reserve"))
+                {
+                    reserveRequest.Headers.Add("Idempotency-Key",Fixture.Key());
+                    reserveRequest.Content=new StringContent(JsonSerializer.Serialize(new ReserveDocumentNumberRequest(
+                        numCard.Version,numBranch.ResourceId),JsonDefaults.Options),Encoding.UTF8,"application/json");
+                    using var reserveDenied=await client.SendAsync(reserveRequest);
+                    Ensure(reserveDenied.StatusCode==HttpStatusCode.Forbidden,
+                        "SYS10 read-only scoped JWT allocated a document number");
+                }
+                Authenticate(Token("sql-owner"));
+                using(var finalResponse=await client.GetAsync(numPath+$"/{numCard.ResourceId}"))
+                using(var json=JsonDocument.Parse(await finalResponse.Content.ReadAsStringAsync()))
+                    Ensure(finalResponse.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("nextNumber").GetInt64()==43,
+                        "SYS10 denied HTTP allocation modified series counter");
+                Console.WriteLine("  HOST PASS SYS10-03 branch isolation and read/audit/configure JWT separation over HTTPS/SQL");
                 Console.WriteLine("  HOST PASS SYS10 create/edit/reserve/status/search/usage/audit with exact field types over HTTPS/JWT/SQL");
                 var mapPath=$"/api/v1/companies/{companyId}/financial-mappings";
                 var mapLines=new FinancialMappingLineRequest[]{new("ROOT","عنوان",FinancialDisplaySign.Normal),new("CASH","نقدية",FinancialDisplaySign.Normal,journalRequest.Lines[0].AccountId,"ROOT"),new("TOTAL","المجموع",FinancialDisplaySign.Normal,null,"ROOT","[CASH]")};

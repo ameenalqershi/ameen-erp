@@ -874,7 +874,7 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 
 آخر تقرير محفوظ: `2026-11-02T19:37:11.777004+00:00`؛ النتيجة `passed`؛ 356/356، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **14.4%** (398/2759)؛ الحقول الجزئية: 96. نسبة الشاشات التي بدأ تنفيذها: **23.3%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 95. نسبة الشاشات التي بدأ تنفيذها: **23.3%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -901,9 +901,9 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | الحالة | العدد |
 | --- | --- |
 | audit | 49 |
-| derived | 5 |
-| implemented | 344 |
-| partial | 96 |
+| derived | 4 |
+| implemented | 346 |
+| partial | 95 |
 | pending | 2265 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
@@ -1192,3 +1192,8 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | BR20 | not-started | لم تنفذ ضرائب أو ملفات تشريعية أو تكاملات دولة | none |
 
 <!-- generated-progress:end -->
+
+
+## SYS10-02 — reconcile live field traceability (2026-11-03)
+
+Confirmed against the original read-only SYS10 dictionary and current `DocumentNumberSeries`/`NumberingService` implementation that `SYS10-F05 FiscalYearId`, `SYS10-F06 Prefix`, and `SYS10-F07 NextNumber` are now publicly configurable or selected with validation, immutable allocated history and protected SQL transactions. The old `derived`/`partial` text in `docs/backend/fields-implementation.csv` referred to the legacy journal fallback and was stale after the configured SYS10 number-series feature was integrated. Updated only these three implementation-trace rows; source analysis under `muhaseb-erp-analysis/` is unchanged. Acceptance evidence: `backend/tests/Ameen.Erp.Tests/NumberingTests.cs`, `NumberingSqlIntegration.cs`, `HostedApiIntegration.cs`, and SYS10-A01/AC02/CTRL01/FG02 tasks in Notion. Tax numbering remains explicitly blocked until an approved country profile/TAX05 policy; no tax series or policy was inferred. This documentation correction alone does not implement TAX05.

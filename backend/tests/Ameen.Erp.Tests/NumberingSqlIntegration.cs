@@ -50,6 +50,38 @@ public static class NumberingSqlIntegration
             try{command.CommandText="UPDATE [DocumentNumberAllocations] SET [ReservedBy]=[ReservedBy] WHERE 1=0";try{await command.ExecuteNonQueryAsync();throw new Exception("Runtime role can rewrite reserved numbers");}catch(SqlException ex)when(ex.Number==229){}}
             finally{command.CommandText="REVERT";await command.ExecuteNonQueryAsync();}
         }
+        // SYS10-03: scope/tenant guards must reject without consuming allocations or receipts.
+        var isolatedBranch=await Call(s=>s.Branch.CreateBranch(cid,owner,Fixture.Key(),
+            new("SQL-SYS10-SEC","فرع معزول","مدينة","عنوان"),default));
+        var scoped=await Call(s=>s.Numbering.Create(cid,owner,Fixture.Key(),
+            new(NumberingDocumentKind.InventoryOpening,period.FiscalYearId,2000,"SEC-",isolatedBranch.ResourceId),default));
+        var scopedReader=new Actor("sys10-sql-scope-reader");
+        await Call(s=>s.Membership.GrantMembership(cid,owner,Fixture.Key(),
+            new(scopedReader.Subject,new[]{Permissions.Read},false,new[]{isolatedBranch.ResourceId},null),default));
+        var own=await Call(s=>s.Numbering.Get(cid,scoped.ResourceId,scopedReader,default));
+        Ensure(own.Id==scoped.ResourceId,"SQL scoped reader cannot view own numbering series");
+        int beforeAudit,beforeReceipts,beforeAllocations;
+        await using(var db=Context())
+        {
+            beforeAudit=await db.Set<AuditEvent>().CountAsync();
+            beforeReceipts=await db.Set<IdempotencyRecord>().CountAsync();
+            beforeAllocations=await db.Set<DocumentNumberAllocation>().CountAsync();
+        }
+        await Error("all_branches_required",()=>Call(s=>s.Numbering.Get(cid,card.ResourceId,scopedReader,default)));
+        await Error("permission_denied",()=>Call(s=>s.Numbering.Get(Guid.NewGuid(),scoped.ResourceId,scopedReader,default)));
+        await Error("permission_denied",()=>Call(s=>s.Numbering.Changes(cid,scoped.ResourceId,scopedReader,0,20,default)));
+        await Error("permission_denied",()=>Call(s=>s.Numbering.Reserve(cid,scoped.ResourceId,scopedReader,Fixture.Key(),
+            new ReserveDocumentNumberRequest(scoped.Version,isolatedBranch.ResourceId),default)));
+        await using(var db=Context())
+        {
+            var unchanged=await db.Set<DocumentNumberSeries>().SingleAsync(x=>x.Id==scoped.ResourceId && x.CompanyId==cid);
+            Ensure(unchanged.NextNumber==2000 && unchanged.Version==scoped.Version &&
+                await db.Set<AuditEvent>().CountAsync()==beforeAudit &&
+                await db.Set<IdempotencyRecord>().CountAsync()==beforeReceipts &&
+                await db.Set<DocumentNumberAllocation>().CountAsync()==beforeAllocations,
+                "SYS10 SQL denied tenant/branch operations modified series, receipts, audit or allocations");
+        }
+        Console.WriteLine("  SQL PASS SYS10-03 branch/tenant isolation, separated read/audit/allocate permissions and rollback");
         Console.WriteLine("  SQL PASS SYS10 scope configuration, concurrent reserve/create, cancellation, immutable history, audit rollback and exact retry");
     }
     private static void Ensure(bool ok,string why){if(!ok)throw new Exception(why);}
