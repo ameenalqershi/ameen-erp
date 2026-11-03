@@ -1,5 +1,10 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS04-AC02 — in-use precision rejection over authenticated SQL host (3 November 2026)
+
+The original SYS04 negative control states that currency precision cannot be changed retroactively and functional currency is configured at company level. Existing `CurrencyTests` reject precision changes for functional currencies, account references, historical FX rates, journal entries and recurring templates; prior accepted edits remain legal before use. New production-host HTTPS/JWT/SQL regression `SYS04-AC02` creates a CAD currency and account reference, issues an authorized PUT attempting scale 2→3, expects HTTP 409 `currency_precision_in_use`, then verifies the SQL-backed scale, revision, version and audit-event total remain unchanged. No new financial rule, migration, entity or original source analysis. **Acceptance pending exact-head branch/PR CI** with isolated SQL, JWT/OpenAPI/Release; neither this task nor other SYS04 control tasks are complete until success.
+
+
 ## SYS05-GAP03 — quote is advisory, never reserves an exchange rate (3 November 2026)
 
 Existing exchange-rate service logic selects the latest dated effective quote; journal creation rechecks that the explicitly supplied rate is still the latest effective rate on its accounting date. Focused acceptance on `sys` adds an application test and a production-host HTTPS/JWT/SQL test. Three repeated quotes must leave audit, idempotency, journal and numbering counters unchanged; creating a newer effective rate supersedes an earlier quote; trying to create a journal with the earlier rate must fail `stale_exchange_rate` with no persisted journal, audit, sequence or receipt; a corrected journal using the new rate succeeds with an immutable exchange-rate snapshot on its lines. This does not create financial policies, modify migrations, alter original analysis or touch production data.
