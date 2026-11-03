@@ -316,6 +316,8 @@ public static class SqlIntegration
                 f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
             await PeriodUnbalancedCloseSqlAcceptance.Run(options.ConnectionString,
                 f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
+            await PeriodPendingInventoryCloseSqlAcceptance.Run(options.ConnectionString,
+                f.CompanyId, f.BranchId, f.Owner, f.Clerk, f.Approver);
         }
         finally
         {
