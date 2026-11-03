@@ -42,6 +42,14 @@ public sealed partial class ErpDbContext
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
             "cash_count_policy_unavailable",
             "لا يمكن حفظ الجرد قبل اعتماد الرصيد والتسوية والمراجعة.", ErrorKind.Conflict);
+        // SYS15-01 has no approved operational restore privileges, isolated
+        // validation, encryption key management or backup worker. No direct
+        // EF caller may activate or mutate an unapproved job configuration.
+        Check.That(!ChangeTracker.Entries<BackupJobConfiguration>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "backup_job_policy_unavailable",
+            "إعدادات النسخ والاستعادة محجوبة حتى اعتماد التفويض والتشفير والاستعادة المعزولة.",
+            ErrorKind.Conflict);
         // SYS13-01 stores only metadata. Import/replay/preview, balance control,
         // approvals and tenant-scoped file parsing need separate approved rules.
         Check.That(!ChangeTracker.Entries<DataImportBatch>().Any(e =>
