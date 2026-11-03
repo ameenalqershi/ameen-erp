@@ -1150,6 +1150,31 @@ public static class HostedApiIntegration
                 var childBranch = await Command(client, branchesPath, new CreateBranchRequest("CHILD", "ابن", "مدينة", "عنوان", parentBranch.ResourceId));
                 childBranch = await Command(client, branchesPath + $"/{childBranch.ResourceId}",
                     new EditBranchRequest(childBranch.Version, "CHILD", "ابن معدل", "مدينة", "عنوان 001", parentBranch.ResourceId, null, "HTTP child", null, "تحديث"), method: HttpMethod.Put);
+                // SYS02-AC02: reject a self-parent and an ancestor->descendant
+                // cycle over the production HTTPS/JWT route without changing SQL state.
+                async Task RejectBranchCycle(Guid branchId, Guid version, Guid invalidParent)
+                {
+                    using var edit = new HttpRequestMessage(HttpMethod.Put, branchesPath + $"/{branchId}");
+                    edit.Headers.Add("Idempotency-Key", Fixture.Key());
+                    edit.Content = new StringContent(JsonSerializer.Serialize(
+                        new EditBranchRequest(version, branchId == parentBranch.ResourceId ? "PARENT" : "CHILD",
+                            "دورة ممنوعة", "مدينة", "عنوان", invalidParent, null, null, null, "اختبار منع دورة"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(edit);
+                    using var error = JsonDocument.Parse(await rejected.Content.ReadAsStringAsync());
+                    Ensure(rejected.StatusCode == HttpStatusCode.BadRequest &&
+                        error.RootElement.GetProperty("code").GetString() == "branch_tree_cycle",
+                        "SYS02-AC02 production HTTP accepted a branch cycle");
+                }
+                await RejectBranchCycle(parentBranch.ResourceId, parentBranch.Version, parentBranch.ResourceId);
+                await RejectBranchCycle(parentBranch.ResourceId, parentBranch.Version, childBranch.ResourceId);
+                using (var parentAfterRejection = await client.GetAsync(branchesPath + $"/{parentBranch.ResourceId}"))
+                using (var parentJson = JsonDocument.Parse(await parentAfterRejection.Content.ReadAsStringAsync()))
+                    Ensure(parentAfterRejection.StatusCode == HttpStatusCode.OK &&
+                        parentJson.RootElement.GetProperty("version").GetGuid() == parentBranch.Version &&
+                        parentJson.RootElement.GetProperty("parentId").ValueKind == JsonValueKind.Null,
+                        "SYS02-AC02 rejected cycle mutated parent branch");
+                Console.WriteLine("  HOST PASS SYS02-AC02 self-parent and ancestor cycle rejection over HTTPS/JWT");
                 using (var response = await client.GetAsync(branchesPath + $"/search?parentId={parentBranch.ResourceId}&search=HTTP"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("items")[0].GetProperty("revision").GetInt32() == 2, "Branch HTTP search failed");
