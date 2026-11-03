@@ -445,16 +445,16 @@ GL11,GL11-F10,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{compan
 GL11,GL11-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
 GL11,GL11-F12,رقم إصدار التعديل,system,pending,,
 GL11,GL11-F13,آخر تعديل,system,pending,,
-GL12,GL12-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/reopen
+GL12,GL12-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/reopen; GET /companies/{companyId}/periods/{id}/reopen-history
 GL12,GL12-F02,الفرع,conditional,pending,,
 GL12,GL12-F03,الحالة,system,pending,,
-GL12,GL12-F04,الفترة,required,implemented,route.id,POST /companies/{companyId}/periods/{id}/reopen
-GL12,GL12-F05,السبب,required,implemented,ChangePeriodRequest.Reason,POST /companies/{companyId}/periods/{id}/reopen
+GL12,GL12-F04,الفترة,required,implemented,route.id,POST /companies/{companyId}/periods/{id}/reopen; GET /companies/{companyId}/periods/{id}/reopen-history
+GL12,GL12-F05,السبب,required,implemented,ChangePeriodRequest.Reason,POST /companies/{companyId}/periods/{id}/reopen; GET /companies/{companyId}/periods/{id}/reopen-history
 GL12,GL12-F06,مرجع الموافقة,required,pending,,
 GL12,GL12-F07,نهاية السماح,required,pending,,
-GL12,GL12-F08,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/periods/{id}/reopen
-GL12,GL12-F09,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/reopen
-GL12,GL12-F10,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/periods/{id}/reopen
+GL12,GL12-F08,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/periods/{id}/reopen; GET /companies/{companyId}/periods/{id}/reopen-history
+GL12,GL12-F09,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/reopen; GET /companies/{companyId}/periods/{id}/reopen-history
+GL12,GL12-F10,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/periods/{id}/reopen; GET /companies/{companyId}/periods/{id}/reopen-history
 GL12,GL12-F11,آخر تعديل,system,pending,,
 GL13,GL13-F01,الشركة,system,implemented,CompanyId from route,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}
 GL13,GL13-F02,الفرع,conditional,implemented,BranchId: optional company-wide or explicit active branch,GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}

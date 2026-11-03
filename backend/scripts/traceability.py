@@ -153,7 +153,7 @@ screen("GL03", "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}
        [(28, "AuditEvent.OccurredAt: journal.edited")])
 MAP["GL03"]["fields"]["GL03-F28"] = dict(status="implemented", binding="LastModifiedAt server datetimeoffset; successful edit/workflow/reversal link mutation; atomic with audit and receipt")
 MAP["GL03"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
-    ["JournalAuditTests.cs", "JournalPrintTests.cs", "JournalPrintSqlIntegration.cs", "DraftJournalHeaderTests.cs", "DraftHeaderSqlIntegration.cs", "JournalImpactPreviewTests.cs", "ScheduledReversalTests.cs", "ScheduledReversalSqlIntegration.cs", "ScheduledReversalHostedIntegration.cs", "HttpIntegration.cs", "SqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs", "OpenApiSnapshotTests.cs"])
+    ["JournalAuditTests.cs", "BalancedJournalLedgerSqlAcceptance.cs", "JournalPrintTests.cs", "JournalPrintSqlIntegration.cs", "DraftJournalHeaderTests.cs", "DraftHeaderSqlIntegration.cs", "JournalImpactPreviewTests.cs", "ScheduledReversalTests.cs", "ScheduledReversalSqlIntegration.cs", "ScheduledReversalHostedIntegration.cs", "HttpIntegration.cs", "SqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs", "OpenApiSnapshotTests.cs"])
 screen("GL04", "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
        "قالب شهري أو ربع سنوي أو سنوي بتاريخ نهاية اختياري دون تاريخ مصطنع؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ رقم إصدار تعديل صحيح وآخر تعديل خادمي؛ مصدر وإصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
        "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ خيارات دورية أخرى غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",
@@ -193,9 +193,12 @@ screen("GL11", "POST /companies/{companyId}/periods/{id}/close; GET /companies/{
        "معاينة إقفال الأستاذ بشروط مفصلة وموانع مقسمة؛ تنفيذ يعيد فحص القيود المعلقة واتزان المرحل داخل المعاملة", "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة وإصدار عددي للإجراء",
        {1: "route.companyId", 4: "route.id (period only)", 7: "PeriodClosePreview.Checks.Code (GL only)", 8: "PeriodClosePreview.Checks.Passed (GL only)"}, [(9, "AuditEvent.ActorId: period.closed"), (10, "AuditEvent.ActorId"), (11, "AuditEvent.OccurredAt")])
 MAP["GL11"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/PeriodExecutionHistorySqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
-screen("GL12", "POST /companies/{companyId}/periods/{id}/reopen",
-       "فتح فترة بصلاحية مستقلة وسبب مسجل", "مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي",
+screen("GL12", "POST /companies/{companyId}/periods/{id}/reopen; GET /companies/{companyId}/periods/{id}/reopen-history",
+       "فتح فترة بصلاحية مستقلة وسبب مسجل؛ عرض نتيجة/سجل فتح مفوض بخصوصية PeriodReopen+Audit+Read وفصل أحداث الفتح عن الإقفال، مع ترقيم الصفحات بلا أثر مالي",
+       "مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي، وفحوص إقرارات SYS14/الذمم عند إعادة الفتح، لم تنفذ؛ لا يعتبر سجل الفتح شهادة بهذه الموافقات",
        {1: "route.companyId", 4: "route.id", 5: "ChangePeriodRequest.Reason", 10: "Version"}, [(8, "AuditEvent.ActorId"), (9, "AuditEvent.OccurredAt")])
+MAP["GL12"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["RateAndCloseTests.cs", "PeriodReopenHistorySqlIntegration.cs", "HostedApiIntegration.cs", "SqlIntegration.cs"])
 screen("COST01", "GET/POST /companies/{companyId}/cost-centers; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
        "شجرة مراكز بلا دورات وبنطاق فرع متسق؛ أسماء وملاحظات ومسؤول فعال وإصدار عددي؛ تعديل وتعطيل وبحث واستخدام وتدقيق",
        "قائمة نوع المركز غير محددة في التحليل وتنتظر توضيح المستخدم؛ الموازنات والتوزيعات وتقارير تجميع الشجرة لم تنفذ",

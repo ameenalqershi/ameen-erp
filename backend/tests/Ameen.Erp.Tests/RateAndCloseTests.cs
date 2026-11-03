@@ -208,6 +208,96 @@ public static class RateAndCloseTests
                 f.Store.Count<OutboxEvent>() == outbox &&
                 f.Store.All<NumberSequence>().Sum(x => x.LastNumber) == numbers);
         });
+        test("GL12-A05: reopening decisions are independently authorized, paged and read-only", async f =>
+        {
+            var period = Period(f);
+            var reader = new Actor("gl12-reopen-history-reader");
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+                new(reader.Subject, new[] { Permissions.Read, Permissions.Audit,
+                    Permissions.PeriodReopen }, true, Array.Empty<Guid>(), null), default);
+            var before = await f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                period.Id, reader, 0, 10, default);
+            Ensure(!before.IsClosed && before.PeriodId == period.Id &&
+                before.History.TotalCount == 0);
+
+            var closed = await f.Service.PeriodClose.ChangePeriod(f.CompanyId,
+                period.Id, f.Approver, Fixture.Key(),
+                new(period.Version, "GL12-إغلاق أول"), true, default);
+            var reopening = await f.Service.PeriodClose.ChangePeriod(f.CompanyId,
+                period.Id, f.Approver, Fixture.Key(),
+                new(closed.Version, "GL12-إعادة فتح أولى"), false, default);
+            var first = await f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                period.Id, reader, 0, 10, default);
+            Ensure(!first.IsClosed && first.Version == reopening.Version &&
+                first.History.TotalCount == 1 && first.History.Items.Count == 1 &&
+                first.History.Items[0].Action == "period.reopened" &&
+                first.History.Items[0].ActorId == f.Approver.Subject &&
+                System.Text.Json.JsonDocument.Parse(first.History.Items[0].Details)
+                    .RootElement.GetProperty("reason").GetString() == "GL12-إعادة فتح أولى");
+
+            var closedAgain = await f.Service.PeriodClose.ChangePeriod(f.CompanyId,
+                period.Id, f.Approver, Fixture.Key(),
+                new(reopening.Version, "GL12-إغلاق ثان"), true, default);
+            var reopenedAgain = await f.Service.PeriodClose.ChangePeriod(f.CompanyId,
+                period.Id, f.Approver, Fixture.Key(),
+                new(closedAgain.Version, "GL12-إعادة فتح ثانية"), false, default);
+            var a = await f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                period.Id, reader, 0, 1, default);
+            var b = await f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                period.Id, reader, 1, 1, default);
+            var empty = await f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                period.Id, reader, 2, 1, default);
+            Ensure(!a.IsClosed && a.Version == reopenedAgain.Version &&
+                a.History.TotalCount == 2 && b.History.TotalCount == 2 &&
+                a.History.Items.Count == 1 && b.History.Items.Count == 1 &&
+                a.History.Items[0].Id != b.History.Items[0].Id &&
+                a.History.Items[0].Action == "period.reopened" &&
+                b.History.Items[0].Action == "period.reopened" &&
+                new[] { a.History.Items[0], b.History.Items[0] }
+                    .Select(x => System.Text.Json.JsonDocument.Parse(x.Details)
+                        .RootElement.GetProperty("reason").GetString())
+                    .OrderBy(x => x).SequenceEqual(
+                        new[] { "GL12-إعادة فتح أولى", "GL12-إعادة فتح ثانية" }.OrderBy(x => x)) &&
+                empty.History.TotalCount == 2 && empty.History.Items.Count == 0);
+
+            var closer = new Actor("gl12-close-auditor-no-reopen");
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+                new(closer.Subject, new[] { Permissions.Read, Permissions.Audit,
+                    Permissions.PeriodClose }, true, Array.Empty<Guid>(), null), default);
+            await Error("permission_denied", () =>
+                f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                    period.Id, closer, 0, 10, default));
+            var noAudit = new Actor("gl12-reopen-no-audit");
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+                new(noAudit.Subject, new[] { Permissions.Read, Permissions.PeriodReopen },
+                    true, Array.Empty<Guid>(), null), default);
+            await Error("permission_denied", () =>
+                f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                    period.Id, noAudit, 0, 10, default));
+            var limited = new Actor("gl12-reopen-branch-only");
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+                new(limited.Subject, new[] { Permissions.Read, Permissions.Audit,
+                    Permissions.PeriodReopen }, false, new[] { f.BranchId }, null), default);
+            await Error("all_branches_required", () =>
+                f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                    period.Id, limited, 0, 10, default));
+            await Error("permission_denied", () =>
+                f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                    period.Id, new Actor("gl12-nonmember"), 0, 10, default));
+
+            var audits = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            var journals = f.Store.Count<JournalEntry>();
+            var outbox = f.Store.Count<OutboxEvent>();
+            var numbers = f.Store.All<NumberSequence>().Sum(x => x.LastNumber);
+            await f.Service.PeriodClose.ReopenExecutionHistory(f.CompanyId,
+                period.Id, reader, 0, 10, default);
+            Ensure(f.Store.Count<AuditEvent>() == audits &&
+                f.Store.Count<IdempotencyRecord>() == receipts &&
+                f.Store.Count<JournalEntry>() == journals &&
+                f.Store.Count<OutboxEvent>() == outbox &&
+                f.Store.All<NumberSequence>().Sum(x => x.LastNumber) == numbers);
+        });
         test("GL11: preview lists pending journals with accurate paginated blockers without writes", async f =>
         {
             await f.Draft(); await f.Draft(); var audit = f.Store.Count<AuditEvent>(); var period = Period(f);

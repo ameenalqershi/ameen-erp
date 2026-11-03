@@ -88,6 +88,27 @@ public sealed class PeriodCloseService : ApplicationService
         return new(id, period.Code, period.IsClosed, period.Version, history);
     }
 
+    // GL12-A05: this is a separate reopening audit surface. A user authorized
+    // for closing (GL11) cannot inspect reopened exceptions without the
+    // independent PeriodReopen permission, Read, Audit and all-branch scope.
+    // This is an immutable view over *recorded* exceptions, not an approval
+    // or extension of their validity; GL12's approval/expiry workflow remains
+    // a distinct prerequisite and is never inferred from audit metadata.
+    public async Task<PeriodExecutionSummary> ReopenExecutionHistory(
+        Guid cid, Guid id, Actor actor, int offset, int limit, CancellationToken ct)
+    {
+        Paging(offset, limit);
+        await AuthorizeGlobal(cid, actor, Permissions.Read, ct);
+        await AuthorizeGlobal(cid, actor, Permissions.Audit, ct);
+        await AuthorizeGlobal(cid, actor, Permissions.PeriodReopen, ct);
+        var period = await Required<FiscalPeriod>(cid, id, ct);
+        var events = await store.ReadPage<AuditEvent>(cid,
+            x => x.ResourceId == id && x.Action == "period.reopened",
+            q => q.OrderByDescending(x => x.OccurredAt).ThenBy(x => x.Id),
+            offset, limit, ct);
+        return new(id, period.Code, period.IsClosed, period.Version, events);
+    }
+
     public Task<CommandReceipt> ChangePeriod(Guid cid, Guid id, Actor actor, string key, ChangePeriodRequest request, bool close, CancellationToken ct) =>
         Command(cid, actor, key, $"period.{(close ? "close" : "reopen")}:{id}", request,
             token => AuthorizeGlobal(cid, actor, close ? Permissions.PeriodClose : Permissions.PeriodReopen, token), async token =>
