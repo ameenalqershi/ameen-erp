@@ -180,6 +180,16 @@ screen("GL06", "POST /companies/{companyId}/journals/{id}/post; GET /journals/pr
 for code in ["GL05", "GL06"]:
     MAP[code]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["JournalProcessingTests.cs", "JournalProcessingSqlIntegration.cs", "HostedApiIntegration.cs", "Program.cs"])
 MAP["GL05"]["fields"]["GL05-F04"] = dict(status="implemented", binding="processing-queue.periodId: required")
+for n, binding in {
+    10: "JournalProcessingBatch.ActorId / JournalProcessingDurableResult.CreatedBy: server-side approval actor",
+    11: "JournalProcessingBatch.CreatedAt / DurableBatch.CreatedAt: server datetimeoffset",
+    12: "JournalProcessingBatch.Revision / DurableBatch.Revision: server numeric revision, replay-stable",
+    13: "JournalProcessingBatch.LastModifiedAt / DurableBatch.LastModifiedAt: server datetimeoffset",
+}.items():
+    MAP["GL05"]["fields"][f"GL05-F{n:02}"] = dict(status="implemented", binding=binding)
+MAP["GL05"]["api"] += "; GET /journals/processing-batches/by-key/{batchKey} (actor-owned audit fields)"
+MAP["GL05"]["test_file"] += "; backend/tests/Ameen.Erp.Tests/JournalReviewAuditFieldsSqlAcceptance.cs"
+
 MAP["GL06"]["fields"]["GL06-F04"] = dict(status="partial", binding="processing-queue.source: journal provenance only; source documents route separately")
 MAP["GL06"]["fields"]["GL06-F05"] = dict(status="implemented", binding="processing-queue.numberRange: selected fiscal-year JV number or inclusive range; sequenceFrom/sequenceTo backward-compatible; authorized branch/state/source scoped")
 MAP["GL06"]["fields"]["GL06-F08"] = dict(status="implemented", binding="JournalProcessingPreview.CanExecute/ErrorCode; JournalProcessingRow.ErrorCode/Receipt/RejectionRecorded")
