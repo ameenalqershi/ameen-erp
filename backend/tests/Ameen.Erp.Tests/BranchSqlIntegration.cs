@@ -84,6 +84,13 @@ public static class BranchSqlIntegration
         var beforeLegacyAudit = await Call(s => s.Branch.ListBranchAudit(cid, b.Id, owner, 0, 20, default));
         Ensure(!b.IsProfileComplete && b.IsActive,
             "SYS02-GAP03 setup must simulate an existing active branch lacking location data");
+        // Exercise the public journal API. The branch readiness guard must win
+        // before any journal line or number can be created on the legacy row.
+        var legacyRequest = new CreateJournalRequest(b.Id, new DateOnly(2026, 1, 15),
+            new DateOnly(2026, 1, 15), "فحص جاهزية فرع قديم", null,
+            Array.Empty<JournalLineRequest>());
+        await Error("branch_profile_incomplete", () =>
+            Call(s => s.Journal.CreateJournal(cid, new Actor("sql-clerk"), Fixture.Key(), legacyRequest, default)));
         await Error("branch_profile_incomplete", () =>
             Call(s => s.Branch.SetBranchStatus(cid, b.Id, owner, Fixture.Key(),
                 new(b.Version, true, "تفعيل"), default)));
@@ -100,7 +107,7 @@ public static class BranchSqlIntegration
             "SYS02-GAP03 branch did not recover after completing legacy address");
         Ensure((await Call(s => s.Branch.ListBranchAudit(cid, b.Id, owner, 0, 20, default))).TotalCount
             == beforeLegacyAudit.TotalCount + 1, "SYS02-GAP03 address restoration is not audited");
-        Console.WriteLine("  SQL PASS SYS02-GAP03 legacy incomplete branch refuses activation, remains unchanged, recovers with one audit");
+        Console.WriteLine("  SQL PASS SYS02-GAP03 legacy incomplete branch refuses journal/activation, remains unchanged, recovers with one audit");
         Console.WriteLine("  SQL PASS SYS02 concurrent replay, SQL search, rollback/retry, runtime role, tenant FKs and legacy address completion");
     }
     private static void Ensure(bool condition, string message) { if (!condition) throw new Exception(message); }
