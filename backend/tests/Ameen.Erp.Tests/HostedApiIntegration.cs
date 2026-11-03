@@ -1392,6 +1392,43 @@ public static class HostedApiIntegration
                 using (var usage = await client.GetAsync(accountPath + $"/{journalRequest.Lines[0].AccountId}/usage?limit=1"))
                 using (var json = JsonDocument.Parse(await usage.Content.ReadAsStringAsync()))
                     Ensure(usage.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("hasUsageInSubtree").GetBoolean(), "Account HTTP usage differs");
+                // GL01-02: production HTTPS/OIDC/JWT account-usage paging and tenant
+                // authorization; reading does not add receipts, journals, audit or outbox.
+                var accountUsageUrl = accountPath + $"/{journalRequest.Lines[0].AccountId}/usage";
+                Ensure(specJson.Contains("/api/v1/companies/{companyId}/accounts/{id}/usage",
+                    StringComparison.Ordinal), "GL01-02 OpenAPI account usage route missing");
+                var accountUsageBefore = await ReadOnlyCounts(connection, companyId);
+                using (var firstUsage = await client.GetAsync(accountUsageUrl + "?offset=0&limit=1"))
+                using (var firstJson = JsonDocument.Parse(await firstUsage.Content.ReadAsStringAsync()))
+                using (var nextUsage = await client.GetAsync(accountUsageUrl + "?offset=1&limit=1"))
+                using (var nextJson = JsonDocument.Parse(await nextUsage.Content.ReadAsStringAsync()))
+                {
+                    var first = firstJson.RootElement;
+                    var next = nextJson.RootElement;
+                    Ensure(firstUsage.StatusCode == HttpStatusCode.OK &&
+                        nextUsage.StatusCode == HttpStatusCode.OK &&
+                        first.GetProperty("accountId").GetGuid() == journalRequest.Lines[0].AccountId &&
+                        first.GetProperty("journalCount").GetInt32() > 0 &&
+                        first.GetProperty("recurringTemplateCount").GetInt32() > 0 &&
+                        first.GetProperty("hasUsageInSubtree").GetBoolean() &&
+                        first.GetProperty("references").GetProperty("totalCount").GetInt32() >= 2 &&
+                        first.GetProperty("references").GetProperty("totalCount").GetInt32() ==
+                            next.GetProperty("references").GetProperty("totalCount").GetInt32() &&
+                        first.GetProperty("references").GetProperty("items")[0].GetProperty("resourceId").GetGuid() !=
+                            next.GetProperty("references").GetProperty("items")[0].GetProperty("resourceId").GetGuid(),
+                        "GL01-02 HTTPS SQL-backed journal/template usage or page stability differs");
+                }
+                using (var missingAccountUsage = await client.GetAsync(accountPath + $"/{Guid.NewGuid()}/usage"))
+                    Ensure(missingAccountUsage.StatusCode == HttpStatusCode.NotFound,
+                        "GL01-02 account usage for a non-existent account was disclosed");
+                Authenticate(Token("audit-no-membership"));
+                using (var unauthorizedAccountUsage = await client.GetAsync(accountUsageUrl))
+                    Ensure(unauthorizedAccountUsage.StatusCode == HttpStatusCode.Forbidden,
+                        "GL01-02 unrelated JWT subject disclosed usage references");
+                Authenticate(Token("sql-owner"));
+                Ensure(accountUsageBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL01-02 GET usage or rejected JWT modified persisted finance/audit/outbox state");
+                Console.WriteLine("  HOST PASS GL01-02 account usage paging, journal/template sources, JWT denial, OpenAPI and read-only SQL");
                 foreach (var invalidBody in new[]
                 {
                     "{\"code\":\"MISSING-NATURE\",\"name\":\"Missing nature\",\"type\":\"Asset\",\"parentId\":null,\"isPosting\":true,\"isControl\":false,\"requiresCostCenter\":false,\"currencyCode\":null}",

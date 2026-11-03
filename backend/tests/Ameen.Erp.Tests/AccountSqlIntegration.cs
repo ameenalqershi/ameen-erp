@@ -100,6 +100,48 @@ public static class AccountSqlIntegration
         var used = await Call(s => s.Account.GetAccountUsage(cid, journalRequest.Lines[0].AccountId, owner, 0, 1, default));
         Ensure(used.HasUsageInSubtree && used.JournalCount > 0 && used.RecurringTemplateCount > 0 && used.References.Items.Count == 1, "SQL usage references differ");
         Console.WriteLine("  SQL PASS GL01 journal/configuration race serializes; usage includes journals and recurring templates");
+        // GL01-02: this is the accepted CURRENT usage scope, not the not-yet-defined
+        // migration workflow of GL01-GP01 or unreleased subsidiary-ledger sources.
+        var usageAccountId = journalRequest.Lines[0].AccountId;
+        async Task<(int Accounts, int Journals, int Templates, int Audits, int Receipts, int Outbox)> UsageState()
+        {
+            await using var db = Context();
+            return (
+                await db.Set<Account>().CountAsync(x => x.CompanyId == cid),
+                await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid),
+                await db.Set<RecurringJournalTemplate>().CountAsync(x => x.CompanyId == cid),
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid),
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid),
+                await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid));
+        }
+        var usageBefore = await UsageState();
+        var completeUsage = await Call(s => s.Account.GetAccountUsage(cid, usageAccountId, owner, 0, 100, default));
+        Ensure(completeUsage.AccountId == usageAccountId &&
+            completeUsage.JournalCount > 0 && completeUsage.RecurringTemplateCount > 0 &&
+            completeUsage.HasUsageInSubtree && completeUsage.References.TotalCount >=
+                completeUsage.JournalCount + completeUsage.RecurringTemplateCount &&
+            completeUsage.References.Items.Any(x => x.Kind == "Journal") &&
+            completeUsage.References.Items.Any(x => x.Kind == "RecurringTemplate"),
+            "GL01-02 usage omitted journal/template references or invented scope");
+        var usageFirst = await Call(s => s.Account.GetAccountUsage(cid, usageAccountId, owner, 0, 1, default));
+        var usageNext = await Call(s => s.Account.GetAccountUsage(cid, usageAccountId, owner, 1, 1, default));
+        Ensure(usageFirst.References.TotalCount == completeUsage.References.TotalCount &&
+            usageNext.References.TotalCount == completeUsage.References.TotalCount &&
+            usageFirst.References.Items.Count == 1 && usageNext.References.Items.Count == 1 &&
+            usageFirst.References.Items[0].ResourceId != usageNext.References.Items[0].ResourceId &&
+            completeUsage.References.Items[0].ResourceId == usageFirst.References.Items[0].ResourceId &&
+            completeUsage.References.Items[1].ResourceId == usageNext.References.Items[0].ResourceId,
+            "GL01-02 SQL references paging is inconsistent or duplicates sources");
+        try
+        {
+            await Call(s => s.Account.GetAccountUsage(cid, usageAccountId,
+                new Actor("gl01-usage-foreign-tenant"), 0, 10, default));
+            throw new Exception("GL01-02 unrelated tenant reader obtained account usage");
+        }
+        catch (BusinessException e) when (e.Code == "permission_denied") { }
+        Ensure(usageBefore == await UsageState(),
+            "GL01-02 read-only SQL usage/unauthorized calls changed accounts, journals, templates, audit, receipts or outbox");
+        Console.WriteLine("  SQL PASS GL01-02 current journal/template usage, stable paging, tenant denial and zero read side effects");
     }
     private static void Ensure(bool condition, string message) { if (!condition) throw new Exception(message); }
 }
