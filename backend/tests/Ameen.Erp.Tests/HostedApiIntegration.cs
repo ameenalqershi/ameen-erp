@@ -1371,11 +1371,66 @@ public static class HostedApiIntegration
                     "SYS05-OP03 read-only usage/audit changed journal, audit, receipt or outbox SQL");
                 Console.WriteLine("  HOST PASS SYS05-OP03 usage/audit paging, role/tenant rejection, SQL nonmutation and OpenAPI");
                 Authenticate(Token("sql-approver"));
+                Guid gl11CloseVersion;
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/periods/{periodId}/close-preview?limit=1"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
                     Ensure(response.StatusCode == HttpStatusCode.OK && !json.RootElement.GetProperty("canCloseGeneralLedger").GetBoolean() &&
                         json.RootElement.GetProperty("generalLedgerOnly").GetBoolean() && json.RootElement.GetProperty("issues").GetProperty("items").GetArrayLength() == 1,
                         "SQL/HTTP close preview did not expose pending blockers");
+                    gl11CloseVersion = json.RootElement.GetProperty("expectedVersion").GetGuid();
+                }
+
+                // GL11-T02/A01: a valid signed JWT and PeriodClose on only one
+                // branch cannot authorize the company-wide close operation.
+                // The service must deny these BEFORE the pending-journal guard
+                // without recording any failed receipt, audit or ledger effect.
+                const string gl11LimitedSubject = "gl11-http-branch-only-closer";
+                var gl11ClosePath = $"/api/v1/companies/{companyId}/periods/{periodId}/close";
+                using (var openApi = JsonDocument.Parse(specJson))
+                {
+                    var closeContract = openApi.RootElement.GetProperty("paths")
+                        .GetProperty("/api/v1/companies/{companyId}/periods/{id}/close")
+                        .GetProperty("post");
+                    Ensure(closeContract.GetProperty("security").GetArrayLength() > 0,
+                        "GL11-T02 close API lost its JWT OpenAPI security contract");
+                }
+                Authenticate(Token("sql-owner"));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest(gl11LimitedSubject,
+                        new[] { Permissions.Read, Permissions.PeriodClose }, false,
+                        new[] { journalRequest.BranchId }, null));
+                var gl11BeforeDenied = await ReadOnlyCounts(connection, companyId);
+                async Task DeniedGl11Close(string subject, string errorCode)
+                {
+                    Authenticate(Token(subject));
+                    using var request = new HttpRequestMessage(HttpMethod.Post, gl11ClosePath);
+                    request.Headers.Add("Idempotency-Key", Fixture.Key());
+                    request.Content = new StringContent(
+                        JsonSerializer.Serialize(new ChangePeriodRequest(gl11CloseVersion,
+                            "إقفال شركة غير مصرح به"), JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var response = await client.SendAsync(request);
+                    using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden &&
+                        body.RootElement.GetProperty("code").GetString() == errorCode,
+                        "GL11-T02 HTTPS close did not reject unauthorized actor: " + subject);
+                }
+                await DeniedGl11Close(gl11LimitedSubject, "all_branches_required");
+                await DeniedGl11Close("gl11-http-no-membership", "permission_denied");
+                Ensure(gl11BeforeDenied == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T02 denied HTTPS close changed journals, audit, receipts or outbox");
+                await using (var gl11PeriodDb = new ErpDbContext(
+                    new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options))
+                {
+                    var gl11Period = await gl11PeriodDb.Set<FiscalPeriod>().AsNoTracking()
+                        .SingleAsync(x => x.CompanyId == companyId && x.Id == periodId);
+                    Ensure(!gl11Period.IsClosed && gl11Period.Version == gl11CloseVersion,
+                        "GL11-T02 denied HTTPS close modified the fiscal period");
+                }
+                Authenticate(Token("sql-approver"));
+                Console.WriteLine("  HOST PASS GL11-T02 close POST denies branch-only/nonmember JWT, no SQL side effects, OpenAPI security");
+
                 // GL11-A05: history endpoint is read-only and requires a tenant-wide
                 // PeriodClose + Read + Audit permission set, not merely an OIDC token.
                 var closeHistoryPath = $"/api/v1/companies/{companyId}/periods/{periodId}/execution-history";
