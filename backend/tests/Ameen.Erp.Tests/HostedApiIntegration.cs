@@ -1011,6 +1011,64 @@ public static class HostedApiIntegration
                 }
                 Console.WriteLine("  HOST PASS GL13 create/edit/status/search/usage/audit/review, server field types, spoof rejection and unclassified errors over HTTPS/JWT/SQL");
 
+                // SYS02-GAP02: a branch default cost center is master-data configuration,
+                // never a silent value inserted into journal lines.
+                Authenticate(Token("sql-owner"));
+                var sysDefaultBranchPath = $"/api/v1/companies/{companyId}/branches";
+                var sysDefaultBranch = await Command(client, sysDefaultBranchPath,
+                    new CreateBranchRequest("SYS02-DEFAULT-HTTP", "فرع افتراضي", "مدينة", "عنوان"));
+                var sysDefaultCenter = await Command(client, $"/api/v1/companies/{companyId}/cost-centers",
+                    new CreateCostCenterRequest("SYS02-DEFAULT-CENTER", "مركز افتراضي", sysDefaultBranch.ResourceId));
+                sysDefaultBranch = await Command(client, sysDefaultBranchPath + $"/{sysDefaultBranch.ResourceId}",
+                    new EditBranchRequest(sysDefaultBranch.Version, "SYS02-DEFAULT-HTTP", "فرع افتراضي",
+                        "مدينة", "عنوان", null, sysDefaultCenter.ResourceId, null, null, "تعيين مركز افتراضي"),
+                    method: HttpMethod.Put);
+                using (var branchDetail = await client.GetAsync(sysDefaultBranchPath + $"/{sysDefaultBranch.ResourceId}"))
+                using (var branchJson = JsonDocument.Parse(await branchDetail.Content.ReadAsStringAsync()))
+                    Ensure(branchDetail.StatusCode == HttpStatusCode.OK &&
+                        branchJson.RootElement.GetProperty("defaultCostCenterId").GetGuid() == sysDefaultCenter.ResourceId,
+                        "SYS02-GAP02 branch default center not persisted in SQL");
+
+                await Command(client, $"/api/v1/companies/{companyId}/fiscal-years",
+                    new CreateFiscalYearRequest("SYS02-2036", new(2036, 1, 1), new(2036, 12, 31)));
+                var sysDefaultJournal = journalRequest with {
+                    BranchId = sysDefaultBranch.ResourceId, DocumentDate = new(2036, 1, 15), AccountingDate = new(2036, 1, 15)
+                };
+                var sysOrdinary = await Command(client, path, sysDefaultJournal);
+                using (var journalDetail = await client.GetAsync(path + $"/{sysOrdinary.ResourceId}"))
+                using (var journalJson = JsonDocument.Parse(await journalDetail.Content.ReadAsStringAsync()))
+                    Ensure(journalDetail.StatusCode == HttpStatusCode.OK &&
+                        journalJson.RootElement.GetProperty("lines").EnumerateArray().All(x =>
+                            x.GetProperty("costCenterId").ValueKind == JsonValueKind.Null),
+                        "SYS02-GAP02 default center was silently injected into an unassigned journal line");
+                var sysRequiredAccount = await Command(client, $"/api/v1/companies/{companyId}/accounts",
+                    new CreateAccountRequest("SYS02-REQUIRES-CC", "حساب يحتاج مركز تكلفة", AccountType.Expense,
+                        null, true, false, true, null, NormalBalance.Debit));
+                var sysMissingCenter = sysDefaultJournal with { Lines = sysDefaultJournal.Lines
+                    .Select((line, index) => index == 0
+                        ? line with { AccountId = sysRequiredAccount.ResourceId, CostCenterId = null } : line).ToArray() };
+                using (var malformed = new HttpRequestMessage(HttpMethod.Post, path))
+                {
+                    malformed.Headers.Add("Idempotency-Key", Fixture.Key());
+                    malformed.Content = new StringContent(JsonSerializer.Serialize(sysMissingCenter, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var denied = await client.SendAsync(malformed);
+                    using var error = JsonDocument.Parse(await denied.Content.ReadAsStringAsync());
+                    Ensure((int)denied.StatusCode == 422 &&
+                        error.RootElement.GetProperty("code").GetString() == "cost_center_required",
+                        "SYS02-GAP02 required center was improperly substituted from branch default");
+                }
+                var sysExplicit = await Command(client, path,
+                    sysMissingCenter with { Lines = sysMissingCenter.Lines.Select((line, index) =>
+                        index == 0 ? line with { CostCenterId = sysDefaultCenter.ResourceId } : line).ToArray() });
+                using (var journalDetail = await client.GetAsync(path + $"/{sysExplicit.ResourceId}"))
+                using (var journalJson = JsonDocument.Parse(await journalDetail.Content.ReadAsStringAsync()))
+                    Ensure(journalDetail.StatusCode == HttpStatusCode.OK &&
+                        journalJson.RootElement.GetProperty("lines")[0].GetProperty("costCenterId").GetGuid() == sysDefaultCenter.ResourceId,
+                        "SYS02-GAP02 explicit journal cost center did not persist through SQL");
+                Console.WriteLine("  HOST PASS SYS02-GAP02 branch default metadata does not inject journal cost center; required and explicit cases over HTTPS/JWT/SQL");
+
+
 
             }
             finally { await api.StopAsync(); }
