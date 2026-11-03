@@ -9,6 +9,8 @@ using System.Text.Json;
 using Ameen.Erp.Api;
 using Ameen.Erp.Application;
 using Ameen.Erp.Domain;
+using Ameen.Erp.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -214,6 +216,42 @@ public static class HostedApiIntegration
                         json.RootElement.GetProperty("lastModifiedAt").GetDateTimeOffset() >= json.RootElement.GetProperty("createdAt").GetDateTimeOffset(),
                         "GL03 HTTPS workflow revision was not persisted");
                 Console.WriteLine("  HOST PASS GL03-FG08 server audit identity, integer revision, forged-input rejection and workflow over HTTPS/JWT/SQL");
+
+                // GL03-T01: a posted manual journal must be visible to the
+                // authorized account ledger under its exact document reference,
+                // with historical functional/original amounts and no duplicate.
+                var gl03LedgerPath = $"/api/v1/companies/{companyId}/reports/accounts/" +
+                    journalRequest.Lines[0].AccountId +
+                    "/ledger?from=2026-01-01&to=2026-12-31&branchId=" +
+                    journalRequest.BranchId + "&externalReference=000070-PRINT";
+                using (var postedLedger = await client.GetAsync(gl03LedgerPath))
+                using (var ledgerBody = JsonDocument.Parse(
+                    await postedLedger.Content.ReadAsStringAsync()))
+                {
+                    var ledgerRoot = ledgerBody.RootElement;
+                    var entries = ledgerRoot.GetProperty("entries");
+                    Ensure(postedLedger.StatusCode == HttpStatusCode.OK &&
+                        ledgerRoot.GetProperty("companyId").GetGuid() == companyId &&
+                        ledgerRoot.GetProperty("accountId").GetGuid() ==
+                            journalRequest.Lines[0].AccountId &&
+                        ledgerRoot.GetProperty("externalReference").GetString() == "000070-PRINT" &&
+                        entries.GetProperty("totalCount").GetInt32() == 1 &&
+                        entries.GetProperty("items").GetArrayLength() == 1 &&
+                        entries.GetProperty("items")[0].GetProperty("journalId").GetGuid() ==
+                            receipt.ResourceId &&
+                        entries.GetProperty("items")[0].GetProperty("number").GetString() ==
+                            receipt.Number &&
+                        entries.GetProperty("items")[0].GetProperty("debit").GetString() == "100" &&
+                        entries.GetProperty("items")[0].GetProperty("credit").GetString() == "0",
+                        "GL03-T01 posted journal missing or duplicated in the HTTP account ledger");
+                }
+                Authenticate(Token("gl03-t01-no-membership"));
+                using (var deniedLedger = await client.GetAsync(gl03LedgerPath))
+                    Ensure(deniedLedger.StatusCode == HttpStatusCode.Forbidden,
+                        "GL03-T01 account ledger leaked outside the JWT tenant");
+                Authenticate(Token("sql-approver"));
+                Console.WriteLine("  HOST PASS GL03-T01 balanced posted journal with exact account-ledger reference and JWT tenant denial");
+
                 using var hierarchy = await client.GetAsync($"/api/v1/companies/{companyId}/reports/trial-balance?from=2026-01-01&to=2026-12-31&accountLevel=1&showZero=false");
                 Ensure(hierarchy.StatusCode == HttpStatusCode.OK, "Production report filters failed");
                 using (var report = JsonDocument.Parse(await hierarchy.Content.ReadAsStringAsync()))
@@ -877,6 +915,46 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(ratesPath + $"/{rate.ResourceId}/usage"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 1, "SQL/HTTP rate usage should count journal once");
+
+                // SYS05-OP03: usage and history are read-only and must not leak through JWT role/tenant boundaries.
+                var readCountsBefore = await ReadOnlyCounts(connection, companyId);
+                var rateUsagePath = ratesPath + $"/{rate.ResourceId}/usage";
+                var rateAuditPath = ratesPath + $"/{rate.ResourceId}/audit-events";
+                Ensure(specJson.Contains("/api/v1/companies/{companyId}/exchange-rates/{id}/usage", StringComparison.Ordinal) &&
+                    specJson.Contains("/api/v1/companies/{companyId}/exchange-rates/{id}/audit-events", StringComparison.Ordinal),
+                    "SYS05-OP03 usage/audit OpenAPI routes missing");
+                using (var page = await client.GetAsync(rateUsagePath + "?offset=1&limit=1"))
+                using (var json = JsonDocument.Parse(await page.Content.ReadAsStringAsync()))
+                    Ensure(page.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 0,
+                        "SYS05-OP03 SQL-backed usage paging is unstable");
+                // SQL fixture sql-clerk has Permissions.All, including Audit.
+                // Reuse the explicit read-only member established for GL05 acceptance.
+                Authenticate(Token("gl05-review-readonly"));
+                using (var deniedAudit = await client.GetAsync(rateAuditPath))
+                    Ensure(deniedAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP03 read-only member accessed protected rate audit");
+                Authenticate(Token("audit-no-membership"));
+                using (var deniedUsage = await client.GetAsync(rateUsagePath))
+                    Ensure(deniedUsage.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP03 non-member accessed rate usage");
+                using (var deniedAudit = await client.GetAsync(rateAuditPath))
+                    Ensure(deniedAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS05-OP03 non-member accessed rate audit");
+                Authenticate(Token("sql-owner"));
+                using (var audit = await client.GetAsync(rateAuditPath))
+                using (var json = JsonDocument.Parse(await audit.Content.ReadAsStringAsync()))
+                    Ensure(audit.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items")[0].GetProperty("action").GetString() == "exchange-rate.created",
+                        "SYS05-OP03 owner audit history missing persisted create event");
+                using (var missingUsage = await client.GetAsync(ratesPath + $"/{Guid.NewGuid()}/usage"))
+                    Ensure(missingUsage.StatusCode == HttpStatusCode.NotFound,
+                        "SYS05-OP03 non-existent rate usage exposed");
+                Ensure(readCountsBefore == await ReadOnlyCounts(connection, companyId),
+                    "SYS05-OP03 read-only usage/audit changed journal, audit, receipt or outbox SQL");
+                Console.WriteLine("  HOST PASS SYS05-OP03 usage/audit paging, role/tenant rejection, SQL nonmutation and OpenAPI");
                 Authenticate(Token("sql-approver"));
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/periods/{periodId}/close-preview?limit=1"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
@@ -899,6 +977,92 @@ public static class HostedApiIntegration
                         "GL11 execution history leaked to an unrelated JWT subject");
                 Authenticate(Token("sql-approver"));
                 Console.WriteLine("  HOST PASS GL11-A05 scoped execution result/history over HTTPS/JWT/SQL");
+
+                // GL12-A05: choose a truly closeable and otherwise unused
+                // test period; never override the period-close safety guard.
+                Guid gl12Period = Guid.Empty;
+                Guid gl12PeriodVersion = Guid.Empty;
+                using (var periodsResponse = await client.GetAsync(
+                    $"/api/v1/companies/{companyId}/periods"))
+                using (var periodsJson = JsonDocument.Parse(
+                    await periodsResponse.Content.ReadAsStringAsync()))
+                {
+                    Ensure(periodsResponse.StatusCode == HttpStatusCode.OK,
+                        "GL12 test could not enumerate fiscal periods");
+                    foreach (var candidate in periodsJson.RootElement.EnumerateArray())
+                    {
+                        var candidateId = candidate.GetProperty("id").GetGuid();
+                        if (candidateId == periodId || candidate.GetProperty("isClosed").GetBoolean())
+                            continue;
+                        using var preview = await client.GetAsync(
+                            $"/api/v1/companies/{companyId}/periods/{candidateId}/close-preview?limit=1");
+                        using var previewJson = JsonDocument.Parse(
+                            await preview.Content.ReadAsStringAsync());
+                        if (preview.StatusCode == HttpStatusCode.OK &&
+                            previewJson.RootElement.GetProperty("canCloseGeneralLedger").GetBoolean())
+                        {
+                            gl12Period = candidateId;
+                            gl12PeriodVersion = previewJson.RootElement
+                                .GetProperty("expectedVersion").GetGuid();
+                            break;
+                        }
+                    }
+                }
+                Ensure(gl12Period != Guid.Empty,
+                    "No safely closeable disposable period available for GL12 HTTP acceptance");
+                var gl12Path = $"/api/v1/companies/{companyId}/periods/{gl12Period}";
+                var gl12Closed = await Command(client, gl12Path + "/close",
+                    new ChangePeriodRequest(gl12PeriodVersion, "GL12 HTTPS إغلاق"));
+                var gl12Reopened = await Command(client, gl12Path + "/reopen",
+                    new ChangePeriodRequest(gl12Closed.Version, "GL12 HTTPS إعادة فتح"));
+                Authenticate(Token("sql-owner"));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl12-read-audit-reopen",
+                        new[] { Permissions.Read, Permissions.Audit, Permissions.PeriodReopen },
+                        true, Array.Empty<Guid>(), null));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl12-read-audit-close",
+                        new[] { Permissions.Read, Permissions.Audit, Permissions.PeriodClose },
+                        true, Array.Empty<Guid>(), null));
+                Authenticate(Token("gl12-read-audit-reopen"));
+                using (var gl12Http = await client.GetAsync(gl12Path + "/reopen-history?offset=0&limit=1"))
+                using (var gl12Json = JsonDocument.Parse(
+                    await gl12Http.Content.ReadAsStringAsync()))
+                {
+                    var summary = gl12Json.RootElement;
+                    var history = summary.GetProperty("history");
+                    var item = history.GetProperty("items")[0];
+                    Ensure(gl12Http.StatusCode == HttpStatusCode.OK &&
+                        summary.GetProperty("periodId").GetGuid() == gl12Period &&
+                        !summary.GetProperty("isClosed").GetBoolean() &&
+                        summary.GetProperty("version").GetGuid() == gl12Reopened.Version &&
+                        history.GetProperty("totalCount").GetInt32() == 1 &&
+                        item.GetProperty("action").GetString() == "period.reopened" &&
+                        item.GetProperty("actorId").GetString() == "sql-approver" &&
+                        JsonDocument.Parse(item.GetProperty("details").GetString()!)
+                            .RootElement.GetProperty("reason").GetString() ==
+                                "GL12 HTTPS إعادة فتح",
+                        "GL12 HTTP reopen-only event/result missing or mis-scoped");
+                }
+                using (var gl12Page = await client.GetAsync(gl12Path + "/reopen-history?offset=1&limit=1"))
+                using (var gl12PageJson = JsonDocument.Parse(await gl12Page.Content.ReadAsStringAsync()))
+                    Ensure(gl12Page.StatusCode == HttpStatusCode.OK &&
+                        gl12PageJson.RootElement.GetProperty("history").GetProperty("totalCount").GetInt32() == 1 &&
+                        gl12PageJson.RootElement.GetProperty("history").GetProperty("items").GetArrayLength() == 0,
+                        "GL12 HTTP reopen audit paging duplicated a decision");
+                using (var gl11Denied = await client.GetAsync(gl12Path + "/execution-history"))
+                    Ensure(gl11Denied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL12-only reviewer gained unauthorized PeriodClose audit access");
+                Authenticate(Token("gl12-read-audit-close"));
+                using (var gl12Denied = await client.GetAsync(gl12Path + "/reopen-history"))
+                    Ensure(gl12Denied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL11-only reviewer gained unauthorized PeriodReopen audit access");
+                Authenticate(Token("gl12-not-member"));
+                using (var gl12Outside = await client.GetAsync(gl12Path + "/reopen-history"))
+                    Ensure(gl12Outside.StatusCode == HttpStatusCode.Forbidden,
+                        "GL12 reopening history disclosed to an unrelated JWT");
+                Authenticate(Token("sql-approver"));
+                Console.WriteLine("  HOST PASS GL12-A05 reopen-only outcome/history, independent PeriodReopen rights and paging over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL");
 
                 // SYS05-GAP03: a quotation does not hold its rate; the next journal
@@ -2038,5 +2202,15 @@ public static class HostedApiIntegration
         Ensure(result.StatusCode == HttpStatusCode.OK, "Production HTTP command failed: " + json);
         return JsonSerializer.Deserialize<CommandReceipt>(json, JsonDefaults.Options)!;
     }
+    private static async Task<(int Journals, int Audits, int Receipts, int Outbox)> ReadOnlyCounts(string connection, Guid cid)
+    {
+        await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options);
+        return (
+            await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid),
+            await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid),
+            await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid),
+            await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid));
+    }
+
     private static void Ensure(bool condition, string message) { if (!condition) throw new Exception(message); }
 }
