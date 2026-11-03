@@ -97,6 +97,41 @@ public static class PeriodReadyCloseSqlAcceptance
             history.History.Items.Single().Action == "period.closed",
             "GL11-T01 closed period did not expose exactly one audited decision");
         var savedCounts = await Snapshot();
+
+        // BR09/GL11-T02: a successful close cannot be replayed with a changed
+        // payload, nor can another key close the already-closed period. A
+        // rejected command must never reserve a receipt or mutate the ledger.
+        var alteredBody = body with { Reason = "محاولة تعديل سبب الإقفال بنفس المفتاح" };
+        try
+        {
+            await Call(s => s.PeriodClose.ChangePeriod(cid, period.Id,
+                approver, closeKey, alteredBody, true, default));
+            throw new Exception("GL11-T02 conflicting replay accepted altered reason");
+        }
+        catch (BusinessException ex) when (ex.Code == "idempotency_conflict") { }
+
+        var duplicateKey = Fixture.Key();
+        try
+        {
+            await Call(s => s.PeriodClose.ChangePeriod(cid, period.Id,
+                approver, duplicateKey, new ChangePeriodRequest(closed.Version,
+                    "إقفال ثانٍ مرفوض"), true, default));
+            throw new Exception("GL11-T02 duplicate close accepted a fresh key");
+        }
+        catch (BusinessException ex) when (ex.Code == "period_state_conflict") { }
+
+        Ensure(savedCounts == await Snapshot(),
+            "GL11-T02 conflicting replay or second close changed SQL state");
+        await using (var rejectedDb = Db())
+        {
+            Ensure(!await rejectedDb.Set<IdempotencyRecord>().AnyAsync(x =>
+                x.CompanyId == cid && x.Key == duplicateKey) &&
+                await rejectedDb.Set<AuditEvent>().CountAsync(x =>
+                    x.CompanyId == cid && x.ResourceId == period.Id &&
+                    x.Action == "period.closed") == 1,
+                "GL11-T02 rejected duplicate close consumed receipt or audit");
+        }
+
         Ensure(savedCounts.Audit == previewCounts.Audit + 1 &&
             savedCounts.Receipt == previewCounts.Receipt + 1 &&
             savedCounts.Outbox == previewCounts.Outbox &&
@@ -124,7 +159,7 @@ public static class PeriodReadyCloseSqlAcceptance
                     x.CompanyId == cid && x.Key == closeKey) == 1,
                 "GL11-T01 positive period close altered posted/cancelled journals or duplicated SQL audit");
         }
-        Console.WriteLine("  SQL PASS GL11-T01 eligible period preview read-only, posted+cancelled preserved, one close and durable replay/history, no financial side effects");
+        Console.WriteLine("  SQL PASS GL11-T01 eligible period preview read-only, posted+cancelled preserved, one close/replay, rejects conflicting payload and second key atomically, no financial side effects");
     }
 
     private static void Ensure(bool ok, string message)
