@@ -826,9 +826,9 @@ public static class HostedApiIntegration
                         new ReverseJournalRequest(postedOpeningJournalVersion, Fixture.Date, "عكس مباشر ممنوع"),
                         JsonDefaults.Options), Encoding.UTF8, "application/json");
                     using var rejected = await client.SendAsync(reverseRequest);
-                    var body = await rejected.Content.ReadAsStringAsync();
+                    var denialBody = await rejected.Content.ReadAsStringAsync();
                     Ensure(rejected.StatusCode == HttpStatusCode.Conflict &&
-                        body.Contains("source_reversal_required", StringComparison.Ordinal),
+                        denialBody.Contains("source_reversal_required", StringComparison.Ordinal),
                         "GL07-C01 source-owned stock journal was reversed through journal API");
                 }
                 Authenticate(Token("audit-no-membership"));
