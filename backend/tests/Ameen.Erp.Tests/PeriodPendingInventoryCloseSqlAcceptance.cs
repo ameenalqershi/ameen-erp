@@ -123,6 +123,31 @@ public static class PeriodPendingInventoryCloseSqlAcceptance
             "cancel", default));
         Ensure(cancelled.Status == "Cancelled",
             "GL11-T02 official inventory cancellation did not complete");
+
+        // A draft from another fiscal period is not a pending posting in January.
+        // It must remain untouched after January closes. GL11 is period-scoped.
+        var otherDate = new DateOnly(2049, 2, 10);
+        var unrelated = await Call(s => s.InventoryOpening.Create(cid, writer,
+            Fixture.Key(), new CreateInventoryOpeningRequest(branch,
+                warehouse.ResourceId, otherDate, otherDate, otherDate, "SAR", 1,
+                "GL11-OTHER-PERIOD", "افتتاح تجريبي في فترة أخرى", new[]
+                {
+                    new InventoryOpeningLineRequest(item.ResourceId, unit.ResourceId, 1, 5)
+                }), default));
+        Ensure(unrelated.Status == "Draft",
+            "GL11-T02 requires a distinct February pending inventory opening");
+        Guid otherPeriodId;
+        await using (var db = Db())
+        {
+            otherPeriodId = (await db.Set<FiscalPeriod>().AsNoTracking()
+                .SingleAsync(x => x.CompanyId == cid &&
+                    x.FiscalYearId == year.ResourceId &&
+                    x.StartsOn == new DateOnly(2049, 2, 1))).Id;
+            var savedUnrelated = await db.Set<InventoryOpening>().AsNoTracking()
+                .SingleAsync(x => x.CompanyId == cid && x.Id == unrelated.ResourceId);
+            Ensure(otherPeriodId != period.Id && savedUnrelated.FiscalPeriodId == otherPeriodId,
+                "GL11-T02 unrelated opening was not assigned to February");
+        }
         var ready = await Call(s => s.PeriodClose.PreviewPeriodClose(cid,
             period.Id, approver, 0, 10, default));
         Ensure(ready.CanCloseGeneralLedger &&
@@ -152,8 +177,18 @@ public static class PeriodPendingInventoryCloseSqlAcceptance
                 await db.Set<IdempotencyRecord>().CountAsync(x =>
                     x.CompanyId == cid && x.Key == key) == 1,
                 "GL11-T02 repaired inventory close created journals or duplicate audit/receipts");
+            var other = await db.Set<InventoryOpening>().AsNoTracking()
+                .SingleAsync(x => x.CompanyId == cid && x.Id == unrelated.ResourceId);
+            var otherPeriod = await db.Set<FiscalPeriod>().AsNoTracking()
+                .SingleAsync(x => x.CompanyId == cid && x.Id == otherPeriodId);
+            Ensure(other.State == InventoryOpeningState.Draft &&
+                other.Version == unrelated.Version &&
+                other.FiscalPeriodId == otherPeriodId && !otherPeriod.IsClosed &&
+                !await db.Set<AuditEvent>().AnyAsync(x => x.CompanyId == cid &&
+                    x.ResourceId == otherPeriodId && x.Action == "period.closed"),
+                "GL11-T02 January close changed February opening or period");
         }
-        Console.WriteLine("  SQL PASS GL11-T02 pending INV06 opening blocks close atomically; cancelled opening permits one audited close/replay");
+        Console.WriteLine("  SQL PASS GL11-T02 pending INV06 opening blocks close atomically; cancelled opening permits one audited close/replay; another period stays open");
     }
     private static void Ensure(bool ok, string reason)
     {
