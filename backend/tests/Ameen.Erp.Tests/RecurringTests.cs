@@ -301,6 +301,31 @@ public static class RecurringTests
             await Error("period_closed", () => Generate(f, template, 10));
             Ensure(f.Store.Count<RecurringJournalGeneration>() == 0);
         });
+        test("GL04-T02: scheduler reports closed due period without creating a draft or receipt", async f =>
+        {
+            var scheduled = await Create(f, Request(f) with {
+                Name = "Scheduled closed-period rejection",
+                GenerationMode = RecurringGenerationMode.Scheduled,
+                StartsOn = new DateOnly(2026, 9, 30),
+                EndsOn = new DateOnly(2026, 9, 30)
+            });
+            var period = f.Store.All<FiscalPeriod>().Single(x => x.Id == Period(f, 9));
+            await f.Service.PeriodClose.ChangePeriod(f.CompanyId, period.Id, f.Approver,
+                Fixture.Key(), new(period.Version, "إقفال الفترة"), true, default);
+            var audits = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            var run = await f.Service.RecurringJournal.RunScheduledDue(f.CompanyId, f.Clerk,
+                new DateOnly(2026, 9, 30), 100, default);
+            Ensure(run.SelectedCount == 1 && run.GeneratedCount == 0 && run.FailedCount == 1 &&
+                run.Rows.Single().TemplateId == scheduled.ResourceId &&
+                run.Rows.Single().ErrorCode == "period_closed");
+            Ensure(f.Store.Count<RecurringJournalGeneration>() == 0 &&
+                f.Store.Count<JournalEntry>() == 0 &&
+                f.Store.Count<OutboxEvent>() == 0 &&
+                f.Store.Count<NumberSequence>() == 0 &&
+                f.Store.Count<AuditEvent>() == audits &&
+                f.Store.Count<IdempotencyRecord>() == receipts);
+        });
         test("GL04 BR05: failed generation rolls back draft, sequence, audit and receipt", async f =>
         {
             var template = await Create(f); var count = f.Store.Count<AuditEvent>(); var key = Fixture.Key();
