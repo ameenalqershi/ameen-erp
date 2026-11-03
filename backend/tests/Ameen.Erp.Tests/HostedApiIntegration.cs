@@ -370,6 +370,36 @@ public static class HostedApiIntegration
                         !json.RootElement.GetProperty("allSucceeded").GetBoolean() &&
                         json.RootElement.GetProperty("rows").GetArrayLength() == 2,
                         "GL06 durable processing batch not retrievable over HTTPS/JWT/SQL");
+                // GL06-A05: the persisted result is scoped to its initiating
+                // actor, even when a second authenticated member has Read and
+                // has access to the source journal. JWT identity, not a query
+                // parameter or batch key alone, controls history visibility.
+                var durableHttpPath = path + "/processing-batches/by-key/" + durableHttpKey;
+                var durableReadCounts = await ReadOnlyCounts(connection, companyId);
+                Authenticate(Token("sql-clerk"));
+                using (var otherActorBatch = await client.GetAsync(durableHttpPath))
+                    Ensure(otherActorBatch.StatusCode == HttpStatusCode.NotFound,
+                        "GL06-A05 other tenant member leaked another actor's batch and durable decisions");
+                Authenticate(Token("audit-no-membership"));
+                using (var nonmemberBatch = await client.GetAsync(durableHttpPath))
+                    Ensure(nonmemberBatch.StatusCode == HttpStatusCode.Forbidden,
+                        "GL06-A05 unrelated JWT subject disclosed a durable batch");
+                Authenticate(Token("sql-approver"));
+                using (var missingBatch = await client.GetAsync(
+                    path + "/processing-batches/by-key/" + Fixture.Key()))
+                    Ensure(missingBatch.StatusCode == HttpStatusCode.NotFound,
+                        "GL06-A05 missing batch returned an unintended success");
+                using (var recoveredBatch = await client.GetAsync(durableHttpPath))
+                using (var recoveredJson = JsonDocument.Parse(await recoveredBatch.Content.ReadAsStringAsync()))
+                    Ensure(recoveredBatch.StatusCode == HttpStatusCode.OK &&
+                        recoveredJson.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        recoveredJson.RootElement.GetProperty("createdBy").GetString() == "sql-approver" &&
+                        recoveredJson.RootElement.GetProperty("rows").GetArrayLength() == 2 &&
+                        !recoveredJson.RootElement.GetProperty("allSucceeded").GetBoolean(),
+                        "GL06-A05 authorized owner did not recover the original durable result");
+                Ensure(durableReadCounts == await ReadOnlyCounts(connection, companyId),
+                    "GL06-A05 authorized/denied durable result reads mutated SQL journals, audit, receipts or outbox");
+                Console.WriteLine("  HOST PASS GL06-A05 owner-only batch result, nonmember JWT denial, missing-key 404, stable retry and read-only SQL");
                 using (var response = await client.GetAsync(path + $"/{receipt.ResourceId}/processing-history"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP processing history duplicated");
