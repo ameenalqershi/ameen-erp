@@ -2089,11 +2089,15 @@ public static class HostedApiIntegration
                 using(var auditDenied=await client.GetAsync(numPath+$"/{numCard.ResourceId}/audit-events"))
                     Ensure(auditDenied.StatusCode==HttpStatusCode.Forbidden,
                         "SYS10 scoped JWT read audit without Audit permission");
-                using(var reserveDenied=await client.PostAsync(numPath+$"/{numCard.ResourceId}/reserve",
-                    new StringContent(JsonSerializer.Serialize(new ReserveDocumentNumberRequest(
-                        numCard.Version,numBranch.ResourceId),JsonDefaults.Options),Encoding.UTF8,"application/json")))
+                using(var reserveRequest=new HttpRequestMessage(HttpMethod.Post,numPath+$"/{numCard.ResourceId}/reserve"))
+                {
+                    reserveRequest.Headers.Add("Idempotency-Key",Fixture.Key());
+                    reserveRequest.Content=new StringContent(JsonSerializer.Serialize(new ReserveDocumentNumberRequest(
+                        numCard.Version,numBranch.ResourceId),JsonDefaults.Options),Encoding.UTF8,"application/json");
+                    using var reserveDenied=await client.SendAsync(reserveRequest);
                     Ensure(reserveDenied.StatusCode==HttpStatusCode.Forbidden,
                         "SYS10 read-only scoped JWT allocated a document number");
+                }
                 Authenticate(Token("sql-owner"));
                 using(var finalResponse=await client.GetAsync(numPath+$"/{numCard.ResourceId}"))
                 using(var json=JsonDocument.Parse(await finalResponse.Content.ReadAsStringAsync()))
