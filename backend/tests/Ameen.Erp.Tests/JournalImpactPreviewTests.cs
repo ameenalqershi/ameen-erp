@@ -38,6 +38,22 @@ public static class JournalImpactPreviewTests
             Ensure((await f.Journal(r.ResourceId)).State == JournalState.Draft &&
                 f.Store.Count<AuditEvent>() == beforeAudit && f.Store.Count<OutboxEvent>() == 0);
         });
+        test("GL03-A05: rejected unbalanced preview refreshes after draft correction without ledger side effects", async f =>
+        {
+            var draft = await f.Draft(f.Request(100m, 99m));
+            var blocked = await f.Service.Journal.ImpactPreview(f.CompanyId, draft.ResourceId, f.Clerk, default);
+            Ensure(!blocked.CanSubmit && !blocked.IsBalanced && blocked.ValidationErrorCode == "journal_unbalanced");
+            var edited = await f.Service.Journal.EditJournal(f.CompanyId, draft.ResourceId, f.Clerk,
+                Fixture.Key(), new(draft.Version, "تصحيح الاتزان", f.Request(100m, 100m).Lines), default);
+            var audits = f.Store.Count<AuditEvent>();
+            var outbox = f.Store.Count<OutboxEvent>();
+            var refreshed = await f.Service.Journal.ImpactPreview(f.CompanyId, draft.ResourceId, f.Clerk, default);
+            Ensure(refreshed.CanSubmit && refreshed.IsBalanced && refreshed.ValidationErrorCode is null &&
+                refreshed.Difference == 0m && refreshed.FunctionalDebit == 100m &&
+                refreshed.FunctionalCredit == 100m && refreshed.Version == edited.Version);
+            Ensure((await f.Journal(draft.ResourceId)).State == JournalState.Draft &&
+                f.Store.Count<AuditEvent>() == audits && f.Store.Count<OutboxEvent>() == outbox);
+        });
         test("GL07-A05: reversal impact preview inverts original historical line amounts without mutation", async f =>
         {
             var original = await f.Post(await f.Draft(f.Request(175m, 175m)));
