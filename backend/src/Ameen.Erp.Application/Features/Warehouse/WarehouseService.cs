@@ -41,14 +41,20 @@ public sealed partial class WarehouseService : ApplicationService
         {
             var w = await Required<Warehouse>(cid, id, token); Check.Version(w, request.ExpectedVersion); var reason = Check.Text(request.Reason, "السبب", 500);
             var candidate = new Warehouse(cid, request.Code, request.Name, request.BranchId, request.KeeperMembershipId, request.InventoryAccountId, request.Type, request.TrackLocations, request.EnglishName, request.Notes);
+            // Location IDs are durable warehouse references. A metadata-only edit must not
+            // silently delete and recreate them; after stock movement their structure is locked.
+            var locations = WarehouseLocations(w, request.Locations);
+            var unchangedLocations = w.Locations.Count == locations.Count &&
+                w.Locations.All(old => locations.Any(next => next.Code == old.Code && next.Description == old.Description));
             if ((await store.Find<StockMovement>(cid, x => x.WarehouseId == id, token)).Any())
                 Check.That(w.Code == candidate.Code && w.BranchId == candidate.BranchId && w.InventoryAccountId == candidate.InventoryAccountId &&
-                    w.Type == candidate.Type && w.TrackLocations == candidate.TrackLocations, "warehouse_stock_structure_in_use", "بنية المخزن مقفلة بعد حركة المخزون.", ErrorKind.Conflict);
+                    w.Type == candidate.Type && w.TrackLocations == candidate.TrackLocations && unchangedLocations,
+                    "warehouse_stock_structure_in_use", "بنية المخزن ومواقعه مقفلة بعد حركة المخزون.", ErrorKind.Conflict);
             await ValidateWarehouseReferences(candidate, token); await UniqueWarehouseCode(candidate, id, token);
             var before = WarehouseSnapshot(w);
             w.Configure(candidate.Code, candidate.Name, candidate.BranchId, candidate.KeeperMembershipId, candidate.InventoryAccountId, candidate.Type, candidate.TrackLocations, candidate.EnglishName, candidate.Notes);
-            var locations = WarehouseLocations(w, request.Locations);
-            store.RemoveWarehouseLocations(w.Locations.ToArray()); w.SetLocations(locations);
+            if (!unchangedLocations) store.RemoveWarehouseLocations(w.Locations.ToArray());
+            w.SetLocations(unchangedLocations ? w.Locations : locations);
             Audit(cid, actor, "warehouse.edited", w, new { before, after = WarehouseSnapshot(w), reason }); return Receipt(w, "Updated");
         }, ct);
     public Task<CommandReceipt> SetWarehouseStatus(Guid cid, Guid id, Actor actor, string key, SetWarehouseStatusRequest request, CancellationToken ct) =>

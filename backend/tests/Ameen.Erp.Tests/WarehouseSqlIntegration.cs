@@ -23,6 +23,13 @@ public static class WarehouseSqlIntegration
         Ensure(results.All(x => x == results[0]), "Warehouse edit replay differs");
         w = await Call(s => s.Warehouse.GetWarehouse(cid, w.Id, owner, default));
         Ensure(w.Revision == 2 && w.Locations.Single().Description == "رف معدل", "Location replacement differs");
+        var preservedLocationId = w.Locations.Single().Id;
+        var descriptive = WarehouseTests.Edit(w) with { Name = "اسم SQL جديد" };
+        var descriptiveEdit = await Call(s => s.Warehouse.EditWarehouse(cid, w.Id, owner, Fixture.Key(), descriptive, default));
+        w = await Call(s => s.Warehouse.GetWarehouse(cid, w.Id, owner, default));
+        Ensure(w.Version == descriptiveEdit.Version && w.Name == "اسم SQL جديد" &&
+            w.Locations.Single().Id == preservedLocationId,
+            "A descriptive SQL edit must preserve the warehouse location primary key");
         Ensure((await Call(s => s.Warehouse.SearchWarehouses(cid, owner, "SQL warehouse", branch.ResourceId, true, 0, 10, default))).TotalCount == 1, "SQL warehouse search differs");
         Ensure((await Call(s => s.Warehouse.ListAccountWarehouses(cid, account.ResourceId, owner, 0, 10, default))).TotalCount == 1, "SQL warehouse account usage differs");
         await using (var db = Context()) await db.Database.ExecuteSqlRawAsync("ALTER TABLE [AuditEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_WarehouseAudit] CHECK ([Action] <> 'warehouse.edited')");
