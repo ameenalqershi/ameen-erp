@@ -7,10 +7,10 @@
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
-    "audit": 47,
+    "audit": 46,
     "derived": 4,
-    "partial": 243,
-    "pending": 2116
+    "partial": 245,
+    "pending": 2115
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -236,11 +236,15 @@
           "binding": "AuditEvent.OccurredAt: fiscal-year.created"
         },
         "SYS03-F14": {
-          "status": "audit",
-          "binding": "AuditEvent.OccurredAt: period.closed / period.reopened"
+          "status": "partial",
+          "binding": "FiscalYear.LastModifiedAt at creation; period.closed/reopened in AuditEvent; calendar edit timestamps pending"
+        },
+        "SYS03-F13": {
+          "status": "partial",
+          "binding": "FiscalYear.Revision int? = 1 on new years, nullable for historical un-attributed rows; edit calendar + increments pending; migration 046"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/FiscalCalendarTests.cs; backend/tests/Ameen.Erp.Tests/FiscalCalendarSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/FiscalCalendarTests.cs; backend/tests/Ameen.Erp.Tests/FiscalCalendarSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/FiscalYearAuditSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "SYS04": {
       "api": "GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",

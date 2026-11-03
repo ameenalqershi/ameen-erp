@@ -19,6 +19,26 @@ public static class FiscalCalendarSqlIntegration
         Ensure(results.All(x => x == results[0]), "Calendar concurrent replay differs");
         var calendar = await Call(s => s.FiscalCalendar.GetFiscalCalendar(cid, results[0].ResourceId, owner, default));
         Ensure(calendar.Periods.Count == 2 && calendar.Periods[0].Code == "2027-H1", "Custom SQL calendar differs");
+        // SYS03-FG04: the original immutable fiscal-year creation has real actor/time
+        // and numeric revision, persisted independently of the Guid concurrency token.
+        Ensure(calendar.Year.CreatedBy == owner.Subject &&
+            calendar.Year.CreatedAt is not null && calendar.Year.Revision == 1 &&
+            calendar.Year.LastModifiedAt == calendar.Year.CreatedAt,
+            "SYS03-FG04 created year lacks first-revision audit metadata");
+        await using (var auditMetaDb = Context())
+        {
+            var stored = await auditMetaDb.Set<FiscalYear>().AsNoTracking()
+                .SingleAsync(x => x.CompanyId == cid && x.Id == results[0].ResourceId);
+            var events = await auditMetaDb.Set<AuditEvent>().AsNoTracking()
+                .Where(x => x.CompanyId == cid && x.Action == "fiscal-year.created" &&
+                    x.ResourceId == stored.Id).ToListAsync();
+            Ensure(stored.CreatedBy == owner.Subject && stored.CreatedAt is not null &&
+                stored.Revision == 1 && stored.LastModifiedAt == stored.CreatedAt &&
+                stored.Version == results[0].Version && events.Count == 1 &&
+                events[0].ActorId == stored.CreatedBy && events[0].OccurredAt == stored.CreatedAt,
+                "SYS03-FG04 SQL identity, replay, numeric revision or audit actor/time differ");
+        }
+        Console.WriteLine("  SQL PASS SYS03-FG04 new fiscal year audit fields persisted, no duplicate replay");
         // SYS03-AC01: a newly provisioned calendar opens two contiguous
         // posting periods with exact tenant scope and no implicit closure.
         Ensure(calendar.State == FiscalCalendarState.Open && calendar.GeneralLedgerOnly &&

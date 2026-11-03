@@ -43,8 +43,12 @@ screen("SYS03", "GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}
        "تعديل تقويم قائم وإصدار عددي وإقفال السنة الشامل غير منفذ؛ لا يوجد تقويم مختلف لكل فرع؛ الفترة ذات أكثر من موعد دوري ترفض التوليد؛ لا حذف أو تعطيل بديل للإقفال",
        {1: "CompanyId", 3: "FiscalCalendar.State (GeneralLedgerOnly)", 4: "FiscalYear.Code", 5: "FiscalYear.StartsOn", 6: "FiscalYear.EndsOn", 7: "FiscalPeriod.Code / FiscalPeriodRequest.Code", 8: "FiscalPeriod.StartsOn / FiscalPeriodRequest.StartsOn", 9: "FiscalPeriod.EndsOn / FiscalPeriodRequest.EndsOn", 10: "FiscalPeriod.IsClosed"},
        [(11, "AuditEvent.ActorId: fiscal-year.created"), (12, "AuditEvent.OccurredAt: fiscal-year.created"), (14, "AuditEvent.OccurredAt: period.closed / period.reopened")])
+MAP["SYS03"]["fields"]["SYS03-F13"] = dict(status="partial",
+    binding="FiscalYear.Revision int? = 1 on new years, nullable for historical un-attributed rows; edit calendar + increments pending; migration 046")
+MAP["SYS03"]["fields"]["SYS03-F14"] = dict(status="partial",
+    binding="FiscalYear.LastModifiedAt at creation; period.closed/reopened in AuditEvent; calendar edit timestamps pending")
 MAP["SYS03"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
-    ["FiscalCalendarTests.cs", "FiscalCalendarSqlIntegration.cs", "HostedApiIntegration.cs"])
+    ["FiscalCalendarTests.cs", "FiscalCalendarSqlIntegration.cs", "FiscalYearAuditSqlIntegration.cs", "HostedApiIntegration.cs"])
 screen("SYS04", "GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
        "بطاقة عملة بأسماء ورمز عرض واسم جزء وإصدار عددي؛ تحرير وحالة وبحث وتدقيق؛ قفل الدقة بعد الاستخدام وفحص التعطيل عند الترحيل",
        "الرمز الداخلي موحد مع رمز العملة ولا يربط بقائمة ISO خارجية وغير قابل لإعادة التسمية؛ أسماء العملة الوظيفية والبطاقات القديمة تبدأ برمز ISO وتحتاج تحريرًا؛ تحويل الدقة التاريخية غير متاح",
