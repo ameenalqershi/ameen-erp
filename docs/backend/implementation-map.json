@@ -1318,7 +1318,7 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/JournalAuditTests.cs; backend/tests/Ameen.Erp.Tests/JournalPrintTests.cs; backend/tests/Ameen.Erp.Tests/JournalPrintSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/JournalImpactPreviewTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalTests.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ScheduledReversalHostedIntegration.cs; backend/tests/Ameen.Erp.Tests/HttpIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
     },
     "GL11": {
-      "api": "POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview",
+      "api": "POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history",
       "implemented": "معاينة إقفال الأستاذ بشروط مفصلة وموانع مقسمة؛ تنفيذ يعيد فحص القيود المعلقة واتزان المرحل داخل المعاملة",
       "remaining": "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة وإصدار عددي للإجراء",
       "fields": {
@@ -1355,7 +1355,7 @@
           "binding": "FiscalPeriod.IsClosed: general ledger only"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/PeriodExecutionHistorySqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "GL12": {
       "api": "POST /companies/{companyId}/periods/{id}/reopen",

@@ -432,17 +432,17 @@ GL10,GL10-F11,أنشأه,system,pending,,
 GL10,GL10-F12,وقت الإنشاء,system,pending,,
 GL10,GL10-F13,رقم إصدار التعديل,system,pending,,
 GL10,GL10-F14,آخر تعديل,system,pending,,
-GL11,GL11-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
 GL11,GL11-F02,الفرع,conditional,pending,,
-GL11,GL11-F03,الحالة,system,partial,FiscalPeriod.IsClosed: general ledger only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F04,الفترة أو السنة,required,implemented,route.id (period only),POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F03,الحالة,system,partial,FiscalPeriod.IsClosed: general ledger only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F04,الفترة أو السنة,required,implemented,route.id (period only),POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
 GL11,GL11-F05,نوع الإقفال,required,pending,,
 GL11,GL11-F06,حساب الأرباح المرحلة,conditional,pending,,
-GL11,GL11-F07,فحص المطابقة,system,partial,PeriodClosePreview.Checks.Code: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F08,النتيجة,system,partial,PeriodClosePreview.Checks.Passed: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F09,المعتمد,system,audit,AuditEvent.ActorId: period.closed,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F10,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F07,فحص المطابقة,system,partial,PeriodClosePreview.Checks.Code: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F08,النتيجة,system,partial,PeriodClosePreview.Checks.Passed: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F09,المعتمد,system,audit,AuditEvent.ActorId: period.closed,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F10,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
 GL11,GL11-F12,رقم إصدار التعديل,system,pending,,
 GL11,GL11-F13,آخر تعديل,system,pending,,
 GL12,GL12-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/reopen

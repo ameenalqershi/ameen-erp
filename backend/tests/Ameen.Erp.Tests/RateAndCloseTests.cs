@@ -108,6 +108,67 @@ public static class RateAndCloseTests
             await Error("reference_not_found", () => f.Service.ExchangeRate.GetExchangeRate(f.CompanyId, r.ResourceId, f.Owner, default));
             await Error("permission_denied", () => f.Service.ExchangeRate.QuoteExchangeRate(cid, f.Clerk, "USD", Fixture.Date, default));
         });
+        test("GL11-A05: execution result and immutable close/reopen history are paginated and audit-scoped", async f =>
+        {
+            // Fixture owner has Audit but not necessarily PeriodClose; grant
+            // a dedicated actor the exact conjunction the query requires.
+            var reviewer = new Actor("gl11-execution-auditor");
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+                new(reviewer.Subject, new[] { Permissions.Read, Permissions.Audit,
+                    Permissions.PeriodClose }, true, Array.Empty<Guid>(), null), default);
+            var period = Period(f);
+            var empty = await f.Service.PeriodClose.PeriodExecutionHistory(f.CompanyId,
+                period.Id, reviewer, 0, 10, default);
+            Ensure(empty.PeriodId == period.Id && empty.PeriodCode == period.Code &&
+                !empty.IsClosed && empty.History.TotalCount == 0 &&
+                empty.History.Items.Count == 0);
+
+            var close = await f.Service.PeriodClose.ChangePeriod(f.CompanyId, period.Id,
+                f.Approver, Fixture.Key(), new(period.Version, "إقفال اختبار السجل"), true, default);
+            var first = await f.Service.PeriodClose.PeriodExecutionHistory(f.CompanyId,
+                period.Id, reviewer, 0, 1, default);
+            Ensure(first.IsClosed && first.Version == close.Version &&
+                first.History.TotalCount == 1 && first.History.Items.Count == 1 &&
+                first.History.Items[0].Action == "period.closed" &&
+                first.History.Items[0].ActorId == f.Approver.Subject &&
+                System.Text.Json.JsonDocument.Parse(first.History.Items[0].Details).RootElement.GetProperty("reason").GetString() == "إقفال اختبار السجل");
+            var reopened = await f.Service.PeriodClose.ChangePeriod(f.CompanyId, period.Id,
+                f.Approver, Fixture.Key(), new(close.Version, "إعادة فتح اختبار السجل"), false, default);
+            var firstPage = await f.Service.PeriodClose.PeriodExecutionHistory(f.CompanyId,
+                period.Id, reviewer, 0, 1, default);
+            var secondPage = await f.Service.PeriodClose.PeriodExecutionHistory(f.CompanyId,
+                period.Id, reviewer, 1, 1, default);
+            Ensure(!firstPage.IsClosed && firstPage.Version == reopened.Version &&
+                firstPage.History.TotalCount == 2 && secondPage.History.TotalCount == 2 &&
+                firstPage.History.Items.Count == 1 && secondPage.History.Items.Count == 1 &&
+                firstPage.History.Items[0].Id != secondPage.History.Items[0].Id &&
+                new[] { firstPage.History.Items[0].Action, secondPage.History.Items[0].Action }
+                    .OrderBy(x => x).SequenceEqual(new[] { "period.closed", "period.reopened" }) &&
+                System.Text.Json.JsonDocument.Parse(firstPage.History.Items[0].Details).RootElement.GetProperty("reason").GetString() == "إعادة فتح اختبار السجل");
+
+            var reader = new Actor("gl11-close-reader-no-audit");
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+                new(reader.Subject, new[] { Permissions.Read, Permissions.PeriodClose }, true,
+                    Array.Empty<Guid>(), null), default);
+            await Error("permission_denied", () => f.Service.PeriodClose.PeriodExecutionHistory(
+                f.CompanyId, period.Id, reader, 0, 10, default));
+            await Error("permission_denied", () => f.Service.PeriodClose.PeriodExecutionHistory(
+                f.CompanyId, period.Id, new Actor("gl11-outsider"), 0, 10, default));
+
+            var auditCount = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            var journals = f.Store.Count<JournalEntry>();
+            var outbox = f.Store.Count<OutboxEvent>();
+            var numbers = f.Store.All<NumberSequence>().Sum(x => x.LastNumber);
+            var emptyPage = await f.Service.PeriodClose.PeriodExecutionHistory(f.CompanyId,
+                period.Id, reviewer, 2, 1, default);
+            Ensure(emptyPage.History.TotalCount == 2 && emptyPage.History.Items.Count == 0 &&
+                f.Store.Count<AuditEvent>() == auditCount &&
+                f.Store.Count<IdempotencyRecord>() == receipts &&
+                f.Store.Count<JournalEntry>() == journals &&
+                f.Store.Count<OutboxEvent>() == outbox &&
+                f.Store.All<NumberSequence>().Sum(x => x.LastNumber) == numbers);
+        });
         test("GL11: preview lists pending journals with accurate paginated blockers without writes", async f =>
         {
             await f.Draft(); await f.Draft(); var audit = f.Store.Count<AuditEvent>(); var period = Period(f);

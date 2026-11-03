@@ -837,6 +837,22 @@ public static class HostedApiIntegration
                     Ensure(response.StatusCode == HttpStatusCode.OK && !json.RootElement.GetProperty("canCloseGeneralLedger").GetBoolean() &&
                         json.RootElement.GetProperty("generalLedgerOnly").GetBoolean() && json.RootElement.GetProperty("issues").GetProperty("items").GetArrayLength() == 1,
                         "SQL/HTTP close preview did not expose pending blockers");
+                // GL11-A05: history endpoint is read-only and requires a tenant-wide
+                // PeriodClose + Read + Audit permission set, not merely an OIDC token.
+                var closeHistoryPath = $"/api/v1/companies/{companyId}/periods/{periodId}/execution-history";
+                using (var response = await client.GetAsync(closeHistoryPath + "?offset=0&limit=1"))
+                using (var gl11HistoryBody = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        gl11HistoryBody.RootElement.GetProperty("periodId").GetGuid() == periodId &&
+                        gl11HistoryBody.RootElement.GetProperty("history").GetProperty("totalCount").GetInt32() == 0 &&
+                        gl11HistoryBody.RootElement.GetProperty("history").GetProperty("items").GetArrayLength() == 0,
+                        "GL11 HTTP execution history returned unintended event or wrong period");
+                Authenticate(Token("gl11-audit-nonmember"));
+                using (var gl11HistoryDenied = await client.GetAsync(closeHistoryPath))
+                    Ensure(gl11HistoryDenied.StatusCode == HttpStatusCode.Forbidden,
+                        "GL11 execution history leaked to an unrelated JWT subject");
+                Authenticate(Token("sql-approver"));
+                Console.WriteLine("  HOST PASS GL11-A05 scoped execution result/history over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL");
 
                 // SYS05-GAP03: a quotation does not hold its rate; the next journal
