@@ -1204,7 +1204,7 @@
         },
         "GL06-F10": {
           "status": "implemented",
-          "binding": "JournalProcessingBatch.ActorId: actor of durable batch"
+          "binding": "JournalProcessingBatch.ActorId / JournalProcessingDurableResult.CreatedBy: server-recorded actor; owner-scoped durable read"
         },
         "GL06-F11": {
           "status": "implemented",

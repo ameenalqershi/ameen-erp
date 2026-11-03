@@ -173,7 +173,7 @@ screen("GL05", "POST /companies/{companyId}/journals/{id}/submit|approve|return;
 screen("GL06", "POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}",
        "ترحيل جماعي مستقل لكل قيد مع إيصال ومفتاح مستند وتدقيق وOutbox؛ نتائج نجاح وفشل صريحة ومعاينة وسجل رفض التحقق؛ إعادة الناجح دون تكرار وتراجع الفاشل؛ رأس دفعة دائم برقم إصدار وتوقيت خادمي وسجل إخفاق تقني خارج معاملة المستند مع استئناف آمن", "توجيه مستندات المصادر الأخرى وعامل Outbox وتشغيله في الإنتاج؛ ربط سياسة مسارات الاعتماد متعددة المراحل مع SYS09 غير مكتمل؛ ملف الدولة والمصادر الخارجية لم تُنفذ",
        {1: "route.companyId", 2: "JournalEntry.BranchId", 3: "State", 6: "PostedAt", 7: "route.id", 9: "CommandReceipt.ResourceId / Number",
-        10: "JournalProcessingBatch.ActorId: actor of durable batch", 11: "JournalProcessingBatch.CreatedAt: server time",
+        10: "JournalProcessingBatch.ActorId / JournalProcessingDurableResult.CreatedBy: server-recorded actor; owner-scoped durable read", 11: "JournalProcessingBatch.CreatedAt: server time",
         12: "JournalProcessingBatch.Revision: integer independent of Version UUID",
         13: "JournalProcessingBatch.LastModifiedAt: server time; recorded per-item audit"})
 for code in ["GL05", "GL06"]:

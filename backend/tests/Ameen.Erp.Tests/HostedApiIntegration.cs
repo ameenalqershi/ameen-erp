@@ -226,6 +226,7 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK &&
                         json.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        json.RootElement.GetProperty("createdBy").GetString() == "sql-approver" &&
                         json.RootElement.GetProperty("lastModifiedAt").GetDateTimeOffset() >= json.RootElement.GetProperty("createdAt").GetDateTimeOffset() &&
                         !json.RootElement.GetProperty("allSucceeded").GetBoolean() &&
                         json.RootElement.GetProperty("rows").GetArrayLength() == 2,

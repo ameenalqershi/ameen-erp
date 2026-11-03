@@ -89,7 +89,17 @@ public static class JournalProcessingSqlIntegration
             var ids = items.Select(x => x.JournalId).ToArray();
             Ensure(await db.Set<OutboxEvent>().CountAsync(x => ids.Contains(x.ResourceId)) == 2, "Batch produced duplicate effects");
             Ensure(await db.Set<AuditEvent>().CountAsync(x => ids.Contains(x.ResourceId) && x.Action.StartsWith("journal.processing-")) == 3, "Batch history duplicate/missing");
+            // GL06-F06: the execution date is recorded by the server only for
+            // successfully posted documents, never for a rejected batch item.
+            var persisted = await db.Set<JournalEntry>().Where(x => x.CompanyId == cid &&
+                ids.Contains(x.Id)).ToArrayAsync();
+            var postedAt = new FixedClock().UtcNow;
+            Ensure(persisted.Length == 3 &&
+                persisted.Count(x => x.State == JournalState.Posted && x.PostedAt == postedAt) == 2 &&
+                persisted.Count(x => x.State == JournalState.Draft && x.PostedAt == null) == 1,
+                "GL06 execution timestamp missing, client-inferred or set for rejected item");
         }
+        Console.WriteLine("  SQL PASS GL06-FG02 textual number-range selection and server-only execution timestamp");
         var fail = await Approve(await Draft()); var succeed = await Approve(await Draft());
         var retryItems = new[] { new JournalProcessingItem(fail.ResourceId, fail.Version, Fixture.Key()), new JournalProcessingItem(succeed.ResourceId, succeed.Version, Fixture.Key()) };
         // DDL cannot parameterize a CHECK literal; the only inserted value is a generated, typed Guid.
