@@ -16,6 +16,62 @@ public static class InventoryIdentityTests
     private static EditInventoryIdentityRequest Edit(InventoryIdentity x) => new(x.Version, x.Code, x.Name, x.ProductionDate, x.ExpiryDate, x.QualityStatus, x.EnglishName, x.Notes, "تصحيح");
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV05-CTRL01: production precedes expiry and serial uniqueness stays item scoped", async f =>
+        {
+            var first = await Setup(f, ItemTracking.Serial);
+            var firstItem = await f.Service.Item.GetItem(f.CompanyId, first, f.Owner, default);
+            var secondItem = await f.Service.Item.CreateItem(f.CompanyId, f.Owner, Fixture.Key(),
+                new("SECOND-SERIAL", "صنف تسلسل ثان", ItemType.Goods, ItemTracking.Serial,
+                    firstItem.GroupId, firstItem.BaseUnitId, firstItem.Units.Select(x =>
+                        new ItemUnitRequest(x.UnitId, x.FactorToBase, null, x.SalePrice)).ToArray(),
+                    ShelfLifeDays: 30), default);
+            var second = secondItem.ResourceId;
+            var request = Request with { Code = "SERIAL-A", SerialNumber = "SER-2026-A" };
+            var created = await f.Service.InventoryIdentity.CreateSerial(f.CompanyId, first, f.Owner,
+                Fixture.Key(), request, default);
+            var card = await f.Service.InventoryIdentity.GetSerial(f.CompanyId, first, created.ResourceId,
+                f.Owner, default);
+            Ensure(card.ItemId == first && card.SerialNumber == "SER-2026-A" &&
+                card.LotNumber is null && card.ExpiryDate > card.ProductionDate);
+            await Error("duplicate_inventory_identity", () => f.Service.InventoryIdentity.CreateSerial(
+                f.CompanyId, first, f.Owner, Fixture.Key(), request with { Code = "SERIAL-B" }, default));
+            var independent = await f.Service.InventoryIdentity.CreateSerial(f.CompanyId, second, f.Owner,
+                Fixture.Key(), request, default);
+            Ensure(independent.ResourceId != created.ResourceId &&
+                (await f.Service.InventoryIdentity.SearchSerials(f.CompanyId, first, f.Limited,
+                    "SER-2026-A", null, true, 0, 10, default)).TotalCount == 1 &&
+                (await f.Service.InventoryIdentity.SearchSerials(f.CompanyId, second, f.Limited,
+                    "SER-2026-A", null, true, 0, 10, default)).TotalCount == 1);
+            Ensure(f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV05-AC02: negative expiry, tracking and duplicate serial fail without mutation", async f =>
+        {
+            var item = await Setup(f, ItemTracking.Serial);
+            var request = Request with { Code = "SERIAL-NEG", SerialNumber = "SER-NEG-1" };
+            var created = await f.Service.InventoryIdentity.CreateSerial(f.CompanyId, item, f.Owner,
+                Fixture.Key(), request, default);
+            var original = await f.Service.InventoryIdentity.GetSerial(f.CompanyId, item, created.ResourceId,
+                f.Owner, default);
+            var audits = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            await Error("invalid_inventory_expiry", () => f.Service.InventoryIdentity.CreateSerial(
+                f.CompanyId, item, f.Owner, Fixture.Key(), request with
+                { Code = "SERIAL-DATE", SerialNumber = "SER-NEG-2", ExpiryDate = Request.ProductionDate }, default));
+            await Error("inventory_number_tracking_mismatch", () => f.Service.InventoryIdentity.CreateSerial(
+                f.CompanyId, item, f.Owner, Fixture.Key(), request with
+                { Code = "SERIAL-MIX", LotNumber = "WRONG", SerialNumber = null }, default));
+            await Error("duplicate_inventory_identity", () => f.Service.InventoryIdentity.CreateSerial(
+                f.CompanyId, item, f.Owner, Fixture.Key(), request with { Code = "SERIAL-DUP" }, default));
+            await Error("version_conflict", () => f.Service.InventoryIdentity.EditSerial(
+                f.CompanyId, item, original.Id, f.Owner, Fixture.Key(),
+                new(Guid.NewGuid(), original.Code, original.Name, original.ProductionDate, original.ExpiryDate,
+                    original.QualityStatus, original.EnglishName, original.Notes, "stale", SerialNumber: original.SerialNumber), default));
+            Ensure(f.Store.Count<InventoryIdentity>() == 1 &&
+                f.Store.Count<AuditEvent>() == audits && f.Store.Count<IdempotencyRecord>() == receipts &&
+                f.Store.Count<StockMovement>() == 0 && f.Store.Count<OutboxEvent>() == 0 &&
+                (await f.Service.InventoryIdentity.GetSerial(f.CompanyId, item, original.Id,
+                    f.Owner, default)).Version == original.Version);
+        });
         test("INV05-FG01: identity card preserves generated ID tenant normalized code and Arabic name", async f =>
         {
             var item = await Setup(f);
