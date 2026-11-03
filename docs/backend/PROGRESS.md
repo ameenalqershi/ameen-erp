@@ -1,5 +1,9 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS01-FG01 — identity/code/Arabic name coverage and ID generation review (3 November 2026)
+
+The atomic Notion task SYS01-FG01 covers company ID, company scope, code and Arabic name. Existing company creation accepts a GUID supplied in CreateCompanyRequest.Id by the platform provisioning caller, whereas the original SYS01-F01 field labels the internal ID "computed/system." Do not silently equate a caller-supplied GUID with a server-generated field or change the provisioning/API contract without resolving that interpretation. Focused acceptance checks the current persisted ID, code and Arabic name in isolated SQL and production HTTPS/JWT/SQL, with commits 6ecc3a888167bfae98995e0771ca1e0db4ceafe7 and e030702f5e7de85f1e49ce5376a30330d0eabf2e. These additions are **not** evidence of complete source conformance for SYS01-FG01; keep the Notion task in progress and verify CI. No original analysis or migration change.
+
 ## SYS01-FG02 — verified-field acceptance under CI (3 November 2026)
 
 Notion task SYS01-FG02 covers EnglishName (optional), IsActive (required), Notes (optional) and LegalName (required); all are mapped as implemented in docs/backend/fields-implementation.csv and persisted by Company.Configure. Focused domain tests now assert their roundtrip, CompanySqlIntegration checks notes persisted in the isolated SQL-backed service, and HostedApiIntegration checks EnglishName, Notes and LegalName through production HTTPS/JWT/SQL GET following authorized PUT. The existing host workflow verifies disabled/enabled company status, revision and audit. Related commits baa08a7691effaf16d461c60fc05e55034f1e308, 6444bf9610d5369d68d094afc2aba4d29591f1b9 and bf6430715b86e1c8863f67f0ff46bc784ebf442d require successful final CI before this atomic field task is closed. No schema/policy/analysis changes; SYS01 screen remains partial due unrelated policy gaps.
