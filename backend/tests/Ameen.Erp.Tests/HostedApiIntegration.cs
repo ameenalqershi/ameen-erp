@@ -1346,6 +1346,27 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("periods").GetArrayLength() == 2 &&
                         json.RootElement.GetProperty("state").GetString() == "Open" && json.RootElement.GetProperty("generalLedgerOnly").GetBoolean(), "Custom HTTP calendar failed");
+                // SYS03-AC01: new periods are open, contiguous and carry
+                // the exact posting calendar returned by the production API.
+                using (var fiscalPositive = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}"))
+                using (var positiveJson = JsonDocument.Parse(await fiscalPositive.Content.ReadAsStringAsync()))
+                {
+                    var periods = positiveJson.RootElement.GetProperty("periods").EnumerateArray().ToArray();
+                    Ensure(fiscalPositive.StatusCode == HttpStatusCode.OK &&
+                        positiveJson.RootElement.GetProperty("state").GetString() == "Open" &&
+                        positiveJson.RootElement.GetProperty("generalLedgerOnly").GetBoolean() &&
+                        periods.Length == 2 &&
+                        periods[0].GetProperty("code").GetString() == "2026-H1" &&
+                        periods[0].GetProperty("startsOn").GetString() == "2026-01-01" &&
+                        periods[0].GetProperty("endsOn").GetString() == "2026-06-30" &&
+                        !periods[0].GetProperty("isClosed").GetBoolean() &&
+                        periods[1].GetProperty("code").GetString() == "2026-H2" &&
+                        periods[1].GetProperty("startsOn").GetString() == "2026-07-01" &&
+                        periods[1].GetProperty("endsOn").GetString() == "2026-12-31" &&
+                        !periods[1].GetProperty("isClosed").GetBoolean(),
+                        "SYS03-AC01 HTTPS calendar did not expose contiguous open periods");
+                }
+                Console.WriteLine("  HOST PASS SYS03-AC01 open contiguous fiscal periods over HTTPS/JWT/SQL");
                 // SYS03-FG02: fiscal date boundaries survive the public
                 // HTTPS/SQL roundtrip and malformed ranges fail atomically.
                 using (var fiscalDetail = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}"))

@@ -19,6 +19,29 @@ public static class FiscalCalendarSqlIntegration
         Ensure(results.All(x => x == results[0]), "Calendar concurrent replay differs");
         var calendar = await Call(s => s.FiscalCalendar.GetFiscalCalendar(cid, results[0].ResourceId, owner, default));
         Ensure(calendar.Periods.Count == 2 && calendar.Periods[0].Code == "2027-H1", "Custom SQL calendar differs");
+        // SYS03-AC01: a newly provisioned calendar opens two contiguous
+        // posting periods with exact tenant scope and no implicit closure.
+        Ensure(calendar.State == FiscalCalendarState.Open && calendar.GeneralLedgerOnly &&
+            calendar.Periods.Count == 2 && calendar.Periods.All(x => !x.IsClosed) &&
+            calendar.Periods[0].StartsOn == new DateOnly(2027, 1, 1) &&
+            calendar.Periods[0].EndsOn == new DateOnly(2027, 6, 30) &&
+            calendar.Periods[1].StartsOn == new DateOnly(2027, 7, 1) &&
+            calendar.Periods[1].EndsOn == new DateOnly(2027, 12, 31),
+            "SYS03-AC01 provisioned calendar not open/contiguous for posting");
+        await using (var periodDb = Context())
+        {
+            var storedPeriods = await periodDb.Set<FiscalPeriod>()
+                .Where(x => x.CompanyId == cid && x.FiscalYearId == calendar.Year.Id)
+                .OrderBy(x => x.StartsOn).ToListAsync();
+            Ensure(storedPeriods.Count == 2 &&
+                storedPeriods.All(x => x.CompanyId == cid && !x.IsClosed) &&
+                storedPeriods[0].Code == "2027-H1" &&
+                storedPeriods[0].EndsOn == new DateOnly(2027, 6, 30) &&
+                storedPeriods[1].Code == "2027-H2" &&
+                storedPeriods[1].StartsOn == new DateOnly(2027, 7, 1),
+                "SYS03-AC01 persisted SQL calendar dates or open period state differ");
+        }
+        Console.WriteLine("  SQL PASS SYS03-AC01 contiguous open posting periods and tenant scope");
         // SYS03-FG02: the API header's required start/end are persisted
         // exactly as DateOnly values, without truncation or shifting in SQL.
         Ensure(calendar.Year.StartsOn == new DateOnly(2027, 1, 1) &&
