@@ -98,6 +98,28 @@ public static class SqlIntegration
             var page = await f.Call(s => s.Journal.ListJournals(f.CompanyId, f.Clerk, null, null, 1, 1, default));
             Ensure(page.TotalCount == 3 && page.Items.Count == 1, "SQL pagination differs");
             Console.WriteLine("  SQL PASS linked reversal, reports, SQL translation and pagination");
+            // SYS02-AC01: independent branch operational/reporting scope.
+            // The first branch has posted journals; a new sibling has none.
+            var emptyBranch = await f.Call(s => s.Branch.CreateBranch(f.CompanyId, f.Owner,
+                Fixture.Key(), new("SYS02-AC01", "فرع قبول مستقل", "مدينة", "عنوان"), default));
+            var mainBranchReport = await f.Call(s => s.Report.TrialBalance(f.CompanyId, f.Clerk,
+                new(2026, 1, 1), new(2026, 12, 31), f.BranchId, default));
+            var emptyBranchReport = await f.Call(s => s.Report.TrialBalance(f.CompanyId, f.Owner,
+                new(2026, 1, 1), new(2026, 12, 31), emptyBranch.ResourceId, default));
+            Ensure(mainBranchReport.BranchIds.Contains(f.BranchId) && mainBranchReport.TotalPeriodDebit > 0 &&
+                emptyBranchReport.BranchIds.SequenceEqual(new[] { emptyBranch.ResourceId }) &&
+                emptyBranchReport.TotalPeriodDebit == 0 && emptyBranchReport.TotalPeriodCredit == 0,
+                "SYS02-AC01 branch-scoped reporting included a sibling's journals");
+            await using (var branchDb = f.Context())
+                Ensure(await branchDb.Set<Branch>().AnyAsync(x => x.CompanyId == f.CompanyId &&
+                    x.Id == emptyBranch.ResourceId && x.Code == "SYS02-AC01") &&
+                    await branchDb.Set<JournalEntry>().AnyAsync(x => x.CompanyId == f.CompanyId &&
+                        x.BranchId == f.BranchId && x.State == JournalState.Posted) &&
+                    !await branchDb.Set<JournalEntry>().AnyAsync(x => x.CompanyId == f.CompanyId &&
+                        x.BranchId == emptyBranch.ResourceId),
+                    "SYS02-AC01 SQL branch/journal tenant separation invalid");
+            Console.WriteLine("  SQL PASS SYS02-AC01 independent branch operation and branch-scoped trial balance");
+
 
             var center = await f.Call(s => s.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("FILTER", "مركز اختبار التقارير", f.BranchId), default));
             var filteredRequest = f.Request(75) with { ExternalReference = "Ref-Case" };
@@ -142,6 +164,36 @@ public static class SqlIntegration
             await f.Call(s => s.Company.CreateCompany(f.Owner, Fixture.Key(), new(other, "OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default));
             var otherAccount = await f.Call(s => s.Account.CreateAccount(other, f.Owner, Fixture.Key(),
                 new("1", "حساب", AccountType.Asset, null, true, false, false, null, NormalBalance.Debit), default));
+            // SYS01-OP01: database-backed listing must not disclose a freshly
+            // provisioned company to users without membership in it.
+            var ownerCompanies = await f.Call(s => s.Company.ListCompanies(f.Owner, default));
+            var clerkCompanies = await f.Call(s => s.Company.ListCompanies(f.Clerk, default));
+            Ensure(ownerCompanies.Any(x => x.Id == other) &&
+                clerkCompanies.Any(x => x.Id == f.CompanyId) && clerkCompanies.All(x => x.Id != other),
+                "SYS01-OP01 SQL company list crossed tenant membership boundaries");
+            Console.WriteLine("  SQL PASS SYS01-OP01 company provisioning and membership-scoped listing");
+            // SYS01-AC01: creating a legal entity bootstraps its own functional
+            // currency/membership and an independent, tenant-scoped ledger. Both
+            // entities may reuse account code 1 without sharing any postings.
+            var primaryBook = await f.Call(s => s.Report.TrialBalance(f.CompanyId, f.Clerk,
+                new(2026, 1, 1), new(2026, 12, 31), null, default));
+            var secondaryBook = await f.Call(s => s.Report.TrialBalance(other, f.Owner,
+                new(2026, 1, 1), new(2026, 12, 31), null, default));
+            Ensure(primaryBook.CompanyId == f.CompanyId && primaryBook.TotalPeriodDebit > 0 &&
+                secondaryBook.CompanyId == other && secondaryBook.Currency == "SAR" &&
+                secondaryBook.TotalPeriodDebit == 0 && secondaryBook.TotalPeriodCredit == 0 &&
+                secondaryBook.Rows.Count == 1 && secondaryBook.Rows[0].AccountId == otherAccount.ResourceId,
+                "SYS01-AC01 legal entities did not retain independent financial books");
+            await Expect("permission_denied", () => f.Call(s => s.Report.TrialBalance(other, f.Clerk,
+                new(2026, 1, 1), new(2026, 12, 31), null, default)));
+            await using (var tenantDb = f.Context())
+                Ensure(await tenantDb.Set<Company>().AnyAsync(x => x.Id == other && x.Code == "OTHER") &&
+                    await tenantDb.Set<Currency>().CountAsync(x => x.CompanyId == other && x.Code == "SAR") == 1 &&
+                    await tenantDb.Set<Membership>().CountAsync(x => x.CompanyId == other && x.Subject == f.Owner.Subject) == 1 &&
+                    await tenantDb.Set<JournalEntry>().AnyAsync(x => x.CompanyId == f.CompanyId) &&
+                    !await tenantDb.Set<JournalEntry>().AnyAsync(x => x.CompanyId == other),
+                    "SYS01-AC01 SQL company bootstrap or journal tenant separation invalid");
+            Console.WriteLine("  SQL PASS SYS01-AC01 independent legal entity, functional currency, account book and denied cross-tenant read");
             await using (var db = f.Context())
             {
                 try
