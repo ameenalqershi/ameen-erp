@@ -519,30 +519,30 @@ CASH02,CASH02-F14,أنشأه,system,partial,BankAccount.CreatedBy: internal acto
 CASH02,CASH02-F15,وقت الإنشاء,system,partial,BankAccount.CreatedAt: datetimeoffset,internal EF/SQL schema 032 only; no CASH02 public API
 CASH02,CASH02-F16,رقم إصدار التعديل,system,partial,BankAccount.Revision: positive int,internal EF/SQL schema 032 only; no CASH02 public API
 CASH02,CASH02-F17,آخر تعديل,system,partial,BankAccount.LastModifiedAt: datetimeoffset,internal EF/SQL schema 032 only; no CASH02 public API
-CASH03,CASH03-F01,المعرف الداخلي,system,pending,,
-CASH03,CASH03-F02,الشركة,system,pending,,
-CASH03,CASH03-F03,الفرع,required,pending,,
-CASH03,CASH03-F04,السنة,system,pending,,
-CASH03,CASH03-F05,رقم المستند,system,pending,,
-CASH03,CASH03-F06,تاريخ الوثيقة,required,pending,,
-CASH03,CASH03-F07,تاريخ الأثر,required,pending,,
-CASH03,CASH03-F08,العملة,required,pending,,
-CASH03,CASH03-F09,سعر الصرف,required,pending,,
-CASH03,CASH03-F10,البيان,required,pending,,
-CASH03,CASH03-F11,المرجع الخارجي,optional,pending,,
-CASH03,CASH03-F12,الحالة,system,pending,,
-CASH03,CASH03-F13,جهة القبض,required,pending,,
-CASH03,CASH03-F14,طريقة القبض,required,pending,,
-CASH03,CASH03-F15,الصندوق أو البنك,conditional,pending,,
-CASH03,CASH03-F16,المبلغ,required,pending,,
-CASH03,CASH03-F17,مرجع شيك,conditional,pending,,
-CASH03,CASH03-F18,الفاتورة المفتوحة,conditional,pending,,
-CASH03,CASH03-F19,المبلغ المخصص,conditional,pending,,
-CASH03,CASH03-F20,خصم تسوية,optional,pending,,
-CASH03,CASH03-F21,أنشأه,system,pending,,
-CASH03,CASH03-F22,وقت الإنشاء,system,pending,,
-CASH03,CASH03-F23,رقم إصدار التعديل,system,pending,,
-CASH03,CASH03-F24,آخر تعديل,system,pending,,
+CASH03,CASH03-F01,المعرف الداخلي,system,partial,CashReceipt.Id internal GUID; no public document/number allocation,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F02,الشركة,system,partial,CashReceipt.CompanyId tenant primary key,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F03,الفرع,required,partial,CashReceipt.BranchId tenant-scoped FK; operational authorization pending,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F04,السنة,system,partial,CashReceipt.FiscalYearId tenant FK; no fiscal period validation,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F05,رقم المستند,system,partial,"CashReceipt.Number nvarchar(64), preserves leading zeros; SYS10 sequence absent",internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F06,تاريخ الوثيقة,required,partial,CashReceipt.DocumentDate SQL date,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F07,تاريخ الأثر,required,partial,CashReceipt.AccountingDate SQL date; no period/close enforcement yet,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F08,العملة,required,partial,CashReceipt.CurrencyCode tenant-scoped FK,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F09,سعر الصرف,required,partial,"CashReceipt.ExchangeRate decimal(20,10)>0; no dated SYS05 rate lookup",internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F10,البيان,required,partial,CashReceipt.Description nvarchar(1000),internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F11,المرجع الخارجي,optional,partial,CashReceipt.ExternalReference nvarchar(100) nullable,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F12,الحالة,system,partial,CashReceipt.State nonempty text; lifecycle not approved,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F13,جهة القبض,required,partial,CashReceipt.PayerId GUID stored only; SAL11 payer FK unavailable,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F14,طريقة القبض,required,partial,CashReceipt.PaymentMethod nonempty text; approved method enum unavailable,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F15,الصندوق أو البنك,conditional,partial,CashReceipt.CashBoxId / BankAccountId nullable tenant FKs; method/target binding unavailable,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F16,المبلغ,required,partial,"CashReceipt.Amount decimal(20,6)>0; not posted",internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F17,مرجع شيك,conditional,partial,CashReceipt.ChequeReference nvarchar(100) nullable; CASH07 link pending,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F18,الفاتورة المفتوحة,conditional,partial,CashReceiptLine.InvoiceId optional GUID stored only; SAL11 invoice FK unavailable,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F19,المبلغ المخصص,conditional,partial,"CashReceiptLine.AllocatedAmount decimal(20,6)>=0; balance check not live",internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F20,خصم تسوية,optional,partial,"CashReceiptLine.SettlementDiscount decimal(20,6)>=0; no applied discount posting",internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F21,أنشأه,system,partial,CashReceipt.CreatedBy stored actor text; no operational auditing,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F22,وقت الإنشاء,system,partial,CashReceipt.CreatedAt datetimeoffset(7) stored; no operational stamping,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F23,رقم إصدار التعديل,system,partial,CashReceipt.Revision positive int; no edit API,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
+CASH03,CASH03-F24,آخر تعديل,system,partial,CashReceipt.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API,internal EF/SQL schema 034 only; no receipt/cheque/GL API or balance effect
 CASH04,CASH04-F01,المعرف الداخلي,system,pending,,
 CASH04,CASH04-F02,الشركة,system,pending,,
 CASH04,CASH04-F03,الفرع,required,pending,,
@@ -612,63 +612,63 @@ CASH06,CASH06-F20,أنشأه,system,pending,,
 CASH06,CASH06-F21,وقت الإنشاء,system,pending,,
 CASH06,CASH06-F22,رقم إصدار التعديل,system,pending,,
 CASH06,CASH06-F23,آخر تعديل,system,pending,,
-CASH07,CASH07-F01,المعرف الداخلي,system,pending,,
-CASH07,CASH07-F02,الشركة,system,pending,,
-CASH07,CASH07-F03,الفرع,required,pending,,
-CASH07,CASH07-F04,السنة,system,pending,,
-CASH07,CASH07-F05,رقم المستند,system,pending,,
-CASH07,CASH07-F06,تاريخ الوثيقة,required,pending,,
-CASH07,CASH07-F07,تاريخ الأثر,required,pending,,
-CASH07,CASH07-F08,العملة,required,pending,,
-CASH07,CASH07-F09,سعر الصرف,required,pending,,
-CASH07,CASH07-F10,البيان,required,pending,,
-CASH07,CASH07-F11,المرجع الخارجي,optional,pending,,
-CASH07,CASH07-F12,الحالة,system,pending,,
-CASH07,CASH07-F13,رقم الشيك,required,pending,,
-CASH07,CASH07-F14,البنك المسحوب عليه,required,pending,,
-CASH07,CASH07-F15,الدافع,required,pending,,
-CASH07,CASH07-F16,القيمة,required,pending,,
-CASH07,CASH07-F17,تاريخ الاستحقاق,required,pending,,
-CASH07,CASH07-F18,حساب تحت التحصيل,required,pending,,
-CASH07,CASH07-F19,أنشأه,system,pending,,
-CASH07,CASH07-F20,وقت الإنشاء,system,pending,,
-CASH07,CASH07-F21,رقم إصدار التعديل,system,pending,,
-CASH07,CASH07-F22,آخر تعديل,system,pending,,
-CASH08,CASH08-F01,المعرف الداخلي,system,pending,,
-CASH08,CASH08-F02,الشركة,system,pending,,
-CASH08,CASH08-F03,الفرع,required,pending,,
-CASH08,CASH08-F04,السنة,system,pending,,
-CASH08,CASH08-F05,رقم المستند,system,pending,,
-CASH08,CASH08-F06,تاريخ الوثيقة,required,pending,,
-CASH08,CASH08-F07,تاريخ الأثر,required,pending,,
-CASH08,CASH08-F08,العملة,required,pending,,
-CASH08,CASH08-F09,سعر الصرف,required,pending,,
-CASH08,CASH08-F10,البيان,required,pending,,
-CASH08,CASH08-F11,المرجع الخارجي,optional,pending,,
-CASH08,CASH08-F12,الحالة,system,pending,,
-CASH08,CASH08-F13,رقم الشيك,required,pending,,
-CASH08,CASH08-F14,البنك,required,pending,,
-CASH08,CASH08-F15,المستفيد,required,pending,,
-CASH08,CASH08-F16,القيمة,required,pending,,
-CASH08,CASH08-F17,تاريخ الاستحقاق,required,pending,,
-CASH08,CASH08-F18,حالة الشيك,system,pending,,
-CASH08,CASH08-F19,أنشأه,system,pending,,
-CASH08,CASH08-F20,وقت الإنشاء,system,pending,,
-CASH08,CASH08-F21,رقم إصدار التعديل,system,pending,,
-CASH08,CASH08-F22,آخر تعديل,system,pending,,
-CASH09,CASH09-F01,الشركة,system,pending,,
-CASH09,CASH09-F02,الفرع,conditional,pending,,
-CASH09,CASH09-F03,الحالة,system,pending,,
-CASH09,CASH09-F04,الشيك,required,pending,,
-CASH09,CASH09-F05,الإجراء,required,pending,,
-CASH09,CASH09-F06,تاريخ الإجراء,required,pending,,
-CASH09,CASH09-F07,البنك المستلم,conditional,pending,,
-CASH09,CASH09-F08,سبب الرفض أو الإلغاء,conditional,pending,,
-CASH09,CASH09-F09,عمولة,optional,pending,,
-CASH09,CASH09-F10,أنشأه,system,pending,,
-CASH09,CASH09-F11,وقت الإنشاء,system,pending,,
-CASH09,CASH09-F12,رقم إصدار التعديل,system,pending,,
-CASH09,CASH09-F13,آخر تعديل,system,pending,,
+CASH07,CASH07-F01,المعرف الداخلي,system,partial,"IncomingCheque.Id internal GUID, no business number allocation","internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F02,الشركة,system,partial,IncomingCheque.CompanyId tenant key,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F03,الفرع,required,partial,IncomingCheque.BranchId tenant composite FK; operational branch permission pending,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F04,السنة,system,partial,IncomingCheque.FiscalYearId tenant composite FK; period posting pending,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F05,رقم المستند,system,partial,"IncomingCheque.Number nvarchar(64) preserves leading zeroes, SYS10 numbering not linked","internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F06,تاريخ الوثيقة,required,partial,IncomingCheque.DocumentDate SQL date,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F07,تاريخ الأثر,required,partial,IncomingCheque.AccountingDate SQL date; period guard pending,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F08,العملة,required,partial,IncomingCheque.CurrencyCode tenant composite FK,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F09,سعر الصرف,required,partial,"IncomingCheque.ExchangeRate decimal(20,10), positive; dated rate policy pending","internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F10,البيان,required,partial,IncomingCheque.Description nvarchar(1000),"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F11,المرجع الخارجي,optional,partial,IncomingCheque.ExternalReference nullable nvarchar(100),"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F12,الحالة,system,partial,IncomingCheque.State nonempty text only; approved state graph pending,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F13,رقم الشيك,required,partial,"IncomingCheque.ChequeNumber nvarchar(64), preserves leading zeros; uniqueness scope unresolved","internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F14,البنك المسحوب عليه,required,partial,IncomingCheque.DrawnBankName nvarchar(200); no approved bank identity FK,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F15,الدافع,required,partial,IncomingCheque.PayerId GUID only; party/master FK not available,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F16,القيمة,required,partial,"IncomingCheque.Amount decimal(20,6)>0; no bank credit","internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F17,تاريخ الاستحقاق,required,partial,IncomingCheque.DueDate SQL date,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F18,حساب تحت التحصيل,required,partial,IncomingCheque.CollectionAccountId tenant composite FK Accounts; not posted,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F19,أنشأه,system,partial,IncomingCheque.CreatedBy text stored only; server actor and audit pending,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F20,وقت الإنشاء,system,partial,IncomingCheque.CreatedAt datetimeoffset(7) stored only,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F21,رقم إصدار التعديل,system,partial,IncomingCheque.Revision >0 SQL; no edit API,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH07,CASH07-F22,آخر تعديل,system,partial,IncomingCheque.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
+CASH08,CASH08-F01,المعرف الداخلي,system,partial,OutgoingCheque.Id internal GUID,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F02,الشركة,system,partial,OutgoingCheque.CompanyId tenant key,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F03,الفرع,required,partial,OutgoingCheque.BranchId tenant composite FK,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F04,السنة,system,partial,OutgoingCheque.FiscalYearId tenant composite FK,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F05,رقم المستند,system,partial,OutgoingCheque.Number nvarchar(64) preserves leading zeros; SYS10 not linked,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F06,تاريخ الوثيقة,required,partial,OutgoingCheque.DocumentDate SQL date,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F07,تاريخ الأثر,required,partial,OutgoingCheque.AccountingDate SQL date; no fiscal posting,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F08,العملة,required,partial,OutgoingCheque.CurrencyCode tenant composite FK,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F09,سعر الصرف,required,partial,"OutgoingCheque.ExchangeRate decimal(20,10)>0; no approved FX policy","internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F10,البيان,required,partial,OutgoingCheque.Description nvarchar(1000),"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F11,المرجع الخارجي,optional,partial,OutgoingCheque.ExternalReference nullable nvarchar(100),"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F12,الحالة,system,partial,OutgoingCheque.State nonempty stored text only,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F13,رقم الشيك,required,partial,OutgoingCheque.ChequeNumber nvarchar(64) preserves leading zeros; cancelled number reuse policy pending,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F14,البنك,required,partial,OutgoingCheque.BankAccountId tenant composite FK; bank writes blocked,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F15,المستفيد,required,partial,OutgoingCheque.BeneficiaryId GUID stored only; beneficiary master FK not approved,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F16,القيمة,required,partial,"OutgoingCheque.Amount decimal(20,6)>0; no outgoing bank debit","internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F17,تاريخ الاستحقاق,required,partial,OutgoingCheque.DueDate SQL date,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F18,حالة الشيك,system,partial,OutgoingCheque.ChequeState nonempty text only; transitions not approved,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F19,أنشأه,system,partial,OutgoingCheque.CreatedBy stored text only,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F20,وقت الإنشاء,system,partial,OutgoingCheque.CreatedAt datetimeoffset(7) stored only,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F21,رقم إصدار التعديل,system,partial,OutgoingCheque.Revision >0; no edit API,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH08,CASH08-F22,آخر تعديل,system,partial,OutgoingCheque.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API,"internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit"
+CASH09,CASH09-F01,الشركة,system,partial,ChequeMovement.CompanyId tenant primary key and FK; no public API,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F02,الفرع,conditional,partial,ChequeMovement.BranchId nullable tenant scoped FK,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F03,الحالة,system,partial,ChequeMovement.State nonempty text; no approved state transitions,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F04,الشيك,required,partial,ChequeMovement.ChequeId computed from exactly one IncomingChequeId or OutgoingChequeId; both are tenant FKs,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F05,الإجراء,required,partial,"ChequeMovement.Action nonempty text, no approved action set, EF writes blocked",internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F06,تاريخ الإجراء,required,partial,ChequeMovement.ActionDate SQL date; no effective financial date validation,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F07,البنك المستلم,conditional,partial,ChequeMovement.ReceivedBankAccountId nullable company FK; no bank credit,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F08,سبب الرفض أو الإلغاء,conditional,partial,ChequeMovement.RejectionReason optional nvarchar(1000); return receivable not implemented,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F09,عمولة,optional,partial,"ChequeMovement.Fee nullable decimal(20,6)>=0; no commission journal",internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F10,أنشأه,system,partial,ChequeMovement.CreatedBy actor stored only; no operation authorized,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F11,وقت الإنشاء,system,partial,ChequeMovement.CreatedAt datetimeoffset(7) stored,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F12,رقم إصدار التعديل,system,partial,ChequeMovement.Revision int>0; no edit API or CAS transaction,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
+CASH09,CASH09-F13,آخر تعديل,system,partial,ChequeMovement.LastModifiedAt datetimeoffset(7)>=CreatedAt; audit events pending,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
 CASH10,CASH10-F01,الشركة,system,pending,,
 CASH10,CASH10-F02,الفرع,conditional,pending,,
 CASH10,CASH10-F03,الحالة,system,pending,,
@@ -686,19 +686,19 @@ CASH10,CASH10-F14,أنشأه,system,pending,,
 CASH10,CASH10-F15,وقت الإنشاء,system,pending,,
 CASH10,CASH10-F16,رقم إصدار التعديل,system,pending,,
 CASH10,CASH10-F17,آخر تعديل,system,pending,,
-CASH11,CASH11-F01,الشركة,system,pending,,
-CASH11,CASH11-F02,الفرع,conditional,pending,,
-CASH11,CASH11-F03,الحالة,system,pending,,
-CASH11,CASH11-F04,الصندوق,required,pending,,
-CASH11,CASH11-F05,وقت القطع,required,pending,,
-CASH11,CASH11-F06,القائم بالجرد,required,pending,,
-CASH11,CASH11-F07,الفئة النقدية,required,pending,,
-CASH11,CASH11-F08,عدد القطع,required,pending,,
-CASH11,CASH11-F09,القيمة المعدودة,system,pending,,
-CASH11,CASH11-F10,أنشأه,system,pending,,
-CASH11,CASH11-F11,وقت الإنشاء,system,pending,,
-CASH11,CASH11-F12,رقم إصدار التعديل,system,pending,,
-CASH11,CASH11-F13,آخر تعديل,system,pending,,
+CASH11,CASH11-F01,الشركة,system,partial,CashCount.CompanyId: tenant primary key and SQL FK; no API,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F02,الفرع,conditional,partial,CashCount.BranchId: nullable tenant FK; no branch operation permission yet,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F03,الحالة,system,partial,CashCount.State: text slot with nonempty SQL check; lifecycle values not approved; EF writes blocked,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F04,الصندوق,required,partial,CashCount.CashBoxId: tenant composite FK; no balance lookup,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F05,وقت القطع,required,partial,CashCount.CutoffAt: datetimeoffset(7); no ledger snapshot,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F06,القائم بالجرد,required,partial,CashCount.CountedByMembershipId: tenant FK; active membership/permission blocked,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F07,الفئة النقدية,required,partial,"CashCountLine.Denomination: decimal(20,6) >0; no currency denominations catalogue",internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F08,عدد القطع,required,partial,CashCountLine.PieceCount: nonnegative int,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F09,القيمة المعدودة,system,partial,"CashCountLine.CountedValue: SQL persisted computed decimal(20,6)",internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F10,أنشأه,system,partial,CashCount.CreatedBy: stored only; no operational subject validation,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F11,وقت الإنشاء,system,partial,CashCount.CreatedAt: datetimeoffset(7) stored only,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F12,رقم إصدار التعديل,system,partial,CashCount.Revision: positive server integer structural only; no edit API,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
+CASH11,CASH11-F13,آخر تعديل,system,partial,CashCount.LastModifiedAt: datetimeoffset(7) >= CreatedAt; no edit API,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
 INV01,INV01-F01,المعرف الداخلي,system,implemented,Warehouse.Id,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
 INV01,INV01-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses
 INV01,INV01-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events; GET /accounts/{id}/warehouses

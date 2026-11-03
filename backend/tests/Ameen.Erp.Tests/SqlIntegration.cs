@@ -37,6 +37,10 @@ public static class SqlIntegration
                 await SecurityRoleAssignmentSqlIntegration.Upgrade(db);
                 await CashBoxSqlIntegration.Upgrade(db);
                 await BankAccountSqlIntegration.Upgrade(db);
+                await CashCountSqlIntegration.Upgrade(db);
+                await CashReceiptSqlIntegration.Upgrade(db);
+                await ChequeSqlIntegration.Upgrade(db);
+                await ChequeMovementSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await MembershipStatusSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
@@ -74,6 +78,12 @@ public static class SqlIntegration
                     cashRequest with { Code = "SQL-CASH-2" }, default)));
             Console.WriteLine("  SQL PASS CASH01 durable master card, audit, account uniqueness and concurrent idempotency");
 
+            await using (var cashCountDb = f.Context())
+                await CashCountSqlIntegration.Guard(cashCountDb, f.CompanyId, cashReceipts[0].ResourceId, f.BranchId);
+            await using (var receiptDb = f.Context())
+                await CashReceiptSqlIntegration.Guard(receiptDb, f.CompanyId, f.BranchId, cashReceipts[0].ResourceId);
+            await using (var chequeDb = f.Context())
+                await ChequeSqlIntegration.Guard(chequeDb, f.CompanyId, f.BranchId, f.CashId);
             await JournalDocumentTypeSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await ApprovalRouteSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await SecurityRoleSqlIntegration.Guard(options.ConnectionString, f.CompanyId);

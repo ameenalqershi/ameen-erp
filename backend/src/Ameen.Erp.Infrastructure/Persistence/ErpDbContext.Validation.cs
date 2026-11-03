@@ -8,6 +8,40 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // CASH09 transition list, authorized actor, cheque clearing, bank
+        // debit and returned receivables are unapproved. Do not record an
+        // apparent financial transition through any EF caller.
+        Check.That(!ChangeTracker.Entries<ChequeMovement>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cheque_movement_policy_unavailable",
+            "لا يمكن حفظ حركة شيك قبل اعتماد حالات التحصيل والرفض والصرف والتسوية.",
+            ErrorKind.Conflict);
+        // CASH07/CASH08 document status, payee, cancellation, bank clearing and
+        // accounting movements need approved linked CASH03/CASH04/CASH09
+        // workflows. Fail closed for both headers and all EF write operations.
+        Check.That(!ChangeTracker.Entries<IncomingCheque>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<OutgoingCheque>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cheque_policy_unavailable",
+            "لا يمكن حفظ شيكات قبض أو صرف قبل اعتماد دورة التحصيل والرفض والصرف.", ErrorKind.Conflict);
+        // CASH03 receipt methods, payer/SAL11 invoices and cheque collection
+        // are not approved yet. No caller may persist a header or line through EF.
+        Check.That(!ChangeTracker.Entries<CashReceipt>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<CashReceiptLine>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cash_receipt_policy_unavailable",
+            "لا يمكن حفظ سند قبض قبل اعتماد التحصيل والفواتير والشيكات والترحيل.", ErrorKind.Conflict);
+        // CASH11 is structural-only. No approved count-to-ledger snapshot, adjustment
+        // authorization, lifecycle or branch permissions exist yet. Prevent writes
+        // through any EF caller, including child-only changes and deletions.
+        Check.That(!ChangeTracker.Entries<CashCount>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<CashCountLine>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cash_count_policy_unavailable",
+            "لا يمكن حفظ الجرد قبل اعتماد الرصيد والتسوية والمراجعة.", ErrorKind.Conflict);
         // CASH02 is schema-only until conditional IBAN / beneficiary-change review and permissions are approved.
         Check.That(!ChangeTracker.Entries<BankAccount>().Any(e =>
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),

@@ -103,9 +103,9 @@ def check() -> None:
     ensure(all(r["module"] == "CASH" for r in actual.values()), "wrong module ownership")
     for code, record in actual.items():
         ensure(record["status"] in {"partial", "not-started"}, f"unsupported status for {code}")
-        if code in {"CASH01", "CASH02"}:
+        if code in {"CASH01", "CASH02", "CASH03", "CASH07", "CASH08", "CASH09", "CASH11"}:
             ensure(record["status"] == "partial" and bool(record["implemented_scope"]),
-                   f"active card scope must be partial: {code}")
+                   f"structural/operational scope must be partial: {code}")
             ensure(bool(record["remaining"]), f"missing operational blockers {code}")
             tests = [x.strip() for x in record["test_file"].split(";") if x.strip()]
             ensure(bool(tests) and all((ROOT / x).is_file() for x in tests),
@@ -116,7 +116,7 @@ def check() -> None:
     print("PASS DIAG-module-CASH: 15 nodes, 14 directed navigation links, 3 category paths")
     print("PASS DIAG-module-CASH: 11 screen headings, 213 contiguous original field IDs")
     print("PASS DIAG-module-CASH: 11 matching SVG labels, 11 backend screen records")
-    print("PASS DIAG-module-CASH: CASH01/02 structural partial; CASH03..11 operational not-started")
+    print("PASS DIAG-module-CASH: CASH01/02/03/07/08/09/11 structural partial; CASH04/05/06/10 operational not-started")
 
 
 if __name__ == "__main__":
