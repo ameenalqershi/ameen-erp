@@ -8,6 +8,8 @@ using System.Text;
 using System.Text.Json;
 using Ameen.Erp.Api;
 using Ameen.Erp.Application;
+using Ameen.Erp.Domain;
+using Ameen.Erp.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -15,6 +17,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Ameen.Erp.Tests;
@@ -52,10 +55,9 @@ public static class ScheduledReversalHostedIntegration
         const string audience = "ameen-scheduled-reversal-api";
         try
         {
-            // GL07-02: the opt-in background worker must be absent by default,
-            // require an explicit identity and reject invalid intervals at
-            // startup. Never start an opted-in worker against a test database;
-            // the actual signed-JWT run-due lifecycle is validated below.
+            // GL07-02: fail-closed configuration checks never start a worker.
+            // The separate runtime acceptance at the end uses a dedicated
+            // branch-scoped actor on the disposable integration SQL database.
             WebApplication OptedInHost(string? actorSubject, int? minutes = null) =>
                 ApiHost.Build(Array.Empty<string>(), b =>
                 {
@@ -186,6 +188,101 @@ public static class ScheduledReversalHostedIntegration
                 var afterCancellation = await Due(client, path, journalRequest.AccountingDate);
                 Ensure(afterCancellation.SelectedCount == 0 && afterCancellation.GeneratedCount == 0,
                     "Cancelled production reversal allowed scheduled regeneration");
+                // GL07-02: end-to-end opt-in BACKGROUND worker acceptance.
+                // One new branch and a dedicated member isolate this actor
+                // from any other due journals in the disposable SQL fixture.
+                Authenticate("sql-owner");
+                var workerBranch = await Command(client,
+                    $"/api/v1/companies/{companyId}/branches",
+                    new CreateBranchRequest("GL07-WORKER-CI", "فرع عامل العكس", "مدينة", "عنوان"));
+                const string workerSubject = "gl07-reversal-worker-ci";
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest(workerSubject,
+                        new[] { Permissions.Reverse, Permissions.Draft }, false,
+                        new[] { workerBranch.ResourceId }, null));
+                Authenticate("sql-clerk");
+                var dedicatedRequest = scheduledRequest with
+                {
+                    BranchId = workerBranch.ResourceId,
+                    Description = "GL07 opt-in worker dedicated original",
+                    ExternalReference = "GL07-WORKER-" + Fixture.Key(),
+                    AutomaticReversal = true,
+                    ReversalDate = journalRequest.AccountingDate
+                };
+                var workerOriginal = await Command(client, path, dedicatedRequest);
+                workerOriginal = await Command(client, path + $"/{workerOriginal.ResourceId}/submit",
+                    new TransitionRequest(workerOriginal.Version));
+                Authenticate("sql-approver");
+                workerOriginal = await Command(client, path + $"/{workerOriginal.ResourceId}/approve",
+                    new TransitionRequest(workerOriginal.Version));
+                Authenticate("sql-clerk");
+                workerOriginal = await Command(client, path + $"/{workerOriginal.ResourceId}/post",
+                    new TransitionRequest(workerOriginal.Version));
+                Ensure(workerOriginal.Status == "Posted", "GL07-02 worker fixture original was not posted");
+
+                await using (var workerApi = ApiHost.Build(Array.Empty<string>(), b =>
+                {
+                    b.Logging.ClearProviders();
+                    b.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["ConnectionStrings:Erp"] = connection,
+                        ["Authentication:Authority"] = issuer,
+                        ["Authentication:Audience"] = audience,
+                        ["ReversalScheduler:Enabled"] = "true",
+                        ["ReversalScheduler:ActorSubject"] = workerSubject,
+                        ["ReversalScheduler:IntervalMinutes"] = "1440"
+                    });
+                    b.WebHost.ConfigureKestrel(k => k.Listen(IPAddress.Loopback, 0,
+                        l => l.UseHttps(certificate)));
+                    b.Services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme,
+                        o => o.BackchannelHttpHandler = PinnedTransport(certificate));
+                }))
+                {
+                    await workerApi.StartAsync();
+                    try
+                    {
+                        JournalEntry? linkedDraft = null;
+                        JournalEntry? trackedOriginal = null;
+                        // The worker scans immediately at startup. Bound the
+                        // poll and fail closed; never assert an external VPS
+                        // scheduler was activated by this disposable SQL test.
+                        for (var attempt = 0; attempt < 100; attempt++)
+                        {
+                            await using var testScope = workerApi.Services.CreateAsyncScope();
+                            var db = testScope.ServiceProvider.GetRequiredService<ErpDbContext>();
+                            linkedDraft = await db.Set<JournalEntry>().AsNoTracking()
+                                .FirstOrDefaultAsync(x => x.CompanyId == companyId &&
+                                    x.ReversesJournalId == workerOriginal.ResourceId);
+                            if (linkedDraft is not null)
+                            {
+                                trackedOriginal = await db.Set<JournalEntry>().AsNoTracking()
+                                    .SingleAsync(x => x.CompanyId == companyId &&
+                                        x.Id == workerOriginal.ResourceId);
+                                break;
+                            }
+                            await Task.Delay(100);
+                        }
+                        Ensure(linkedDraft is not null && trackedOriginal is not null &&
+                            linkedDraft.State == JournalState.Draft &&
+                            linkedDraft.Source == JournalSource.Reversal &&
+                            linkedDraft.BranchId == workerBranch.ResourceId &&
+                            linkedDraft.ReversesJournalId == workerOriginal.ResourceId &&
+                            trackedOriginal.PendingReversalJournalId == linkedDraft.Id &&
+                            linkedDraft.Lines.Sum(x => x.FunctionalDebit) ==
+                                dedicatedRequest.Lines.Sum(x => x.Credit) &&
+                            linkedDraft.Lines.Sum(x => x.FunctionalCredit) ==
+                                dedicatedRequest.Lines.Sum(x => x.Debit),
+                            "GL07-02 started opt-in worker did not persist exactly one linked historical draft");
+                    }
+                    finally { await workerApi.StopAsync(); }
+                }
+                using (var remaining = await SendDue(client, path, journalRequest.AccountingDate))
+                using (var result = JsonDocument.Parse(await remaining.Content.ReadAsStringAsync()))
+                    Ensure(remaining.StatusCode == HttpStatusCode.OK &&
+                        result.RootElement.GetProperty("generatedCount").GetInt32() == 0 &&
+                        result.RootElement.GetProperty("failedCount").GetInt32() == 0,
+                        "GL07-02 re-scan after real background worker duplicated a linked draft");
+                Console.WriteLine("  HOST PASS GL07-02 started opt-in worker with branch-scoped actor: one linked Draft, no auto-post, no replay, isolated SQL");
                 Console.WriteLine("  HOST PASS GL03-GP05 linked scheduled draft, replay, cancellation suppression and authorization over signed JWT/HTTPS/SQL");
             }
             finally { await api.StopAsync(); }
