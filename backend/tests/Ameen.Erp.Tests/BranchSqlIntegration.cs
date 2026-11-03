@@ -89,12 +89,10 @@ public static class BranchSqlIntegration
         var legacyRequest = new CreateJournalRequest(b.Id, new DateOnly(2026, 1, 15),
             new DateOnly(2026, 1, 15), "فحص جاهزية فرع قديم", null,
             Array.Empty<JournalLineRequest>());
-        // A scoped actor is required so the readiness guard, not authorization,
-        // is the reason this legacy branch refuses operational writes.
-        var legacyActor = new Actor("sys02-legacy-branch-qa");
-        await Call(s => s.Membership.GrantMembership(cid, owner, Fixture.Key(),
-            new GrantMembershipRequest(legacyActor.Subject,
-                new[] { Permissions.Read, Permissions.Draft }, false, new[] { b.Id }, null), default));
+        // Reuse the existing SQL-fixture clerk with all-branch Draft permission.
+        // Creating a new scoped membership against an incomplete legacy branch is
+        // correctly denied by the production branch readiness guard.
+        var legacyActor = new Actor("sql-clerk");
         await Error("branch_profile_incomplete", () =>
             Call(s => s.Journal.CreateJournal(cid, legacyActor, Fixture.Key(), legacyRequest, default)));
         await Error("branch_profile_incomplete", () =>
