@@ -7,6 +7,13 @@ BEGIN TRY
  EXEC @lockResult=sys.sp_getapplock @Resource=N'ameen:schema',@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=30000;
  IF @lockResult<0 THROW 51000,'Schema lock unavailable',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.__AmeenSchemaVersions WHERE [Version]=32) THROW 51001,'Apply schema 032 first',1;
+ -- Multiple module branches must not claim the same schema version.
+ -- A successful version row with missing SYS16 tables is an ownership
+ -- collision, not evidence that the payment migration already ran.
+ IF EXISTS(SELECT 1 FROM dbo.__AmeenSchemaVersions WHERE [Version]=33)
+    AND (OBJECT_ID(N'dbo.PaymentTerms',N'U') IS NULL
+         OR OBJECT_ID(N'dbo.PaymentTermLines',N'U') IS NULL)
+    THROW 51002,'Schema 033 belongs to another module; rebase and renumber SYS16 migration',1;
  IF NOT EXISTS(SELECT 1 FROM dbo.__AmeenSchemaVersions WHERE [Version]=33)
  BEGIN
   CREATE TABLE [PaymentTerms] (
