@@ -61,6 +61,8 @@ public static class SqlIntegration
                     x.CompanyId == f.CompanyId && x.Action == "cashbox.created") == 1,
                     "CASH01 replay created extra audit events");
             }
+            await using (var cashGuardDb = f.Context())
+                await CashBoxSqlIntegration.Guard(cashGuardDb, f.CompanyId, cashReceipts[0].ResourceId);
             await Expect("cashbox_account_already_linked", () =>
                 f.Call(s => s.CashBox.CreateCashBox(f.CompanyId, f.Owner, Fixture.Key(),
                     cashRequest with { Code = "SQL-CASH-2" }, default)));

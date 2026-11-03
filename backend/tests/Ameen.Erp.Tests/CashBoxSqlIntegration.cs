@@ -1,4 +1,5 @@
 using Ameen.Erp.Infrastructure;
+using Ameen.Erp.Domain;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -80,6 +81,72 @@ public static class CashBoxSqlIntegration
             "CASH01 original fields are not fully persisted");
 
         Console.WriteLine("  SQL PASS CASH01 atomic/idempotent schema 031, tenant FKs and field constraints");
+    }
+
+
+    // CASH01 SQL acceptance against disposable test data: the SQL constraints
+    // must reject writes even when the public API/domain layer is bypassed.
+    public static async Task Guard(ErpDbContext db, Guid companyId, Guid cashBoxId)
+    {
+        var before = await db.Set<CashBox>().AsNoTracking().SingleAsync(x =>
+            x.CompanyId == companyId && x.Id == cashBoxId);
+        var auditCount = await db.Set<AuditEvent>().CountAsync(x =>
+            x.CompanyId == companyId && x.ResourceId == cashBoxId);
+        var unknown = Guid.NewGuid();
+
+        await RejectSql("account tenant FK", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [CashBoxes] SET [AccountId]={unknown} WHERE [CompanyId]={companyId} AND [Id]={cashBoxId}"));
+        await RejectSql("branch tenant FK", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [CashBoxes] SET [BranchId]={unknown} WHERE [CompanyId]={companyId} AND [Id]={cashBoxId}"));
+        await RejectSql("custodian tenant FK", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [CashBoxes] SET [CustodianMembershipId]={unknown} WHERE [CompanyId]={companyId} AND [Id]={cashBoxId}"));
+        await RejectSql("currency tenant FK", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [CashBoxes] SET [CurrencyCode]={"ZZZ"} WHERE [CompanyId]={companyId} AND [Id]={cashBoxId}"));
+        await RejectSql("negative balance limit check", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [CashBoxes] SET [BalanceLimit]={-1m} WHERE [CompanyId]={companyId} AND [Id]={cashBoxId}"));
+        await RejectSql("revision check", 547,
+            db.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE [CashBoxes] SET [Revision]={0} WHERE [CompanyId]={companyId} AND [Id]={cashBoxId}"));
+        // A different code with the same account/branch/currency must be
+        // rejected by the actual unique SQL index, not only by a prior query.
+        await RejectSql("account/branch/currency unique index", 2601,
+            db.Database.ExecuteSqlInterpolatedAsync($@"
+                INSERT INTO [CashBoxes] ([CompanyId],[Id],[Version],[Code],[Name],
+                    [EnglishName],[IsActive],[Notes],[AccountId],[BranchId],
+                    [CustodianMembershipId],[CurrencyCode],[BalanceLimit],
+                    [CreatedBy],[CreatedAt],[Revision],[LastModifiedAt])
+                SELECT [CompanyId],{Guid.NewGuid()},{Guid.NewGuid()},{"SQL-CASH-DUP"},
+                    [Name],[EnglishName],[IsActive],[Notes],[AccountId],[BranchId],
+                    [CustodianMembershipId],[CurrencyCode],[BalanceLimit],
+                    [CreatedBy],[CreatedAt],[Revision],[LastModifiedAt]
+                FROM [CashBoxes] WHERE [CompanyId]={companyId} AND [Id]={cashBoxId}"));
+
+        var after = await db.Set<CashBox>().AsNoTracking().SingleAsync(x =>
+            x.CompanyId == companyId && x.Id == cashBoxId);
+        Ensure(after.AccountId == before.AccountId && after.BranchId == before.BranchId &&
+            after.CustodianMembershipId == before.CustodianMembershipId &&
+            after.CurrencyCode == before.CurrencyCode && after.BalanceLimit == before.BalanceLimit &&
+            after.Version == before.Version && after.Revision == before.Revision &&
+            after.LastModifiedAt == before.LastModifiedAt, "Rejected CASH01 SQL writes mutated the original card");
+        Ensure(await db.Set<CashBox>().CountAsync(x => x.CompanyId == companyId) == 1,
+            "Rejected CASH01 SQL insert left an additional card");
+        Ensure(await db.Set<AuditEvent>().CountAsync(x =>
+            x.CompanyId == companyId && x.ResourceId == cashBoxId) == auditCount,
+            "Rejected CASH01 SQL writes leaked audit events");
+        Console.WriteLine("  SQL PASS CASH01 live tenant FKs, amount/revision constraints, uniqueness and atomic rejection");
+    }
+
+    private static async Task RejectSql(string name, int expectedNumber, Task<int> action)
+    {
+        try { await action; }
+        catch (SqlException ex) when (ex.Number == expectedNumber ||
+            (expectedNumber == 2601 && ex.Number == 2627)) { return; }
+        throw new Exception("CASH01 SQL constraint failed to reject: " + name);
     }
 
     private static void Ensure(bool value, string message)
