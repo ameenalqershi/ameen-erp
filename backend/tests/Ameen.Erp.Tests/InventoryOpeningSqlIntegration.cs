@@ -91,10 +91,14 @@ public static class InventoryOpeningSqlIntegration
         }
         var posts = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Call(s => s.InventoryOpening.Post(cid, r.ResourceId, writer, postKey, post, default))));
         Ensure(posts.Distinct().Count() == 1, "Concurrent post receipts differ");
+        Guid postedOpeningJournalId;
+        Guid postedOpeningJournalVersion;
         await using (var db = Context())
         {
             var document = await db.Set<InventoryOpening>().SingleAsync(x => x.Id == r.ResourceId);
             var journal = await db.Set<JournalEntry>().SingleAsync(x => x.InventoryOpeningId == document.Id);
+            postedOpeningJournalId = journal.Id;
+            postedOpeningJournalVersion = journal.Version;
             var movement = await db.Set<StockMovement>().SingleAsync(x => x.OpeningId == document.Id);
             Ensure(document.JournalId == journal.Id && document.State == InventoryOpeningState.Posted && journal.State == JournalState.Posted &&
                 movement.Value == 15 && movement.BaseQuantity == 3 && journal.Lines.Sum(x => x.FunctionalDebit) == 15 && journal.Lines.Sum(x => x.FunctionalCredit) == 15,
@@ -104,6 +108,41 @@ public static class InventoryOpeningSqlIntegration
             try { await db.SaveChangesAsync(); throw new Exception("Stock delete accepted"); }
             catch (BusinessException e) when (e.Code == "stock_movement_immutable") { }
         }
+        // GL07-C01: source-owned INV06 journal must be reversed only through INV06,
+        // even though it is balanced and posted. A rejected GL request is atomic.
+        int gl07Journals, gl07Audits, gl07Receipts, gl07Outbox;
+        long gl07Numbers;
+        await using (var db = Context())
+        {
+            gl07Journals = await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid);
+            gl07Audits = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            gl07Receipts = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            gl07Outbox = await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid);
+            gl07Numbers = await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).SumAsync(x => x.LastNumber);
+        }
+        var rejectedGlKey = Fixture.Key();
+        try
+        {
+            await Call(s => s.Journal.ReverseJournal(cid, postedOpeningJournalId, writer,
+                rejectedGlKey, new(postedOpeningJournalVersion, Fixture.Date, "غير مسموح من اليومية"), default));
+            throw new Exception("GL07-C01 accepted direct reversal of INV06 source journal");
+        }
+        catch (BusinessException e) when (e.Code == "source_reversal_required") { }
+        await using (var db = Context())
+        {
+            Ensure(await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid) == gl07Journals &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == gl07Audits &&
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == gl07Receipts &&
+                await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) == gl07Outbox &&
+                await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).SumAsync(x => x.LastNumber) == gl07Numbers &&
+                !await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == rejectedGlKey),
+                "GL07-C01 denied source reversal changed journal, audit, receipt, outbox or numbering");
+            var originalStockJournal = await db.Set<JournalEntry>().SingleAsync(x => x.Id == postedOpeningJournalId);
+            Ensure(originalStockJournal.State == JournalState.Posted &&
+                originalStockJournal.ReversalJournalId == null && originalStockJournal.Version == postedOpeningJournalVersion,
+                "GL07-C01 direct reversal mutated the linked stock journal");
+        }
+        Console.WriteLine("  SQL PASS GL07-C01 INV06 journal cannot reverse outside source workflow, no SQL side effects");
         // Different document/key cannot repeat the same warehouse/item opening.
         var duplicate = more[0];
         duplicate = await Call(s => s.InventoryOpening.Transition(cid, duplicate.ResourceId, writer, Fixture.Key(), new(duplicate.Version), "submit", default));

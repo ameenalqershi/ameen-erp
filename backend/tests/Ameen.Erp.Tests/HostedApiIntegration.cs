@@ -792,15 +792,51 @@ public static class HostedApiIntegration
                     postOpening = new(opening.Version, plan.GetProperty("settingsVersion").GetGuid(), plan.GetProperty("warehouseVersion").GetGuid());
                 }
                 opening = await Command(client, openingsPath + $"/{opening.ResourceId}/post", postOpening);
+                Guid postedOpeningJournalId;
                 using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
-                    Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("state").GetString() == "Posted" && json.RootElement.GetProperty("journalId").GetGuid() != Guid.Empty, "HTTP posted source missing journal");
+                {
+                    postedOpeningJournalId = json.RootElement.GetProperty("journalId").GetGuid();
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("state").GetString() == "Posted" &&
+                        postedOpeningJournalId != Guid.Empty, "HTTP posted source missing journal");
+                }
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/stock-movements?warehouseId={openingWarehouse.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP stock movement missing");
                 Authenticate(Token("sql-owner"));
                 Console.WriteLine("  HOST PASS INV06 configure/preview/post/linked journal/stock movement over HTTPS/JWT/SQL");
                 Authenticate(Token("sql-clerk"));
+                // GL07-C01: never reverse an INV06 accounting journal independently of its
+                // stock source. The approved source workflow below must remain available.
+                var journalPath = $"/api/v1/companies/{companyId}/journals/{postedOpeningJournalId}";
+                Guid postedOpeningJournalVersion;
+                using (var response = await client.GetAsync(journalPath))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("source").GetString() == "InventoryOpening",
+                        "GL07-C01 posted stock journal was not source linked");
+                    postedOpeningJournalVersion = json.RootElement.GetProperty("version").GetGuid();
+                }
+                using (var reverseRequest = new HttpRequestMessage(HttpMethod.Post, journalPath + "/reverse"))
+                {
+                    reverseRequest.Headers.Add("Idempotency-Key", Fixture.Key());
+                    reverseRequest.Content = new StringContent(JsonSerializer.Serialize(
+                        new ReverseJournalRequest(postedOpeningJournalVersion, Fixture.Date, "عكس مباشر ممنوع"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejected = await client.SendAsync(reverseRequest);
+                    var denialBody = await rejected.Content.ReadAsStringAsync();
+                    Ensure(rejected.StatusCode == HttpStatusCode.Conflict &&
+                        denialBody.Contains("source_reversal_required", StringComparison.Ordinal),
+                        "GL07-C01 source-owned stock journal was reversed through journal API");
+                }
+                Authenticate(Token("audit-no-membership"));
+                using (var forbidden = await client.GetAsync(journalPath))
+                    Ensure(forbidden.StatusCode == HttpStatusCode.Forbidden,
+                        "GL07-C01 cross-member JWT disclosed source journal");
+                Authenticate(Token("sql-clerk"));
+                Console.WriteLine("  HOST PASS GL07-C01 source-owned INV06 journal direct reverse denied; source reversal remains available");
                 var reversalOpening = await Command(client, openingsPath + $"/{opening.ResourceId}/reversals", new ReverseInventoryOpeningRequest(opening.Version, Fixture.Date, "تصحيح HTTP"));
                 reversalOpening = await Command(client, openingsPath + $"/{reversalOpening.ResourceId}/submit", new TransitionRequest(reversalOpening.Version));
                 Authenticate(Token("sql-approver"));
