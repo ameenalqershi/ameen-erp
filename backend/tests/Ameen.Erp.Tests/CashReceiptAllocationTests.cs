@@ -36,6 +36,58 @@ public static class CashReceiptAllocationTests
             return Task.CompletedTask;
         });
 
+        test("CASH03-AC03: a discount may exactly settle the remaining invoice", f =>
+        {
+            CashReceiptAllocation.Validate(100m, 0.000001m, 99.999999m);
+            return Task.CompletedTask;
+        });
+
+        test("CASH03-AC04: allocation precision cannot be rounded to pass", f =>
+        {
+            Reject("invalid_amount", 1m, 0.0000001m, 0m);
+            Reject("invalid_amount", 1m, 0.000001m, 0.0000001m);
+            return Task.CompletedTask;
+        });
+
+        test("CASH03-AC05: distinct invoices retain independent remaining limits", f =>
+        {
+            var first = Guid.NewGuid();
+            var second = Guid.NewGuid();
+            CashReceiptAllocation.ValidateBatch(new[] {
+                new CashReceiptAllocationLine(first, 10m, 9m, 1m),
+                new CashReceiptAllocationLine(second, 10m, 9m, 1m)
+            });
+            return Task.CompletedTask;
+        });
+
+        test("CASH03-AC06: a later invalid allocation rejects the whole batch", f =>
+        {
+            var first = Guid.NewGuid();
+            var second = Guid.NewGuid();
+            RejectBatch("cash_receipt_allocation_exceeds_remaining", new[] {
+                new CashReceiptAllocationLine(first, 100m, 50m, 0m),
+                new CashReceiptAllocationLine(second, 1m, 1m, 0.000001m)
+            });
+            return Task.CompletedTask;
+        });
+
+        test("CASH03-AC02: many valid invoice lines cannot overflow the allocation guard", f =>
+        {
+            var invoice = Guid.NewGuid();
+            var otherInvoice = Guid.NewGuid();
+            var upper = 99_999_999_999_999m;
+            RejectBatch("cash_receipt_allocation_exceeds_remaining", new[] {
+                new CashReceiptAllocationLine(invoice, upper, upper, 0m),
+                new CashReceiptAllocationLine(invoice, upper, upper, 0m)
+            });
+            // Different invoices are independent, even at the amount ceiling.
+            CashReceiptAllocation.ValidateBatch(new[] {
+                new CashReceiptAllocationLine(invoice, upper, upper, 0m),
+                new CashReceiptAllocationLine(otherInvoice, upper, upper, 0m)
+            });
+            return Task.CompletedTask;
+        });
+
         test("CASH03-AC02: excess allocation and settlement discount fail closed", f =>
         {
             Reject("cash_receipt_allocation_exceeds_remaining", 100m, 100m, 0.000001m);

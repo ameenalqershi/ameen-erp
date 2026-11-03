@@ -60,7 +60,8 @@ screen("SYS05", "GET/POST /companies/{companyId}/exchange-rates; GET /search|/qu
 MAP["SYS05"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
 screen("SYS06", "POST /companies/{companyId}/memberships/{id}/status",
        "تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC", "شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا",
-       {1: "Membership.Id", 2: "CompanyId", 16: "Version"})
+       {1: "Membership.Id", 2: "CompanyId"})
+MAP["SYS06"]["fields"]["SYS06-F16"] = dict(status="partial", binding="Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented")
 screen("SYS07", "GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only",
        "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته؛ أساس كتالوج أدوار SYS07 وقواعد السماح/المنع وحد المبلغ/العملة وFK إلى SYS09؛ ربط مستخدم-دور SQL 030 ومقيّم مستقل غير مفعل؛ استبدال قواعد الدور ذريًا مع فحص إصدار التعديل؛ رفض لقطات الأدوار الناقصة أو العابرة للشركات وتكرار الروابط قبل تقييم المنح؛ رفض عناصر قواعد الدور الفارغة دون تغيير الدور (مجال فقط)؛ رفض اللقطات الداخلية ذات قواعد مكررة أو عابرة للشركات في تقييم الدور المباشر والمسنَد (مجال فقط)؛ رفض القواعد المحمّلة برموز غير قياسية أو سقف/عملة غير متسق وصفوف اللقطات الفارغة (مجال فقط)",
        "إدارة الأدوار وربطها بالعضويات عبر API وإنفاذ المنع الصريح ونطاق الفرع والمبلغ والعملة والعمليات المنفصلة والتدقيق وقبول API؛ كتابة الأدوار والروابط محجوبة",
@@ -179,6 +180,16 @@ screen("GL06", "POST /companies/{companyId}/journals/{id}/post; GET /journals/pr
 for code in ["GL05", "GL06"]:
     MAP[code]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["JournalProcessingTests.cs", "JournalProcessingSqlIntegration.cs", "HostedApiIntegration.cs", "Program.cs"])
 MAP["GL05"]["fields"]["GL05-F04"] = dict(status="implemented", binding="processing-queue.periodId: required")
+for n, binding in {
+    10: "JournalProcessingBatch.ActorId / JournalProcessingDurableResult.CreatedBy: server-side approval actor",
+    11: "JournalProcessingBatch.CreatedAt / DurableBatch.CreatedAt: server datetimeoffset",
+    12: "JournalProcessingBatch.Revision / DurableBatch.Revision: server numeric revision, replay-stable",
+    13: "JournalProcessingBatch.LastModifiedAt / DurableBatch.LastModifiedAt: server datetimeoffset",
+}.items():
+    MAP["GL05"]["fields"][f"GL05-F{n:02}"] = dict(status="implemented", binding=binding)
+MAP["GL05"]["api"] += "; GET /journals/processing-batches/by-key/{batchKey} (actor-owned audit fields)"
+MAP["GL05"]["test_file"] += "; backend/tests/Ameen.Erp.Tests/JournalReviewAuditFieldsSqlAcceptance.cs"
+
 MAP["GL06"]["fields"]["GL06-F04"] = dict(status="partial", binding="processing-queue.source: journal provenance only; source documents route separately")
 MAP["GL06"]["fields"]["GL06-F05"] = dict(status="implemented", binding="processing-queue.numberRange: selected fiscal-year JV number or inclusive range; sequenceFrom/sequenceTo backward-compatible; authorized branch/state/source scoped")
 MAP["GL06"]["fields"]["GL06-F08"] = dict(status="implemented", binding="JournalProcessingPreview.CanExecute/ErrorCode; JournalProcessingRow.ErrorCode/Receipt/RejectionRecorded")
@@ -305,9 +316,6 @@ for code, n, binding, status in [
     ("SYS06", 6, "Membership.IsActive (ERP membership, not identity account)", "partial"),
     ("SYS06", 12, "Membership.IsActive (ERP membership only)", "partial"),
     ("SYS09", 8, "Company.RequireSeparateApprover always true; no configuration API", "partial"),
-    ("SYS10", 5, "scope JV:FiscalYear.Id", "derived"),
-    ("SYS10", 6, "fixed JV-{yearCode}-", "partial"),
-    ("SYS10", 7, "NumberSequence.LastNumber + 1; internal only", "partial"),
     ("GL03", 4, "FiscalPeriod.FiscalYearId", "derived"),
     ("GL03", 8, "currency is on each line; no single document currency", "partial"),
     ("GL03", 9, "rate is on each line; no single document rate", "partial"),

@@ -33,6 +33,109 @@ public static class InventoryOpeningTests
     }
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV06-FG01: generated opening header preserves tenant branch and derived year", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request);
+            var saved = await Get(f, created.ResourceId);
+            var period = f.Store.All<FiscalPeriod>().Single(x => x.Id == saved.FiscalPeriodId);
+            Ensure(saved.Id == created.ResourceId && saved.Id != Guid.Empty &&
+                saved.CompanyId == f.CompanyId && saved.BranchId == request.BranchId &&
+                saved.FiscalYearId == period.FiscalYearId && saved.FiscalYearId != Guid.Empty);
+            await Error("opening_warehouse_mismatch", () => Create(f, request with
+                { BranchId = f.OtherBranchId, CountReference = "OTHER-BRANCH" }));
+            Ensure(f.Store.Count<InventoryOpening>() == 1 &&
+                f.Store.Count<JournalEntry>() == 0 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV06-FG02: document number, source/effect dates and functional currency are persisted", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request);
+            var saved = await Get(f, created.ResourceId);
+            Ensure(saved.Number == "IO-2026-000001" && saved.DocumentDate == request.DocumentDate &&
+                saved.AccountingDate == request.AccountingDate && saved.CurrencyCode == "SAR" &&
+                saved.FiscalPeriodId != Guid.Empty && saved.State == InventoryOpeningState.Draft);
+            await Error("opening_dates_required", () => Create(f, request with
+                { DocumentDate = DateOnly.MinValue, CountReference = "BAD-DATE" }));
+            await Error("opening_functional_currency_only", () => Create(f, request with
+                { CurrencyCode = "USD", CountReference = "FOREIGN" }));
+            Ensure(f.Store.Count<InventoryOpening>() == 1);
+        });
+        test("INV06-FG04: cutoff date warehouse and count reference remain exact and required", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request with { CountReference = "  COUNT-REF-25 " });
+            var saved = await Get(f, created.ResourceId);
+            Ensure(saved.CutoffDate == request.CutoffDate &&
+                saved.WarehouseId == request.WarehouseId && saved.CountReference == "COUNT-REF-25");
+            await Error("invalid_text", () => Create(f, request with { CountReference = " " }));
+            await Error("opening_dates_required", () => Create(f, request with
+                { CutoffDate = DateOnly.MinValue, CountReference = "CUT-INVALID" }));
+            await Error("reference_not_found", () => Create(f, request with
+                { WarehouseId = Guid.NewGuid(), CountReference = "WH-MISSING" }));
+            Ensure(f.Store.Count<InventoryOpening>() == 1 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV06-FG07: creation actor/timestamps and revision audit survive stale rejection", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request);
+            var saved = await Get(f, created.ResourceId);
+            Ensure(saved.CreatedBy == Writer.Subject && saved.CreatedAt != default &&
+                saved.ModifiedAt >= saved.CreatedAt && saved.Revision == 1);
+            var initial = await f.Service.InventoryOpening.AuditEvents(f.CompanyId, saved.Id, f.Owner, 0, 10, default);
+            Ensure(initial.TotalCount == 1 && initial.Items[0].ActorId == Writer.Subject &&
+                initial.Items[0].Action == "inventory-opening.created" && initial.Items[0].OccurredAt != default);
+            await Error("version_conflict", () => f.Service.InventoryOpening.Edit(f.CompanyId, saved.Id, Writer,
+                Fixture.Key(), new(Guid.NewGuid(), "رفض", request.Lines, "نسخة قديمة"), default));
+            Ensure((await f.Service.InventoryOpening.AuditEvents(f.CompanyId, saved.Id, f.Owner, 0, 10, default)).TotalCount == 1);
+            var edited = await f.Service.InventoryOpening.Edit(f.CompanyId, saved.Id, Writer,
+                Fixture.Key(), new(saved.Version, "قيد افتتاح محدث", request.Lines, "تصحيح"), default);
+            saved = await Get(f, saved.Id);
+            var after = await f.Service.InventoryOpening.AuditEvents(f.CompanyId, saved.Id, f.Owner, 0, 10, default);
+            Ensure(saved.CreatedBy == Writer.Subject && saved.Revision == 2 &&
+                edited.Version == saved.Version && saved.ModifiedAt >= saved.CreatedAt &&
+                after.TotalCount == 2 && after.Items.Any(x => x.Action == "inventory-opening.edited" &&
+                    x.ActorId == Writer.Subject && x.OccurredAt != default));
+            await Error("permission_denied", () => f.Service.InventoryOpening.AuditEvents(f.CompanyId, saved.Id,
+                f.Limited, 0, 10, default));
+        });
+        test("INV06-OP01: create and scoped search expose stable draft pages without ledger effect", async f =>
+        {
+            var request = await Setup(f);
+            var first = await Create(f, request with { CountReference = "LIST-01" });
+            var second = await Create(f, request with { CountReference = "LIST-02" });
+            var a = await f.Service.InventoryOpening.Search(f.CompanyId, Writer, request.BranchId,
+                InventoryOpeningState.Draft, "LIST-", 0, 1, default);
+            var b = await f.Service.InventoryOpening.Search(f.CompanyId, Writer, request.BranchId,
+                InventoryOpeningState.Draft, "LIST-", 1, 1, default);
+            Ensure(a.TotalCount == 2 && b.TotalCount == 2 && a.Items.Single().Id == first.ResourceId &&
+                b.Items.Single().Id == second.ResourceId &&
+                a.Items[0].Number != b.Items[0].Number);
+            Ensure((await f.Service.InventoryOpening.Search(f.CompanyId, Writer, request.BranchId,
+                InventoryOpeningState.Approved, "LIST-", 0, 10, default)).TotalCount == 0);
+            await Error("invalid_pagination", () => f.Service.InventoryOpening.Search(f.CompanyId, Writer,
+                request.BranchId, null, null, -1, 10, default));
+            Ensure(f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV06-OP02: draft to submitted is idempotent and rejected stale edit is side-effect-free", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request);
+            var key = Fixture.Key();
+            var submit = new TransitionRequest(created.Version);
+            var submitted = await f.Service.InventoryOpening.Transition(f.CompanyId, created.ResourceId,
+                Writer, key, submit, "submit", default);
+            Ensure(submitted == await f.Service.InventoryOpening.Transition(f.CompanyId, created.ResourceId,
+                Writer, key, submit, "submit", default));
+            await Error("version_conflict", () => f.Service.InventoryOpening.Transition(f.CompanyId,
+                created.ResourceId, Writer, Fixture.Key(), submit, "submit", default));
+            var saved = await Get(f, created.ResourceId);
+            Ensure(saved.State == InventoryOpeningState.Submitted && saved.Revision == 2 &&
+                (await f.Service.InventoryOpening.AuditEvents(f.CompanyId, saved.Id,
+                    f.Owner, 0, 10, default)).TotalCount == 2 &&
+                f.Store.Count<JournalEntry>() == 0 && f.Store.Count<StockMovement>() == 0 &&
+                f.Store.Count<OutboxEvent>() == 0);
+        });
         test("INV06: draft snapshots numbering idempotency and valuation without ledger effect", async f =>
         {
             var request = await Setup(f); var key = Fixture.Key(); var r = await Create(f, request, key);

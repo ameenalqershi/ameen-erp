@@ -43,6 +43,7 @@ def main():
     report["sourceSha256"] = fingerprint.hexdigest()
     commands = [
         [sys.executable, str(BACKEND / "scripts/traceability.py"), "--check"],
+        [sys.executable, str(BACKEND / "scripts/audit_cash_diagram.py")],
         [args.dotnet, "restore", "Ameen.Erp.sln", "--locked-mode", "--disable-parallel", "-m:1"],
         [args.dotnet, "build", "Ameen.Erp.sln", "-c", "Release", "--no-restore", "-p:UseSharedCompilation=false", "-m:1"],
         [args.dotnet, "tests/Ameen.Erp.Tests/bin/Release/net10.0/Ameen.Erp.Tests.dll", *(["--sql"] if args.sql else [])],

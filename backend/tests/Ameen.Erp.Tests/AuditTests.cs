@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Ameen.Erp.Application;
 using Ameen.Erp.Domain;
 namespace Ameen.Erp.Tests;
@@ -7,6 +8,28 @@ public static class AuditTests
     { var e = new AuditEvent(company ?? f.CompanyId, actor, action, resource, at, "{}"); f.Store.Add(e); return e; }
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS14-AC01: company edit tracks who/when, before-after and drillable source", async f =>
+        {
+            var initial=await f.Service.Company.GetCompany(f.CompanyId,f.Owner,default);
+            var originalName=initial.Name;
+            var changed=await f.Service.Company.EditCompany(f.CompanyId,f.Owner,Fixture.Key(),
+                CompanyTests.Edit(initial) with { Name = "اسم بعد التدقيق" },default);
+            var history=await f.Service.Audit.ListAudit(f.CompanyId,f.Owner,0,10,default,
+                actorId:f.Owner.Subject,action:"company.edited",resourceId:f.CompanyId);
+            Ensure(history.TotalCount==1 && history.Items.Single().ActorId==f.Owner.Subject);
+            var item=await f.Service.Audit.GetAuditEvent(f.CompanyId,history.Items.Single().Id,f.Owner,default);
+            using var json=JsonDocument.Parse(item.Details);
+            var before=json.RootElement.GetProperty("before");
+            var after=json.RootElement.GetProperty("after");
+            Ensure(item.ResourceId==f.CompanyId && item.CompanyId==f.CompanyId &&
+                item.OccurredAt!=default && before.GetProperty("name").GetString()==originalName &&
+                after.GetProperty("name").GetString()=="اسم بعد التدقيق" &&
+                (await f.Service.Company.GetCompany(f.CompanyId,f.Owner,default)).Name==
+                after.GetProperty("name").GetString() && changed.ResourceId==f.CompanyId);
+            var oldCount=f.Store.Count<AuditEvent>();
+            await f.Service.Audit.GetAuditEvent(f.CompanyId,item.Id,f.Owner,default);
+            Ensure(f.Store.Count<AuditEvent>()==oldCount);
+        });
         test("SYS14: UTC day filters include exact boundaries and combine actor action and reference", async f =>
         {
             var resource = Guid.NewGuid(); var day = new DateTimeOffset(2025, 1, 2, 0, 0, 0, TimeSpan.Zero);
@@ -18,6 +41,30 @@ public static class AuditTests
             Add(f, "User", "test.created", day, Guid.NewGuid());
             var result = await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, new(2025, 1, 2), new(2025, 1, 2), "User", "test.created", resource);
             Ensure(result.TotalCount == 2 && result.Items[0].Id == last.Id && result.Items[1].Id == first.Id);
+        });
+        test("SYS14-GAP02: omitted and one-sided UTC date filters preserve authorized history", async f =>
+        {
+            var reference=Guid.NewGuid();
+            var before=Add(f,"sys14-date-user","test.optional",
+                new DateTimeOffset(2024,2,28,23,59,59,TimeSpan.Zero),reference);
+            var inside=Add(f,"sys14-date-user","test.optional",
+                new DateTimeOffset(2024,2,29,12,0,0,TimeSpan.Zero),reference);
+            var after=Add(f,"sys14-date-user","test.optional",
+                new DateTimeOffset(2024,3,1,0,0,0,TimeSpan.Zero),reference);
+            var count=f.Store.Count<AuditEvent>();var receipts=f.Store.Count<IdempotencyRecord>();
+            async Task<Page<AuditEvent>> Read(DateOnly? from=null,DateOnly? to=null) =>
+                await f.Service.Audit.ListAudit(f.CompanyId,f.Owner,0,20,default,
+                    from,to,"sys14-date-user","test.optional",reference);
+            var all=await Read();
+            var lower=await Read(from:new(2024,2,29));
+            var upper=await Read(to:new(2024,2,29));
+            var exact=await Read(from:new(2024,2,29),to:new(2024,2,29));
+            Ensure(all.TotalCount==3 && all.Items.Select(x=>x.Id).ToHashSet().SetEquals(
+                new[]{before.Id,inside.Id,after.Id}) &&
+                lower.TotalCount==2 && !lower.Items.Any(x=>x.Id==before.Id) &&
+                upper.TotalCount==2 && !upper.Items.Any(x=>x.Id==after.Id) &&
+                exact.TotalCount==1 && exact.Items.Single().Id==inside.Id &&
+                f.Store.Count<AuditEvent>()==count && f.Store.Count<IdempotencyRecord>()==receipts);
         });
         test("SYS14: UTC conversion respects timestamp offsets and maximum calendar date", async f =>
         {
@@ -53,6 +100,28 @@ public static class AuditTests
             var foreign = Add(f, "u", "foreign", DateTimeOffset.UtcNow, Guid.NewGuid(), Guid.NewGuid());
             await Error("reference_not_found", () => f.Service.Audit.GetAuditEvent(f.CompanyId, foreign.Id, f.Owner, default));
             Ensure((await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, action: "foreign")).TotalCount == 0);
+        });
+        test("SYS14-AC02: revoked Audit member loses historical list and detail without altering records", async f =>
+        {
+            var id=Guid.NewGuid();
+            var audited=Add(f,"historical-actor","test.unchanged",DateTimeOffset.UtcNow,id);
+            var details=audited.Details;
+            var auditor=new Actor("sys14-revoked-auditor");
+            await f.Service.Membership.GrantMembership(f.CompanyId,f.Owner,Fixture.Key(),
+                new(auditor.Subject,new[]{Permissions.Read,Permissions.Audit},true,Array.Empty<Guid>(),null),default);
+            Ensure((await f.Service.Audit.GetAuditEvent(f.CompanyId,audited.Id,auditor,default)).Id==audited.Id);
+            var member=f.Store.All<Membership>().Single(x=>x.Subject==auditor.Subject);
+            var disabled=await f.Service.Membership.SetMembershipStatus(f.CompanyId,member.Id,
+                f.Owner,Fixture.Key(),new(member.Version,false,"تعطيل صلاحية المدقق"),default);
+            var before=f.Store.Count<AuditEvent>();
+            var receipts=f.Store.Count<IdempotencyRecord>();
+            await Error("permission_denied",()=>f.Service.Audit.GetAuditEvent(f.CompanyId,audited.Id,auditor,default));
+            await Error("permission_denied",()=>f.Service.Audit.ListAudit(f.CompanyId,auditor,0,10,default));
+            Ensure(f.Store.Count<AuditEvent>()==before && f.Store.Count<IdempotencyRecord>()==receipts &&
+                f.Store.All<AuditEvent>().Single(x=>x.Id==audited.Id).Details==details);
+            await f.Service.Membership.SetMembershipStatus(f.CompanyId,member.Id,
+                f.Owner,Fixture.Key(),new(disabled.Version,true,"إعادة تفعيل المدقق"),default);
+            Ensure((await f.Service.Audit.GetAuditEvent(f.CompanyId,audited.Id,auditor,default)).Details==details);
         });
         test("SYS14: reversed dates invalid pages and empty resource identifiers are rejected", async f =>
         {

@@ -10,6 +10,68 @@ public static class UnitTests
     public static EditUnitRequest Edit(UnitOfMeasure x) => new(x.Version, x.Code, x.Name, x.StandardCode, x.QuantityScale, x.Description, x.EnglishName, x.Notes, "تحديث الوحدة");
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV03-FG01: generated identity tenant header and required normalized fields", async f =>
+        {
+            var created = await Create(f, Request() with { Code = " ea-01 ", Name = "  حبة  " });
+            var unit = await Get(f, created.ResourceId);
+            Ensure(unit.Id == created.ResourceId && unit.Id != Guid.Empty &&
+                unit.CompanyId == f.CompanyId && unit.Code == "EA-01" && unit.Name == "حبة");
+            await Error("invalid_text", () => Create(f, Request() with { Name = "  " }));
+            await Error("invalid_text", () => Create(f, Request() with { Code = "" }));
+            await Error("invalid_code", () => Create(f, Request() with { Code = "invalid code" }));
+            await Error("duplicate_unit_code", () => Create(f, Request() with { Code = "ea-01" }));
+            Ensure((await f.Service.Unit.SearchUnits(f.CompanyId, f.Limited, "EA-01", true, 0, 10, default)).TotalCount == 1);
+            Ensure(f.Store.Count<UnitOfMeasure>() == 1);
+        });
+        test("INV03-FG02: optional fields and status survive edits without silent defaults", async f =>
+        {
+            var created = await Create(f, Request() with { EnglishName = null, Notes = null, StandardCode = "ea" });
+            var unit = await Get(f, created.ResourceId);
+            Ensure(unit.EnglishName is null && unit.Notes is null && unit.StandardCode == "EA" && unit.IsActive);
+            await Error("invalid_code", () => Create(f, Request() with { StandardCode = "bad code" }));
+            await Error("invalid_text", () => Create(f, Request() with { Notes = new string('n', 2001) }));
+            var edited = await f.Service.Unit.EditUnit(f.CompanyId, unit.Id, f.Owner, Fixture.Key(),
+                Edit(unit) with { EnglishName = "Each", Notes = "label", Name = "قطعة" }, default);
+            unit = await Get(f, unit.Id);
+            Ensure(unit.EnglishName == "Each" && unit.Notes == "label" && unit.Name == "قطعة");
+            await f.Service.Unit.SetUnitStatus(f.CompanyId, unit.Id, f.Owner, Fixture.Key(), new(edited.Version, false, "إيقاف"), default);
+            unit = await Get(f, unit.Id);
+            Ensure(!unit.IsActive && (await f.Service.Unit.SearchUnits(f.CompanyId, f.Limited, null, false, 0, 10, default)).TotalCount == 1);
+        });
+        test("INV03-FG03: scale limits and required description persist without global factor", async f =>
+        {
+            var low = await Create(f, Request() with { Code = "SCALE0", QuantityScale = 0, Description = "صفر" });
+            var high = await Create(f, Request() with { Code = "SCALE6", QuantityScale = 6, Description = "ست" });
+            Ensure((await Get(f, low.ResourceId)).Description == "صفر" &&
+                (await Get(f, high.ResourceId)).QuantityScale == 6);
+            await Error("invalid_quantity_scale", () => Create(f, Request() with { QuantityScale = -1 }));
+            await Error("invalid_quantity_scale", () => Create(f, Request() with { QuantityScale = 7 }));
+            await Error("invalid_text", () => Create(f, Request() with { Description = "" }));
+            var unit = await Get(f, high.ResourceId);
+            await Error("invalid_text", () => f.Service.Unit.EditUnit(f.CompanyId, unit.Id, f.Owner, Fixture.Key(),
+                Edit(unit) with { Description = new string('d', 501) }, default));
+            Ensure((await Get(f, high.ResourceId)).Version == high.Version);
+        });
+        test("INV03-FG04: audit actor timestamps revision and failed command silence", async f =>
+        {
+            var created = await Create(f); var unit = await Get(f, created.ResourceId);
+            var createdEvents = await f.Service.Unit.ListUnitAudit(f.CompanyId, unit.Id, f.Owner, 0, 10, default);
+            Ensure(createdEvents.TotalCount == 1 && createdEvents.Items[0].ActorId == f.Owner.Subject &&
+                createdEvents.Items[0].Action == "unit.created" && createdEvents.Items[0].OccurredAt != default);
+            using (var snapshot = JsonDocument.Parse(createdEvents.Items[0].Details))
+                Ensure(snapshot.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 1);
+            await Error("version_conflict", () => f.Service.Unit.EditUnit(f.CompanyId, unit.Id, f.Owner, Fixture.Key(),
+                Edit(unit) with { ExpectedVersion = Guid.NewGuid() }, default));
+            Ensure((await f.Service.Unit.ListUnitAudit(f.CompanyId, unit.Id, f.Owner, 0, 10, default)).TotalCount == 1);
+            var changed = await f.Service.Unit.EditUnit(f.CompanyId, unit.Id, f.Owner, Fixture.Key(),
+                Edit(unit) with { Description = "النسخة الثانية" }, default);
+            var events = await f.Service.Unit.ListUnitAudit(f.CompanyId, unit.Id, f.Owner, 0, 10, default);
+            Ensure((await Get(f, unit.Id)).Revision == 2 && changed.Version != created.Version &&
+                events.TotalCount == 2 && events.Items.All(x => x.ActorId == f.Owner.Subject && x.OccurredAt != default));
+            using var detail = JsonDocument.Parse(events.Items.Single(x => x.Action == "unit.edited").Details);
+            Ensure(detail.RootElement.GetProperty("before").GetProperty("revision").GetInt32() == 1 &&
+                detail.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 2);
+        });
         test("INV03: bilingual unit with standard code and integer revision roundtrips", async f =>
         {
             var r = await Create(f); var unit = await Get(f, r.ResourceId);

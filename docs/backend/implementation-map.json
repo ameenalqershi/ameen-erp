@@ -6,11 +6,11 @@
   "partially_implemented_screens": 35,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 344,
-    "audit": 49,
-    "derived": 5,
-    "partial": 96,
-    "pending": 2265
+    "implemented": 349,
+    "audit": 47,
+    "derived": 4,
+    "partial": 95,
+    "pending": 2264
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -364,8 +364,8 @@
           "binding": "CompanyId"
         },
         "SYS06-F16": {
-          "status": "implemented",
-          "binding": "Version"
+          "status": "partial",
+          "binding": "Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented"
         },
         "SYS06-F06": {
           "status": "partial",
@@ -567,16 +567,16 @@
           "binding": "DocumentKind: Journal/InventoryOpening; TaxInvoice guarded by country prerequisite"
         },
         "SYS10-F05": {
-          "status": "derived",
-          "binding": "scope JV:FiscalYear.Id"
+          "status": "implemented",
+          "binding": "FiscalYearId"
         },
         "SYS10-F06": {
-          "status": "partial",
-          "binding": "fixed JV-{yearCode}-"
+          "status": "implemented",
+          "binding": "Prefix: optional user text"
         },
         "SYS10-F07": {
-          "status": "partial",
-          "binding": "NumberSequence.LastNumber + 1; internal only"
+          "status": "implemented",
+          "binding": "NextNumber: monotonic server allocation and explicit forward edit"
         },
         "SYS10-F08": {
           "status": "implemented",
@@ -1122,7 +1122,7 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/RecurringTests.cs; backend/tests/Ameen.Erp.Tests/RecurringSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
     },
     "GL05": {
-      "api": "POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch",
+      "api": "POST /companies/{companyId}/journals/{id}/submit|approve|return; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey} (actor-owned audit fields)",
       "implemented": "قائمة مراجعة حسب الفترة والفرع والحالة والمصدر والتسلسل؛ معاينة موانع كل قيد واعتماد أو إعادة جماعية بمعاملة لكل مستند وسجل قرار محفوظ وإعادة آمنة",
       "remaining": "مراجع مستقل عن المعتمد ومراحل اعتماد متعددة؛ حالة مراجعة مستقلة عن حالة القيد وإصدار عددي للإجراء",
       "fields": {
@@ -1144,7 +1144,7 @@
         },
         "GL05-F13": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "JournalProcessingBatch.LastModifiedAt / DurableBatch.LastModifiedAt: server datetimeoffset"
         },
         "GL05-F06": {
           "status": "audit",
@@ -1159,19 +1159,23 @@
           "binding": "AuditEvent.Details.reason: journal.return"
         },
         "GL05-F11": {
-          "status": "audit",
-          "binding": "AuditEvent.ActorId"
+          "status": "implemented",
+          "binding": "JournalProcessingBatch.CreatedAt / DurableBatch.CreatedAt: server datetimeoffset"
         },
         "GL05-F12": {
-          "status": "audit",
-          "binding": "AuditEvent.OccurredAt"
+          "status": "implemented",
+          "binding": "JournalProcessingBatch.Revision / DurableBatch.Revision: server numeric revision, replay-stable"
         },
         "GL05-F04": {
           "status": "implemented",
           "binding": "processing-queue.periodId: required"
+        },
+        "GL05-F10": {
+          "status": "implemented",
+          "binding": "JournalProcessingBatch.ActorId / JournalProcessingDurableResult.CreatedBy: server-side approval actor"
         }
       },
-      "test_file": "backend/tests/Ameen.Erp.Tests/JournalProcessingTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/Program.cs"
+      "test_file": "backend/tests/Ameen.Erp.Tests/JournalProcessingTests.cs; backend/tests/Ameen.Erp.Tests/JournalProcessingSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/Program.cs; backend/tests/Ameen.Erp.Tests/JournalReviewAuditFieldsSqlAcceptance.cs"
     },
     "GL06": {
       "api": "POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}",

@@ -18,6 +18,95 @@ public static class ItemTests
         x.Units.Select(u => new ItemUnitRequest(u.UnitId, u.FactorToBase, u.Barcode, u.SalePrice)).ToArray(), x.ShelfLifeDays, x.ReorderLevel, x.EnglishName, x.Notes, "تحديث");
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV04-OP01: item create and paged search preserve tenant and group filtering", async f =>
+        {
+            var request = await Setup(f);
+            foreach (var code in new[] { "OP01-A", "OP01-B" })
+                await Create(f, request with { Code = code, Name = "اسم " + code,
+                    Units = request.Units.Select(u => u with { Barcode = u.Barcode + "-" + code }).ToArray() });
+            var first = await f.Service.Item.SearchItems(f.CompanyId, f.Limited, "OP01", request.GroupId, true, 0, 1, default);
+            var second = await f.Service.Item.SearchItems(f.CompanyId, f.Limited, "OP01", request.GroupId, true, 1, 1, default);
+            Ensure(first.TotalCount == 2 && second.TotalCount == 2 &&
+                first.Items.Single().Id != second.Items.Single().Id &&
+                first.Items[0].Code == "OP01-A" && second.Items[0].Code == "OP01-B");
+            await Error("duplicate_item_code", () => Create(f, request with { Code = "OP01-A" }));
+            await Error("reference_not_found", () => f.Service.Item.SearchItems(f.CompanyId, f.Owner,
+                "OP01", Guid.NewGuid(), true, 0, 10, default));
+            Ensure(f.Store.Count<Item>() == 2 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV04-OP02: save, edit and status replay are atomic with expected revisions", async f =>
+        {
+            var receipt = await Create(f, await Setup(f));
+            var item = await Get(f, receipt.ResourceId);
+            var key = Fixture.Key();
+            var request = Edit(item) with { Name = "تعديل وصف البطاقة" };
+            var edited = await f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner, key, request, default);
+            Ensure(edited == await f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner, key, request, default));
+            var statusKey = Fixture.Key();
+            var statusRequest = new SetItemStatusRequest(edited.Version, false, "تعطيل بطاقة");
+            var inactive = await f.Service.Item.SetItemStatus(f.CompanyId, item.Id, f.Owner, statusKey, statusRequest, default);
+            Ensure(inactive == await f.Service.Item.SetItemStatus(f.CompanyId, item.Id, f.Owner, statusKey, statusRequest, default));
+            await Error("version_conflict", () => f.Service.Item.SetItemStatus(f.CompanyId, item.Id, f.Owner,
+                Fixture.Key(), statusRequest, default));
+            var saved = await Get(f, item.Id);
+            Ensure(saved.Revision == 3 && saved.Name == "تعديل وصف البطاقة" && !saved.IsActive &&
+                (await f.Service.Item.SearchItems(f.CompanyId, f.Limited, null, null, true, 0, 10, default)).TotalCount == 0 &&
+                (await f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Owner, 0, 10, default)).TotalCount == 3);
+        });
+        test("INV04-FG01: generated item identity, tenant, code and required Arabic name", async f =>
+        {
+            var request = await Setup(f);
+            var receipt = await Create(f, request with { Code = " item-aa ", Name = "  مادة  " });
+            var item = await Get(f, receipt.ResourceId);
+            Ensure(item.Id == receipt.ResourceId && item.Id != Guid.Empty &&
+                item.CompanyId == f.CompanyId && item.Code == "ITEM-AA" && item.Name == "مادة");
+            await Error("invalid_text", () => Create(f, request with { Code = "NEW-N", Name = " " }));
+            await Error("invalid_text", () => Create(f, request with { Code = "", Name = "اسم" }));
+            await Error("invalid_code", () => Create(f, request with { Code = "bad item", Name = "اسم" }));
+            await Error("duplicate_item_code", () => Create(f, request with { Code = "item-aa" }));
+            Ensure((await f.Service.Item.SearchItems(f.CompanyId, f.Limited, "ITEM-AA", request.GroupId, true, 0, 10, default)).TotalCount == 1);
+            Ensure(f.Store.Count<Item>() == 1 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV04-FG06: item audit actor, time, revision and rejected version are consistent", async f =>
+        {
+            var receipt = await Create(f, await Setup(f));
+            var item = await Get(f, receipt.ResourceId);
+            var audit = await f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Owner, 0, 10, default);
+            Ensure(audit.TotalCount == 1 && audit.Items[0].Action == "item.created" &&
+                audit.Items[0].ActorId == f.Owner.Subject && audit.Items[0].OccurredAt != default);
+            using (var json = System.Text.Json.JsonDocument.Parse(audit.Items[0].Details))
+                Ensure(json.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 1);
+            await Error("version_conflict", () => f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner,
+                Fixture.Key(), Edit(item) with { ExpectedVersion = Guid.NewGuid() }, default));
+            Ensure((await f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Owner, 0, 10, default)).TotalCount == 1);
+            var changed = await f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner,
+                Fixture.Key(), Edit(item) with { Name = "اسم معدل" }, default);
+            var events = await f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Owner, 0, 10, default);
+            Ensure((await Get(f, item.Id)).Revision == 2 && changed.Version != receipt.Version &&
+                events.TotalCount == 2 && events.Items.All(x => x.ActorId == f.Owner.Subject && x.OccurredAt != default));
+            using var detail = System.Text.Json.JsonDocument.Parse(events.Items.Single(x => x.Action == "item.edited").Details);
+            Ensure(detail.RootElement.GetProperty("before").GetProperty("revision").GetInt32() == 1 &&
+                detail.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 2);
+            await Error("permission_denied", () => f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Limited, 0, 10, default));
+        });
+        test("INV04-AC01: all documented item types produce tenant-scoped cards without stock", async f =>
+        {
+            var request = await Setup(f);
+            foreach (var type in new[] { ItemType.Goods, ItemType.Service, ItemType.Material, ItemType.Product })
+            {
+                var code = ("TYPE-" + type).ToUpperInvariant();
+                var receipt = await Create(f, request with
+                {
+                    Code = code, Name = code, Type = type, Units = request.Units.Select(x =>
+                        x with { Barcode = x.Barcode + "-" + type }).ToArray()
+                });
+                var item = await Get(f, receipt.ResourceId);
+                Ensure(item.CompanyId == f.CompanyId && item.Type == type && item.Units.Count == 2 &&
+                    item.Units.Any(x => x.UnitId == request.BaseUnitId && x.FactorToBase == 1m));
+                Ensure((await f.Service.Item.SearchItems(f.CompanyId, f.Limited, code, request.GroupId, true, 0, 10, default)).TotalCount == 1);
+            }
+            Ensure(f.Store.Count<JournalEntry>() == 0 && f.Store.Count<StockMovement>() == 0);
+        });
         test("INV04: item units barcode and price roundtrip without stock movement", async f =>
         {
             var request = await Setup(f); var r = await Create(f, request); var item = await Get(f, r.ResourceId);
@@ -34,6 +123,48 @@ public static class ItemTests
             await Error("conversion_precision", () => f.Service.Item.ConvertItemQuantity(f.CompanyId, r.ResourceId, f.Clerk, box, 0.01m, default));
             await Error("quantity_precision", () => f.Service.Item.ConvertItemQuantity(f.CompanyId, r.ResourceId, f.Clerk, request.BaseUnitId, 0.5m, default));
             await Error("quantity_overflow", () => f.Service.Item.ConvertItemQuantity(f.CompanyId, r.ResourceId, f.Clerk, box, 99_999_999_999_999m, default));
+        });
+        test("INV03-AC02 INV04: one shared unit has item-specific conversion ratios", async f =>
+        {
+            var request = await Setup(f);
+            var first = await Create(f, request);
+            var secondUnits = request.Units.Select((x, index) => x with
+            {
+                Barcode = index == 0 ? "00001-2" : "00012-2",
+                FactorToBase = index == 0 ? 1m : 24m
+            }).ToArray();
+            var second = await Create(f, request with { Code = "002", Name = "صنف ثان", Units = secondUnits });
+            var box = request.Units[1].UnitId;
+            var firstConversion = await f.Service.Item.ConvertItemQuantity(f.CompanyId, first.ResourceId, f.Clerk, box, 2m, default);
+            var secondConversion = await f.Service.Item.ConvertItemQuantity(f.CompanyId, second.ResourceId, f.Clerk, box, 2m, default);
+            Ensure(firstConversion.BaseQuantity == 24m && secondConversion.BaseQuantity == 48m);
+            var outside = await f.Service.Unit.CreateUnit(f.CompanyId, f.Owner, Fixture.Key(),
+                new("OUTSIDE", "وحدة غير مرتبطة", "OUTSIDE", 0, "مرجع منفصل"), default);
+            await Error("item_unit_not_found", () => f.Service.Item.ConvertItemQuantity(f.CompanyId,
+                first.ResourceId, f.Clerk, outside.ResourceId, 1m, default));
+            Ensure(f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV03-GAP01: alternative unit usage stays visible and immutable after item deactivation", async f =>
+        {
+            var request = await Setup(f);
+            var itemReceipt = await Create(f, request);
+            var boxId = request.Units[1].UnitId;
+            var box = await f.Service.Unit.GetUnit(f.CompanyId, boxId, f.Owner, default);
+            Ensure((await f.Service.Unit.ListUnitItems(f.CompanyId, boxId, f.Owner, 0, 10, default)).TotalCount == 1);
+            await Error("unit_structure_in_use", () => f.Service.Unit.EditUnit(f.CompanyId, boxId, f.Owner,
+                Fixture.Key(), UnitTests.Edit(box) with { StandardCode = "CTN" }, default));
+            await f.Service.Item.SetItemStatus(f.CompanyId, itemReceipt.ResourceId, f.Owner,
+                Fixture.Key(), new(itemReceipt.Version, false, "إيقاف الصنف"), default);
+            await f.Service.Unit.SetUnitStatus(f.CompanyId, boxId, f.Owner, Fixture.Key(),
+                new(box.Version, false, "إيقاف وحدة الصنف غير الفعال"), default);
+            box = await f.Service.Unit.GetUnit(f.CompanyId, boxId, f.Owner, default);
+            Ensure(!box.IsActive);
+            Ensure((await f.Service.Unit.ListUnitItems(f.CompanyId, boxId, f.Owner, 0, 10, default)).TotalCount == 1);
+            await Error("unit_structure_in_use", () => f.Service.Unit.EditUnit(f.CompanyId, boxId, f.Owner,
+                Fixture.Key(), UnitTests.Edit(box) with { QuantityScale = 3 }, default));
+            var inactiveItem = await f.Service.Item.GetItem(f.CompanyId, itemReceipt.ResourceId, f.Owner, default);
+            await Error("inactive_unit", () => f.Service.Item.SetItemStatus(f.CompanyId, inactiveItem.Id,
+                f.Owner, Fixture.Key(), new(inactiveItem.Version, true, "محاولة إعادة التفعيل"), default));
         });
         test("INV04: services cannot carry stock policy and serial base units cannot allow fractions", async f =>
         {

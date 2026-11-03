@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Ameen.Erp.Application;
 using Ameen.Erp.Domain;
 using Ameen.Erp.Infrastructure;
@@ -26,6 +27,79 @@ public static class AuditSqlIntegration
         Ensure(page.TotalCount == 2 && page.Items.Single().Id == first.Id);
         Ensure((await service.GetAuditEvent(cid, first.Id, owner, default)).ActorId == "CaseUser");
         Ensure((await service.ListAudit(cid, owner, 0, 10, default, DateOnly.MaxValue, DateOnly.MaxValue, resourceId: resource)).TotalCount == 0);
+        // SYS14-GAP02: each date bound is optional for the already-deployed audit API.
+        var all=await service.ListAudit(cid,owner,0,20,default,
+            actorId:"CaseUser",action:"test.audit",resourceId:resource);
+        var onlyFrom=await service.ListAudit(cid,owner,0,20,default,
+            from:new(2024,2,29),actorId:"CaseUser",action:"test.audit",resourceId:resource);
+        var onlyTo=await service.ListAudit(cid,owner,0,20,default,
+            to:new(2024,2,29),actorId:"CaseUser",action:"test.audit",resourceId:resource);
+        Ensure(all.TotalCount==4 && onlyFrom.TotalCount==3 && onlyTo.TotalCount==3 &&
+            onlyFrom.Items.All(x=>x.OccurredAt>=new DateTimeOffset(2024,2,29,0,0,0,TimeSpan.Zero)) &&
+            onlyTo.Items.All(x=>x.OccurredAt<new DateTimeOffset(2024,3,1,0,0,0,TimeSpan.Zero)) &&
+            (await service.ListAudit(cid,owner,0,20,default,
+                new(2024,2,29),new(2024,2,29),"CaseUser","test.audit",resource)).TotalCount==2);
+        Console.WriteLine("  SQL PASS SYS14-GAP02 no/one-sided UTC date filters preserve authorized history");
+        // SYS14-AC01: edits created by the real company service are recoverable
+        // as historical before/after snapshots and link to the same tenant source.
+        var companyEdits=await service.ListAudit(cid,owner,0,50,default,
+            actorId:owner.Subject,action:"company.edited",resourceId:cid);
+        Ensure(companyEdits.TotalCount>0 && companyEdits.Items.All(x=>
+            x.CompanyId==cid && x.ActorId==owner.Subject && x.Action=="company.edited" &&
+            x.ResourceId==cid && x.OccurredAt!=default));
+        var edit=await service.GetAuditEvent(cid,companyEdits.Items[0].Id,owner,default);
+        using(var details=JsonDocument.Parse(edit.Details))
+            Ensure(details.RootElement.TryGetProperty("before",out var prior) &&
+                details.RootElement.TryGetProperty("after",out var newer) &&
+                prior.GetProperty("name").GetString()!=null &&
+                newer.GetProperty("name").GetString()!=null &&
+                !prior.GetRawText().Equals(newer.GetRawText(),StringComparison.Ordinal));
+        var company=await db.Set<Company>().AsNoTracking().SingleAsync(x=>x.Id==cid);
+        Ensure(company.Id==edit.ResourceId);
+        var beforeCount=await db.Set<AuditEvent>().CountAsync(x=>x.CompanyId==cid);
+        await service.GetAuditEvent(cid,edit.Id,owner,default);
+        await service.ListAudit(cid,owner,0,5,default,action:"company.edited");
+        Ensure(await db.Set<AuditEvent>().CountAsync(x=>x.CompanyId==cid)==beforeCount);
+        Console.WriteLine("  SQL PASS SYS14-AC01 tracked company-edit actor, time, before/after, source drill and read-only history");
+        // SYS14-AC02: SQL-backed revocation must immediately reject a still-valid subject,
+        // and a denial must not change historical audit rows or create idempotency receipts.
+        ErpDbContext OtherContext() => new(new DbContextOptionsBuilder<ErpDbContext>()
+            .UseSqlServer(connection).Options);
+        async Task<T> Call<T>(Func<TestServices,Task<T>> fn)
+        {
+            await using var other=OtherContext();
+            return await fn(new TestServices(new SqlErpStore(other),
+                new SqlTransactionRunner(other,new FixedClock()),new FixedClock()));
+        }
+        async Task Denied(Func<Task> fn)
+        {
+            try { await fn(); throw new Exception("SYS14 SQL disabled auditor read history"); }
+            catch(BusinessException ex) when(ex.Code=="permission_denied") { }
+        }
+        var auditor=new Actor("sys14-sql-revoked-auditor");
+        var grant=await Call(s=>s.Membership.GrantMembership(cid,owner,Fixture.Key(),
+            new(auditor.Subject,new[]{Permissions.Audit,Permissions.Read},true,Array.Empty<Guid>(),null),default));
+        Ensure((await Call(s=>s.Audit.GetAuditEvent(cid,first.Id,auditor,default))).Id==first.Id);
+        var disabled=await Call(s=>s.Membership.SetMembershipStatus(cid,grant.ResourceId,owner,
+            Fixture.Key(),new(grant.Version,false,"تعطيل التدقيق"),default));
+        int auditBefore,receiptsBefore;
+        string original;
+        await using(var verify=OtherContext())
+        {
+            auditBefore=await verify.Set<AuditEvent>().CountAsync(x=>x.CompanyId==cid);
+            receiptsBefore=await verify.Set<IdempotencyRecord>().CountAsync(x=>x.CompanyId==cid);
+            original=(await verify.Set<AuditEvent>().AsNoTracking().SingleAsync(x=>x.Id==first.Id)).Details;
+        }
+        await Denied(()=>Call(s=>s.Audit.GetAuditEvent(cid,first.Id,auditor,default)));
+        await Denied(()=>Call(s=>s.Audit.ListAudit(cid,auditor,0,10,default)));
+        await using(var verify=OtherContext())
+            Ensure(await verify.Set<AuditEvent>().CountAsync(x=>x.CompanyId==cid)==auditBefore &&
+                await verify.Set<IdempotencyRecord>().CountAsync(x=>x.CompanyId==cid)==receiptsBefore &&
+                (await verify.Set<AuditEvent>().AsNoTracking().SingleAsync(x=>x.Id==first.Id)).Details==original);
+        await Call(s=>s.Membership.SetMembershipStatus(cid,grant.ResourceId,owner,
+            Fixture.Key(),new(disabled.Version,true,"إعادة تفعيل"),default));
+        Ensure((await Call(s=>s.Audit.GetAuditEvent(cid,first.Id,auditor,default))).Details==original);
+        Console.WriteLine("  SQL PASS SYS14-AC02 revoked Audit membership, atomic denied reads, retained history and restore");
         Console.WriteLine("  SQL PASS SYS14 exact actor/action filters including case and trailing spaces, leap-day boundaries, pagination and event detail");
     }
     private static void Ensure(bool value) { if (!value) throw new Exception("SQL audit filtering assertion failed"); }
