@@ -20,9 +20,17 @@ public static class CashReceiptAllocation
             var remaining = group.First().Remaining;
             Check.That(group.All(x => x.Remaining == remaining),
                 "cash_receipt_remaining_mismatch", "المتبقي من الفاتورة غير متطابق بين السطور.");
-            Check.That(group.Sum(x => x.Allocated + x.SettlementDiscount) <= remaining,
-                "cash_receipt_allocation_exceeds_remaining",
-                "مجموع التخصيصات وخصومات التسوية يتجاوز المتبقي من الفاتورة.");
+            // Compare against the remaining capacity instead of summing: even
+            // individually valid amounts can overflow decimal when repeated.
+            var available = remaining;
+            foreach (var line in group)
+            {
+                var applied = line.Allocated + line.SettlementDiscount;
+                Check.That(applied <= available,
+                    "cash_receipt_allocation_exceeds_remaining",
+                    "مجموع التخصيصات وخصومات التسوية يتجاوز المتبقي من الفاتورة.");
+                available -= applied;
+            }
         }
     }
 
