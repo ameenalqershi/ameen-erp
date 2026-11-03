@@ -13,7 +13,8 @@ public static class CompanyTests
                 TaxRegistration = "000456", District = "حي الاختبار", BuildingNumber = "001", PostalCode = "00012", AdditionalNumber = "0034" };
             var r = await f.Service.Company.EditCompany(f.CompanyId, f.Owner, Fixture.Key(), Edit(c) with { Profile = profile }, default);
             c = await Company(f);
-            Ensure(c.Version == r.Version && c.Revision == 2 && c.IsProfileComplete && c.CommercialRegistration == "000123" && c.PostalCode == "00012");
+            Ensure(c.Version == r.Version && c.Revision == 2 && c.IsProfileComplete && c.CommercialRegistration == "000123" && c.PostalCode == "00012" &&
+                c.EnglishName == "Example company" && c.Notes == "ملاحظات" && c.LegalName == profile.LegalName && c.IsActive);
             Ensure(c.FiscalYearStartsOn == new DateOnly(2026, 1, 1) && c.District == "حي الاختبار");
             Ensure((await f.Service.Company.ListCompanyAudit(f.CompanyId, f.Owner, 0, 10, default)).TotalCount == 2);
         });
