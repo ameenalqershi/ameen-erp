@@ -1,5 +1,10 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS02-OP03 — branch usage and audit acceptance (3 November 2026)
+
+Production HTTPS/JWT/SQL tests now verify an authorized branch usage snapshot with exact direct-child, journal, recurring-template and cost-center counts, disabled-branch audit pagination, and HTTP 403 for an unrelated JWT reading either endpoint. Isolated SQL integration checks the branch usage subtree against actual SQL branches and confirms audit actor/time and tenant scope. Existing branch-domain tests cover all-branches permission requirements, subtree financial usage, replay, and audit events. No new API routes, business/financial policy, migrations or edits to source analysis. Completion requires passing CI on the exact sys head; the SYS02 screen remains partial because location-type and manager-reference policy await approval.
+
+
 ## SYS03-OP03 — fiscal-year usage/audit acceptance (3 November 2026)
 
 Existing fiscal-year usage and audit endpoints now have independent SQL/HTTPS/JWT acceptance for the SYS03-OP03 atomic task: an authorized actor reads a tenant-scoped, pageable fiscal-year-created audit event with the actual actor and non-default timestamp; a newly created calendar has zero journals, unposted journals and recurring generations. A valid non-member JWT cannot read either endpoint (403), while production HTTPS/JWT/OpenAPI and isolated SQL prove the endpoint contract and stored audit data. Existing fiscal-domain tests also reject limited branch scope and unauthorized audit, and cover period closure/reopening audits. No changes to original analysis, business policies, migrations or production endpoints. This does not close the full SYS03 screen or decide GL12 fiscal close policy. Final acceptance requires exact-head CI on sys.

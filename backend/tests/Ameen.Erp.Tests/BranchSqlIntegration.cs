@@ -16,6 +16,25 @@ public static class BranchSqlIntegration
         }
         var parent = await Call(s => s.Branch.CreateBranch(cid, owner, Fixture.Key(), new("SQL-PARENT", "أب", "مدينة", "عنوان"), default));
         var child = await Call(s => s.Branch.CreateBranch(cid, owner, Fixture.Key(), new("SQL-CHILD", "ابن", "مدينة", "عنوان", parent.ResourceId), default));
+        // SYS02-OP03: a branch usage report includes only its own subtree,
+        // and audit identity remains linked to the proper tenant in SQL.
+        var parentUsage = await Call(s => s.Branch.GetBranchUsage(cid, parent.ResourceId, owner, default));
+        await using (var usageDb = Context())
+        {
+            Ensure(parentUsage.BranchId == parent.ResourceId &&
+                parentUsage.ChildCount == await usageDb.Set<Branch>().CountAsync(
+                    x => x.CompanyId == cid && x.ParentId == parent.ResourceId) &&
+                parentUsage.CostCenterCount == 0 && parentUsage.JournalCount == 0 &&
+                parentUsage.RecurringTemplateCount == 0 &&
+                !parentUsage.HasSubtreeFinancialUsage && parentUsage.MembershipCount > 0,
+                "SYS02-OP03 SQL branch usage leaked external scope or is inaccurate");
+            var eventRow = await usageDb.Set<AuditEvent>()
+                .Where(x => x.CompanyId == cid && x.ResourceId == parent.ResourceId &&
+                    x.Action == "branch.created").SingleAsync();
+            Ensure(eventRow.ActorId == owner.Subject && eventRow.OccurredAt != default,
+                "SYS02-OP03 SQL branch audit actor or timestamp invalid");
+        }
+        Console.WriteLine("  SQL PASS SYS02-OP03 branch usage and audit tenant scope");
         var b = await Call(s => s.Branch.GetBranch(cid, child.ResourceId, owner, default));
         var request = BranchTests.Edit(b) with { EnglishName = "SQL branch", Address = "عنوان 001" }; var key = Fixture.Key();
         var replays = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => Call(s => s.Branch.EditBranch(cid, b.Id, owner, key, request, default))));

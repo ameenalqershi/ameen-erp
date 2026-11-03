@@ -1114,6 +1114,35 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Branch HTTP audit failed");
+                // SYS02-OP03: usage and audit are tenant-scoped even with
+                // active/disabled branches and a valid unrelated JWT.
+                var sys02UsagePath = branchesPath + $"/{parentBranch.ResourceId}/usage";
+                var sys02AuditPath = branchesPath + $"/{childBranch.ResourceId}/audit-events";
+                using (var response = await client.GetAsync(sys02UsagePath))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("branchId").GetGuid() == parentBranch.ResourceId &&
+                        json.RootElement.GetProperty("childCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("costCenterCount").GetInt32() == 0 &&
+                        json.RootElement.GetProperty("journalCount").GetInt32() == 0 &&
+                        json.RootElement.GetProperty("recurringTemplateCount").GetInt32() == 0 &&
+                        !json.RootElement.GetProperty("hasSubtreeFinancialUsage").GetBoolean(),
+                        "SYS02-OP03 production branch usage snapshot differs");
+                using (var response = await client.GetAsync(sys02AuditPath + "?offset=1&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 3 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 1,
+                        "SYS02-OP03 production branch audit pagination differs");
+                Authenticate(Token("sql-clerk"));
+                using (var response = await client.GetAsync(sys02UsagePath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP03 unrelated JWT read another tenant's branch usage");
+                using (var response = await client.GetAsync(sys02AuditPath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP03 unrelated JWT read another tenant's branch audit");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS02-OP03 usage, audit paging and unrelated JWT denial over HTTPS/SQL");
                 Console.WriteLine("  HOST PASS SYS02 branch addresses, tree, edit, search, usage, status and audit over HTTPS/JWT/SQL");
 
                 var calendarPath = companyPath + "/fiscal-years";
