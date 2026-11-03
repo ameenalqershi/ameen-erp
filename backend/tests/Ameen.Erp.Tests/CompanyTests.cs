@@ -38,7 +38,15 @@ public static class CompanyTests
         {
             await f.Service.Currency.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2, "دولار"), default);
             await f.Action(await f.Draft(), "cancel", reason: "إلغاء"); var c = await Company(f);
+            var auditBefore = f.Store.Count<AuditEvent>();
             await Error("functional_currency_in_use", () => f.Service.Company.EditCompany(f.CompanyId, f.Owner, Fixture.Key(), Edit(c) with { FunctionalCurrency = "USD" }, default));
+            var rejected = await Company(f);
+            Ensure(rejected.FunctionalCurrency == c.FunctionalCurrency &&
+                rejected.CurrencyScale == c.CurrencyScale &&
+                rejected.Revision == c.Revision &&
+                rejected.Version == c.Version &&
+                f.Store.Count<AuditEvent>() == auditBefore,
+                "SYS01-AC02 rejected currency conversion mutated profile, version or audit");
             Ensure((await f.Service.Company.GetCompanyUsage(f.CompanyId, f.Owner, default)).CanChangeFunctionalCurrency == false);
         });
         test("SYS01: exchange-rate history blocks base-currency change before any journal", async f =>
