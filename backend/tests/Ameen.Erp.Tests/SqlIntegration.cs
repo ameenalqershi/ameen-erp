@@ -50,13 +50,10 @@ public static class SqlIntegration
                 await BackupConfigurationSqlIntegration.Upgrade(db);
                 await UserDataScopeSqlIntegration.Upgrade(db);
                 await FiscalYearAuditSqlIntegration.Upgrade(db);
-                await MembershipAuditSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await using (var fiscalAuditDb = f.Context())
                 await FiscalYearAuditSqlIntegration.Guard(fiscalAuditDb, f.CompanyId);
-            await using (var membershipAuditDb = f.Context())
-                await MembershipAuditSqlIntegration.Guard(membershipAuditDb, f.CompanyId);
             await using (var paymentSchemaDb = f.Context())
                 await PaymentTermSqlIntegration.Guard(paymentSchemaDb, f.CompanyId, f.BranchId, f.CashId);
             await using (var advanceSchemaDb = f.Context())

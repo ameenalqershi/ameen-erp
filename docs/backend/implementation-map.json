@@ -9,8 +9,8 @@
     "implemented": 349,
     "audit": 46,
     "derived": 4,
-    "partial": 248,
-    "pending": 2112
+    "partial": 245,
+    "pending": 2115
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -367,21 +367,9 @@
           "status": "implemented",
           "binding": "CompanyId"
         },
-        "SYS06-F14": {
-          "status": "partial",
-          "binding": "Membership.CreatedBy: real server grant actor on new memberships; older origins remain unknown"
-        },
-        "SYS06-F15": {
-          "status": "partial",
-          "binding": "Membership.CreatedAt: grant timestamp on new memberships; historical values stay NULL"
-        },
         "SYS06-F16": {
           "status": "partial",
-          "binding": "Membership.Revision int?: numeric revision 1 at grant, increments on approved regrant/status; GUID Version retains concurrency; old rows unknown"
-        },
-        "SYS06-F17": {
-          "status": "partial",
-          "binding": "Membership.LastModifiedAt: creation and successful regrant/status timestamp; old un-attributed rows remain unknown"
+          "binding": "Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented"
         },
         "SYS06-F06": {
           "status": "partial",
@@ -391,8 +379,7 @@
           "status": "partial",
           "binding": "Membership.IsActive (ERP membership only)"
         }
-      },
-      "test_file": "backend/tests/Ameen.Erp.Tests/Program.cs; backend/tests/Ameen.Erp.Tests/MembershipStatusSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/MembershipAuditSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+      }
     },
     "SYS07": {
       "api": "GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only",

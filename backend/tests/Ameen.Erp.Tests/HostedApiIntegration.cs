@@ -188,22 +188,6 @@ public static class HostedApiIntegration
                     new GrantMembershipRequest("sys06-http-usage-reader",
                         new[] { Permissions.Read, Permissions.Members }, true, Array.Empty<Guid>(), null));
                 var usagePath = $"/api/v1/companies/{companyId}/memberships/{usageMember.ResourceId}/usage";
-                // SYS06-FG05: read server-owned audit metadata over authorized HTTPS/JWT.
-                using (var response = await client.GetAsync(
-                    $"/api/v1/companies/{companyId}/memberships?offset=0&limit=100"))
-                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
-                {
-                    var selected = json.RootElement.GetProperty("items").EnumerateArray()
-                        .Single(x => x.GetProperty("id").GetGuid() == usageMember.ResourceId);
-                    Ensure(response.StatusCode == HttpStatusCode.OK &&
-                        selected.GetProperty("createdBy").GetString() == "sql-clerk" &&
-                        selected.GetProperty("createdAt").GetDateTimeOffset() != default &&
-                        selected.GetProperty("lastModifiedAt").GetDateTimeOffset() ==
-                            selected.GetProperty("createdAt").GetDateTimeOffset() &&
-                        selected.GetProperty("revision").GetInt32() == 1,
-                        "SYS06-FG05 new member audit metadata missing over HTTPS/JWT");
-                }
-                Console.WriteLine("  HOST PASS SYS06-FG05 real member actor/time/revision over HTTPS/JWT/SQL");
                 var historyPath = $"/api/v1/companies/{companyId}/memberships/{usageMember.ResourceId}/audit-events";
                 Ensure(specJson.Contains("/memberships/{id}/usage", StringComparison.Ordinal) &&
                     specJson.Contains("/memberships/{id}/audit-events", StringComparison.Ordinal),

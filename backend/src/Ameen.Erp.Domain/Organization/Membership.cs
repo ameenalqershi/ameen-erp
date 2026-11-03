@@ -7,36 +7,12 @@ public sealed class Membership : CompanyEntity
     public Guid[] BranchIds { get; private set; } = Array.Empty<Guid>();
     public bool AllBranches { get; private set; }
     public bool IsActive { get; private set; } = true;
-    // Legacy identity grants have unknown origin; do not forge actor/date/revision.
-    public string? CreatedBy { get; private set; }
-    public DateTimeOffset? CreatedAt { get; private set; }
-    public int? Revision { get; private set; }
-    public DateTimeOffset? LastModifiedAt { get; private set; }
     private Membership() { }
     public Membership(Guid companyId, string subject, IEnumerable<string> permissions,
         bool allBranches, IEnumerable<Guid> branches) : base(companyId)
     {
         Subject = Check.Text(subject, "معرف المستخدم لدى جهة الهوية");
         Configure(permissions, allBranches, branches);
-    }
-    public Membership(Guid companyId, string subject, IEnumerable<string> permissions,
-        bool allBranches, IEnumerable<Guid> branches, string createdBy, DateTimeOffset now)
-        : this(companyId, subject, permissions, allBranches, branches)
-    {
-        CreatedBy = Check.Text(createdBy, "منشئ العضوية", 200);
-        Check.That(now != default, "invalid_membership_audit_time", "وقت إنشاء العضوية غير صالح.");
-        CreatedAt = LastModifiedAt = now;
-        Revision = 1;
-    }
-    // Keep the optimistic GUID independently: numeric audit revision advances only
-    // on an authorized successful write, not on idempotent replay or denied changes.
-    public void RecordAuditedChange(DateTimeOffset now)
-    {
-        if (Revision is null) return; // Legacy provenance is unknown.
-        Check.That(now != default && now >= CreatedAt,
-            "invalid_membership_audit_time", "وقت تعديل العضوية غير صالح.");
-        Revision = checked(Revision.Value + 1);
-        LastModifiedAt = now;
     }
     public void Configure(IEnumerable<string> permissions, bool allBranches, IEnumerable<Guid> branches)
     {

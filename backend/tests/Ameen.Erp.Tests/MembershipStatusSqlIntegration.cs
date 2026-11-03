@@ -36,9 +36,6 @@ public static class MembershipStatusSqlIntegration
             var member = await db.Set<Membership>().SingleAsync(x =>
                 x.CompanyId == companyId && x.Id == grant.ResourceId);
             disabledVersion = member.Version;
-            if (member.CreatedBy != owner.Subject || member.CreatedAt is null ||
-                member.LastModifiedAt < member.CreatedAt || member.Revision != 2)
-                throw new Exception("SYS06-FG05 SQL disabled member audit mismatch");
             if (member.IsActive || member.Subject != actor.Subject || member.Version != inactive.Version ||
                 await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == companyId &&
                     x.ResourceId == member.Id && x.Action == "membership.status-changed") != 1 ||
@@ -60,9 +57,6 @@ public static class MembershipStatusSqlIntegration
         {
             var member = await db.Set<Membership>().SingleAsync(x =>
                 x.CompanyId == companyId && x.Id == grant.ResourceId);
-            if (member.Revision != 3 || member.CreatedBy != owner.Subject ||
-                member.CreatedAt is null || member.LastModifiedAt < member.CreatedAt)
-                throw new Exception("SYS06-FG05 SQL status revision did not advance");
             if (!member.IsActive || member.Version != active.Version ||
                 await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == companyId &&
                     x.ResourceId == member.Id && x.Action == "membership.status-changed") != 2)
