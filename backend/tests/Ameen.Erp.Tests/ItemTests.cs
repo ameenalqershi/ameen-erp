@@ -18,6 +18,41 @@ public static class ItemTests
         x.Units.Select(u => new ItemUnitRequest(u.UnitId, u.FactorToBase, u.Barcode, u.SalePrice)).ToArray(), x.ShelfLifeDays, x.ReorderLevel, x.EnglishName, x.Notes, "تحديث");
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV04-OP01: item create and paged search preserve tenant and group filtering", async f =>
+        {
+            var request = await Setup(f);
+            foreach (var code in new[] { "OP01-A", "OP01-B" })
+                await Create(f, request with { Code = code, Name = "اسم " + code,
+                    Units = request.Units.Select(u => u with { Barcode = u.Barcode + "-" + code }).ToArray() });
+            var first = await f.Service.Item.SearchItems(f.CompanyId, f.Limited, "OP01", request.GroupId, true, 0, 1, default);
+            var second = await f.Service.Item.SearchItems(f.CompanyId, f.Limited, "OP01", request.GroupId, true, 1, 1, default);
+            Ensure(first.TotalCount == 2 && second.TotalCount == 2 &&
+                first.Items.Single().Id != second.Items.Single().Id &&
+                first.Items[0].Code == "OP01-A" && second.Items[0].Code == "OP01-B");
+            await Error("duplicate_item_code", () => Create(f, request with { Code = "OP01-A" }));
+            await Error("reference_not_found", () => f.Service.Item.SearchItems(f.CompanyId, f.Owner,
+                "OP01", Guid.NewGuid(), true, 0, 10, default));
+            Ensure(f.Store.Count<Item>() == 2 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV04-OP02: save, edit and status replay are atomic with expected revisions", async f =>
+        {
+            var receipt = await Create(f, await Setup(f));
+            var item = await Get(f, receipt.ResourceId);
+            var key = Fixture.Key();
+            var request = Edit(item) with { Name = "تعديل وصف البطاقة" };
+            var edited = await f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner, key, request, default);
+            Ensure(edited == await f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner, key, request, default));
+            var statusKey = Fixture.Key();
+            var statusRequest = new SetItemStatusRequest(edited.Version, false, "تعطيل بطاقة");
+            var inactive = await f.Service.Item.SetItemStatus(f.CompanyId, item.Id, f.Owner, statusKey, statusRequest, default);
+            Ensure(inactive == await f.Service.Item.SetItemStatus(f.CompanyId, item.Id, f.Owner, statusKey, statusRequest, default));
+            await Error("version_conflict", () => f.Service.Item.SetItemStatus(f.CompanyId, item.Id, f.Owner,
+                Fixture.Key(), statusRequest, default));
+            var saved = await Get(f, item.Id);
+            Ensure(saved.Revision == 3 && saved.Name == "تعديل وصف البطاقة" && !saved.IsActive &&
+                (await f.Service.Item.SearchItems(f.CompanyId, f.Limited, null, null, true, 0, 10, default)).TotalCount == 0 &&
+                (await f.Service.Item.ListItemAudit(f.CompanyId, item.Id, f.Owner, 0, 10, default)).TotalCount == 3);
+        });
         test("INV04-FG01: generated item identity, tenant, code and required Arabic name", async f =>
         {
             var request = await Setup(f);
