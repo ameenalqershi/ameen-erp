@@ -911,6 +911,30 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(auditPath + $"/{eventId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("resourceId").GetGuid() == wh.ResourceId, "HTTP audit event detail failed");
+                // SYS14-GAP02: old clients may omit both dates, or provide one UTC bound.
+                foreach(var suffix in new[]{
+                    $"?actorId=sql-owner&action=warehouse.created&resourceId={wh.ResourceId}",
+                    $"?from=2026-01-01&actorId=sql-owner&action=warehouse.created&resourceId={wh.ResourceId}",
+                    $"?to=2026-12-31&actorId=sql-owner&action=warehouse.created&resourceId={wh.ResourceId}"})
+                {
+                    using var response=await client.GetAsync(auditPath+suffix);
+                    using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32()==1 &&
+                        json.RootElement.GetProperty("items")[0].GetProperty("resourceId").GetGuid()==wh.ResourceId,
+                        "SYS14 optional/one-sided date request failed HTTPS JWT tenant read");
+                }
+                foreach(var suffix in new[]{
+                    $"?from=2027-01-01&action=warehouse.created&resourceId={wh.ResourceId}",
+                    $"?to=2025-12-31&action=warehouse.created&resourceId={wh.ResourceId}"})
+                {
+                    using var response=await client.GetAsync(auditPath+suffix);
+                    using var json=JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode==HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32()==0,
+                        "SYS14 one-sided UTC date limit ignored");
+                }
+                Console.WriteLine("  HOST PASS SYS14-GAP02 no/one-sided UTC date filters over HTTPS/JWT/SQL");
                 // SYS14-AC01: audit details link to a real tenant-scoped source via resourceId/action.
                 Guid companyEditEvent;
                 using (var response=await client.GetAsync(auditPath+
