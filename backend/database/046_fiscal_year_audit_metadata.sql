@@ -26,13 +26,16 @@ BEGIN TRY
         [CreatedAt] datetimeoffset(7) NULL,
         [Revision] int NULL,
         [LastModifiedAt] datetimeoffset(7) NULL;
-    ALTER TABLE dbo.FiscalYears WITH CHECK ADD
+    -- SQL Server compiles a batch before the ALTER ADD columns exist.
+    -- Compile the new-column CHECK only after the preceding DDL executes;
+    -- sp_executesql retains this same schema-lock transaction and rollback.
+    EXEC sys.sp_executesql N'ALTER TABLE dbo.FiscalYears WITH CHECK ADD
         CONSTRAINT CK_FiscalYear_AuditMetadata CHECK
         (([CreatedBy] IS NULL AND [CreatedAt] IS NULL AND
           [Revision] IS NULL AND [LastModifiedAt] IS NULL)
          OR ([CreatedBy] IS NOT NULL AND LEN(LTRIM(RTRIM([CreatedBy])))>0
              AND [CreatedAt] IS NOT NULL AND [Revision]>=1 AND
-             [LastModifiedAt]>=[CreatedAt]));
+             [LastModifiedAt]>=[CreatedAt]))';
     INSERT dbo.__AmeenSchemaVersions([Version],[AppliedAt])
        VALUES(46,SYSUTCDATETIME());
  END;
