@@ -19,6 +19,29 @@ public static class FiscalCalendarSqlIntegration
         Ensure(results.All(x => x == results[0]), "Calendar concurrent replay differs");
         var calendar = await Call(s => s.FiscalCalendar.GetFiscalCalendar(cid, results[0].ResourceId, owner, default));
         Ensure(calendar.Periods.Count == 2 && calendar.Periods[0].Code == "2027-H1", "Custom SQL calendar differs");
+        // SYS03-03: a changed payload cannot reuse a successful calendar creation key,
+        // even after the original receipt has been committed by a separate SQL context.
+        await using (var beforeConflict = Context())
+        {
+            var yearCount = await beforeConflict.Set<FiscalYear>().CountAsync(x => x.CompanyId == cid);
+            var periodCount = await beforeConflict.Set<FiscalPeriod>().CountAsync(x => x.CompanyId == cid);
+            var auditCount = await beforeConflict.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            var receiptCount = await beforeConflict.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            try
+            {
+                await Call(s => s.FiscalCalendar.CreateFiscalYear(cid, owner, key,
+                    request with { Code = "2027-DIFFERENT" }, default));
+                throw new Exception("SYS03-03 expected SQL idempotency conflict");
+            }
+            catch (BusinessException e) when (e.Code == "idempotency_conflict") { }
+            await using var afterConflict = Context();
+            Ensure(await afterConflict.Set<FiscalYear>().CountAsync(x => x.CompanyId == cid) == yearCount &&
+                await afterConflict.Set<FiscalPeriod>().CountAsync(x => x.CompanyId == cid) == periodCount &&
+                await afterConflict.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == auditCount &&
+                await afterConflict.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == receiptCount,
+                "SYS03-03 changed idempotency payload persisted SQL calendar, audit or receipt");
+        }
+        Console.WriteLine("  SQL PASS SYS03-03 changed fiscal year replay rejects atomically");
         // SYS03-AC01: a newly provisioned calendar opens two contiguous
         // posting periods with exact tenant scope and no implicit closure.
         Ensure(calendar.State == FiscalCalendarState.Open && calendar.GeneralLedgerOnly &&
