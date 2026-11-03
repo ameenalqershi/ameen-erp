@@ -102,6 +102,77 @@ public static class WarehouseTests
             Ensure((await f.Service.Warehouse.SearchWarehouses(f.CompanyId, f.Limited, "Warehouse", null, true, 0, 10, default)).Items.Single().Id == w.Id);
             Ensure((await f.Service.Warehouse.ListWarehouseAudit(f.CompanyId, w.Id, f.Owner, 0, 10, default)).TotalCount == 1 && f.Store.Count<JournalEntry>() == 0);
         });
+        test("INV01-GAP02: descriptive edits preserve existing location identity and do not create stock", async f =>
+        {
+            var created = await Create(f, await Setup(f));
+            var warehouse = await Get(f, created.ResourceId);
+            var initialLocationId = warehouse.Locations.Single().Id;
+            var updated = await f.Service.Warehouse.EditWarehouse(f.CompanyId, warehouse.Id, f.Owner, Fixture.Key(),
+                Edit(warehouse) with { Name = "مخزن محدث", EnglishName = "Edited warehouse" }, default);
+            var saved = await Get(f, warehouse.Id);
+            Ensure(saved.Version == updated.Version && saved.Revision == 2 && saved.Name == "مخزن محدث" &&
+                saved.Locations.Single().Id == initialLocationId &&
+                saved.Locations.Single().Code == "001" && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV01-GAP02: any recorded stock movement locks location changes without audit or receipt", async f =>
+        {
+            var request = await InventoryOpeningTests.Setup(f);
+            var warehouse = await Get(f, request.WarehouseId);
+            var opening = await InventoryOpeningTests.Create(f, request);
+            var savedOpening = await InventoryOpeningTests.Get(f, opening.ResourceId);
+            // Use an isolated in-memory stock fixture to exercise the structural guard
+            // on a tracked-location warehouse, without posting a fictional financial entry.
+            f.Store.Add(new StockMovement(savedOpening, Guid.NewGuid(), warehouse.InventoryAccountId,
+                request.Lines.Single().ItemId, null, false, 1m, 1m, DateTimeOffset.UtcNow));
+            var locationId = warehouse.Locations.Single().Id;
+            var audits = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            await Error("warehouse_stock_structure_in_use", () => f.Service.Warehouse.EditWarehouse(f.CompanyId,
+                warehouse.Id, f.Owner, Fixture.Key(), Edit(warehouse) with
+                { Locations = new[] { new WarehouseLocationRequest("NEW", "موقع آخر") } }, default));
+            await Error("warehouse_stock_structure_in_use", () => f.Service.Warehouse.EditWarehouse(f.CompanyId,
+                warehouse.Id, f.Owner, Fixture.Key(), Edit(warehouse) with
+                { Locations = new[] { new WarehouseLocationRequest("001", "وصف متغير") } }, default));
+            var saved = await Get(f, warehouse.Id);
+            Ensure(saved.Version == warehouse.Version && saved.Locations.Single().Id == locationId &&
+                f.Store.Count<AuditEvent>() == audits && f.Store.Count<IdempotencyRecord>() == receipts &&
+                f.Store.Count<StockMovement>() == 1 && f.Store.Count<JournalEntry>() == 0);
+            var valid = await f.Service.Warehouse.EditWarehouse(f.CompanyId, warehouse.Id, f.Owner, Fixture.Key(),
+                Edit(warehouse) with { Name = "اسم وصفي مسموح" }, default);
+            saved = await Get(f, warehouse.Id);
+            Ensure(saved.Version == valid.Version && saved.Locations.Single().Id == locationId);
+        });
+        test("INV01-FG04/GAP02: changing one shelf description retains other location IDs and correct audit snapshots", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request with { Locations = new[]
+            {
+                new WarehouseLocationRequest("A01", "الوصف القديم"),
+                new WarehouseLocationRequest("B02", "موقع باق")
+            } });
+            var warehouse = await Get(f, created.ResourceId);
+            var original = warehouse.Locations.ToDictionary(x => x.Code, x => x.Id);
+            var edited = await f.Service.Warehouse.EditWarehouse(f.CompanyId, warehouse.Id, f.Owner,
+                Fixture.Key(), Edit(warehouse) with { Locations = new[]
+                {
+                    new WarehouseLocationRequest("A01", "الوصف الجديد"),
+                    new WarehouseLocationRequest("B02", "موقع باق"),
+                    new WarehouseLocationRequest("C03", "موقع مضاف")
+                } }, default);
+            warehouse = await Get(f, warehouse.Id);
+            Ensure(warehouse.Version == edited.Version && warehouse.Locations.Count == 3 &&
+                warehouse.Locations.Single(x => x.Code == "A01").Id == original["A01"] &&
+                warehouse.Locations.Single(x => x.Code == "B02").Id == original["B02"] &&
+                !original.Values.Contains(warehouse.Locations.Single(x => x.Code == "C03").Id));
+            var audit = (await f.Service.Warehouse.ListWarehouseAudit(f.CompanyId, warehouse.Id,
+                f.Owner, 0, 10, default)).Items.Single(x => x.Action == "warehouse.edited");
+            using var json = System.Text.Json.JsonDocument.Parse(audit.Details);
+            var before = json.RootElement.GetProperty("before").GetProperty("locations").EnumerateArray().ToArray();
+            var after = json.RootElement.GetProperty("after").GetProperty("locations").EnumerateArray().ToArray();
+            Ensure(before.Length == 2 && after.Length == 3 &&
+                before.Single(x => x.GetProperty("code").GetString() == "A01").GetProperty("description").GetString() == "الوصف القديم" &&
+                after.Single(x => x.GetProperty("code").GetString() == "A01").GetProperty("description").GetString() == "الوصف الجديد");
+        });
         test("INV01: location policy rejects missing duplicated or unsolicited locations", async f =>
         {
             var r = await Setup(f);

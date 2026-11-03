@@ -293,6 +293,51 @@ public static class InventoryOpeningSqlIntegration
                 "INV04-GAP03 denied SQL item edit changed revision, audit or idempotency record");
         }
         Console.WriteLine("  SQL PASS INV04-GAP03: item identity remains immutable after full stock reversal");
+        // INV01-GAP02: a real SQL-posted and fully reversed opening still protects
+        // the warehouse's historical stock structure even though the net quantity is zero.
+        var protectedWarehouse = await Call(s => s.Warehouse.GetWarehouse(cid, wh.ResourceId, owner, default));
+        var warehouseEdit = WarehouseTests.Edit(protectedWarehouse);
+        int warehouseAuditsBefore, warehouseReceiptsBefore;
+        await using (var db = Context())
+        {
+            warehouseAuditsBefore = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.ResourceId == wh.ResourceId);
+            warehouseReceiptsBefore = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+        }
+        foreach (var forbiddenEdit in new[]
+        {
+            warehouseEdit with { Code = "SQL-HISTORIC-RECODE" },
+            warehouseEdit with { Type = WarehouseType.Quarantine },
+            warehouseEdit with { TrackLocations = true,
+                Locations = new[] { new WarehouseLocationRequest("SQL-L01", "رف جديد") } }
+        })
+        {
+            var deniedKey = Fixture.Key();
+            try
+            {
+                await Call(s => s.Warehouse.EditWarehouse(cid, wh.ResourceId, owner, deniedKey, forbiddenEdit, default));
+                throw new Exception("SQL warehouse historical structure modified after full reversal");
+            }
+            catch (BusinessException e) when (e.Code == "warehouse_stock_structure_in_use") { }
+            await using var db = Context();
+            Ensure(!await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == deniedKey),
+                "Rejected historical warehouse edit consumed idempotency key");
+        }
+        await using (var db = Context())
+        {
+            var saved = await db.Set<Warehouse>().SingleAsync(x => x.CompanyId == cid && x.Id == wh.ResourceId);
+            Ensure(saved.Version == protectedWarehouse.Version && saved.Type == protectedWarehouse.Type &&
+                saved.Code == protectedWarehouse.Code && !saved.TrackLocations &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.ResourceId == wh.ResourceId) == warehouseAuditsBefore &&
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == warehouseReceiptsBefore,
+                "INV01-GAP02 rejected warehouse SQL edit persisted version, audit or receipt");
+        }
+        var harmlessEdit = await Call(s => s.Warehouse.EditWarehouse(cid, wh.ResourceId, owner, Fixture.Key(),
+            warehouseEdit with { Name = "وصف بعد عكس المخزون" }, default));
+        Ensure((await Call(s => s.Warehouse.GetWarehouse(cid, wh.ResourceId, owner, default))).Version == harmlessEdit.Version &&
+            (await Call(s => s.Warehouse.GetWarehouseUsage(cid, wh.ResourceId, owner, default))).MovementCount == 2,
+            "INV01-GAP02 descriptive edit lost historical warehouse movement references");
+        Console.WriteLine("  SQL PASS INV01-GAP02: reversed stock keeps warehouse structure, audits and receipts intact");
+
         var reversedPrint = await Call(s => s.InventoryOpening.Print(cid, reversal.ResourceId, writer, default));
         Ensure(reversedPrint.ReversesOpeningId == r.ResourceId &&
             reversedPrint.State == nameof(InventoryOpeningState.Posted) &&
