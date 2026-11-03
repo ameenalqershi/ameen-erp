@@ -8,6 +8,14 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // SYS16-01: schema/domain foundation only. No verified payment-policy
+        // transaction/API exists yet; even direct EF callers must fail closed.
+        Check.That(!ChangeTracker.Entries<PaymentTerm>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<PaymentTermLine>().Any(e =>
+                e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "payment_term_policy_unavailable",
+            "حفظ طرق الدفع مؤجل حتى اعتماد الصلاحيات والتسوية ودورة المستند.");
         // CASH02 is schema-only until conditional IBAN / beneficiary-change review and permissions are approved.
         Check.That(!ChangeTracker.Entries<BankAccount>().Any(e =>
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
