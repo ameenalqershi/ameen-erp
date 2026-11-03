@@ -142,6 +142,37 @@ public static class WarehouseTests
             saved = await Get(f, warehouse.Id);
             Ensure(saved.Version == valid.Version && saved.Locations.Single().Id == locationId);
         });
+        test("INV01-FG04/GAP02: changing one shelf description retains other location IDs and correct audit snapshots", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request with { Locations = new[]
+            {
+                new WarehouseLocationRequest("A01", "الوصف القديم"),
+                new WarehouseLocationRequest("B02", "موقع باق")
+            } });
+            var warehouse = await Get(f, created.ResourceId);
+            var original = warehouse.Locations.ToDictionary(x => x.Code, x => x.Id);
+            var edited = await f.Service.Warehouse.EditWarehouse(f.CompanyId, warehouse.Id, f.Owner,
+                Fixture.Key(), Edit(warehouse) with { Locations = new[]
+                {
+                    new WarehouseLocationRequest("A01", "الوصف الجديد"),
+                    new WarehouseLocationRequest("B02", "موقع باق"),
+                    new WarehouseLocationRequest("C03", "موقع مضاف")
+                } }, default);
+            warehouse = await Get(f, warehouse.Id);
+            Ensure(warehouse.Version == edited.Version && warehouse.Locations.Count == 3 &&
+                warehouse.Locations.Single(x => x.Code == "A01").Id == original["A01"] &&
+                warehouse.Locations.Single(x => x.Code == "B02").Id == original["B02"] &&
+                !original.Values.Contains(warehouse.Locations.Single(x => x.Code == "C03").Id));
+            var audit = (await f.Service.Warehouse.ListWarehouseAudit(f.CompanyId, warehouse.Id,
+                f.Owner, 0, 10, default)).Items.Single(x => x.Action == "warehouse.edited");
+            using var json = System.Text.Json.JsonDocument.Parse(audit.Details);
+            var before = json.RootElement.GetProperty("before").GetProperty("locations").EnumerateArray().ToArray();
+            var after = json.RootElement.GetProperty("after").GetProperty("locations").EnumerateArray().ToArray();
+            Ensure(before.Length == 2 && after.Length == 3 &&
+                before.Single(x => x.GetProperty("code").GetString() == "A01").GetProperty("description").GetString() == "الوصف القديم" &&
+                after.Single(x => x.GetProperty("code").GetString() == "A01").GetProperty("description").GetString() == "الوصف الجديد");
+        });
         test("INV01: location policy rejects missing duplicated or unsolicited locations", async f =>
         {
             var r = await Setup(f);
