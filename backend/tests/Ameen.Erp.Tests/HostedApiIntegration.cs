@@ -1038,7 +1038,6 @@ public static class HostedApiIntegration
                     new GrantMembershipRequest("sys02-gap02-drafter", new[] { Permissions.Read, Permissions.Draft },
                         false, new[] { sysDefaultBranch.ResourceId }, null));
                 Authenticate(Token("sys02-gap02-drafter"));
-                Authenticate(Token("sql-clerk"));
                 var sysOrdinary = await Command(client, path, sysDefaultJournal);
                 using (var journalDetail = await client.GetAsync(path + $"/{sysOrdinary.ResourceId}"))
                 using (var journalJson = JsonDocument.Parse(await journalDetail.Content.ReadAsStringAsync()))
@@ -1047,12 +1046,10 @@ public static class HostedApiIntegration
                             x.GetProperty("costCenterId").ValueKind == JsonValueKind.Null),
                         "SYS02-GAP02 default center was silently injected into an unassigned journal line");
                 Authenticate(Token("sql-owner"));
-                Authenticate(Token("sql-owner"));
                 var sysRequiredAccount = await Command(client, $"/api/v1/companies/{companyId}/accounts",
                     new CreateAccountRequest("SYS02-REQUIRES-CC", "حساب يحتاج مركز تكلفة", AccountType.Expense,
                         null, true, false, true, null, NormalBalance.Debit));
                 Authenticate(Token("sys02-gap02-drafter"));
-                Authenticate(Token("sql-clerk"));
                 var sysMissingCenter = sysDefaultJournal with { Lines = sysDefaultJournal.Lines
                     .Select((line, index) => index == 0
                         ? line with { AccountId = sysRequiredAccount.ResourceId, CostCenterId = null } : line).ToArray() };
