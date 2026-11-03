@@ -42,6 +42,13 @@ public sealed partial class ErpDbContext
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
             "cash_count_policy_unavailable",
             "لا يمكن حفظ الجرد قبل اعتماد الرصيد والتسوية والمراجعة.", ErrorKind.Conflict);
+        // SYS12-01 is structural only. Country-required fields, legal print
+        // content, template preview and watermarking have no approved policy.
+        Check.That(!ChangeTracker.Entries<PrintTemplate>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "print_template_policy_unavailable",
+            "حفظ قوالب الطباعة محجوب حتى اعتماد محتوى البلد ووسم المسودة وقواعد الصلاحية.",
+            ErrorKind.Conflict);
         // SYS11-01: selectable catalogues, approval/versioning and posting-account
         // routing are not specified. Fail closed for headers and lines, including
         // direct EF callers, rather than silently enabling financial mappings.
