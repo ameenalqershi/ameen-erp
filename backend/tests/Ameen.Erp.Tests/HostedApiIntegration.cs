@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
@@ -53,6 +54,49 @@ public static class HostedApiIntegration
         const string audience = "ameen-integration-api";
         try
         {
+            // GL04-01: opt-in draft-only worker. Check host wiring without
+            // starting the opted-in worker or touching scheduled SQL data.
+            WebApplication ScheduledTemplateHost(string? actorSubject, int? minutes = null, bool enabled = true) =>
+                ApiHost.Build(Array.Empty<string>(), b =>
+                {
+                    b.Logging.ClearProviders();
+                    b.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["ConnectionStrings:Erp"] = connection,
+                        ["Authentication:Authority"] = issuer,
+                        ["Authentication:Audience"] = audience,
+                        ["RecurringScheduler:Enabled"] = enabled ? "true" : "false",
+                        ["RecurringScheduler:ActorSubject"] = actorSubject,
+                        ["RecurringScheduler:IntervalMinutes"] = minutes?.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    });
+                });
+            await using (var disabledScheduler = ScheduledTemplateHost(null, -1, enabled: false))
+                Ensure(!disabledScheduler.Services.GetServices<IHostedService>().Any(x =>
+                    x.GetType().Name == "RecurringDraftScheduler"),
+                    "GL04-01 recurring worker incorrectly enabled without explicit opt-in");
+            foreach (var invalidActor in new string?[] { null, "", "   ", new string('a', 201) })
+            {
+                try
+                {
+                    await using var invalidScheduler = ScheduledTemplateHost(invalidActor);
+                    throw new Exception("GL04-01 missing/invalid scheduler actor was accepted");
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("ActorSubject", StringComparison.Ordinal)) { }
+            }
+            foreach (var invalidMinutes in new[] { 0, -1, 1441 })
+            {
+                try
+                {
+                    await using var invalidScheduler = ScheduledTemplateHost("sql-clerk", invalidMinutes);
+                    throw new Exception("GL04-01 invalid scheduler interval was accepted");
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("IntervalMinutes", StringComparison.Ordinal)) { }
+            }
+            await using (var configuredScheduler = ScheduledTemplateHost("sql-clerk", 15))
+                Ensure(configuredScheduler.Services.GetServices<IHostedService>().Any(x =>
+                    x.GetType().Name == "RecurringDraftScheduler"),
+                    "GL04-01 explicit schedule configuration did not register draft worker");
+            Console.WriteLine("  HOST PASS GL04-01 opt-in recurring scheduler actor/interval guard and registration (not launched)");
             await using var api = ApiHost.Build(Array.Empty<string>(), b =>
             {
                 b.Logging.ClearProviders();
@@ -61,12 +105,16 @@ public static class HostedApiIntegration
                 {
                     ["ConnectionStrings:Erp"] = connection, ["Authentication:Authority"] = issuer,
                     ["Authentication:Audience"] = audience, ["AllowedHosts"] = "127.0.0.1;localhost",
-                    ["Cors:Origins:0"] = "https://permitted.example"
+                    ["Cors:Origins:0"] = "https://permitted.example",
+                    ["RecurringScheduler:Enabled"] = "false"
                 });
                 b.WebHost.ConfigureKestrel(k => k.Listen(IPAddress.Loopback, 0, l => l.UseHttps(certificate)));
                 b.Services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme,
                     o => o.BackchannelHttpHandler = PinnedTransport(certificate));
             });
+            Ensure(!api.Services.GetServices<IHostedService>().Any(x =>
+                x.GetType().Name == "RecurringDraftScheduler"),
+                "GL04-01 recurring draft worker started without opt-in");
             await api.StartAsync();
             try
             {
