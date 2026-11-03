@@ -961,8 +961,9 @@ public static class HostedApiIntegration
                         history.GetProperty("totalCount").GetInt32() == 1 &&
                         item.GetProperty("action").GetString() == "period.reopened" &&
                         item.GetProperty("actorId").GetString() == "sql-approver" &&
-                        item.GetProperty("details").GetString()!.Contains(
-                            "GL12 HTTPS إعادة فتح", StringComparison.Ordinal),
+                        JsonDocument.Parse(item.GetProperty("details").GetString()!)
+                            .RootElement.GetProperty("reason").GetString() ==
+                                "GL12 HTTPS إعادة فتح",
                         "GL12 HTTP reopen-only event/result missing or mis-scoped");
                 }
                 using (var gl12Page = await client.GetAsync(gl12Path + "/reopen-history?offset=1&limit=1"))
