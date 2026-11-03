@@ -750,8 +750,8 @@ public static class HostedApiIntegration
                         new CreateExchangeRateRequest("NZD", Fixture.Date.AddDays(7),
                             1.2345m, "SYS05-OP01-DENIED"),
                         JsonDefaults.Options), Encoding.UTF8, "application/json");
-                    using var denied = await client.SendAsync(deniedRateCreate);
-                    Ensure(denied.StatusCode == HttpStatusCode.Forbidden,
+                    using var unauthorizedRateResponse = await client.SendAsync(deniedRateCreate);
+                    Ensure(unauthorizedRateResponse.StatusCode == HttpStatusCode.Forbidden,
                         "SYS05-OP01 unrelated JWT provisioned another company's rate");
                 }
                 Authenticate(Token("sql-owner"));
