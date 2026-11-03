@@ -38,7 +38,7 @@ public static class PeriodUnbalancedCloseSqlAcceptance
             Description = "GL11-T02 posted balance guard",
             ExternalReference = "GL11-BAL-" + Fixture.Key()
         };
-        Ensure(request.Lines.Count == 2 &&
+        Ensure(request.Lines.Length == 2 &&
             request.Lines[0].Debit == request.Lines[1].Credit &&
             request.Lines[1].Credit > 1 &&
             request.Lines[1].CurrencyCode == "SAR",
