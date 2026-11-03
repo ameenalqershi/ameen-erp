@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 37,
+  "partially_implemented_screens": 39,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 47,
     "derived": 4,
-    "partial": 132,
-    "pending": 2227
+    "partial": 176,
+    "pending": 2183
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2196,6 +2196,198 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CashReceiptAllocationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "CASH07": {
+      "api": "internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API",
+      "implemented": "بنية الشيك الوارد 035 تخزن 22 حقلًا أصليًا بدقة decimal(20,6) وdecimal(20,10)، ورقم شيك بأصفار بادئة؛ فرع وسنة وعملة وحساب تحت التحصيل بمفاتيح مركبة للشركة؛ EF يمنع جميع كتابات الشيك، ترقية ذرية قابلة للإعادة واختبارات SQL مؤقتة",
+      "remaining": "CASH03 القبض والتحصيل وCASH09 دورة حالات الشيك وGL06 الترحيل والذمة وسداد/إعادة دين الدافع غير متصلة؛ فريد بنك/دافع وفق سياسة غير محسومة، لا unique FK مفترض للدافع ولا حركات بنك ولا API/JWT تشغيلية",
+      "fields": {
+        "CASH07-F01": {
+          "status": "partial",
+          "binding": "IncomingCheque.Id internal GUID, no business number allocation"
+        },
+        "CASH07-F02": {
+          "status": "partial",
+          "binding": "IncomingCheque.CompanyId tenant key"
+        },
+        "CASH07-F03": {
+          "status": "partial",
+          "binding": "IncomingCheque.BranchId tenant composite FK; operational branch permission pending"
+        },
+        "CASH07-F04": {
+          "status": "partial",
+          "binding": "IncomingCheque.FiscalYearId tenant composite FK; period posting pending"
+        },
+        "CASH07-F05": {
+          "status": "partial",
+          "binding": "IncomingCheque.Number nvarchar(64) preserves leading zeroes, SYS10 numbering not linked"
+        },
+        "CASH07-F06": {
+          "status": "partial",
+          "binding": "IncomingCheque.DocumentDate SQL date"
+        },
+        "CASH07-F07": {
+          "status": "partial",
+          "binding": "IncomingCheque.AccountingDate SQL date; period guard pending"
+        },
+        "CASH07-F08": {
+          "status": "partial",
+          "binding": "IncomingCheque.CurrencyCode tenant composite FK"
+        },
+        "CASH07-F09": {
+          "status": "partial",
+          "binding": "IncomingCheque.ExchangeRate decimal(20,10), positive; dated rate policy pending"
+        },
+        "CASH07-F10": {
+          "status": "partial",
+          "binding": "IncomingCheque.Description nvarchar(1000)"
+        },
+        "CASH07-F11": {
+          "status": "partial",
+          "binding": "IncomingCheque.ExternalReference nullable nvarchar(100)"
+        },
+        "CASH07-F12": {
+          "status": "partial",
+          "binding": "IncomingCheque.State nonempty text only; approved state graph pending"
+        },
+        "CASH07-F13": {
+          "status": "partial",
+          "binding": "IncomingCheque.ChequeNumber nvarchar(64), preserves leading zeros; uniqueness scope unresolved"
+        },
+        "CASH07-F14": {
+          "status": "partial",
+          "binding": "IncomingCheque.DrawnBankName nvarchar(200); no approved bank identity FK"
+        },
+        "CASH07-F15": {
+          "status": "partial",
+          "binding": "IncomingCheque.PayerId GUID only; party/master FK not available"
+        },
+        "CASH07-F16": {
+          "status": "partial",
+          "binding": "IncomingCheque.Amount decimal(20,6)>0; no bank credit"
+        },
+        "CASH07-F17": {
+          "status": "partial",
+          "binding": "IncomingCheque.DueDate SQL date"
+        },
+        "CASH07-F18": {
+          "status": "partial",
+          "binding": "IncomingCheque.CollectionAccountId tenant composite FK Accounts; not posted"
+        },
+        "CASH07-F19": {
+          "status": "partial",
+          "binding": "IncomingCheque.CreatedBy text stored only; server actor and audit pending"
+        },
+        "CASH07-F20": {
+          "status": "partial",
+          "binding": "IncomingCheque.CreatedAt datetimeoffset(7) stored only"
+        },
+        "CASH07-F21": {
+          "status": "partial",
+          "binding": "IncomingCheque.Revision >0 SQL; no edit API"
+        },
+        "CASH07-F22": {
+          "status": "partial",
+          "binding": "IncomingCheque.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/ChequeFoundationTests.cs; backend/tests/Ameen.Erp.Tests/ChequeSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "CASH08": {
+      "api": "internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit",
+      "implemented": "بنية الشيك الصادر 036 تخزن 22 حقلًا أصليًا، مفتاح بنك مرتبط بالشركة، رقم الشيك نصي بالأصفار البادئة وحالة شيك نصية بنيوية دون مراحل معتمدة؛ دقة decimal(20,6)/decimal(20,10) وعزل الشركة؛ EF يمنع الكتابة",
+      "remaining": "CASH04 سند صرف وCASH09 انتقالات شيك وCASH10 مطابقة الكشف وSYS07 التفويض وGL06 الترحيل غير متصلة؛ منع إعادة الرقم الملغى يتطلب نطاق دفتر شيكات/تسلسل معتمد قبل اعتماد فهرس فريد، والمستفيد مخزن كمعرف دون FK معتمدة، لا API تشغيلي",
+      "fields": {
+        "CASH08-F01": {
+          "status": "partial",
+          "binding": "OutgoingCheque.Id internal GUID"
+        },
+        "CASH08-F02": {
+          "status": "partial",
+          "binding": "OutgoingCheque.CompanyId tenant key"
+        },
+        "CASH08-F03": {
+          "status": "partial",
+          "binding": "OutgoingCheque.BranchId tenant composite FK"
+        },
+        "CASH08-F04": {
+          "status": "partial",
+          "binding": "OutgoingCheque.FiscalYearId tenant composite FK"
+        },
+        "CASH08-F05": {
+          "status": "partial",
+          "binding": "OutgoingCheque.Number nvarchar(64) preserves leading zeros; SYS10 not linked"
+        },
+        "CASH08-F06": {
+          "status": "partial",
+          "binding": "OutgoingCheque.DocumentDate SQL date"
+        },
+        "CASH08-F07": {
+          "status": "partial",
+          "binding": "OutgoingCheque.AccountingDate SQL date; no fiscal posting"
+        },
+        "CASH08-F08": {
+          "status": "partial",
+          "binding": "OutgoingCheque.CurrencyCode tenant composite FK"
+        },
+        "CASH08-F09": {
+          "status": "partial",
+          "binding": "OutgoingCheque.ExchangeRate decimal(20,10)>0; no approved FX policy"
+        },
+        "CASH08-F10": {
+          "status": "partial",
+          "binding": "OutgoingCheque.Description nvarchar(1000)"
+        },
+        "CASH08-F11": {
+          "status": "partial",
+          "binding": "OutgoingCheque.ExternalReference nullable nvarchar(100)"
+        },
+        "CASH08-F12": {
+          "status": "partial",
+          "binding": "OutgoingCheque.State nonempty stored text only"
+        },
+        "CASH08-F13": {
+          "status": "partial",
+          "binding": "OutgoingCheque.ChequeNumber nvarchar(64) preserves leading zeros; cancelled number reuse policy pending"
+        },
+        "CASH08-F14": {
+          "status": "partial",
+          "binding": "OutgoingCheque.BankAccountId tenant composite FK; bank writes blocked"
+        },
+        "CASH08-F15": {
+          "status": "partial",
+          "binding": "OutgoingCheque.BeneficiaryId GUID stored only; beneficiary master FK not approved"
+        },
+        "CASH08-F16": {
+          "status": "partial",
+          "binding": "OutgoingCheque.Amount decimal(20,6)>0; no outgoing bank debit"
+        },
+        "CASH08-F17": {
+          "status": "partial",
+          "binding": "OutgoingCheque.DueDate SQL date"
+        },
+        "CASH08-F18": {
+          "status": "partial",
+          "binding": "OutgoingCheque.ChequeState nonempty text only; transitions not approved"
+        },
+        "CASH08-F19": {
+          "status": "partial",
+          "binding": "OutgoingCheque.CreatedBy stored text only"
+        },
+        "CASH08-F20": {
+          "status": "partial",
+          "binding": "OutgoingCheque.CreatedAt datetimeoffset(7) stored only"
+        },
+        "CASH08-F21": {
+          "status": "partial",
+          "binding": "OutgoingCheque.Revision >0; no edit API"
+        },
+        "CASH08-F22": {
+          "status": "partial",
+          "binding": "OutgoingCheque.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/ChequeFoundationTests.cs; backend/tests/Ameen.Erp.Tests/ChequeSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "CASH11": {
       "api": "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",

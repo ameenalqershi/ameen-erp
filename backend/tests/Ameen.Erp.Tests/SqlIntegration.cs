@@ -39,6 +39,7 @@ public static class SqlIntegration
                 await BankAccountSqlIntegration.Upgrade(db);
                 await CashCountSqlIntegration.Upgrade(db);
                 await CashReceiptSqlIntegration.Upgrade(db);
+                await ChequeSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await MembershipStatusSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
@@ -80,6 +81,8 @@ public static class SqlIntegration
                 await CashCountSqlIntegration.Guard(cashCountDb, f.CompanyId, cashReceipts[0].ResourceId, f.BranchId);
             await using (var receiptDb = f.Context())
                 await CashReceiptSqlIntegration.Guard(receiptDb, f.CompanyId, f.BranchId, cashReceipts[0].ResourceId);
+            await using (var chequeDb = f.Context())
+                await ChequeSqlIntegration.Guard(chequeDb, f.CompanyId, f.BranchId, f.CashId);
             await JournalDocumentTypeSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await ApprovalRouteSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await SecurityRoleSqlIntegration.Guard(options.ConnectionString, f.CompanyId);

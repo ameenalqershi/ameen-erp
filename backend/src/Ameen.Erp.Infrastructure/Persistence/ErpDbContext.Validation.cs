@@ -8,6 +8,15 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // CASH07/CASH08 document status, payee, cancellation, bank clearing and
+        // accounting movements need approved linked CASH03/CASH04/CASH09
+        // workflows. Fail closed for both headers and all EF write operations.
+        Check.That(!ChangeTracker.Entries<IncomingCheque>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<OutgoingCheque>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cheque_policy_unavailable",
+            "لا يمكن حفظ شيكات قبض أو صرف قبل اعتماد دورة التحصيل والرفض والصرف.", ErrorKind.Conflict);
         // CASH03 receipt methods, payer/SAL11 invoices and cheque collection
         // are not approved yet. No caller may persist a header or line through EF.
         Check.That(!ChangeTracker.Entries<CashReceipt>().Any(e =>

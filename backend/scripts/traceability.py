@@ -327,6 +327,61 @@ MAP["CASH03"]["test_file"] = "; ".join(
     ["CashReceiptAllocationTests.cs", "CashReceiptFoundationTests.cs",
      "CashReceiptSqlIntegration.cs", "SqlIntegration.cs"])
 
+screen("CASH07", "internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API",
+       "بنية الشيك الوارد 035 تخزن 22 حقلًا أصليًا بدقة decimal(20,6) وdecimal(20,10)، ورقم شيك بأصفار بادئة؛ فرع وسنة وعملة وحساب تحت التحصيل بمفاتيح مركبة للشركة؛ EF يمنع جميع كتابات الشيك، ترقية ذرية قابلة للإعادة واختبارات SQL مؤقتة",
+       "CASH03 القبض والتحصيل وCASH09 دورة حالات الشيك وGL06 الترحيل والذمة وسداد/إعادة دين الدافع غير متصلة؛ فريد بنك/دافع وفق سياسة غير محسومة، لا unique FK مفترض للدافع ولا حركات بنك ولا API/JWT تشغيلية",
+       {})
+MAP["CASH07"]["fields"]["CASH07-F01"] = dict(status="partial", binding='IncomingCheque.Id internal GUID, no business number allocation')
+MAP["CASH07"]["fields"]["CASH07-F02"] = dict(status="partial", binding='IncomingCheque.CompanyId tenant key')
+MAP["CASH07"]["fields"]["CASH07-F03"] = dict(status="partial", binding='IncomingCheque.BranchId tenant composite FK; operational branch permission pending')
+MAP["CASH07"]["fields"]["CASH07-F04"] = dict(status="partial", binding='IncomingCheque.FiscalYearId tenant composite FK; period posting pending')
+MAP["CASH07"]["fields"]["CASH07-F05"] = dict(status="partial", binding='IncomingCheque.Number nvarchar(64) preserves leading zeroes, SYS10 numbering not linked')
+MAP["CASH07"]["fields"]["CASH07-F06"] = dict(status="partial", binding='IncomingCheque.DocumentDate SQL date')
+MAP["CASH07"]["fields"]["CASH07-F07"] = dict(status="partial", binding='IncomingCheque.AccountingDate SQL date; period guard pending')
+MAP["CASH07"]["fields"]["CASH07-F08"] = dict(status="partial", binding='IncomingCheque.CurrencyCode tenant composite FK')
+MAP["CASH07"]["fields"]["CASH07-F09"] = dict(status="partial", binding='IncomingCheque.ExchangeRate decimal(20,10), positive; dated rate policy pending')
+MAP["CASH07"]["fields"]["CASH07-F10"] = dict(status="partial", binding='IncomingCheque.Description nvarchar(1000)')
+MAP["CASH07"]["fields"]["CASH07-F11"] = dict(status="partial", binding='IncomingCheque.ExternalReference nullable nvarchar(100)')
+MAP["CASH07"]["fields"]["CASH07-F12"] = dict(status="partial", binding='IncomingCheque.State nonempty text only; approved state graph pending')
+MAP["CASH07"]["fields"]["CASH07-F13"] = dict(status="partial", binding='IncomingCheque.ChequeNumber nvarchar(64), preserves leading zeros; uniqueness scope unresolved')
+MAP["CASH07"]["fields"]["CASH07-F14"] = dict(status="partial", binding='IncomingCheque.DrawnBankName nvarchar(200); no approved bank identity FK')
+MAP["CASH07"]["fields"]["CASH07-F15"] = dict(status="partial", binding='IncomingCheque.PayerId GUID only; party/master FK not available')
+MAP["CASH07"]["fields"]["CASH07-F16"] = dict(status="partial", binding='IncomingCheque.Amount decimal(20,6)>0; no bank credit')
+MAP["CASH07"]["fields"]["CASH07-F17"] = dict(status="partial", binding='IncomingCheque.DueDate SQL date')
+MAP["CASH07"]["fields"]["CASH07-F18"] = dict(status="partial", binding='IncomingCheque.CollectionAccountId tenant composite FK Accounts; not posted')
+MAP["CASH07"]["fields"]["CASH07-F19"] = dict(status="partial", binding='IncomingCheque.CreatedBy text stored only; server actor and audit pending')
+MAP["CASH07"]["fields"]["CASH07-F20"] = dict(status="partial", binding='IncomingCheque.CreatedAt datetimeoffset(7) stored only')
+MAP["CASH07"]["fields"]["CASH07-F21"] = dict(status="partial", binding='IncomingCheque.Revision >0 SQL; no edit API')
+MAP["CASH07"]["fields"]["CASH07-F22"] = dict(status="partial", binding='IncomingCheque.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API')
+MAP["CASH07"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + x for x in ["ChequeFoundationTests.cs", "ChequeSqlIntegration.cs", "SqlIntegration.cs"])
+screen("CASH08", "internal EF/SQL schema 036 only; no outbound cheque posting, cancellation or bank debit",
+       "بنية الشيك الصادر 036 تخزن 22 حقلًا أصليًا، مفتاح بنك مرتبط بالشركة، رقم الشيك نصي بالأصفار البادئة وحالة شيك نصية بنيوية دون مراحل معتمدة؛ دقة decimal(20,6)/decimal(20,10) وعزل الشركة؛ EF يمنع الكتابة",
+       "CASH04 سند صرف وCASH09 انتقالات شيك وCASH10 مطابقة الكشف وSYS07 التفويض وGL06 الترحيل غير متصلة؛ منع إعادة الرقم الملغى يتطلب نطاق دفتر شيكات/تسلسل معتمد قبل اعتماد فهرس فريد، والمستفيد مخزن كمعرف دون FK معتمدة، لا API تشغيلي",
+       {})
+MAP["CASH08"]["fields"]["CASH08-F01"] = dict(status="partial", binding='OutgoingCheque.Id internal GUID')
+MAP["CASH08"]["fields"]["CASH08-F02"] = dict(status="partial", binding='OutgoingCheque.CompanyId tenant key')
+MAP["CASH08"]["fields"]["CASH08-F03"] = dict(status="partial", binding='OutgoingCheque.BranchId tenant composite FK')
+MAP["CASH08"]["fields"]["CASH08-F04"] = dict(status="partial", binding='OutgoingCheque.FiscalYearId tenant composite FK')
+MAP["CASH08"]["fields"]["CASH08-F05"] = dict(status="partial", binding='OutgoingCheque.Number nvarchar(64) preserves leading zeros; SYS10 not linked')
+MAP["CASH08"]["fields"]["CASH08-F06"] = dict(status="partial", binding='OutgoingCheque.DocumentDate SQL date')
+MAP["CASH08"]["fields"]["CASH08-F07"] = dict(status="partial", binding='OutgoingCheque.AccountingDate SQL date; no fiscal posting')
+MAP["CASH08"]["fields"]["CASH08-F08"] = dict(status="partial", binding='OutgoingCheque.CurrencyCode tenant composite FK')
+MAP["CASH08"]["fields"]["CASH08-F09"] = dict(status="partial", binding='OutgoingCheque.ExchangeRate decimal(20,10)>0; no approved FX policy')
+MAP["CASH08"]["fields"]["CASH08-F10"] = dict(status="partial", binding='OutgoingCheque.Description nvarchar(1000)')
+MAP["CASH08"]["fields"]["CASH08-F11"] = dict(status="partial", binding='OutgoingCheque.ExternalReference nullable nvarchar(100)')
+MAP["CASH08"]["fields"]["CASH08-F12"] = dict(status="partial", binding='OutgoingCheque.State nonempty stored text only')
+MAP["CASH08"]["fields"]["CASH08-F13"] = dict(status="partial", binding='OutgoingCheque.ChequeNumber nvarchar(64) preserves leading zeros; cancelled number reuse policy pending')
+MAP["CASH08"]["fields"]["CASH08-F14"] = dict(status="partial", binding='OutgoingCheque.BankAccountId tenant composite FK; bank writes blocked')
+MAP["CASH08"]["fields"]["CASH08-F15"] = dict(status="partial", binding='OutgoingCheque.BeneficiaryId GUID stored only; beneficiary master FK not approved')
+MAP["CASH08"]["fields"]["CASH08-F16"] = dict(status="partial", binding='OutgoingCheque.Amount decimal(20,6)>0; no outgoing bank debit')
+MAP["CASH08"]["fields"]["CASH08-F17"] = dict(status="partial", binding='OutgoingCheque.DueDate SQL date')
+MAP["CASH08"]["fields"]["CASH08-F18"] = dict(status="partial", binding='OutgoingCheque.ChequeState nonempty text only; transitions not approved')
+MAP["CASH08"]["fields"]["CASH08-F19"] = dict(status="partial", binding='OutgoingCheque.CreatedBy stored text only')
+MAP["CASH08"]["fields"]["CASH08-F20"] = dict(status="partial", binding='OutgoingCheque.CreatedAt datetimeoffset(7) stored only')
+MAP["CASH08"]["fields"]["CASH08-F21"] = dict(status="partial", binding='OutgoingCheque.Revision >0; no edit API')
+MAP["CASH08"]["fields"]["CASH08-F22"] = dict(status="partial", binding='OutgoingCheque.LastModifiedAt datetimeoffset(7)>=CreatedAt; no edit API')
+MAP["CASH08"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + x for x in ["ChequeFoundationTests.cs", "ChequeSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("CASH11", "internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment",
        "بنية محضر جرد صندوق وسطور فئات/عدد القطع بقيمة Decimal محسوبة في SQL؛ مفتاح صندوق وفرع/قائم بالجرد ضمن الشركة وتدقيق زمني وإصدار؛ ترقية 033 ذرية قابلة للإعادة؛ كل الكتابات عبر EF محجوبة حتى اعتماد مسار الرصيد والتسوية",
        "لا توجد عملية جرد أو مقارنة رصيد دفتر أو محضر عجز/زيادة تشغيلي أو اعتماد تسوية GL03؛ الحالة المسموحة وقواعد تفعيل الجرد وصلاحيات SYS07 تتطلب مسارًا معتمدًا؛ SQL بنيوي فقط، لا HTTP/JWT/OpenAPI عمليات CASH11",
@@ -449,7 +504,7 @@ def generate():
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
         "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
-        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH03 أساس سند قبض بنيوي فقط مع حظر كتابته؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
+        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH03 أساس سند قبض بنيوي فقط مع حظر كتابته؛ CASH07/CASH08 أساس شيكات بنيوي فقط مع حظر كتابتها؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",
