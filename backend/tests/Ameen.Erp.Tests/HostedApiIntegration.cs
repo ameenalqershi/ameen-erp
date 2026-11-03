@@ -739,6 +739,86 @@ public static class HostedApiIntegration
                         json.RootElement.GetProperty("generalLedgerOnly").GetBoolean() && json.RootElement.GetProperty("issues").GetProperty("items").GetArrayLength() == 1,
                         "SQL/HTTP close preview did not expose pending blockers");
                 Console.WriteLine("  HOST PASS SYS05 effective quote, history, direction, usage and audit; GL11 paginated close preview over HTTPS/JWT/SQL");
+
+                // SYS05-GAP03: a quotation does not hold its rate; the next journal
+                // must accept the latest effective reference at the document date.
+                Authenticate(Token("sql-owner"));
+                var sys05QuotedDate = Fixture.Date.AddDays(2);
+                var sys05QuotePath = ratesPath + "/quote?currencyCode=NZD&date=" +
+                    sys05QuotedDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+                Guid sys05PriorQuotedRate;
+                using (var sys05BeforeRate = await client.GetAsync(sys05QuotePath))
+                using (var sys05BeforeJson = JsonDocument.Parse(await sys05BeforeRate.Content.ReadAsStringAsync()))
+                {
+                    Ensure(sys05BeforeRate.StatusCode == HttpStatusCode.OK, "SYS05-GAP03 baseline quote failed");
+                    sys05PriorQuotedRate = sys05BeforeJson.RootElement.GetProperty("exchangeRateId").GetGuid();
+                }
+                string sys05AuditSnapshot;
+                using (var sys05BeforeAudit = await client.GetAsync(ratesPath + $"/{rate.ResourceId}/audit-events"))
+                    sys05AuditSnapshot = await sys05BeforeAudit.Content.ReadAsStringAsync();
+                using (var sys05RepeatedQuote = await client.GetAsync(sys05QuotePath))
+                using (var sys05RepeatedJson = JsonDocument.Parse(await sys05RepeatedQuote.Content.ReadAsStringAsync()))
+                    Ensure(sys05RepeatedQuote.StatusCode == HttpStatusCode.OK &&
+                        sys05RepeatedJson.RootElement.GetProperty("exchangeRateId").GetGuid() == sys05PriorQuotedRate,
+                        "SYS05-GAP03 identical quote was not stable before a newer rate");
+                using (var sys05AfterAudit = await client.GetAsync(ratesPath + $"/{rate.ResourceId}/audit-events"))
+                    Ensure(sys05AuditSnapshot == await sys05AfterAudit.Content.ReadAsStringAsync(),
+                        "SYS05-GAP03 read-only quote modified the exchange-rate audit");
+
+                var sys05NewEffective = await Command(client, ratesPath,
+                    new CreateExchangeRateRequest("NZD", sys05QuotedDate, 1.75m, "SYS05 newer"));
+                using (var sys05Refreshed = await client.GetAsync(sys05QuotePath))
+                using (var sys05RefreshedJson = JsonDocument.Parse(await sys05Refreshed.Content.ReadAsStringAsync()))
+                    Ensure(sys05Refreshed.StatusCode == HttpStatusCode.OK &&
+                        sys05RefreshedJson.RootElement.GetProperty("exchangeRateId").GetGuid() == sys05NewEffective.ResourceId &&
+                        sys05RefreshedJson.RootElement.GetProperty("rateToFunctional").GetString() == "1.75",
+                        "SYS05-GAP03 previous quote wrongly reserved an outdated rate");
+
+                Authenticate(Token("sql-clerk"));
+                var sys05JournalPath = path + "?source=Manual";
+                int sys05JournalsBefore;
+                using (var sys05List = await client.GetAsync(sys05JournalPath))
+                using (var sys05ListJson = JsonDocument.Parse(await sys05List.Content.ReadAsStringAsync()))
+                {
+                    Ensure(sys05List.StatusCode == HttpStatusCode.OK, "SYS05-GAP03 baseline journal list failed");
+                    sys05JournalsBefore = sys05ListJson.RootElement.GetProperty("totalCount").GetInt32();
+                }
+                var sys05JournalRequest = journalRequest with {
+                    DocumentDate = sys05QuotedDate, AccountingDate = sys05QuotedDate,
+                    Lines = journalRequest.Lines.Select(x => x with {
+                        CurrencyCode = "NZD", ExchangeRateId = sys05PriorQuotedRate }).ToArray()
+                };
+                using (var sys05StaleCommand = new HttpRequestMessage(HttpMethod.Post, path))
+                {
+                    sys05StaleCommand.Headers.Add("Idempotency-Key", Fixture.Key());
+                    sys05StaleCommand.Content = new StringContent(
+                        JsonSerializer.Serialize(sys05JournalRequest, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var sys05Denied = await client.SendAsync(sys05StaleCommand);
+                    using var sys05Problem = JsonDocument.Parse(await sys05Denied.Content.ReadAsStringAsync());
+                    Ensure(sys05Denied.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        sys05Problem.RootElement.GetProperty("code").GetString() == "stale_exchange_rate",
+                        "SYS05-GAP03 stale quote was accepted at journal creation");
+                }
+                using (var sys05ListAfter = await client.GetAsync(sys05JournalPath))
+                using (var sys05ListAfterJson = JsonDocument.Parse(await sys05ListAfter.Content.ReadAsStringAsync()))
+                    Ensure(sys05ListAfter.StatusCode == HttpStatusCode.OK &&
+                        sys05ListAfterJson.RootElement.GetProperty("totalCount").GetInt32() == sys05JournalsBefore,
+                        "SYS05-GAP03 rejected old quote persisted a journal");
+                var sys05AcceptedJournal = await Command(client, path,
+                    sys05JournalRequest with {
+                        Lines = sys05JournalRequest.Lines.Select(x => x with {
+                            ExchangeRateId = sys05NewEffective.ResourceId }).ToArray()
+                    });
+                using (var sys05Persisted = await client.GetAsync(path + $"/{sys05AcceptedJournal.ResourceId}"))
+                using (var sys05PersistedJson = JsonDocument.Parse(await sys05Persisted.Content.ReadAsStringAsync()))
+                    Ensure(sys05Persisted.StatusCode == HttpStatusCode.OK &&
+                        sys05PersistedJson.RootElement.GetProperty("lines").EnumerateArray().All(x =>
+                            x.GetProperty("exchangeRateId").GetGuid() == sys05NewEffective.ResourceId &&
+                            x.GetProperty("exchangeRate").GetString() == "1.75"),
+                        "SYS05-GAP03 new rate not captured as journal snapshot");
+                Console.WriteLine("  HOST PASS SYS05-GAP03 quote advisory, stale-rate rejection, fresh snapshot over HTTPS/JWT/SQL");
+
                 Authenticate(Token("sql-owner"));
                 var accountPath = $"/api/v1/companies/{companyId}/accounts";
                 var card = await Command(client, accountPath, new CreateAccountRequest("HTTP-GL01", "حساب HTTP", AccountType.Asset,
