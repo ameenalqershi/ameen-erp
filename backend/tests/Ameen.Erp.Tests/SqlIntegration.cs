@@ -37,8 +37,15 @@ public static class SqlIntegration
                 await SecurityRoleAssignmentSqlIntegration.Upgrade(db);
                 await CashBoxSqlIntegration.Upgrade(db);
                 await BankAccountSqlIntegration.Upgrade(db);
+                await CashCountSqlIntegration.Upgrade(db);
+                await CashReceiptSqlIntegration.Upgrade(db);
+                await ChequeSqlIntegration.Upgrade(db);
+                await ChequeMovementSqlIntegration.Upgrade(db);
+                await PaymentTermSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
+            await using (var paymentSchemaDb = f.Context())
+                await PaymentTermSqlIntegration.Guard(paymentSchemaDb, f.CompanyId, f.BranchId, f.CashId);
             await MembershipStatusSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await MembershipUsageSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             // CASH02 structural acceptance does not activate banking API/EF writes.
@@ -74,6 +81,12 @@ public static class SqlIntegration
                     cashRequest with { Code = "SQL-CASH-2" }, default)));
             Console.WriteLine("  SQL PASS CASH01 durable master card, audit, account uniqueness and concurrent idempotency");
 
+            await using (var cashCountDb = f.Context())
+                await CashCountSqlIntegration.Guard(cashCountDb, f.CompanyId, cashReceipts[0].ResourceId, f.BranchId);
+            await using (var receiptDb = f.Context())
+                await CashReceiptSqlIntegration.Guard(receiptDb, f.CompanyId, f.BranchId, cashReceipts[0].ResourceId);
+            await using (var chequeDb = f.Context())
+                await ChequeSqlIntegration.Guard(chequeDb, f.CompanyId, f.BranchId, f.CashId);
             await JournalDocumentTypeSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await ApprovalRouteSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
             await SecurityRoleSqlIntegration.Guard(options.ConnectionString, f.CompanyId);
@@ -291,11 +304,18 @@ public static class SqlIntegration
             await JournalReviewHistoryAcceptance.RunSql(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Owner, f.Request());
             await JournalReviewAuditFieldsSqlAcceptance.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await GeneralOpeningPrintSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
+            await GeneralOpeningControlGuardSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
             await JournalPrintSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await PeriodExecutionHistorySqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Approver);
             await PeriodReopenHistorySqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Approver);
             await BalancedJournalLedgerSqlAcceptance.Run(options.ConnectionString,
                 f.CompanyId, f.Clerk, f.Approver, f.Request());
+            await PeriodPendingCloseSqlAcceptance.Run(options.ConnectionString,
+                f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
+            await PeriodReadyCloseSqlAcceptance.Run(options.ConnectionString,
+                f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
+            await PeriodUnbalancedCloseSqlAcceptance.Run(options.ConnectionString,
+                f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
         }
         finally
         {

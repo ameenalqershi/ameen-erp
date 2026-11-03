@@ -7,6 +7,33 @@ public static class CompanyTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS01-FG01: company ID, zero-leading code and Arabic name stay unique and tenant-scoped", async f =>
+        {
+            var id=Guid.NewGuid();
+            var request=new CreateCompanyRequest(id,"0007A","شركة رقم ٠٠٧","YE","SAR",2,Fixture.Profile());
+            var response=await f.Service.Company.CreateCompany(f.Owner,Fixture.Key(),request,default);
+            var company=await f.Service.Company.GetCompany(id,f.Owner,default);
+            Ensure(response.ResourceId==id && company.Id==id &&
+                company.Code=="0007A" && company.Name=="شركة رقم ٠٠٧" &&
+                company.Revision==1 && company.IsProfileComplete);
+            var before=f.Store.Count<Company>();
+            var auditBefore=f.Store.Count<AuditEvent>();
+            var receiptsBefore=f.Store.Count<IdempotencyRecord>();
+            await Error("company_exists",()=>f.Service.Company.CreateCompany(
+                f.Owner,Fixture.Key(),request with { Id=Guid.NewGuid() },default));
+            await Error("invalid_text",()=>f.Service.Company.CreateCompany(
+                f.Owner,Fixture.Key(),request with { Id=Guid.NewGuid(),Code=" " },default));
+            await Error("invalid_text",()=>f.Service.Company.CreateCompany(
+                f.Owner,Fixture.Key(),request with { Id=Guid.NewGuid(),Name=" " },default));
+            await Error("invalid_code",()=>f.Service.Company.CreateCompany(
+                f.Owner,Fixture.Key(),request with { Id=Guid.NewGuid(),Code="رمز" },default));
+            await Error("permission_denied",()=>f.Service.Company.GetCompany(
+                id,new Actor("sys01-fg01-external"),default));
+            Ensure(f.Store.Count<Company>()==before &&
+                f.Store.Count<AuditEvent>()==auditBefore &&
+                f.Store.Count<IdempotencyRecord>()==receiptsBefore);
+            Ensure((await f.Service.Company.GetCompany(id,f.Owner,default)).Name==request.Name);
+        });
         test("SYS01: legal profile, Unicode address and leading zero registrations roundtrip", async f =>
         {
             var c = await Company(f); var profile = Profile(c) with { EnglishName = "Example company", Notes = "ملاحظات", CommercialRegistration = "000123",

@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
@@ -53,6 +54,49 @@ public static class HostedApiIntegration
         const string audience = "ameen-integration-api";
         try
         {
+            // GL04-01: opt-in draft-only worker. Check host wiring without
+            // starting the opted-in worker or touching scheduled SQL data.
+            WebApplication ScheduledTemplateHost(string? actorSubject, int? minutes = null, bool enabled = true) =>
+                ApiHost.Build(Array.Empty<string>(), b =>
+                {
+                    b.Logging.ClearProviders();
+                    b.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["ConnectionStrings:Erp"] = connection,
+                        ["Authentication:Authority"] = issuer,
+                        ["Authentication:Audience"] = audience,
+                        ["RecurringScheduler:Enabled"] = enabled ? "true" : "false",
+                        ["RecurringScheduler:ActorSubject"] = actorSubject,
+                        ["RecurringScheduler:IntervalMinutes"] = minutes?.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    });
+                });
+            await using (var disabledScheduler = ScheduledTemplateHost(null, -1, enabled: false))
+                Ensure(!disabledScheduler.Services.GetServices<IHostedService>().Any(x =>
+                    x.GetType().Name == "RecurringDraftScheduler"),
+                    "GL04-01 recurring worker incorrectly enabled without explicit opt-in");
+            foreach (var invalidActor in new string?[] { null, "", "   ", new string('a', 201) })
+            {
+                try
+                {
+                    await using var invalidScheduler = ScheduledTemplateHost(invalidActor);
+                    throw new Exception("GL04-01 missing/invalid scheduler actor was accepted");
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("ActorSubject", StringComparison.Ordinal)) { }
+            }
+            foreach (var invalidMinutes in new[] { 0, -1, 1441 })
+            {
+                try
+                {
+                    await using var invalidScheduler = ScheduledTemplateHost("sql-clerk", invalidMinutes);
+                    throw new Exception("GL04-01 invalid scheduler interval was accepted");
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("IntervalMinutes", StringComparison.Ordinal)) { }
+            }
+            await using (var configuredScheduler = ScheduledTemplateHost("sql-clerk", 15))
+                Ensure(configuredScheduler.Services.GetServices<IHostedService>().Any(x =>
+                    x.GetType().Name == "RecurringDraftScheduler"),
+                    "GL04-01 explicit schedule configuration did not register draft worker");
+            Console.WriteLine("  HOST PASS GL04-01 opt-in recurring scheduler actor/interval guard and registration (not launched)");
             await using var api = ApiHost.Build(Array.Empty<string>(), b =>
             {
                 b.Logging.ClearProviders();
@@ -61,12 +105,16 @@ public static class HostedApiIntegration
                 {
                     ["ConnectionStrings:Erp"] = connection, ["Authentication:Authority"] = issuer,
                     ["Authentication:Audience"] = audience, ["AllowedHosts"] = "127.0.0.1;localhost",
-                    ["Cors:Origins:0"] = "https://permitted.example"
+                    ["Cors:Origins:0"] = "https://permitted.example",
+                    ["RecurringScheduler:Enabled"] = "false"
                 });
                 b.WebHost.ConfigureKestrel(k => k.Listen(IPAddress.Loopback, 0, l => l.UseHttps(certificate)));
                 b.Services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme,
                     o => o.BackchannelHttpHandler = PinnedTransport(certificate));
             });
+            Ensure(!api.Services.GetServices<IHostedService>().Any(x =>
+                x.GetType().Name == "RecurringDraftScheduler"),
+                "GL04-01 recurring draft worker started without opt-in");
             await api.StartAsync();
             try
             {
@@ -379,6 +427,36 @@ public static class HostedApiIntegration
                         !json.RootElement.GetProperty("allSucceeded").GetBoolean() &&
                         json.RootElement.GetProperty("rows").GetArrayLength() == 2,
                         "GL06 durable processing batch not retrievable over HTTPS/JWT/SQL");
+                // GL06-A05: the persisted result is scoped to its initiating
+                // actor, even when a second authenticated member has Read and
+                // has access to the source journal. JWT identity, not a query
+                // parameter or batch key alone, controls history visibility.
+                var durableHttpPath = path + "/processing-batches/by-key/" + durableHttpKey;
+                var durableReadCounts = await ReadOnlyCounts(connection, companyId);
+                Authenticate(Token("sql-clerk"));
+                using (var otherActorBatch = await client.GetAsync(durableHttpPath))
+                    Ensure(otherActorBatch.StatusCode == HttpStatusCode.NotFound,
+                        "GL06-A05 other tenant member leaked another actor's batch and durable decisions");
+                Authenticate(Token("audit-no-membership"));
+                using (var nonmemberBatch = await client.GetAsync(durableHttpPath))
+                    Ensure(nonmemberBatch.StatusCode == HttpStatusCode.Forbidden,
+                        "GL06-A05 unrelated JWT subject disclosed a durable batch");
+                Authenticate(Token("sql-approver"));
+                using (var missingBatch = await client.GetAsync(
+                    path + "/processing-batches/by-key/" + Fixture.Key()))
+                    Ensure(missingBatch.StatusCode == HttpStatusCode.NotFound,
+                        "GL06-A05 missing batch returned an unintended success");
+                using (var recoveredBatch = await client.GetAsync(durableHttpPath))
+                using (var recoveredJson = JsonDocument.Parse(await recoveredBatch.Content.ReadAsStringAsync()))
+                    Ensure(recoveredBatch.StatusCode == HttpStatusCode.OK &&
+                        recoveredJson.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        recoveredJson.RootElement.GetProperty("createdBy").GetString() == "sql-approver" &&
+                        recoveredJson.RootElement.GetProperty("rows").GetArrayLength() == 2 &&
+                        !recoveredJson.RootElement.GetProperty("allSucceeded").GetBoolean(),
+                        "GL06-A05 authorized owner did not recover the original durable result");
+                Ensure(durableReadCounts == await ReadOnlyCounts(connection, companyId),
+                    "GL06-A05 authorized/denied durable result reads mutated SQL journals, audit, receipts or outbox");
+                Console.WriteLine("  HOST PASS GL06-A05 owner-only batch result, nonmember JWT denial, missing-key 404, stable retry and read-only SQL");
                 using (var response = await client.GetAsync(path + $"/{receipt.ResourceId}/processing-history"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP processing history duplicated");
@@ -449,7 +527,44 @@ public static class HostedApiIntegration
                 Console.WriteLine("  HOST PASS GL06-T01 positive batch post, durable replay and posted state over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS GL05/06 preview, mixed batch with per-item keys, replay and rejection history over HTTPS/JWT/SQL");
 
+                // GL02-C01: direct subsidiary control opening is forbidden;
+                // reject without journal/audit/receipt/outbox side effects.
+                Authenticate(Token("sql-owner"));
+                var openingControl = await Command(client,
+                    $"/api/v1/companies/{companyId}/accounts",
+                    new CreateAccountRequest("HTTP-GL02-CTRL-GUARD", "رقابة افتتاح", AccountType.Asset,
+                        null, true, true, false, null, NormalBalance.Debit));
+                var openingGuardBefore = await ReadOnlyCounts(connection, companyId);
                 Authenticate(Token("sql-clerk"));
+                var forbiddenOpening = GeneralOpeningTests.Request(journalRequest) with
+                {
+                    ExternalReference = "GL02-CTRL-HTTP-" + Fixture.Key(),
+                    Lines = journalRequest.Lines.Select((line, index) => index == 0
+                        ? line with { AccountId = openingControl.ResourceId } : line).ToArray()
+                };
+                using (var deniedOpeningRequest = new HttpRequestMessage(HttpMethod.Post,
+                    $"/api/v1/companies/{companyId}/general-openings"))
+                {
+                    deniedOpeningRequest.Headers.Add("Idempotency-Key", Fixture.Key());
+                    deniedOpeningRequest.Content = new StringContent(
+                        JsonSerializer.Serialize(forbiddenOpening, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var deniedOpening = await client.SendAsync(deniedOpeningRequest);
+                    using var error = JsonDocument.Parse(await deniedOpening.Content.ReadAsStringAsync());
+                    Ensure((int)deniedOpening.StatusCode == 422 &&
+                        error.RootElement.GetProperty("code").GetString() == "control_account_protected",
+                        "GL02-C01 HTTPS/JWT accepted forbidden direct control-account opening");
+                }
+                Ensure(openingGuardBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL02-C01 rejected HTTPS opening persisted journal/audit/receipt/outbox");
+                using (var absentOpening = await client.GetAsync(
+                    $"/api/v1/companies/{companyId}/general-openings?search=" +
+                    Uri.EscapeDataString(forbiddenOpening.ExternalReference!)))
+                using (var found = JsonDocument.Parse(await absentOpening.Content.ReadAsStringAsync()))
+                    Ensure(absentOpening.StatusCode == HttpStatusCode.OK &&
+                        found.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "GL02-C01 forbidden control opening remained visible after rejection");
+                Console.WriteLine("  HOST PASS GL02-C01 control opening rejects 422 over HTTPS/JWT, no SQL writes or leaked document");
                 const string printDescription = "افتتاح <script>alert(1)</script> & نهاية";
                 var generalOpening = await Command(client, $"/api/v1/companies/{companyId}/general-openings",
                     GeneralOpeningTests.Request(journalRequest) with
@@ -1465,6 +1580,43 @@ public static class HostedApiIntegration
                 using (var usage = await client.GetAsync(accountPath + $"/{journalRequest.Lines[0].AccountId}/usage?limit=1"))
                 using (var json = JsonDocument.Parse(await usage.Content.ReadAsStringAsync()))
                     Ensure(usage.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("hasUsageInSubtree").GetBoolean(), "Account HTTP usage differs");
+                // GL01-02: production HTTPS/OIDC/JWT account-usage paging and tenant
+                // authorization; reading does not add receipts, journals, audit or outbox.
+                var accountUsageUrl = accountPath + $"/{journalRequest.Lines[0].AccountId}/usage";
+                Ensure(specJson.Contains("/api/v1/companies/{companyId}/accounts/{id}/usage",
+                    StringComparison.Ordinal), "GL01-02 OpenAPI account usage route missing");
+                var accountUsageBefore = await ReadOnlyCounts(connection, companyId);
+                using (var firstUsage = await client.GetAsync(accountUsageUrl + "?offset=0&limit=1"))
+                using (var firstJson = JsonDocument.Parse(await firstUsage.Content.ReadAsStringAsync()))
+                using (var nextUsage = await client.GetAsync(accountUsageUrl + "?offset=1&limit=1"))
+                using (var nextJson = JsonDocument.Parse(await nextUsage.Content.ReadAsStringAsync()))
+                {
+                    var first = firstJson.RootElement;
+                    var next = nextJson.RootElement;
+                    Ensure(firstUsage.StatusCode == HttpStatusCode.OK &&
+                        nextUsage.StatusCode == HttpStatusCode.OK &&
+                        first.GetProperty("accountId").GetGuid() == journalRequest.Lines[0].AccountId &&
+                        first.GetProperty("journalCount").GetInt32() > 0 &&
+                        first.GetProperty("recurringTemplateCount").GetInt32() > 0 &&
+                        first.GetProperty("hasUsageInSubtree").GetBoolean() &&
+                        first.GetProperty("references").GetProperty("totalCount").GetInt32() >= 2 &&
+                        first.GetProperty("references").GetProperty("totalCount").GetInt32() ==
+                            next.GetProperty("references").GetProperty("totalCount").GetInt32() &&
+                        first.GetProperty("references").GetProperty("items")[0].GetProperty("resourceId").GetGuid() !=
+                            next.GetProperty("references").GetProperty("items")[0].GetProperty("resourceId").GetGuid(),
+                        "GL01-02 HTTPS SQL-backed journal/template usage or page stability differs");
+                }
+                using (var missingAccountUsage = await client.GetAsync(accountPath + $"/{Guid.NewGuid()}/usage"))
+                    Ensure(missingAccountUsage.StatusCode == HttpStatusCode.NotFound,
+                        "GL01-02 account usage for a non-existent account was disclosed");
+                Authenticate(Token("audit-no-membership"));
+                using (var unauthorizedAccountUsage = await client.GetAsync(accountUsageUrl))
+                    Ensure(unauthorizedAccountUsage.StatusCode == HttpStatusCode.Forbidden,
+                        "GL01-02 unrelated JWT subject disclosed usage references");
+                Authenticate(Token("sql-owner"));
+                Ensure(accountUsageBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL01-02 GET usage or rejected JWT modified persisted finance/audit/outbox state");
+                Console.WriteLine("  HOST PASS GL01-02 account usage paging, journal/template sources, JWT denial, OpenAPI and read-only SQL");
                 foreach (var invalidBody in new[]
                 {
                     "{\"code\":\"MISSING-NATURE\",\"name\":\"Missing nature\",\"type\":\"Asset\",\"parentId\":null,\"isPosting\":true,\"isControl\":false,\"requiresCostCenter\":false,\"currencyCode\":null}",
@@ -1673,6 +1825,29 @@ public static class HostedApiIntegration
                 Authenticate(Token("runtime-admin", "erp.platform-admin"));
                 var companyReceipt = await Command(client, "/api/v1/companies", company);
                 var companyPath = $"/api/v1/companies/{company.Id}";
+                // SYS01-FG01: production HTTPS/JWT returns server identity and
+                // Arabic name, and an already assigned company code is rejected.
+                using(var detailsResponse=await client.GetAsync(companyPath))
+                using(var detailsJson=JsonDocument.Parse(await detailsResponse.Content.ReadAsStringAsync()))
+                {
+                    var c=detailsJson.RootElement;
+                    Ensure(detailsResponse.StatusCode==HttpStatusCode.OK &&
+                        c.GetProperty("id").GetGuid()==company.Id &&
+                        c.GetProperty("code").GetString()=="HTTPTEST" &&
+                        c.GetProperty("name").GetString()=="شركة HTTP",
+                        "SYS01-FG01 HTTPS identity/code/Arabic name mismatch");
+                }
+                using(var duplicateRequest=new HttpRequestMessage(HttpMethod.Post,"/api/v1/companies"))
+                {
+                    duplicateRequest.Headers.Add("Idempotency-Key",Fixture.Key());
+                    duplicateRequest.Content=new StringContent(JsonSerializer.Serialize(
+                        company with { Id=Guid.NewGuid() },JsonDefaults.Options),Encoding.UTF8,"application/json");
+                    using var duplicate=await client.SendAsync(duplicateRequest);
+                    Ensure(duplicate.StatusCode==HttpStatusCode.Conflict &&
+                        (await duplicate.Content.ReadAsStringAsync()).Contains("company_exists",StringComparison.Ordinal),
+                        "SYS01-FG01 HTTPS accepted a duplicate company code");
+                }
+                Console.WriteLine("  HOST PASS SYS01-FG01 identity/code/Arabic and duplicate rejection over HTTPS/JWT/SQL");
                 // SYS01-OP01: search is scoped to visible companies, never
                 // to all tenants. Positive code/Arabic queries and negative scope.
                 using (var byCode = await client.GetAsync("/api/v1/companies?search=HTTPTEST"))
@@ -2520,6 +2695,107 @@ public static class HostedApiIntegration
                         cashAuditJson.RootElement.GetProperty("totalCount").GetInt32() == 2,
                         "CASH01 production audit has duplicate or missing create/edit events");
                 Console.WriteLine("  HOST PASS CASH01 SQL-backed HTTPS/OIDC/JWT create/read/edit/replay, account uniqueness, stale edit and audit");
+
+                // GL04-01: start a REAL opted-in recurring draft worker
+                // against this disposable SQL integration database, with
+                // a dedicated member limited to one new branch. This is
+                // never an activation of the VPS/production environment.
+                Authenticate(Token("sql-owner"));
+                var workerBranch = await Command(client, $"/api/v1/companies/{companyId}/branches",
+                    new CreateBranchRequest("GL04-WORKER-CI", "فرع عامل الدوريات", "مدينة", "عنوان"));
+                const string workerSubject = "gl04-recurring-worker-ci";
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest(workerSubject,
+                        new[] { Permissions.RecurringGenerate, Permissions.Draft },
+                        false, new[] { workerBranch.ResourceId }, null));
+                Authenticate(Token("sql-clerk"));
+                var workerTemplate = await Command(client, recurringPath, recurringRequest with
+                {
+                    BranchId = workerBranch.ResourceId,
+                    Name = "GL04 worker isolated monthly occurrence",
+                    GenerationMode = RecurringGenerationMode.Scheduled,
+                    StartsOn = Fixture.Date,
+                    EndsOn = Fixture.Date
+                });
+                using (var beforeHistory = await client.GetAsync(recurringPath + $"/{workerTemplate.ResourceId}/generations"))
+                using (var beforeJson = JsonDocument.Parse(await beforeHistory.Content.ReadAsStringAsync()))
+                    Ensure(beforeHistory.StatusCode == HttpStatusCode.OK &&
+                        beforeJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "GL04-01 worker test template already has generated SQL occurrences");
+
+                await using (var workerApi = ApiHost.Build(Array.Empty<string>(), b =>
+                {
+                    b.Logging.ClearProviders();
+                    b.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["ConnectionStrings:Erp"] = connection,
+                        ["Authentication:Authority"] = issuer,
+                        ["Authentication:Audience"] = audience,
+                        ["RecurringScheduler:Enabled"] = "true",
+                        ["RecurringScheduler:ActorSubject"] = workerSubject,
+                        ["RecurringScheduler:IntervalMinutes"] = "1440"
+                    });
+                    b.WebHost.ConfigureKestrel(k => k.Listen(IPAddress.Loopback, 0,
+                        l => l.UseHttps(certificate)));
+                    b.Services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme,
+                        o => o.BackchannelHttpHandler = PinnedTransport(certificate));
+                }))
+                {
+                    await workerApi.StartAsync();
+                    try
+                    {
+                        RecurringJournalGeneration? generatedOccurrence = null;
+                        JournalEntry? generatedDraft = null;
+                        for (var attempt = 0; attempt < 100; attempt++)
+                        {
+                            await using var testScope = workerApi.Services.CreateAsyncScope();
+                            var db = testScope.ServiceProvider.GetRequiredService<ErpDbContext>();
+                            generatedOccurrence = await db.Set<RecurringJournalGeneration>().AsNoTracking()
+                                .FirstOrDefaultAsync(x => x.CompanyId == companyId &&
+                                    x.TemplateId == workerTemplate.ResourceId);
+                            if (generatedOccurrence is not null)
+                            {
+                                generatedDraft = await db.Set<JournalEntry>().AsNoTracking()
+                                    .SingleAsync(x => x.CompanyId == companyId &&
+                                        x.Id == generatedOccurrence.JournalId);
+                                break;
+                            }
+                            await Task.Delay(100);
+                        }
+                        Ensure(generatedOccurrence is not null && generatedDraft is not null &&
+                            generatedDraft.State == JournalState.Draft &&
+                            generatedDraft.Source == JournalSource.Recurring &&
+                            generatedDraft.RecurringTemplateId == workerTemplate.ResourceId &&
+                            generatedDraft.BranchId == workerBranch.ResourceId &&
+                            generatedDraft.Lines.Sum(x => x.FunctionalDebit) ==
+                                recurringRequest.Lines.Sum(x => x.Debit) &&
+                            generatedDraft.Lines.Sum(x => x.FunctionalCredit) ==
+                                recurringRequest.Lines.Sum(x => x.Credit),
+                            "GL04-01 started opt-in recurring worker did not persist one unposted historical draft");
+                    }
+                    finally { await workerApi.StopAsync(); }
+                }
+
+                Authenticate(Token(workerSubject));
+                using (var due = new HttpRequestMessage(HttpMethod.Post, recurringPath + "/run-due"))
+                {
+                    due.Content = new StringContent(JsonSerializer.Serialize(
+                        new RunDueRecurringRequest(Fixture.Date, 10), JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var response = await client.SendAsync(due);
+                    using var workerDueJson = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        workerDueJson.RootElement.GetProperty("selectedCount").GetInt32() == 0 &&
+                        workerDueJson.RootElement.GetProperty("generatedCount").GetInt32() == 0,
+                        "GL04-01 restricted actor's re-scan duplicated a scheduler-created journal");
+                }
+                Authenticate(Token("sql-clerk"));
+                using (var afterHistory = await client.GetAsync(recurringPath + $"/{workerTemplate.ResourceId}/generations"))
+                using (var afterJson = JsonDocument.Parse(await afterHistory.Content.ReadAsStringAsync()))
+                    Ensure(afterHistory.StatusCode == HttpStatusCode.OK &&
+                        afterJson.RootElement.GetProperty("totalCount").GetInt32() == 1,
+                        "GL04-01 real opted-in worker did not retain exactly one durable SQL occurrence");
+                Console.WriteLine("  HOST PASS GL04-01 started opt-in recurring worker branch-scoped: one Draft, no auto-post or replay, isolated SQL");
 
             }
             finally { await api.StopAsync(); }
