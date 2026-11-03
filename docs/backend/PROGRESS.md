@@ -1,5 +1,10 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS04-AC01 — currency positive acceptance review (3 November 2026)
+
+The supported SYS04 positive condition is already verified end to end: currency cards persist ISO-like currency code, Arabic/English labels, fractional units, display symbol, scale and server revision; GET/detail and search return the card, and created/edited/status audit is retrievable. `CurrencyTests` exercise labels/symbol/fraction, revision and active search with identity/replay; the production `HostedApiIntegration` creates and edits GBP through authenticated HTTPS, then reads filtered SQL-backed search and audit. [CI #41558505651](https://github.com/ameenalqershi/ameen-erp/actions/runs/41558505651) and [PR CI #41558514949](https://github.com/ameenalqershi/ameen-erp/actions/runs/41558514949) passed on `sys=447da3fc9a38498af8e8112ad6179600f7bfe716`, with isolated SQL/JWT/OpenAPI/Release and full project tests. This closes only the atomic positive acceptance task `SYS04-AC01` by reconciling already-implemented behavior with Notion; country ISO reference and historical precision migration remain unresolved and excluded.
+
+
 ## SYS04-OP03 — currency usage/audit HTTP acceptance (3 November 2026)
 
 Added a focused production-host HTTPS/JWT/SQL assertion to the existing currency workflow: a disabled currency still yields an authoritative tenant-scoped usage snapshot with `currencyId`, `isFunctionalCurrency` and reference counts; unrelated JWT subjects receive HTTP 403 for usage and audit access. The existing production test already checks three creation/edit/status audit events, while `CurrencyTests` covers historical usage, global scope, functional currency references, and unauthorized audit. This is evidence for Notion `SYS04-OP03` only, with no currency entity/API contract/migration/analysis changes. **Pending exact-head branch and PR CI** (isolated SQL, HTTPS/JWT, OpenAPI, Release) before completion.
