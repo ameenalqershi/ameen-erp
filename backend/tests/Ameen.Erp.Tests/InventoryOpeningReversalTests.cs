@@ -24,6 +24,62 @@ public static class InventoryOpeningReversalTests
         f.Service.InventoryOpening.PostReversal(f.CompanyId, r.ResourceId, Writer, key ?? Fixture.Key(), new(r.Version), default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV01/INV04/INV05-OP03: reversal remains visible as separate historical movement and source", async f =>
+        {
+            var source = await Setup(f, ItemTracking.Serial);
+            var original = await InventoryOpeningTests.Get(f, source.ResourceId);
+            var line = original.Lines.Single();
+            var id = line.IdentityId!.Value;
+            var approved = await Approve(f, await Create(f, source));
+            await Post(f, approved);
+            var item = await f.Service.Item.GetItemUsage(f.CompanyId, line.ItemId, f.Owner, default);
+            var warehouse = await f.Service.Warehouse.GetWarehouseUsage(f.CompanyId, original.WarehouseId, f.Owner, default);
+            var serial = await f.Service.InventoryIdentity.GetSerialUsage(f.CompanyId, line.ItemId, id, f.Owner, default);
+            Ensure(item.MovementCount == 2 && warehouse.MovementCount == 2 && serial.MovementCount == 2 &&
+                serial.OpeningDocumentCount == 2 && serial.ReversalMovementCount == 1 &&
+                (await f.Service.InventoryIdentity.ListSerialMovements(f.CompanyId, line.ItemId, id,
+                    f.Owner, 0, 1, default)).TotalCount == 2);
+            var all = await f.Service.InventoryIdentity.ListSerialMovements(f.CompanyId, line.ItemId, id,
+                f.Owner, 0, 10, default);
+            Ensure(all.Items.Count == 2 && all.Items.Sum(x => x.BaseQuantity) == 0 &&
+                all.Items.Sum(x => x.Value) == 0 &&
+                all.Items.Count(x => x.ReversesMovementId is not null) == 1 &&
+                all.Items.Select(x => x.OpeningId).Distinct().Count() == 2);
+        });
+        test("INV06-OP05: full opening source reversal is linked, paged and idempotent without doubled stock or GL", async f =>
+        {
+            var posted = await Setup(f, ItemTracking.Lot);
+            var key = Fixture.Key();
+            var draft = await Create(f, posted, key: key);
+            Ensure(draft == await Create(f, posted, key: key));
+            var list = await f.Service.InventoryOpening.Reversals(f.CompanyId, posted.ResourceId, Writer, 0, 1, default);
+            Ensure(list.TotalCount == 1 && list.Items.Single().Id == draft.ResourceId &&
+                list.Items.Single().ReversesOpeningId == posted.ResourceId);
+            await Error("opening_reversal_exists", () => Create(f, posted));
+            var approved = await Approve(f, draft);
+            var postKey = Fixture.Key();
+            var reversed = await Post(f, approved, postKey);
+            Ensure(reversed == await Post(f, approved, postKey));
+            var printedReversal = await f.Service.InventoryOpening.Print(f.CompanyId, reversed.ResourceId,
+                f.Owner, default);
+            Ensure(printedReversal.ReversesOpeningId == posted.ResourceId &&
+                printedReversal.State == nameof(InventoryOpeningState.Posted) &&
+                printedReversal.TotalDocumentValue == 10.5m &&
+                printedReversal.SignedEffectValue == -10.5m &&
+                printedReversal.Lines.Single().SignedEffectValue == -10.5m);
+            var history = await f.Service.InventoryOpening.Reversals(f.CompanyId, posted.ResourceId, Writer, 0, 10, default);
+            Ensure(history.TotalCount == 1 && history.Items.Single().State == InventoryOpeningState.Posted &&
+                history.Items.Single().ReversesOpeningId == posted.ResourceId);
+            var journals = f.Store.All<JournalEntry>().ToArray();
+            var first = journals.Single(x => x.InventoryOpeningId == posted.ResourceId);
+            var inverse = journals.Single(x => x.InventoryOpeningId == reversed.ResourceId);
+            Ensure(journals.Length == 2 && first.State == JournalState.Reversed &&
+                first.ReversalJournalId == inverse.Id && inverse.ReversesJournalId == first.Id);
+            var movements = f.Store.All<StockMovement>().ToArray();
+            Ensure(movements.Length == 2 && movements.Single(x => x.ReversesMovementId is not null)
+                .ReversesMovementId == movements.Single(x => x.ReversesMovementId is null).Id &&
+                movements.Sum(x => x.BaseQuantity) == 0 && movements.Sum(x => x.Value) == 0);
+        });
         test("INV06 reversal: approved source reversal preserves history and nets stock and ledger to zero", async f =>
         {
             var source = await Setup(f, ItemTracking.Serial); var draft = await Create(f, source);

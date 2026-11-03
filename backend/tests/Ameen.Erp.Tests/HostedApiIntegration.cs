@@ -123,6 +123,15 @@ public static class HostedApiIntegration
                         x.GetProperty("name").GetString() == "Idempotency-Key" && x.GetProperty("required").GetBoolean()), "Missing idempotency header contract");
                     Ensure(command.GetProperty("security").GetArrayLength() > 0, "Missing endpoint bearer requirement");
                     Ensure(specJson.Contains("\"decimal\"", StringComparison.Ordinal) && specJson.Contains("\"date\"", StringComparison.Ordinal), "Missing decimal/date schema");
+                    Ensure(specJson.Contains("/inventory-openings/{id}/print", StringComparison.Ordinal),
+                        "INV06 print OpenAPI path missing");
+                    foreach (var route in new[] {
+                        "/items/{id}/usage", "/items/{id}/stock-movements",
+                        "/warehouses/{id}/usage", "/warehouses/{id}/stock-movements",
+                        "/items/{itemId}/lots/{id}/usage", "/items/{itemId}/lots/{id}/stock-movements",
+                        "/items/{itemId}/serials/{id}/usage", "/items/{itemId}/serials/{id}/stock-movements" })
+                        Ensure(specJson.Contains(route, StringComparison.Ordinal),
+                            "Missing INV01/04/05 stock reference OpenAPI path: " + route);
                 }
 
                 // SYS06-OP03: expose retained member references and audit only to authorized tenant staff.
@@ -824,6 +833,24 @@ public static class HostedApiIntegration
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 3, "HTTP lot audit failed");
                 using (var response = await client.GetAsync(itemsPath + $"/{identityItem.ResourceId}/serials/{lot.ResourceId}"))
                     Ensure(response.StatusCode == HttpStatusCode.NotFound, "HTTP serial route exposed lot");
+                using (var response = await client.GetAsync(lotsPath + $"/{lot.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("movementCount").GetInt32() == 0 &&
+                        !json.RootElement.GetProperty("hasStockMovements").GetBoolean(),
+                        "HTTP lot usage before posting differs");
+                using (var response = await client.GetAsync(lotsPath + $"/{lot.ResourceId}/stock-movements"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "HTTP lot movement page before posting differs");
+                using (var response = await client.GetAsync(itemsPath + $"/{identityItem.ResourceId}/serials/{lot.ResourceId}/usage"))
+                    Ensure(response.StatusCode == HttpStatusCode.NotFound, "HTTP serial usage exposed a lot");
+                Authenticate(Token("audit-no-membership"));
+                using (var unauthorizedUsageResponse = await client.GetAsync(lotsPath + $"/{lot.ResourceId}/usage"))
+                    Ensure(unauthorizedUsageResponse.StatusCode == HttpStatusCode.Forbidden,
+                        "HTTP unauthorized lot usage exposed a tenant's references");
+                Authenticate(Token("sql-owner"));
                 Console.WriteLine("  HOST PASS INV05 lot create/edit/search/detail/status/audit and route isolation over HTTPS/JWT/SQL");
                 var openingWarehouse = await Command(client, warehousesPath, whRequest with { Code = "HTTP-OPEN-WH", Type = WarehouseType.Standard, TrackLocations = false, Locations = Array.Empty<WarehouseLocationRequest>() });
                 var openingItem = await Command(client, itemsPath, new CreateItemRequest("HTTP-OPEN-I", "صنف افتتاح", ItemType.Goods, ItemTracking.None, identityGroup.ResourceId, itemUnit.ResourceId, new[] { new ItemUnitRequest(itemUnit.ResourceId, 1, null, null) }));
@@ -852,6 +879,20 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 6, "HTTP opening audit failed");
                 Authenticate(Token("sql-owner"));
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}/print"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("openingId").GetGuid() == opening.ResourceId &&
+                        json.RootElement.GetProperty("state").GetString() == nameof(InventoryOpeningState.Approved) &&
+                        json.RootElement.GetProperty("journalId").ValueKind == JsonValueKind.Null &&
+                        json.RootElement.GetProperty("lines")[0].GetProperty("itemCode").GetString() == "HTTP-OPEN-I" &&
+                        decimal.Parse(json.RootElement.GetProperty("totalDocumentValue").GetString()!,
+                            System.Globalization.CultureInfo.InvariantCulture) == 15m,
+                        "HTTP INV06 approved opening print lost identity/line/value");
+                Authenticate(Token("audit-no-membership"));
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}/print"))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden, "INV06 print exposed to nonmember");
+                Authenticate(Token("sql-owner"));
                 Console.WriteLine("  HOST PASS INV06 draft/valuation/submit/return/correct/approve/search/detail/audit over HTTPS/JWT/SQL");
                 var clearingAccount = await Command(client, $"/api/v1/companies/{companyId}/accounts", new CreateAccountRequest("HTTP-OPEN-CLEAR", "تسوية افتتاح", AccountType.Equity, null, true, false, false, null, NormalBalance.Credit));
                 await Command(client, openingsPath + "/posting-settings", new ConfigureInventoryOpeningPostingRequest(null, clearingAccount.ResourceId, "إعداد"), method: HttpMethod.Put);
@@ -877,7 +918,39 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync($"/api/v1/companies/{companyId}/stock-movements?warehouseId={openingWarehouse.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("totalCount").GetInt32() == 1, "HTTP stock movement missing");
+                using (var response = await client.GetAsync(itemsPath + $"/{openingItem.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("movementCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("openingDocumentCount").GetInt32() == 1,
+                        "HTTP item usage after SQL posting differs");
+                using (var response = await client.GetAsync(warehousesPath + $"/{openingWarehouse.ResourceId}/usage"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("movementCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("reversalMovementCount").GetInt32() == 0,
+                        "HTTP warehouse usage after SQL posting differs");
+                using (var response = await client.GetAsync(warehousesPath + $"/{openingWarehouse.ResourceId}/stock-movements?offset=0&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 1,
+                        "HTTP warehouse movement page after SQL posting differs");
+                using (var response = await client.GetAsync(itemsPath + $"/{openingItem.ResourceId}/stock-movements?offset=1&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 0,
+                        "HTTP item movement pagination differs");
                 Authenticate(Token("sql-owner"));
+                using (var response = await client.GetAsync(openingsPath + $"/{opening.ResourceId}/print"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("state").GetString() == nameof(InventoryOpeningState.Posted) &&
+                        json.RootElement.GetProperty("journalId").GetGuid() == postedOpeningJournalId &&
+                        decimal.Parse(json.RootElement.GetProperty("signedEffectValue").GetString()!,
+                            System.Globalization.CultureInfo.InvariantCulture) == 15m,
+                        "HTTP INV06 posted opening print lost actual GL source");
                 Console.WriteLine("  HOST PASS INV06 configure/preview/post/linked journal/stock movement over HTTPS/JWT/SQL");
                 Authenticate(Token("sql-clerk"));
                 // GL07-C01: never reverse an INV06 accounting journal independently of its

@@ -7,7 +7,7 @@ namespace Ameen.Erp.Application;
 /// service: quantities, costing, reservations and availability are added with
 /// the inventory ledger.
 /// </summary>
-public sealed class InventoryIdentityService : ApplicationService
+public sealed partial class InventoryIdentityService : ApplicationService
 {
     public InventoryIdentityService(IErpStore store, ITransactionRunner transactions, IClock clock)
         : base(store, transactions, clock)

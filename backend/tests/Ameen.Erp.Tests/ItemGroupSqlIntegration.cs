@@ -51,6 +51,59 @@ public static class ItemGroupSqlIntegration
         Ensure((await Call(s => s.ItemGroup.SearchItemGroups(cid, owner, "SQL group", null, true, 0, 10, default))).TotalCount == 2, "Group SQL search differs");
         Ensure((await Call(s => s.Account.GetAccountUsage(cid, sales.ResourceId, owner, 0, 10, default))).HasUsageInSubtree, "Group SQL usage lock missing");
         Ensure((await Call(s => s.ItemGroup.ListAccountItemGroups(cid, sales.ResourceId, owner, 0, 10, default))).TotalCount == 2, "Group SQL account references differ");
+        // INV02-AC01: classification and account mappings persist as tenant-constrained
+        // references; no unapproved implicit inheritance from parent to child group.
+        var stockAccount = await Call(s => s.Account.CreateAccount(cid, owner, Fixture.Key(),
+            new("GROUP-STOCK", "مخزون المجموعة", AccountType.Asset, null, true, true, false, null,
+                NormalBalance.Debit), default));
+        var costAccount = await Call(s => s.Account.CreateAccount(cid, owner, Fixture.Key(),
+            new("GROUP-COST", "تكلفة المجموعة", AccountType.Expense, null, true, false, false, null,
+                NormalBalance.Debit), default));
+        var unit = await Call(s => s.Unit.CreateUnit(cid, owner, Fixture.Key(),
+            new("GROUP-UNIT", "قطعة", "EA", 0, "قطعة"), default));
+        var mapped = await Call(s => s.ItemGroup.CreateItemGroup(cid, owner, Fixture.Key(),
+            new("GROUP-MAPPED", "مجموعة مخزنية", sales.ResourceId,
+                InventoryAccountId: stockAccount.ResourceId, CostAccountId: costAccount.ResourceId), default));
+        var goodsRequest = new CreateItemRequest("GROUP-GOODS", "صنف مُصنّف",
+            ItemType.Goods, ItemTracking.None, mapped.ResourceId, unit.ResourceId,
+            new[] { new ItemUnitRequest(unit.ResourceId, 1, null, null) });
+        var goods = await Call(s => s.Item.CreateItem(cid, owner, Fixture.Key(), goodsRequest, default));
+        await using (var db = Context())
+        {
+            var classification = await db.Set<ItemGroup>().SingleAsync(x => x.CompanyId == cid && x.Id == mapped.ResourceId);
+            var item = await db.Set<Item>().SingleAsync(x => x.CompanyId == cid && x.Id == goods.ResourceId);
+            Ensure(classification.SalesAccountId == sales.ResourceId &&
+                classification.InventoryAccountId == stockAccount.ResourceId &&
+                classification.CostAccountId == costAccount.ResourceId && item.GroupId == classification.Id &&
+                item.Type == ItemType.Goods, "SQL INV02-AC01 classification/account mapping differs");
+        }
+        var childUnmapped = await Call(s => s.ItemGroup.CreateItemGroup(cid, owner, Fixture.Key(),
+            new("GROUP-SERVICE", "خدمة", sales.ResourceId, mapped.ResourceId), default));
+        await Call(s => s.Item.CreateItem(cid, owner, Fixture.Key(),
+            goodsRequest with { Code = "GROUP-SERVICE-ITEM", GroupId = childUnmapped.ResourceId,
+                Type = ItemType.Service }, default));
+        var rejectedKey = Fixture.Key();
+        int priorReceipts, priorAudits, priorItems;
+        await using (var db = Context())
+        {
+            priorReceipts = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            priorAudits = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.Action == "item.created");
+            priorItems = await db.Set<Item>().CountAsync(x => x.CompanyId == cid);
+        }
+        try
+        {
+            await Call(s => s.Item.CreateItem(cid, owner, rejectedKey,
+                goodsRequest with { Code = "GROUP-MISSING-ACCOUNT", GroupId = childUnmapped.ResourceId }, default));
+            throw new Exception("Unapproved parent-account inheritance accepted");
+        }
+        catch (BusinessException e) when (e.Code == "stock_accounts_required") { }
+        await using (var db = Context())
+            Ensure(await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == priorReceipts &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.Action == "item.created") == priorAudits &&
+                await db.Set<Item>().CountAsync(x => x.CompanyId == cid) == priorItems &&
+                !await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == rejectedKey),
+                "SQL INV02-AC01 denied inherited accounts modified items, audit or receipt");
+        Console.WriteLine("  SQL PASS INV02-AC01 classified goods/service account references and no unapproved parent inheritance");
         var other = Guid.NewGuid(); await Call(s => s.Company.CreateCompany(owner, Fixture.Key(), new(other, "GROUP-OTHER", "أخرى", "YE", "SAR", 2, Fixture.Profile()), default));
         var foreign = await Call(s => s.Account.CreateAccount(other, owner, Fixture.Key(), new("R", "إيراد", AccountType.Revenue, null, true, false, false, null, NormalBalance.Credit), default));
         await using (var db = Context())

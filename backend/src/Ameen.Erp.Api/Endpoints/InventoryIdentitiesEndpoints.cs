@@ -55,6 +55,21 @@ internal static class InventoryIdentitiesEndpoints
                     : await s.SetSerialStatus(companyId, itemId, id, Actor(h), Key(h), r, ct)))
             .Produces<CommandReceipt>().RequireAuthorization().WithTags(tag);
 
+        app.MapGet(p + "/items/{itemId:guid}/" + resource + "/{id:guid}/usage",
+            async (Guid companyId, Guid itemId, Guid id, InventoryIdentityService s, HttpContext h, CancellationToken ct) =>
+                Results.Ok(isLot
+                    ? await s.GetLotUsage(companyId, itemId, id, Actor(h), ct)
+                    : await s.GetSerialUsage(companyId, itemId, id, Actor(h), ct)))
+            .Produces<InventoryResourceUsage>().RequireAuthorization().WithTags(tag);
+
+        app.MapGet(p + "/items/{itemId:guid}/" + resource + "/{id:guid}/stock-movements",
+            async (Guid companyId, Guid itemId, Guid id, int? offset, int? limit,
+                InventoryIdentityService s, HttpContext h, CancellationToken ct) =>
+                Results.Ok(isLot
+                    ? await s.ListLotMovements(companyId, itemId, id, Actor(h), offset ?? 0, limit ?? 50, ct)
+                    : await s.ListSerialMovements(companyId, itemId, id, Actor(h), offset ?? 0, limit ?? 50, ct)))
+            .Produces<Page<StockMovement>>().RequireAuthorization().WithTags(tag);
+
         app.MapGet(p + "/items/{itemId:guid}/" + resource + "/{id:guid}/audit-events",
             async (Guid companyId, Guid itemId, Guid id, int? offset, int? limit, InventoryIdentityService s,
                 HttpContext h, CancellationToken ct) =>

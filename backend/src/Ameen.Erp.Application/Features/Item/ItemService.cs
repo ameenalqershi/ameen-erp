@@ -2,7 +2,7 @@ using Ameen.Erp.Domain;
 
 namespace Ameen.Erp.Application;
 
-public sealed class ItemService : ApplicationService
+public sealed partial class ItemService : ApplicationService
 {
     private readonly ItemGroupService itemGroupService;
     public ItemService(IErpStore store, ITransactionRunner transactions, IClock clock, ItemGroupService itemGroupService) : base(store, transactions, clock)

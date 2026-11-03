@@ -19,6 +19,10 @@ internal static class ItemsEndpoints
             Results.Ok(await s.EditItem(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV04 Items");
         app.MapPost(p + "/items/{id:guid}/status", async (Guid companyId, Guid id, SetItemStatusRequest r, ItemService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.SetItemStatus(companyId, id, Actor(h), Key(h), r, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("INV04 Items");
+        app.MapGet(p + "/items/{id:guid}/usage", async (Guid companyId, Guid id, ItemService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.GetItemUsage(companyId, id, Actor(h), ct))).Produces<InventoryResourceUsage>().RequireAuthorization().WithTags("INV04 Items");
+        app.MapGet(p + "/items/{id:guid}/stock-movements", async (Guid companyId, Guid id, int? offset, int? limit, ItemService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.ListItemMovements(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<StockMovement>>().RequireAuthorization().WithTags("INV04 Items");
         app.MapGet(p + "/items/{id:guid}/audit-events", async (Guid companyId, Guid id, int? offset, int? limit, ItemService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ListItemAudit(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<Page<AuditEvent>>().RequireAuthorization().WithTags("INV04 Items");
         app.MapGet(p + "/items/{id:guid}/convert-quantity", async (Guid companyId, Guid id, Guid unitId, string quantity, ItemService s, HttpContext h, CancellationToken ct) =>

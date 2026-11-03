@@ -1,6 +1,6 @@
 using Ameen.Erp.Domain;
 namespace Ameen.Erp.Application;
-public sealed class WarehouseService : ApplicationService
+public sealed partial class WarehouseService : ApplicationService
 {
     public WarehouseService(IErpStore store, ITransactionRunner transactions, IClock clock) : base(store, transactions, clock)
     {
