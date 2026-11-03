@@ -70,6 +70,39 @@ public static class BranchTests
             Ensure(Get(f).DefaultCostCenterId == local.ResourceId);
             await Error("center_is_branch_default", () => f.Service.CostCenter.SetCostCenterStatus(f.CompanyId, local.ResourceId, f.Owner, Fixture.Key(), new(local.Version, false, "تعطيل"), default));
         });
+        test("SYS02-GAP02: branch default center is metadata, never an implicit journal dimension", async f =>
+        {
+            var defaultCenter = await f.Service.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(),
+                new("SYS02-DEF", "مركز افتراضي", f.BranchId), default);
+            var branch = Get(f);
+            await f.Service.Branch.EditBranch(f.CompanyId, branch.Id, f.Owner, Fixture.Key(),
+                Edit(branch) with { DefaultCostCenterId = defaultCenter.ResourceId }, default);
+            Ensure(Get(f).DefaultCostCenterId == defaultCenter.ResourceId);
+
+            var ordinary = await f.Draft();
+            var ordinaryJournal = await f.Journal(ordinary.ResourceId);
+            Ensure(ordinaryJournal.Lines.All(x => x.CostCenterId is null) &&
+                ordinaryJournal.BranchId == f.BranchId);
+
+            var required = await f.Service.Account.CreateAccount(f.CompanyId, f.Owner, Fixture.Key(),
+                new("SYS02-REQ", "حساب يحتاج مركز تكلفة", AccountType.Expense,
+                    null, true, false, true, null, NormalBalance.Debit), default);
+            var request = f.Request();
+            request.Lines[0] = request.Lines[0] with { AccountId = required.ResourceId };
+            var journalsBefore = f.Store.Count<JournalEntry>();
+            var auditsBefore = f.Store.Count<AuditEvent>();
+            var receiptsBefore = f.Store.Count<IdempotencyRecord>();
+            await Error("cost_center_required", () => f.Draft(request));
+            Ensure(f.Store.Count<JournalEntry>() == journalsBefore &&
+                f.Store.Count<AuditEvent>() == auditsBefore &&
+                f.Store.Count<IdempotencyRecord>() == receiptsBefore);
+
+            request.Lines[0] = request.Lines[0] with { CostCenterId = defaultCenter.ResourceId };
+            var explicitDraft = await f.Draft(request);
+            var explicitJournal = await f.Journal(explicitDraft.ResourceId);
+            Ensure(explicitJournal.Lines.Single(x => x.AccountId == required.ResourceId).CostCenterId == defaultCenter.ResourceId &&
+                Get(f).DefaultCostCenterId == defaultCenter.ResourceId);
+        });
         test("SYS02 COST01: global default center cannot move outside referencing branch", async f =>
         {
             var center = await f.Service.CostCenter.CreateCostCenter(f.CompanyId, f.Owner, Fixture.Key(), new("GLOBAL-C", "مركز", null), default);
