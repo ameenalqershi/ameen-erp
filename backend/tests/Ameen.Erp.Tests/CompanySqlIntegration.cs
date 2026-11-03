@@ -24,6 +24,23 @@ public static class CompanySqlIntegration
             company.Revision == 2 && company.CommercialRegistration == "0000123" && company.City == "مدينة SQL" &&
             company.Notes == "دليل" && company.IsProfileComplete, "SYS01-FG01/FG02 company profile SQL differs");
         Ensure((await Call(s => s.Company.ListCompanyAudit(cid, owner, 0, 20, default))).Items.Count(x => x.Action == "company.edited") == 1, "Company replay duplicated audit");
+        // SYS01-FG06: audit fields are server-generated events, not editable
+        // company profile fields. Validate the actual persisted SQL rows.
+        await using (var auditDb = Context())
+        {
+            var events = await auditDb.Set<AuditEvent>()
+                .Where(x => x.CompanyId == cid && x.ResourceId == cid &&
+                    (x.Action == "company.created" || x.Action == "company.edited"))
+                .ToArrayAsync();
+            var created = events.Single(x => x.Action == "company.created");
+            var edited = events.Single(x => x.Action == "company.edited");
+            Ensure(events.Length == 2 &&
+                created.ActorId == owner.Subject && edited.ActorId == owner.Subject &&
+                created.OccurredAt != default && edited.OccurredAt >= created.OccurredAt &&
+                created.Id != edited.Id && company.Revision == 2,
+                "SYS01-FG06 persisted creator, timestamps or revision are inconsistent");
+        }
+        Console.WriteLine("  SQL PASS SYS01-FG06 company creator, creation time, revision and modification audit");
         Console.WriteLine("  SQL PASS SYS01 profile, nullable date, leading zeros and concurrent edit replay");
 
         // SYS01-AC02: a persisted journal permanently blocks an unapproved functional

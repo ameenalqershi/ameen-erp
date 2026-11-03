@@ -1,5 +1,10 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS01-FG06 — company audit-field acceptance (3 November 2026)
+
+Added focused SQL-backed assertions for `SYS01-F15..F18`: `company.created` and `company.edited` preserve the actual caller (`ActorId`), valid ordered `OccurredAt` timestamps and correct company/resource scoping, while the company revision advances exactly once despite concurrent idempotent replay. The production HTTPS/JWT acceptance now verifies all three profile audit events (`created`, `edited`, `status-changed`), their originating subject, tenant/resource identifiers and chronological timestamps, and a non-member JWT's HTTP 403 audit denial. The original dictionary maps creator, creation and last modification to authoritative audit events rather than mutable Company profile fields. All changes are acceptance tests only, with no new schema, policy, endpoints or modifications to the original analysis. **Final acceptance requires successful isolated SQL + production HTTPS/JWT/OpenAPI/Release CI on the exact commit SHA; no complete SYS01 screen claim.**
+
+
 ## SYS01-FG02 — verified-field acceptance under CI (3 November 2026)
 
 Notion task SYS01-FG02 covers EnglishName (optional), IsActive (required), Notes (optional) and LegalName (required); all are mapped as implemented in docs/backend/fields-implementation.csv and persisted by Company.Configure. Focused domain tests now assert their roundtrip, CompanySqlIntegration checks notes persisted in the isolated SQL-backed service, and HostedApiIntegration checks EnglishName, Notes and LegalName through production HTTPS/JWT/SQL GET following authorized PUT. The existing host workflow verifies disabled/enabled company status, revision and audit. Related commits baa08a7691effaf16d461c60fc05e55034f1e308, 6444bf9610d5369d68d094afc2aba4d29591f1b9 and bf6430715b86e1c8863f67f0ff46bc784ebf442d require successful final CI before this atomic field task is closed. No schema/policy/analysis changes; SYS01 screen remains partial due unrelated policy gaps.
