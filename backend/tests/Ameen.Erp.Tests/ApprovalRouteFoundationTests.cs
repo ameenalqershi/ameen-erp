@@ -299,6 +299,60 @@ public static class ApprovalRouteFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS09-FG04: rejected route changes preserve audit, amounts and stage snapshots", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 12, 0, 0, TimeSpan.Zero);
+            var currency = Guid.NewGuid();
+            var role = Guid.NewGuid();
+            var route = new ApprovalRoute(f.CompanyId, f.BranchId, "journal", 10m, 100m,
+                currency, true, f.Owner.Subject, now);
+            route.AddStage(1, role, 30, now.AddSeconds(1));
+            var revision = route.Revision;
+            var version = route.Version;
+            var modified = route.LastModifiedAt;
+            var stageId = route.Stages.Single().Id;
+
+            void Unchanged()
+            {
+                Ensure(route.Revision == revision && route.Version == version &&
+                    route.LastModifiedAt == modified && route.CreatedAt == now &&
+                    route.CreatedBy == f.Owner.Subject && route.IsActive &&
+                    route.DocumentType == "JOURNAL" && route.MinimumAmount == 10m &&
+                    route.MaximumAmount == 100m && route.CurrencyId == currency &&
+                    route.SeparateCreatorAndApprover && route.Stages.Single().Id == stageId,
+                    "Rejected SYS09 update mutated audit, header or stages");
+            }
+
+            Expect("stale_approval_revision", () => route.Edit("changed", 20m, 200m,
+                Guid.NewGuid(), false, revision - 1, now.AddSeconds(2)));
+            Unchanged();
+            Expect("invalid_approval_amount_range", () => route.Edit("changed", 200m, 100m,
+                currency, false, revision, now.AddSeconds(2)));
+            Unchanged();
+            Expect("approval_currency_required", () => route.Edit("changed", 0m, null,
+                Guid.Empty, false, revision, now.AddSeconds(2)));
+            Unchanged();
+            Expect("invalid_approval_revision", () => route.Edit("changed", 0m, null,
+                currency, false, revision, now));
+            Unchanged();
+            Expect("invalid_approval_revision", () => route.SetActive(false,
+                revision, now));
+            Unchanged();
+            Expect("invalid_approval_revision", () => route.ReplaceStages(
+                new[] { new ApprovalRouteStageDraft(2, role, 60) },
+                revision, now));
+            Unchanged();
+
+            route.Edit("journal", 20m, 200m, currency, false, revision, now.AddSeconds(2));
+            Ensure(route.Revision == revision + 1 &&
+                route.LastModifiedAt == now.AddSeconds(2) &&
+                route.MinimumAmount == 20m && route.MaximumAmount == 200m &&
+                !route.SeparateCreatorAndApprover && route.Version != version &&
+                route.Stages.Single().Id == stageId,
+                "Successful SYS09 update did not advance audit atomically");
+            return Task.CompletedTask;
+        });
+
         test("SYS09 foundation: tenant FKs, stage uniqueness, GL14 route FK and guarded EF writes", async f =>
         {
             await using var db = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()
