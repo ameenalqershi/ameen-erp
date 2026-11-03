@@ -113,7 +113,7 @@ public static class BalancedJournalLedgerSqlAcceptance
                 journal.BranchId == sample.BranchId &&
                 await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == originalAudit + 4 &&
                 await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid &&
-                    x.ResourceId == posted.ResourceId && x.Action == "journal.posted") == 1 &&
+                    x.ResourceId == posted.ResourceId && x.Action == "journal.post") == 1 &&
                 await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) == originalOutbox + 1 &&
                 await db.Set<IdempotencyRecord>()
                     .CountAsync(x => x.CompanyId == cid) == originalReceipt + 4,
