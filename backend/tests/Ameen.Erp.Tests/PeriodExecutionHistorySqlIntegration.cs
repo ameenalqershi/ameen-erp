@@ -30,9 +30,19 @@ public static class PeriodExecutionHistorySqlIntegration
             var usedOpeningPeriods = await db.Set<InventoryOpening>()
                 .Where(x => x.CompanyId == cid).Select(x => x.FiscalPeriodId)
                 .Distinct().ToArrayAsync();
+            // Earlier suites can close and reopen an otherwise unused period.
+            // This test asserts EXACTLY two newly recorded decisions, so it
+            // must select a period with no prior close/reopen audit decisions.
+            // Match the independent GL12 SQL history fixture's same guard;
+            // never hide legitimate historical decisions in production code.
+            var priorDecisions = await db.Set<AuditEvent>()
+                .Where(x => x.CompanyId == cid && (x.Action == "period.closed" ||
+                    x.Action == "period.reopened")).Select(x => x.ResourceId)
+                .Distinct().ToArrayAsync();
             period = await db.Set<FiscalPeriod>().AsNoTracking()
                 .Where(x => x.CompanyId == cid && !x.IsClosed &&
-                    !usedJournalPeriods.Contains(x.Id) && !usedOpeningPeriods.Contains(x.Id))
+                    !usedJournalPeriods.Contains(x.Id) && !usedOpeningPeriods.Contains(x.Id) &&
+                    !priorDecisions.Contains(x.Id))
                 .OrderBy(x => x.StartsOn).FirstAsync();
         }
         Ensure(!period.IsClosed, "GL11 SQL history fixture requires an open unused period");
