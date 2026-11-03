@@ -1,5 +1,10 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS02-GAP03 — legacy branch address readiness SQL acceptance (3 November 2026)
+
+Added focused live SQL acceptance to `BranchSqlIntegration` on branch `sys` for a pre-existing branch whose city/address columns were null after upgrade: `ActiveBranch` and status reactivation both reject `branch_profile_incomplete` even when the stored branch was historically marked active. The rejection must preserve row version, state, audit history, and command receipt; completing both location fields through the authorized edit command restores operational readiness with exactly one audited update. Covers the existing SYS02 prohibition on operating legacy branches before profile completion, without altering original analysis or production data. This change is pending exact-head CI with isolated SQL, HTTPS/JWT, OpenAPI and Release before Notion task closure.
+
+
 ## SYS02-GAP02 — branch default cost center never auto-populates journal lines (3 November 2026)
 
 The SYS02 specification records `Branch.DefaultCostCenterId` as configuration only, not permission to silently populate `JournalLine.CostCenterId`. This branch adds a service acceptance test and a production-host HTTPS/JWT/SQL test. Both cover the persisted branch default reference, a valid manual journal retaining null line cost centers, a `RequiresCostCenter` account that still rejects a missing dimension despite the branch default (`cost_center_required`), and the explicit cost center being accepted and persisted when the client provides it. The service test also checks that a rejected draft leaves journal, audit and idempotency receipt counts unchanged. No default injection, financial mapping policy, schema change or source-analysis edit was introduced.
