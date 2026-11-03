@@ -595,6 +595,7 @@ PaymentTermFoundationTests.Register(Test);
 GeneralOptionsFoundationTests.Register(Test);
 PrintTemplateFoundationTests.Register(Test);
 DataImportFoundationTests.Register(Test);
+BackupConfigurationFoundationTests.Register(Test);
 CashReceiptAllocationTests.Register(Test);
 CashReceiptFoundationTests.Register(Test);
 ChequeFoundationTests.Register(Test);
