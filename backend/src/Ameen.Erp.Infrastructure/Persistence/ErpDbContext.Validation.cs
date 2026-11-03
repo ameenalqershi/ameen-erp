@@ -42,6 +42,16 @@ public sealed partial class ErpDbContext
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
             "cash_count_policy_unavailable",
             "لا يمكن حفظ الجرد قبل اعتماد الرصيد والتسوية والمراجعة.", ErrorKind.Conflict);
+        // SYS11-01: selectable catalogues, approval/versioning and posting-account
+        // routing are not specified. Fail closed for headers and lines, including
+        // direct EF callers, rather than silently enabling financial mappings.
+        Check.That(!ChangeTracker.Entries<GeneralOptionsPolicy>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<GeneralOptionsAccountLine>().Any(e =>
+                e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "general_options_policy_unavailable",
+            "حفظ الخيارات والربط المحاسبي محجوب حتى اعتماد كتالوج القيم والتفويض وتاريخ السريان.",
+            ErrorKind.Conflict);
         // SYS16-01: schema/domain foundation only. No verified payment-policy
         // transaction/API exists yet; even direct EF callers must fail closed.
         Check.That(!ChangeTracker.Entries<PaymentTerm>().Any(e =>
