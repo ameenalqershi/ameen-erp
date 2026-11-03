@@ -110,7 +110,7 @@ screen("GL14", "internal EF model and SQL 027 only; no public GL14 API",
 for n, binding in {
     1:"CompanyId: EF/SQL tenant key only", 2:"BranchId: nullable tenant FK only",
     3:"IsActive: persisted server state only", 4:"Code: nvarchar(32) unique per company only",
-    5:"Name: nvarchar(200) only", 6:"Origin: Manual/Automatic enum plus domain-only MatchesSource guard; no GL03 enforcement",
+    5:"Name: nvarchar(200) only", 6:"Origin: Manual/Automatic enum plus domain-only MatchesSource guard; unknown hydrated values fail closed in domain acceptance; no GL03 enforcement",
     7:"NumberSeriesId: tenant FK; active/scope checks pending", 8:"ApprovalRouteId: required tenant FK via SQL 028; active route validation pending",
     9:"RequiresAttachment: bit only", 10:"CreatedBy: server actor field, no service",
     11:"CreatedAt: datetimeoffset only", 12:"Revision: server int plus expected-revision domain guard; no API concurrency acceptance",

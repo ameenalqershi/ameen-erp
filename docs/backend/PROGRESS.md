@@ -1,5 +1,9 @@
 # سجل تقدم وتسليم الباك إند
 
+## GL14-T02 — negative source acceptance, bounded partial evidence (2 November 2026)
+
+Added one independent GL14-F06 regression for an unknown hydrated origin: source matching fails closed, reference preflight returns `InvalidSnapshot`, and restoring a valid origin still returns `UnresolvedPolicy`. No GL14 write, route activation, GL03 binding, or reversal policy was enabled. PR #17 rejected reference edit atomicity remains excluded. Local Release build and domain/model checks passed. Initial sandboxed `verify.py` ran **364/366**, with two HTTP/OpenAPI host failures due to blocked sockets; coordinator reran the exact branch on the authorized VPS host using .NET 10 and writable NuGet cache: **366/366 passed, 0 failed**, including HTTP and OpenAPI. Live SQL was not run locally; isolated SQL CI is required on the PR. GL14 remains partial; reversal separation needs an approved binding contract. Live GitHub PR overlap rechecked by the coordinator before PR creation.
+
 ## GL07-F18/F19 — تصحيح ربط حقول التدقيق المشتركة (2 نوفمبر 2026)
 
 طُوبق قاموس الحقول الأصلي ومخطط GL وقيد اليومية المشترك: `GL07-F18` هو `JournalEntry.Revision` الصحيح، عدد صحيح يولده الخادم، و`Version` رمز UUID مستقل للتزامن؛ `GL07-F19` هو `JournalEntry.LastModifiedAt` بوقت الخادم. يوجد الحقلان في نموذج القيد، تخزين EF، وقراءة القيد/القائمة، ويغطي `JournalAuditTests` تقدم الإصدار والوقت عبر دورة العكس وفشل العمليات دون أثر. صُحح ربط التتبع والمصفوفات المولدة فقط؛ لم يتغير سلوك مالي أو تحليل أصلي أو مخطط SQL. تبقى شاشة GL07 **جزئية**: عكس المستندات التابعة والتبعيات والضرائب وتشغيل المجدول إنتاجيًا ضمن الفجوات الحالية، ولا يزيل تصحيح التدقيق هذه الموانع.

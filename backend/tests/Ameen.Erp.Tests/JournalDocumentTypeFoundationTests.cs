@@ -180,6 +180,32 @@ public static class JournalDocumentTypeFoundationTests
                 "Recovered references should remain unresolved without approval policy");
             return Task.CompletedTask;
         });
+        test("GL14-F06: unknown hydrated source fails closed without granting use", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 2, 16, 0, 0, TimeSpan.Zero);
+            var series = new DocumentNumberSeries(f.CompanyId, f.BranchId,
+                NumberingDocumentKind.Journal, Guid.NewGuid(), "JV", 1, "actor", now);
+            var route = new ApprovalRoute(f.CompanyId, f.BranchId, "JV", 0, null,
+                Guid.NewGuid(), true, "actor", now);
+            var card = new JournalDocumentType(f.CompanyId, f.BranchId, "JV-1", "قيد",
+                JournalDocumentOrigin.Manual, series.Id, route.Id, false, "actor", now);
+            Ensure(card.MatchesSource(JournalDocumentOrigin.Manual) &&
+                !card.MatchesSource(JournalDocumentOrigin.Automatic),
+                "Manual type matched an automatic source");
+            typeof(JournalDocumentType).GetProperty(nameof(JournalDocumentType.Origin))!
+                .SetValue(card, (JournalDocumentOrigin)99);
+            Ensure(!card.MatchesSource(JournalDocumentOrigin.Manual) &&
+                !card.MatchesSource((JournalDocumentOrigin)99) &&
+                JournalDocumentTypeReferencePolicy.Evaluate(card, series, route) ==
+                    JournalDocumentTypeReferenceStatus.InvalidSnapshot,
+                "Unknown hydrated source was accepted");
+            typeof(JournalDocumentType).GetProperty(nameof(JournalDocumentType.Origin))!
+                .SetValue(card, JournalDocumentOrigin.Manual);
+            Ensure(JournalDocumentTypeReferencePolicy.Evaluate(card, series, route) ==
+                JournalDocumentTypeReferenceStatus.UnresolvedPolicy,
+                "Restored source must not authorize GL14 use");
+            return Task.CompletedTask;
+        });
         test("GL14-02 partial: stale revisions reject edit and activation atomically", f =>
         {
             var now = new DateTimeOffset(2026, 11, 2, 13, 0, 0, TimeSpan.Zero);
