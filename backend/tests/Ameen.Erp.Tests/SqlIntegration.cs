@@ -44,6 +44,7 @@ public static class SqlIntegration
                 await PaymentTermSqlIntegration.Upgrade(db);
                 await GeneralOptionsSqlIntegration.Upgrade(db);
                 await PrintTemplateSqlIntegration.Upgrade(db);
+                await DataImportSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await using (var paymentSchemaDb = f.Context())
@@ -52,6 +53,8 @@ public static class SqlIntegration
                 await GeneralOptionsSqlIntegration.Guard(optionsDb, f.CompanyId, f.BranchId, f.CashId);
             await using (var templatesDb = f.Context())
                 await PrintTemplateSqlIntegration.Guard(templatesDb, f.CompanyId, f.BranchId);
+            await using (var dataImportDb = f.Context())
+                await DataImportSqlIntegration.Guard(dataImportDb, f.CompanyId, f.BranchId);
             await MembershipStatusSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await MembershipUsageSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             // CASH02 structural acceptance does not activate banking API/EF writes.
