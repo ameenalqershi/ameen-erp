@@ -40,6 +40,7 @@ public static class SqlIntegration
             }
             await f.Initialize();
             await MembershipStatusSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
+            await MembershipUsageSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             // CASH01 acceptance: SQL persistence, tenant FK, atomic command replay and account guard.
             Guid cashCustodian;
             await using (var db = f.Context())

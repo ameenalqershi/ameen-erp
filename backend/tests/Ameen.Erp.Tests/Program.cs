@@ -462,6 +462,44 @@ Test("SYS06-AC02: disabled membership cannot restore access by re-granting permi
             .Items.Any(x => x.Id == created.ResourceId && x.IsActive),
         "SYS06 explicit reactivation did not restore existing membership");
 });
+Test("SYS06-OP03: membership usage and audit retain disabled-user history with privileged reads", async f =>
+{
+    var target = f.Store.All<Membership>().Single(x => x.Subject == f.Clerk.Subject);
+    await f.Draft();
+    var usage = await f.Service.Membership.GetMembershipUsage(f.CompanyId, target.Id, f.Owner, default);
+    Assert(usage.MembershipId == target.Id && usage.IsActive && usage.JournalCreatorCount == 1
+        && usage.HasReferences && usage.WarehouseKeeperCount == 0,
+        "SYS06 usage did not count the real member's journal in the correct tenant");
+    var before = f.Store.Count<AuditEvent>();
+    await f.Service.Membership.SetMembershipStatus(f.CompanyId, target.Id, f.Owner, Fixture.Key(),
+        new(target.Version, false, "تعطيل للاختبار"), default);
+    var disabled = await f.Service.Membership.GetMembershipUsage(f.CompanyId, target.Id, f.Owner, default);
+    Assert(!disabled.IsActive && disabled.JournalCreatorCount == 1,
+        "SYS06 disabling erased durable membership usage");
+    var events = await f.Service.Membership.ListMembershipAudit(f.CompanyId, target.Id, f.Owner, 0, 20, default);
+    Assert(events.TotalCount >= 2 && events.Items.All(x => x.ResourceId == target.Id
+        && (x.Action == "membership.granted" || x.Action == "membership.status-changed")),
+        "SYS06 audit leaked an unrelated action or failed to retain member history");
+    var first = await f.Service.Membership.ListMembershipAudit(f.CompanyId, target.Id, f.Owner, 0, 1, default);
+    Assert(first.TotalCount == events.TotalCount && first.Items.Count == 1 &&
+        f.Store.Count<AuditEvent>() == before + 1,
+        "SYS06 paged audit read mutated history or returned inconsistent count");
+    await Error("permission_denied", () =>
+        f.Service.Membership.GetMembershipUsage(f.CompanyId, target.Id, f.Clerk, default));
+});
+Test("SYS06-OP03: member-admin without Audit cannot read membership history", async f =>
+{
+    var admin = new Actor("sys06-members-readonly");
+    var target = f.Store.All<Membership>().Single(x => x.Subject == f.Clerk.Subject);
+    await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+        new(admin.Subject, new[] { Permissions.Read, Permissions.Members }, true, Array.Empty<Guid>(), null), default);
+    var usage = await f.Service.Membership.GetMembershipUsage(f.CompanyId, target.Id, admin, default);
+    Assert(usage.MembershipId == target.Id);
+    await Error("permission_denied", () =>
+        f.Service.Membership.ListMembershipAudit(f.CompanyId, target.Id, admin, 0, 10, default));
+    await Error("permission_denied", () =>
+        f.Service.Membership.ListMembershipAudit(f.CompanyId, target.Id, f.Clerk, 0, 10, default));
+});
 Test("BR07: EF persistence rejects posted line changes through both save paths", async f =>
 {
     var posted = await f.Post();

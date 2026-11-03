@@ -125,6 +125,41 @@ public static class HostedApiIntegration
                     Ensure(specJson.Contains("\"decimal\"", StringComparison.Ordinal) && specJson.Contains("\"date\"", StringComparison.Ordinal), "Missing decimal/date schema");
                 }
 
+                // SYS06-OP03: expose retained member references and audit only to authorized tenant staff.
+                var usageMember = await Command(client,
+                    $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("sys06-http-usage-reader",
+                        new[] { Permissions.Read, Permissions.Members }, true, Array.Empty<Guid>(), null));
+                var usagePath = $"/api/v1/companies/{companyId}/memberships/{usageMember.ResourceId}/usage";
+                var historyPath = $"/api/v1/companies/{companyId}/memberships/{usageMember.ResourceId}/audit-events";
+                Ensure(specJson.Contains("/memberships/{id}/usage", StringComparison.Ordinal) &&
+                    specJson.Contains("/memberships/{id}/audit-events", StringComparison.Ordinal),
+                    "SYS06 usage/audit OpenAPI contract missing");
+                Authenticate(Token("sys06-http-usage-reader"));
+                using (var response = await client.GetAsync(usagePath))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("membershipId").GetGuid() == usageMember.ResourceId &&
+                        json.RootElement.GetProperty("subject").GetString() == "sys06-http-usage-reader" &&
+                        !json.RootElement.GetProperty("hasReferences").GetBoolean(),
+                        "SYS06 HTTPS usage did not return only the tenant member");
+                using (var response = await client.GetAsync(historyPath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS06 member admin without Audit read sensitive history");
+                Authenticate(Token("sql-clerk"));
+                using (var response = await client.GetAsync(historyPath + "?limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 1,
+                        "SYS06 privileged HTTPS audit did not read creation history");
+                Authenticate(Token("sys06-op03-nonmember"));
+                using (var response = await client.GetAsync(usagePath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS06 nonmember leaked usage of a tenant member");
+                Authenticate(Token("sql-clerk"));
+                Console.WriteLine("  HOST PASS SYS06 membership usage/audit tenant and Audit permission over HTTPS/JWT/SQL");
+
                 // SYS06-AC02: exercise the production HTTPS/OIDC/JWT endpoint and revocation boundary.
                 var memberPath = $"/api/v1/companies/{companyId}/memberships";
                 var subject = "sys06-http-revoked";
