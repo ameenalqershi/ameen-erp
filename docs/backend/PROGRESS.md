@@ -1,5 +1,11 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS01-OP03 — company usage and audit read acceptance (3 November 2026)
+
+Existing GET /api/v1/companies/{companyId}/usage and /profile-audit-events are tested without changing the API contract: an authenticated all-branch owner receives an authoritative SQL-derived company-scoped count for branches, accounts, currencies, fiscal years, journals, recurring templates and exchange rates, including the functional-currency-change guard. Audits return only company-profile actions, are pageable, and remain readable with an inactive company. The production HTTPS/JWT/SQL host checks an initial new tenant with exactly one bootstrap currency, no other usage, an inactive state and an existing three-event profile audit; an unrelated JWT must receive HTTP 403 for both resources. SQL integration independently compares the usage API with the actual database tables and checks audit pagination and non-member denial. No original specification, schema, financial policy or production endpoint changes. Completion requires passing CI on the exact sys commit; SYS01 overall remains partial due approved-country/FX-conversion gaps.
+
+
+
 ## SYS01-FG06 — company audit-field acceptance (3 November 2026)
 
 Added focused SQL-backed assertions for `SYS01-F15..F18`: `company.created` and `company.edited` preserve the actual caller (`ActorId`), valid ordered `OccurredAt` timestamps and correct company/resource scoping, while the company revision advances exactly once despite concurrent idempotent replay. The production HTTPS/JWT acceptance now verifies all three profile audit events (`created`, `edited`, `status-changed`), their originating subject, tenant/resource identifiers and chronological timestamps, and a non-member JWT's HTTP 403 audit denial. The original dictionary maps creator, creation and last modification to authoritative audit events rather than mutable Company profile fields. All changes are acceptance tests only, with no new schema, policy, endpoints or modifications to the original analysis. Final acceptance requires isolated SQL and production HTTPS/JWT/OpenAPI/Release CI on the exact `sys` commit SHA; no claim that the complete SYS01 screen is implemented.

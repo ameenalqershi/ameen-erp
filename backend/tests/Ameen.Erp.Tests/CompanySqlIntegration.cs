@@ -41,6 +41,26 @@ public static class CompanySqlIntegration
                 "SYS01-FG06 persisted creator, timestamps or revision are inconsistent");
         }
         Console.WriteLine("  SQL PASS SYS01-FG06 company creator, creation time, revision and modification audit");
+        // SYS01-OP03: usage is a read-only, SQL-derived tenant snapshot.
+        var usage = await Call(s => s.Company.GetCompanyUsage(cid, owner, default));
+        await using (var usageDb = Context())
+            Ensure(usage.CompanyId == cid &&
+                usage.BranchCount == await usageDb.Set<Branch>().CountAsync(x => x.CompanyId == cid) &&
+                usage.AccountCount == await usageDb.Set<Account>().CountAsync(x => x.CompanyId == cid) &&
+                usage.CurrencyCount == await usageDb.Set<Currency>().CountAsync(x => x.CompanyId == cid) &&
+                usage.FiscalYearCount == await usageDb.Set<FiscalYear>().CountAsync(x => x.CompanyId == cid) &&
+                usage.JournalCount == await usageDb.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid) &&
+                usage.RecurringTemplateCount == await usageDb.Set<RecurringJournalTemplate>().CountAsync(x => x.CompanyId == cid) &&
+                usage.ExchangeRateCount == await usageDb.Set<ExchangeRate>().CountAsync(x => x.CompanyId == cid) &&
+                !usage.CanChangeFunctionalCurrency,
+                "SYS01-OP03 usage differs from persisted tenant-scoped SQL");
+        var auditPage = await Call(s => s.Company.ListCompanyAudit(cid, owner, 0, 1, default));
+        Ensure(auditPage.TotalCount == 2 && auditPage.Items.Count == 1 &&
+            auditPage.Items[0].CompanyId == cid && auditPage.Items[0].ResourceId == cid,
+            "SYS01-OP03 company audit pagination or tenant filter differs");
+        await Error("permission_denied", () => Call(s => s.Company.GetCompanyUsage(cid, new Actor("external"), default)));
+        await Error("permission_denied", () => Call(s => s.Company.ListCompanyAudit(cid, new Actor("external"), 0, 1, default)));
+        Console.WriteLine("  SQL PASS SYS01-OP03 authoritative usage counts, audit pagination and tenant isolation");
         Console.WriteLine("  SQL PASS SYS01 profile, nullable date, leading zeros and concurrent edit replay");
 
         // SYS01-AC02: a persisted journal permanently blocks an unapproved functional

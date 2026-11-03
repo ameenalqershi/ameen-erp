@@ -1052,6 +1052,39 @@ public static class HostedApiIntegration
                         "SYS01-FG06 unauthorized JWT could read company profile audit");
                 Authenticate(Token("runtime-admin", "erp.platform-admin"));
                 Console.WriteLine("  HOST PASS SYS01-FG06 actor, chronological audit, tenant scope and forbidden audit access over HTTPS/JWT/SQL");
+                // SYS01-OP03: usage and audit remain readable for an inactive
+                // tenant, but neither endpoint accepts an unrelated JWT.
+                using (var usageResponse = await client.GetAsync(companyPath + "/usage"))
+                using (var usageJson = JsonDocument.Parse(await usageResponse.Content.ReadAsStringAsync()))
+                {
+                    Ensure(usageResponse.StatusCode == HttpStatusCode.OK, "SYS01-OP03 inactive company usage unavailable");
+                    var usage = usageJson.RootElement;
+                    Ensure(usage.GetProperty("companyId").GetGuid() == company.Id &&
+                        usage.GetProperty("branchCount").GetInt32() == 0 &&
+                        usage.GetProperty("accountCount").GetInt32() == 0 &&
+                        usage.GetProperty("currencyCount").GetInt32() == 1 &&
+                        usage.GetProperty("fiscalYearCount").GetInt32() == 0 &&
+                        usage.GetProperty("journalCount").GetInt32() == 0 &&
+                        usage.GetProperty("recurringTemplateCount").GetInt32() == 0 &&
+                        usage.GetProperty("exchangeRateCount").GetInt32() == 0 &&
+                        usage.GetProperty("canChangeFunctionalCurrency").GetBoolean(),
+                        "SYS01-OP03 tenant-scoped initial usage snapshot differs");
+                }
+                using (var auditResponse = await client.GetAsync(companyPath + "/profile-audit-events?offset=1&limit=1"))
+                using (var auditJson = JsonDocument.Parse(await auditResponse.Content.ReadAsStringAsync()))
+                    Ensure(auditResponse.StatusCode == HttpStatusCode.OK &&
+                        auditJson.RootElement.GetProperty("totalCount").GetInt32() == 3 &&
+                        auditJson.RootElement.GetProperty("items").GetArrayLength() == 1,
+                        "SYS01-OP03 audit pagination or count differs");
+                Authenticate(Token("sql-clerk"));
+                using (var deniedUsage = await client.GetAsync(companyPath + "/usage"))
+                    Ensure(deniedUsage.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS01-OP03 unrelated JWT read another company's usage");
+                using (var deniedAudit = await client.GetAsync(companyPath + "/profile-audit-events"))
+                    Ensure(deniedAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS01-OP03 unrelated JWT read another company's audit");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS01-OP03 inactive usage, audit pagination and unauthorized JWT isolation over HTTPS/SQL");
                 await Command(client, companyPath + "/status", new SetCompanyStatusRequest(companyReceipt.Version, true, "تفعيل"));
                 Console.WriteLine("  HOST PASS SYS01 required profile, PUT edit, integer revision, inactive-company write guard and reactivation");
                 var branchesPath = companyPath + "/branches";
