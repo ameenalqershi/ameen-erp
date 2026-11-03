@@ -1,5 +1,11 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS01-OP02 — company save and status atomicity acceptance (3 November 2026)
+
+Already implemented company PUT and status endpoints now have additional focused positive/negative acceptance. Domain tests deny status changes by actors without Configure permission, assert stale version rejection, single idempotent replay and exactly one audit/revision per accepted status, with successful reactivation. Disposable SQL integration forces a company.status-changed audit constraint failure and asserts transaction rollback of status, GUID version, numeric revision, audit and receipt; the exact same request then succeeds after removing the temporary disposable-test constraint. Production HTTPS/JWT/SQL already tests company save/edit, inactive-company write denial and reactivation. No original analysis, migrations or policy changes. Final acceptance requires green CI on the exact sys head; SYS01 overall remains partial.
+
+
+
 ## SYS01-OP03 — company usage and audit read acceptance (3 November 2026)
 
 Existing GET /api/v1/companies/{companyId}/usage and /profile-audit-events are tested without changing the API contract: an authenticated all-branch owner receives an authoritative SQL-derived company-scoped count for branches, accounts, currencies, fiscal years, journals, recurring templates and exchange rates, including the functional-currency-change guard. Audits return only company-profile actions, are pageable, and remain readable with an inactive company. The production HTTPS/JWT/SQL host checks an initial new tenant with exactly one bootstrap currency, no other usage, an inactive state and an existing three-event profile audit; an unrelated JWT must receive HTTP 403 for both resources. SQL integration independently compares the usage API with the actual database tables and checks audit pagination and non-member denial. No original specification, schema, financial policy or production endpoint changes. Completion requires passing CI on the exact sys commit; SYS01 overall remains partial due approved-country/FX-conversion gaps.

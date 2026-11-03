@@ -116,6 +116,40 @@ public static class CompanySqlIntegration
         Ensure(!(await Call(s => s.Company.GetCompany(cid, owner, default))).IsActive, "Inactive company read failed");
         await Call(s => s.Company.SetCompanyStatus(cid, owner, Fixture.Key(), new(off.Version, true, "تفعيل"), default));
         Ensure(await Call(s => s.Branch.CreateBranch(cid, owner, branchKey, branchRequest, default)) == branch, "Reactivated command replay differs");
+        // SYS01-OP02: an audit persistence error must roll back the status,
+        // concurrency token, revision and idempotency receipt atomically.
+        var statusBefore = await Call(s => s.Company.GetCompany(cid, owner, default));
+        var statusKey = Fixture.Key();
+        int statusAuditBefore;
+        await using (var db = Context())
+        {
+            statusAuditBefore = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [AuditEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_CompanyStatusAudit] CHECK ([Action] <> N'company.status-changed')");
+        }
+        try
+        {
+            await Error("database_constraint", () => Call(s => s.Company.SetCompanyStatus(
+                cid, owner, statusKey, new(statusBefore.Version, false, "اختبار فشل تدقيق"), default)));
+            await using var db = Context();
+            var persisted = await db.Set<Company>().SingleAsync(x => x.Id == cid);
+            Ensure(persisted.IsActive && persisted.Version == statusBefore.Version &&
+                persisted.Revision == statusBefore.Revision &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == statusAuditBefore &&
+                !await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == statusKey),
+                "SYS01-OP02 failed status change leaked SQL writes");
+        }
+        finally
+        {
+            await using var db = Context();
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE [AuditEvents] DROP CONSTRAINT [CK_Test_CompanyStatusAudit]");
+        }
+        var disabledAfterRetry = await Call(s => s.Company.SetCompanyStatus(
+            cid, owner, statusKey, new(statusBefore.Version, false, "اختبار فشل تدقيق"), default));
+        Ensure(!(await Call(s => s.Company.GetCompany(cid, owner, default))).IsActive,
+            "SYS01-OP02 identical retry did not persist disabled company");
+        await Call(s => s.Company.SetCompanyStatus(
+            cid, owner, Fixture.Key(), new(disabledAfterRetry.Version, true, "تفعيل"), default));
+        Console.WriteLine("  SQL PASS SYS01-OP02 status rollback on audit failure and exact retry");
         Console.WriteLine("  SQL PASS SYS01 incomplete-profile guard, correction, inactive-company replay denial and reactivation");
     }
     private static void Ensure(bool condition, string message) { if (!condition) throw new Exception(message); }

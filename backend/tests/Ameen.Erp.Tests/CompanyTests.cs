@@ -105,6 +105,28 @@ public static class CompanyTests
             await Error("permission_denied", () => f.Service.Company.EditCompany(f.CompanyId, new Actor("outsider", true), Fixture.Key(), Edit(c), default));
             await Error("all_branches_required", () => f.Service.Company.GetCompanyUsage(f.CompanyId, f.Limited, default));
         });
+        test("SYS01-OP02: status save rejects unauthorized and stale edits without audit", async f =>
+        {
+            var before = await Company(f);
+            var initialAuditCount = f.Store.Count<AuditEvent>();
+            await Error("permission_denied", () => f.Service.Company.SetCompanyStatus(
+                f.CompanyId, f.Clerk, Fixture.Key(), new(before.Version, false, "رفض صلاحية"), default));
+            Ensure((await Company(f)).IsActive && f.Store.Count<AuditEvent>() == initialAuditCount);
+            var key = Fixture.Key();
+            var request = new SetCompanyStatusRequest(before.Version, false, "تعطيل معتمد");
+            var disabled = await f.Service.Company.SetCompanyStatus(f.CompanyId, f.Owner, key, request, default);
+            Ensure(await f.Service.Company.SetCompanyStatus(f.CompanyId, f.Owner, key, request, default) == disabled);
+            await Error("version_conflict", () => f.Service.Company.SetCompanyStatus(
+                f.CompanyId, f.Owner, Fixture.Key(), new(before.Version, true, "إصدار قديم"), default));
+            var persisted = await Company(f);
+            Ensure(!persisted.IsActive && persisted.Version == disabled.Version &&
+                persisted.Revision == before.Revision + 1 &&
+                f.Store.Count<AuditEvent>() == initialAuditCount + 1);
+            var restored = await f.Service.Company.SetCompanyStatus(
+                f.CompanyId, f.Owner, Fixture.Key(), new(disabled.Version, true, "إعادة تفعيل"), default);
+            Ensure((await Company(f)).IsActive && (await Company(f)).Version == restored.Version &&
+                f.Store.Count<AuditEvent>() == initialAuditCount + 2);
+        });
         test("SYS01: metadata edit is replayable, stale-protected and rollback-safe", async f =>
         {
             var c = await Company(f); var request = Edit(c) with { Profile = Profile(c) with { Notes = "تعديل" } }; var key = Fixture.Key();
