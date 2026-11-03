@@ -22,6 +22,14 @@ public static class MembershipStatusSqlIntegration
         var grant = await Call(s => s.Membership.GrantMembership(companyId, owner, Fixture.Key(),
             new(actor.Subject, new[] { Permissions.Read, Permissions.Members },
                 true, Array.Empty<Guid>(), null), default));
+        await using (var initial = Context())
+        {
+            var newMember = await initial.Set<Membership>().AsNoTracking().SingleAsync(x =>
+                x.CompanyId == companyId && x.Id == grant.ResourceId);
+            if (newMember.CreatedBy != owner.Subject || newMember.CreatedAt is null ||
+                newMember.Revision != 1 || newMember.LastModifiedAt != newMember.CreatedAt)
+                throw new Exception("SYS06-FG05 new membership audit actor/time/revision not persisted");
+        }
         var statusKey = Fixture.Key();
         var request = new SetMembershipStatusRequest(grant.Version, false, "تعطيل مستخدم");
         var inactive = await Call(s => s.Membership.SetMembershipStatus(companyId,
@@ -36,7 +44,9 @@ public static class MembershipStatusSqlIntegration
             var member = await db.Set<Membership>().SingleAsync(x =>
                 x.CompanyId == companyId && x.Id == grant.ResourceId);
             disabledVersion = member.Version;
-            if (member.IsActive || member.Subject != actor.Subject || member.Version != inactive.Version ||
+            if (member.Revision != 2 || member.LastModifiedAt is null ||
+                member.LastModifiedAt != member.CreatedAt || member.CreatedBy != owner.Subject ||
+                member.IsActive || member.Subject != actor.Subject || member.Version != inactive.Version ||
                 await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == companyId &&
                     x.ResourceId == member.Id && x.Action == "membership.status-changed") != 1 ||
                 await db.Set<IdempotencyRecord>().CountAsync(x =>
@@ -57,7 +67,9 @@ public static class MembershipStatusSqlIntegration
         {
             var member = await db.Set<Membership>().SingleAsync(x =>
                 x.CompanyId == companyId && x.Id == grant.ResourceId);
-            if (!member.IsActive || member.Version != active.Version ||
+            if (member.Revision != 3 || member.CreatedBy != owner.Subject ||
+                member.LastModifiedAt != member.CreatedAt ||
+                !member.IsActive || member.Version != active.Version ||
                 await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == companyId &&
                     x.ResourceId == member.Id && x.Action == "membership.status-changed") != 2)
                 throw new Exception("SYS06 SQL reactivation lost same member or audit history");
@@ -65,6 +77,6 @@ public static class MembershipStatusSqlIntegration
         if (!(await Call(s => s.Membership.ListMembers(companyId, actor, 0, 10, default)))
             .Items.Any(x => x.Id == grant.ResourceId && x.IsActive))
             throw new Exception("SYS06 explicit SQL reactivation did not restore authorized access");
-        Console.WriteLine("  SQL PASS SYS06 stable membership, revoked JWT access, replay, audit and reactivation");
+        Console.WriteLine("  SQL PASS SYS06-FG05 membership actor/time, numeric revisions, replay, revocation and reactivation");
     }
 }

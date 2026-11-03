@@ -12,6 +12,13 @@ public sealed partial class ErpDbContext
         var member = Tenant<Membership>(model, "Memberships");
         member.Property(x => x.Subject).HasMaxLength(200).UseCollation("Latin1_General_100_BIN2");
         member.HasIndex(x => new { x.CompanyId, x.Subject }).IsUnique();
+        member.Property(x => x.CreatedBy).HasMaxLength(200);
+        member.Property(x => x.CreatedAt).HasColumnType("datetimeoffset(7)");
+        member.Property(x => x.LastModifiedAt).HasColumnType("datetimeoffset(7)");
+        Constraint(member, "CK_Membership_AuditMetadata",
+            "([CreatedBy] IS NULL AND [CreatedAt] IS NULL AND [Revision] IS NULL AND [LastModifiedAt] IS NULL)" +
+            " OR ([CreatedBy] IS NOT NULL AND LEN(LTRIM(RTRIM([CreatedBy]))) > 0" +
+            " AND [CreatedAt] IS NOT NULL AND [Revision] >= 1 AND [LastModifiedAt] >= [CreatedAt])");
         member.Property(x => x.GrantedPermissions).HasConversion(
             x => JsonSerializer.Serialize(x, (JsonSerializerOptions?)null),
             x => JsonSerializer.Deserialize<string[]>(x, (JsonSerializerOptions?)null)!).Metadata.SetValueComparer(

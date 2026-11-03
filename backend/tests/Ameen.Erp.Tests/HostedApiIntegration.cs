@@ -241,6 +241,11 @@ public static class HostedApiIntegration
                     Ensure(current.StatusCode == HttpStatusCode.OK &&
                         json.RootElement.GetProperty("items").EnumerateArray().Any(x =>
                             x.GetProperty("id").GetGuid() == httpMember.ResourceId &&
+                            x.GetProperty("createdBy").GetString() == "sql-clerk" &&
+                            x.GetProperty("createdAt").GetDateTimeOffset() != default &&
+                            x.GetProperty("revision").GetInt32() == 2 &&
+                            x.GetProperty("lastModifiedAt").GetDateTimeOffset() >=
+                            x.GetProperty("createdAt").GetDateTimeOffset() &&
                             !x.GetProperty("isActive").GetBoolean()),
                         "SYS06 deactivated member was removed from the member register");
                     Ensure(!json.RootElement.GetRawText().Contains("\"password\":", StringComparison.OrdinalIgnoreCase),
