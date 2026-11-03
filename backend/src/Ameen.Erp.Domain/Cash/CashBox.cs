@@ -41,15 +41,23 @@ public sealed class CashBox : CompanyEntity
         Check.That(accountId != Guid.Empty && branchId != Guid.Empty &&
             custodianMembershipId != Guid.Empty, "cashbox_reference_required",
             "حساب الصندوق والفرع والأمين مطلوبة.");
-        Code = Check.Code(code, "رمز الصندوق");
-        Name = Check.Text(name, "اسم الصندوق");
-        EnglishName = englishName is null ? null : Check.Text(englishName, "اسم الصندوق الإنجليزي");
-        Notes = notes is null ? null : Check.Text(notes, "ملاحظات الصندوق", 2000);
+        // Validate all fields before mutating an EF-tracked cash box.
+        var checkedCode = Check.Code(code, "رمز الصندوق");
+        var checkedName = Check.Text(name, "اسم الصندوق");
+        var checkedEnglishName = englishName is null ? null : Check.Text(englishName, "اسم الصندوق الإنجليزي");
+        var checkedNotes = notes is null ? null : Check.Text(notes, "ملاحظات الصندوق", 2000);
+        var checkedCurrency = Check.Currency(currencyCode);
+        if (balanceLimit is decimal limit) Check.Amount(limit);
+        Check.That(Revision < int.MaxValue, "cashbox_revision_exhausted",
+            "بلغ إصدار بطاقة الصندوق الحد الأقصى.", ErrorKind.Conflict);
+        Code = checkedCode;
+        Name = checkedName;
+        EnglishName = checkedEnglishName;
+        Notes = checkedNotes;
         AccountId = accountId;
         BranchId = branchId;
         CustodianMembershipId = custodianMembershipId;
-        CurrencyCode = Check.Currency(currencyCode);
-        if (balanceLimit is decimal limit) Check.Amount(limit);
+        CurrencyCode = checkedCurrency;
         BalanceLimit = balanceLimit;
         Advance(now);
     }
@@ -58,6 +66,8 @@ public sealed class CashBox : CompanyEntity
     {
         Check.That(now >= CreatedAt && now >= LastModifiedAt,
             "cashbox_audit_time_invalid", "وقت التعديل لا يسبق السجل السابق.");
+        Check.That(Revision < int.MaxValue, "cashbox_revision_exhausted",
+            "بلغ إصدار بطاقة الصندوق الحد الأقصى.", ErrorKind.Conflict);
         IsActive = active;
         Advance(now);
     }

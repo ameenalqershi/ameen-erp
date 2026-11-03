@@ -36,6 +36,45 @@ public static class CashBoxSqlIntegration
         Ensure(await db.Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS [Value] FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID('CashBoxes')").SingleAsync() == 3,
             "CASH01 monetary/revision/audit-time constraints are missing");
+        // CASH01-CTRL01: every reference FK must include CompanyId, not just a
+        // globally unique-looking Id. This protects tenant isolation at SQL level.
+        Ensure(await db.Database.SqlQueryRaw<int>(@"SELECT COUNT(*) AS [Value]
+            FROM sys.foreign_keys fk
+            WHERE fk.parent_object_id = OBJECT_ID(N'dbo.CashBoxes')
+              AND fk.name <> N'FK_CashBox_Company'
+              AND (SELECT COUNT(*) FROM sys.foreign_key_columns fc
+                   WHERE fc.constraint_object_id = fk.object_id) = 2
+              AND EXISTS (SELECT 1
+                          FROM sys.foreign_key_columns fc
+                          JOIN sys.columns c ON c.object_id = fc.parent_object_id
+                              AND c.column_id = fc.parent_column_id
+                          WHERE fc.constraint_object_id = fk.object_id
+                            AND c.name = N'CompanyId')").SingleAsync() == 4,
+            "CASH01 tenant-scoped composite account/branch/custodian/currency FKs are missing");
+        // Schema-level verification of the precise separation dimensions in the
+        // original analysis: company + account + branch + currency.
+        Ensure(await db.Database.SqlQueryRaw<int>(@"SELECT COUNT(*) AS [Value]
+            FROM sys.indexes i
+            WHERE i.object_id = OBJECT_ID(N'dbo.CashBoxes')
+              AND i.name = N'IX_CashBoxes_CompanyId_AccountId_BranchId_CurrencyCode'
+              AND i.is_unique = 1
+              AND (SELECT COUNT(*) FROM sys.index_columns ic
+                   WHERE ic.object_id=i.object_id AND ic.index_id=i.index_id
+                     AND ic.is_included_column=0 AND ic.key_ordinal > 0) = 4
+              AND NOT EXISTS (
+                  SELECT 1 FROM (SELECT 1 AS ordinal, N'CompanyId' AS col
+                        UNION ALL SELECT 2, N'AccountId'
+                        UNION ALL SELECT 3, N'BranchId'
+                        UNION ALL SELECT 4, N'CurrencyCode') expected
+                  WHERE NOT EXISTS (
+                      SELECT 1 FROM sys.index_columns ic
+                      JOIN sys.columns c ON c.object_id=ic.object_id
+                          AND c.column_id=ic.column_id
+                      WHERE ic.object_id=i.object_id AND ic.index_id=i.index_id
+                        AND ic.key_ordinal=expected.ordinal AND c.name=expected.col))
+            ").SingleAsync() == 1,
+            "CASH01 duplicate-account guard must be uniquely indexed by tenant/account/branch/currency");
+
         Ensure(await db.Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('CashBoxes')").SingleAsync() == 17,
             "CASH01 original fields are not fully persisted");

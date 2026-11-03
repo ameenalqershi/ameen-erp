@@ -39,6 +39,45 @@ public static class BankAccountSqlIntegration
         Ensure(await db.Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS [Value] FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID('BankAccounts')").SingleAsync() == 3,
             "CASH02 revision, timestamp or IBAN constraints are missing");
+        // All bank references remain scoped to the current tenant in SQL.
+        Ensure(await db.Database.SqlQueryRaw<int>(@"SELECT COUNT(*) AS [Value]
+            FROM sys.foreign_keys fk
+            WHERE fk.parent_object_id = OBJECT_ID(N'dbo.BankAccounts')
+              AND fk.name <> N'FK_BankAccount_Company'
+              AND (SELECT COUNT(*) FROM sys.foreign_key_columns fc
+                   WHERE fc.constraint_object_id = fk.object_id) = 2
+              AND EXISTS (
+                  SELECT 1 FROM sys.foreign_key_columns fc
+                  JOIN sys.columns c ON c.object_id=fc.parent_object_id
+                      AND c.column_id=fc.parent_column_id
+                  WHERE fc.constraint_object_id=fk.object_id
+                    AND c.name=N'CompanyId')").SingleAsync() == 3,
+            "CASH02 bank card must use company-scoped ledger/currency/branch FKs");
+        // An optional IBAN is unique only when supplied; a globally unique
+        // index would incorrectly cross tenant boundaries or disallow NULL.
+        Ensure(await db.Database.SqlQueryRaw<int>(@"SELECT COUNT(*) AS [Value]
+            FROM sys.indexes i
+            WHERE i.object_id=OBJECT_ID(N'dbo.BankAccounts')
+              AND i.name=N'IX_BankAccounts_CompanyId_Iban'
+              AND i.is_unique=1 AND i.has_filter=1
+              AND i.filter_definition LIKE N'%Iban%'
+              AND i.filter_definition LIKE N'%NOT NULL%'
+              AND (SELECT COUNT(*) FROM sys.index_columns ic
+                   WHERE ic.object_id=i.object_id AND ic.index_id=i.index_id
+                     AND ic.is_included_column=0 AND ic.key_ordinal>0)=2
+              AND NOT EXISTS (
+                  SELECT 1 FROM (
+                      SELECT 1 AS ordinal, N'CompanyId' AS col
+                      UNION ALL SELECT 2, N'Iban') expected
+                  WHERE NOT EXISTS (
+                      SELECT 1 FROM sys.index_columns ic
+                      JOIN sys.columns c ON c.object_id=ic.object_id
+                          AND c.column_id=ic.column_id
+                      WHERE ic.object_id=i.object_id AND ic.index_id=i.index_id
+                        AND ic.key_ordinal=expected.ordinal AND c.name=expected.col))
+            ").SingleAsync() == 1,
+            "CASH02 optional IBAN must have a tenant-scoped filtered unique index");
+
         Console.WriteLine("  SQL PASS CASH02-01 atomic/idempotent 032 schema, 18 columns, tenant FKs and constraints");
 
         var companyId = Guid.NewGuid();
