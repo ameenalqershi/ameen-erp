@@ -88,6 +88,41 @@ public static class CashReceiptAllocationTests
             return Task.CompletedTask;
         });
 
+        test("CASH03-AC02: rejected repeated allocation does not mutate input or financial state", f =>
+        {
+            var invoice = Guid.NewGuid();
+            var lines = new[] {
+                new CashReceiptAllocationLine(invoice, 50m, 30m, 5m),
+                new CashReceiptAllocationLine(invoice, 50m, 20m, 0m)
+            };
+            var before = lines.ToArray();
+            var journals = f.Store.Count<JournalEntry>();
+            var audits = f.Store.Count<AuditEvent>();
+            var outbox = f.Store.Count<OutboxEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            RejectBatch("cash_receipt_allocation_exceeds_remaining", lines);
+            Ensure(lines.SequenceEqual(before) &&
+                f.Store.Count<JournalEntry>() == journals &&
+                f.Store.Count<AuditEvent>() == audits &&
+                f.Store.Count<OutboxEvent>() == outbox &&
+                f.Store.Count<IdempotencyRecord>() == receipts,
+                "Rejected allocation must be read-only and must not post a receipt");
+            return Task.CompletedTask;
+        });
+
+        test("CASH03-AC02: zero remaining and mismatched repeated references reject independent of order", f =>
+        {
+            var invoice = Guid.NewGuid();
+            RejectBatch("cash_receipt_allocation_exceeds_remaining", new[] {
+                new CashReceiptAllocationLine(invoice, 0m, 0.000001m, 0m)
+            });
+            var first = new CashReceiptAllocationLine(invoice, 5m, 1m, 0m);
+            var second = new CashReceiptAllocationLine(invoice, 6m, 1m, 0m);
+            RejectBatch("cash_receipt_remaining_mismatch", new[] { first, second });
+            RejectBatch("cash_receipt_remaining_mismatch", new[] { second, first });
+            return Task.CompletedTask;
+        });
+
         test("CASH03-AC02: excess allocation and settlement discount fail closed", f =>
         {
             Reject("cash_receipt_allocation_exceeds_remaining", 100m, 100m, 0.000001m);
