@@ -22,6 +22,22 @@ public static class FiscalCalendarSqlIntegration
         Ensure((await Call(s => s.FiscalCalendar.SearchFiscalYears(cid, owner, "2027", 0, 10, default))).TotalCount == 1, "Calendar SQL search differs");
         Ensure((await Call(s => s.FiscalCalendar.ListFiscalYearAudit(cid, results[0].ResourceId, owner, 0, 10, default))).TotalCount == 1, "Duplicate calendar audit");
         Ensure((await Call(s => s.FiscalCalendar.GetFiscalYearUsage(cid, results[0].ResourceId, owner, default))).JournalCount == 0, "New calendar has usage");
+        // SYS03-OP03: the active SQL tenant owns the fiscal-year audit event,
+        // and usage for a newly created calendar has no journal or generation.
+        await using (var auditDb = Context())
+        {
+            var audit = await auditDb.Set<AuditEvent>()
+                .Where(x => x.CompanyId == cid && x.ResourceId == results[0].ResourceId &&
+                    x.Action == "fiscal-year.created").SingleAsync();
+            Ensure(audit.ActorId == owner.Subject && audit.OccurredAt != default,
+                "SYS03-OP03 SQL actor/time or tenant-scoped fiscal audit differs");
+        }
+        var fiscalUsage = await Call(s => s.FiscalCalendar.GetFiscalYearUsage(cid, results[0].ResourceId, owner, default));
+        Ensure(fiscalUsage.FiscalYearId == results[0].ResourceId &&
+            fiscalUsage.JournalCount == 0 && fiscalUsage.UnpostedJournalCount == 0 &&
+            fiscalUsage.RecurringGenerationCount == 0,
+            "SYS03-OP03 SQL usage counts differ");
+        Console.WriteLine("  SQL PASS SYS03-OP03 persisted audit and zero-usage calendar snapshot");
         async Task<string> Create(string code)
         {
             try { await Call(s => s.FiscalCalendar.CreateFiscalYear(cid, owner, Fixture.Key(), new(code, new(2028, 1, 1), new(2028, 12, 31)), default)); return "ok"; }

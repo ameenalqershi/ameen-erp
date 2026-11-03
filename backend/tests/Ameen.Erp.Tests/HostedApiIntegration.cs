@@ -1132,6 +1132,41 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}/usage"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("journalCount").GetInt32() == 0, "Calendar HTTP usage failed");
+                // SYS03-OP03: calendar usage and audit remain tenant-scoped and
+                // deny a valid JWT without membership in the company.
+                var sys03AuditPath = calendarPath + $"/{fiscalYear.ResourceId}/audit-events";
+                var sys03UsagePath = calendarPath + $"/{fiscalYear.ResourceId}/usage";
+                using (var response = await client.GetAsync(sys03AuditPath + "?offset=0&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 1,
+                        "SYS03-OP03 calendar audit paging differs");
+                    var audit = json.RootElement.GetProperty("items")[0];
+                    Ensure(audit.GetProperty("companyId").GetGuid() == company.Id &&
+                        audit.GetProperty("resourceId").GetGuid() == fiscalYear.ResourceId &&
+                        audit.GetProperty("action").GetString() == "fiscal-year.created" &&
+                        audit.GetProperty("actorId").GetString() == "runtime-admin",
+                        "SYS03-OP03 audit leaked another tenant or actor");
+                }
+                using (var response = await client.GetAsync(sys03UsagePath))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("fiscalYearId").GetGuid() == fiscalYear.ResourceId &&
+                        json.RootElement.GetProperty("journalCount").GetInt32() == 0 &&
+                        json.RootElement.GetProperty("unpostedJournalCount").GetInt32() == 0 &&
+                        json.RootElement.GetProperty("recurringGenerationCount").GetInt32() == 0,
+                        "SYS03-OP03 fresh calendar usage differs");
+                Authenticate(Token("sql-clerk"));
+                using (var response = await client.GetAsync(sys03AuditPath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS03-OP03 unrelated JWT read fiscal audit");
+                using (var response = await client.GetAsync(sys03UsagePath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS03-OP03 unrelated JWT read fiscal usage");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS03-OP03 usage and audit tenant isolation over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS SYS03 explicit periods, calendar state, search, usage and audit over HTTPS/JWT/SQL");
 
                 // SYS03-GAP04: closing a fiscal year is a GL12 period operation, never a delete

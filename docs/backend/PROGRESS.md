@@ -1,5 +1,11 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS03-OP03 — fiscal-year usage/audit acceptance (3 November 2026)
+
+Existing fiscal-year usage and audit endpoints now have independent SQL/HTTPS/JWT acceptance for the SYS03-OP03 atomic task: an authorized actor reads a tenant-scoped, pageable fiscal-year-created audit event with the actual actor and non-default timestamp; a newly created calendar has zero journals, unposted journals and recurring generations. A valid non-member JWT cannot read either endpoint (403), while production HTTPS/JWT/OpenAPI and isolated SQL prove the endpoint contract and stored audit data. Existing fiscal-domain tests also reject limited branch scope and unauthorized audit, and cover period closure/reopening audits. No changes to original analysis, business policies, migrations or production endpoints. This does not close the full SYS03 screen or decide GL12 fiscal close policy. Final acceptance requires exact-head CI on sys.
+
+
+
 ## SYS01-OP02 — company save and status atomicity acceptance (3 November 2026)
 
 Already implemented company PUT and status endpoints now have additional focused positive/negative acceptance. Domain tests deny status changes by actors without Configure permission, assert stale version rejection, single idempotent replay and exactly one audit/revision per accepted status, with successful reactivation. Disposable SQL integration forces a company.status-changed audit constraint failure and asserts transaction rollback of status, GUID version, numeric revision, audit and receipt; the exact same request then succeeds after removing the temporary disposable-test constraint. Production HTTPS/JWT/SQL already tests company save/edit, inactive-company write denial and reactivation. No original analysis, migrations or policy changes. Final acceptance requires green CI on the exact sys head; SYS01 overall remains partial.
