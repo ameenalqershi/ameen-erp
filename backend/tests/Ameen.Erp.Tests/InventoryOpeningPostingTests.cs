@@ -86,6 +86,39 @@ public static class InventoryOpeningPostingTests
             var identity = f.Store.All<InventoryIdentity>().Single();
             await Error("inventory_identity_in_stock", () => f.Service.InventoryIdentity.EditLot(f.CompanyId, item.Id, identity.Id, f.Owner, Fixture.Key(), new(identity.Version, identity.Code, identity.Name, identity.ProductionDate, identity.ExpiryDate, identity.QualityStatus, null, null, "تغيير", LotNumber: "NEW"), default));
         });
+        test("INV04-CTRL01: posted stock freezes unit and tracking but not descriptive text", async f =>
+        {
+            var (request, approved) = await Setup(f, ItemTracking.Lot);
+            await Post(f, approved, await Plan(f, approved));
+            var item = await f.Service.Item.GetItem(f.CompanyId, request.Lines[0].ItemId, f.Owner, default);
+            var alternate = await f.Service.Unit.CreateUnit(f.CompanyId, f.Owner, Fixture.Key(),
+                new("POST-ALT", "وحدة بديلة", "EA", 0, "وحدة بديلة"), default);
+            var initialAudit = f.Store.Count<AuditEvent>();
+            var initialOutbox = f.Store.Count<OutboxEvent>();
+            var initialMovements = f.Store.Count<StockMovement>();
+            var initialJournals = f.Store.Count<JournalEntry>();
+            await Error("item_stock_structure_in_use", () => f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner,
+                Fixture.Key(), ItemTests.Edit(item) with { Tracking = ItemTracking.None }, default));
+            await Error("item_stock_structure_in_use", () => f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner,
+                Fixture.Key(), ItemTests.Edit(item) with { BaseUnitId = alternate.ResourceId }, default));
+            var alteredUnits = item.Units.Select(x => new ItemUnitRequest(x.UnitId,
+                x.FactorToBase + 1m, x.Barcode, x.SalePrice)).ToArray();
+            await Error("item_stock_structure_in_use", () => f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner,
+                Fixture.Key(), ItemTests.Edit(item) with { Units = alteredUnits }, default));
+            Ensure((await f.Service.Item.GetItem(f.CompanyId, item.Id, f.Owner, default)).Version == item.Version &&
+                f.Store.Count<AuditEvent>() == initialAudit &&
+                f.Store.Count<OutboxEvent>() == initialOutbox &&
+                f.Store.Count<StockMovement>() == initialMovements &&
+                f.Store.Count<JournalEntry>() == initialJournals);
+            var edited = await f.Service.Item.EditItem(f.CompanyId, item.Id, f.Owner, Fixture.Key(),
+                ItemTests.Edit(item) with { Name = "اسم وصفي بعد الترحيل" }, default);
+            var saved = await f.Service.Item.GetItem(f.CompanyId, item.Id, f.Owner, default);
+            Ensure(saved.Name == "اسم وصفي بعد الترحيل" && saved.Version == edited.Version &&
+                saved.BaseUnitId == item.BaseUnitId && saved.Tracking == ItemTracking.Lot &&
+                f.Store.Count<StockMovement>() == initialMovements &&
+                f.Store.Count<JournalEntry>() == initialJournals &&
+                f.Store.Count<OutboxEvent>() == initialOutbox);
+        });
         test("INV06 posting: serial cannot open in two warehouses", async f =>
         {
             var (request, r) = await Setup(f, ItemTracking.Serial);

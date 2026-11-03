@@ -18,6 +18,24 @@ public static class ItemTests
         x.Units.Select(u => new ItemUnitRequest(u.UnitId, u.FactorToBase, u.Barcode, u.SalePrice)).ToArray(), x.ShelfLifeDays, x.ReorderLevel, x.EnglishName, x.Notes, "تحديث");
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV04-AC01: all documented item types produce tenant-scoped cards without stock", async f =>
+        {
+            var request = await Setup(f);
+            foreach (var type in new[] { ItemType.Goods, ItemType.Service, ItemType.Material, ItemType.Product })
+            {
+                var code = ("TYPE-" + type).ToUpperInvariant();
+                var receipt = await Create(f, request with
+                {
+                    Code = code, Name = code, Type = type, Units = request.Units.Select(x =>
+                        x with { Barcode = x.Barcode + "-" + type }).ToArray()
+                });
+                var item = await Get(f, receipt.ResourceId);
+                Ensure(item.CompanyId == f.CompanyId && item.Type == type && item.Units.Count == 2 &&
+                    item.Units.Any(x => x.UnitId == request.BaseUnitId && x.FactorToBase == 1m));
+                Ensure((await f.Service.Item.SearchItems(f.CompanyId, f.Limited, code, request.GroupId, true, 0, 10, default)).TotalCount == 1);
+            }
+            Ensure(f.Store.Count<JournalEntry>() == 0 && f.Store.Count<StockMovement>() == 0);
+        });
         test("INV04: item units barcode and price roundtrip without stock movement", async f =>
         {
             var request = await Setup(f); var r = await Create(f, request); var item = await Get(f, r.ResourceId);
