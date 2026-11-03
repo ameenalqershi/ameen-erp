@@ -4,6 +4,10 @@
 
 Added one independent GL14-F06 regression for an unknown hydrated origin: source matching fails closed, reference preflight returns `InvalidSnapshot`, and restoring a valid origin still returns `UnresolvedPolicy`. No GL14 write, route activation, GL03 binding, or reversal policy was enabled. PR #17 rejected reference edit atomicity remains excluded. Local Release build and domain/model checks passed. Initial sandboxed `verify.py` ran **364/366**, with two HTTP/OpenAPI host failures due to blocked sockets; coordinator reran the exact branch on the authorized VPS host using .NET 10 and writable NuGet cache: **366/366 passed, 0 failed**, including HTTP and OpenAPI. Live SQL was not run locally; isolated SQL CI is required on the PR. GL14 remains partial; reversal separation needs an approved binding contract. Live GitHub PR overlap rechecked by the coordinator before PR creation.
 
+## GL07-F18/F19 — تصحيح ربط حقول التدقيق المشتركة (2 نوفمبر 2026)
+
+طُوبق قاموس الحقول الأصلي ومخطط GL وقيد اليومية المشترك: `GL07-F18` هو `JournalEntry.Revision` الصحيح، عدد صحيح يولده الخادم، و`Version` رمز UUID مستقل للتزامن؛ `GL07-F19` هو `JournalEntry.LastModifiedAt` بوقت الخادم. يوجد الحقلان في نموذج القيد، تخزين EF، وقراءة القيد/القائمة، ويغطي `JournalAuditTests` تقدم الإصدار والوقت عبر دورة العكس وفشل العمليات دون أثر. صُحح ربط التتبع والمصفوفات المولدة فقط؛ لم يتغير سلوك مالي أو تحليل أصلي أو مخطط SQL. تبقى شاشة GL07 **جزئية**: عكس المستندات التابعة والتبعيات والضرائب وتشغيل المجدول إنتاجيًا ضمن الفجوات الحالية، ولا يزيل تصحيح التدقيق هذه الموانع.
+
 ## SYS09-FG04 — disabled candidate does not reserve approval interval (3 November 2026)
 
 On `temp/sys09-inactive-candidate-conflict-20261103` from `main=95f5ad4`, the pure SYS09 overlap preflight now returns `Clear` for an **inactive candidate** only **after** validating its own fields and the full supplied tenant snapshot. This is symmetric with existing disabled routes being excluded from conflicts. An active candidate still detects inclusive interval overlap and unresolved cross-currency policy; inactive candidates cannot conceal foreign-company or duplicate snapshot rows. Added regression coverage for disable/reactivate, overlapping amount, FX, foreign tenant and duplicate rows. **This does not authorize SYS09 persistence or GL14/GL03 posting**; EF guards remain in place. No original diagrams/fields, SQL migrations or production data changed. Local .NET 10 Release + domain/EF/HTTP/JWT/OpenAPI **363/363 passed, 0 failed**, `backend/.artifacts/sys09-inactive-candidate-20261103/verification.json`; traceability/progress checks passed. Isolated SQL CI and main merge remain pending. **0 new completed Notion tasks**.
@@ -470,7 +474,7 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 
 آخر تقرير محفوظ: `2026-11-02T19:37:11.777004+00:00`؛ النتيجة `passed`؛ 356/356، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (381/2759)؛ الحقول الجزئية: 79. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (382/2759)؛ الحقول الجزئية: 79. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -498,9 +502,9 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 | --- | --- |
 | audit | 49 |
 | derived | 5 |
-| implemented | 327 |
+| implemented | 328 |
 | partial | 79 |
-| pending | 2299 |
+| pending | 2298 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 

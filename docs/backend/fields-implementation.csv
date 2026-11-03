@@ -376,8 +376,8 @@ GL07,GL07-F14,سبب العكس,required,implemented,ReversalReason,POST /compan
 GL07,GL07-F15,تاريخ العكس,required,implemented,AccountingDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
 GL07,GL07-F16,أنشأه,system,implemented,CreatedBy,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
 GL07,GL07-F17,وقت الإنشاء,system,implemented,CreatedAt,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F18,رقم إصدار التعديل,system,implemented,Version,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F19,آخر تعديل,system,pending,,
+GL07,GL07-F18,رقم إصدار التعديل,system,implemented,JournalEntry.Revision: server integer separate from Version UUID,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F19,آخر تعديل,system,implemented,"JournalEntry.LastModifiedAt: server datetimeoffset, shared journal audit",POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
 GL08,GL08-F01,الشركة,system,pending,,
 GL08,GL08-F02,الفرع,conditional,pending,,
 GL08,GL08-F03,الحالة,system,pending,,
