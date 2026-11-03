@@ -16,6 +16,85 @@ public static class WarehouseTests
     private static Task<Warehouse> Get(Fixture f, Guid id) => f.Service.Warehouse.GetWarehouse(f.CompanyId, id, f.Owner, default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV01-FG01: warehouse generated header tenant code and mandatory Arabic name", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request with { Code = " wh-001 ", Name = "  مخزن تجريبي  " });
+            var warehouse = await Get(f, created.ResourceId);
+            Ensure(warehouse.Id == created.ResourceId && warehouse.Id != Guid.Empty &&
+                warehouse.CompanyId == f.CompanyId && warehouse.Code == "WH-001" && warehouse.Name == "مخزن تجريبي");
+            await Error("invalid_text", () => Create(f, request with { Code = "", Name = "مخزن" }));
+            await Error("invalid_text", () => Create(f, request with { Code = "CODE", Name = " " }));
+            await Error("invalid_code", () => Create(f, request with { Code = "bad code" }));
+            await Error("duplicate_warehouse", () => Create(f, request with { Code = "wh-001" }));
+            Ensure((await f.Service.Warehouse.SearchWarehouses(f.CompanyId, f.Limited,
+                "WH-001", f.BranchId, true, 0, 10, default)).TotalCount == 1);
+            Ensure(f.Store.Count<Warehouse>() == 1 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV01-FG02: optional bilingual metadata, active state and required branch", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request with { EnglishName = null, Notes = null });
+            var warehouse = await Get(f, created.ResourceId);
+            Ensure(warehouse.EnglishName is null && warehouse.Notes is null &&
+                warehouse.BranchId == f.BranchId && warehouse.IsActive);
+            await Error("reference_not_found", () => Create(f, request with { Code = "OTHER", BranchId = Guid.NewGuid() }));
+            var updated = await f.Service.Warehouse.EditWarehouse(f.CompanyId, warehouse.Id, f.Owner, Fixture.Key(),
+                Edit(warehouse) with { EnglishName = "Regional stock", Notes = "Warehouse note" }, default);
+            warehouse = await Get(f, warehouse.Id);
+            Ensure(warehouse.EnglishName == "Regional stock" && warehouse.Notes == "Warehouse note");
+            await f.Service.Warehouse.SetWarehouseStatus(f.CompanyId, warehouse.Id, f.Owner, Fixture.Key(),
+                new(updated.Version, false, "تعطيل"), default);
+            Ensure(!(await Get(f, warehouse.Id)).IsActive &&
+                (await f.Service.Warehouse.SearchWarehouses(f.CompanyId, f.Limited, null,
+                    f.BranchId, false, 0, 10, default)).TotalCount == 1);
+        });
+        test("INV01-FG04: location codes and descriptions persist and replace atomically", async f =>
+        {
+            var request = await Setup(f);
+            var created = await Create(f, request with { Locations = new[]
+            {
+                new WarehouseLocationRequest("A01", "رف أ"),
+                new WarehouseLocationRequest("B02", "رف ب")
+            }});
+            var warehouse = await Get(f, created.ResourceId);
+            Ensure(warehouse.Locations.Count == 2 && warehouse.Locations.Any(x => x.Code == "A01" && x.Description == "رف أ") &&
+                warehouse.Locations.Any(x => x.Code == "B02" && x.Description == "رف ب"));
+            var oldIds = warehouse.Locations.Select(x => x.Id).ToHashSet();
+            var updated = await f.Service.Warehouse.EditWarehouse(f.CompanyId, warehouse.Id, f.Owner, Fixture.Key(),
+                Edit(warehouse) with { Locations = new[] { new WarehouseLocationRequest("C03", "رف ج") } }, default);
+            warehouse = await Get(f, warehouse.Id);
+            Ensure(warehouse.Version == updated.Version && warehouse.Revision == 2 &&
+                warehouse.Locations.Count == 1 && warehouse.Locations[0].Code == "C03" &&
+                !oldIds.Contains(warehouse.Locations[0].Id));
+            await Error("duplicate_location", () => f.Service.Warehouse.EditWarehouse(f.CompanyId,
+                warehouse.Id, f.Owner, Fixture.Key(), Edit(warehouse) with
+                { Locations = new[] { new WarehouseLocationRequest("Z1", "أ"), new WarehouseLocationRequest("z1", "ب") } }, default));
+            Ensure((await Get(f, warehouse.Id)).Version == updated.Version);
+        });
+        test("INV01-FG05: creation/modification actor time and integer revisions audit correctly", async f =>
+        {
+            var created = await Create(f, await Setup(f));
+            var warehouse = await Get(f, created.ResourceId);
+            var first = await f.Service.Warehouse.ListWarehouseAudit(f.CompanyId, warehouse.Id, f.Owner, 0, 10, default);
+            Ensure(first.TotalCount == 1 && first.Items[0].Action == "warehouse.created" &&
+                first.Items[0].ActorId == f.Owner.Subject && first.Items[0].OccurredAt != default);
+            using (var json = System.Text.Json.JsonDocument.Parse(first.Items[0].Details))
+                Ensure(json.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 1);
+            await Error("version_conflict", () => f.Service.Warehouse.EditWarehouse(f.CompanyId, warehouse.Id,
+                f.Owner, Fixture.Key(), Edit(warehouse) with { ExpectedVersion = Guid.NewGuid() }, default));
+            Ensure((await f.Service.Warehouse.ListWarehouseAudit(f.CompanyId, warehouse.Id, f.Owner, 0, 10, default)).TotalCount == 1);
+            var updated = await f.Service.Warehouse.EditWarehouse(f.CompanyId, warehouse.Id, f.Owner,
+                Fixture.Key(), Edit(warehouse) with { Name = "تعديل الاسم" }, default);
+            var second = await f.Service.Warehouse.ListWarehouseAudit(f.CompanyId, warehouse.Id, f.Owner, 0, 10, default);
+            Ensure(updated.Version != created.Version && (await Get(f, warehouse.Id)).Revision == 2 &&
+                second.TotalCount == 2 && second.Items.All(x => x.ActorId == f.Owner.Subject && x.OccurredAt != default));
+            using var detail = System.Text.Json.JsonDocument.Parse(second.Items.Single(x => x.Action == "warehouse.edited").Details);
+            Ensure(detail.RootElement.GetProperty("before").GetProperty("revision").GetInt32() == 1 &&
+                detail.RootElement.GetProperty("after").GetProperty("revision").GetInt32() == 2);
+            await Error("permission_denied", () => f.Service.Warehouse.ListWarehouseAudit(f.CompanyId,
+                warehouse.Id, f.Limited, 0, 10, default));
+        });
         test("INV01: warehouse locations bilingual card and revision roundtrip without financial effects", async f =>
         {
             var r = await Create(f, await Setup(f)); var w = await Get(f, r.ResourceId);
