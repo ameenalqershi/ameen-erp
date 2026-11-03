@@ -20,6 +20,68 @@
 
 فحوص المجال/النموذج/HTTP/OpenAPI المحلية على .NET 10: **377/377 PASS، صفر فشل**. اختبار SQL الحقيقي وHTTPS/JWT/SQL يحتاج اجتياز GitHub CI على SHA الجديد. **GL03-F09 ما زال جزئيًا:** قاموس الأصل يطلب سعر صرف في header بينما النموذج المالي الحالي يعرّف العملة والسعر على السطور؛ لا يُنشأ سعر رأس مصطنع ولا يُعدّ GL03-FG03 مكتملًا قبل اعتماد توافق عقد الرأس مع قيود متعددة العملات. لا تعديل في التحليل أو المخططات الأصلية أو SQL migrations أو سلوك الترحيل.
 
+## SYS02-OP03 — branch usage and audit acceptance (3 November 2026)
+
+Production HTTPS/JWT/SQL tests now verify an authorized branch usage snapshot with exact direct-child, journal, recurring-template and cost-center counts, disabled-branch audit pagination, and HTTP 403 for an unrelated JWT reading either endpoint. Isolated SQL integration checks the branch usage subtree against actual SQL branches and confirms audit actor/time and tenant scope. Existing branch-domain tests cover all-branches permission requirements, subtree financial usage, replay, and audit events. No new API routes, business/financial policy, migrations or edits to source analysis. Completion requires passing CI on the exact sys head; the SYS02 screen remains partial because location-type and manager-reference policy await approval.
+
+
+## SYS03-OP03 — fiscal-year usage/audit acceptance (3 November 2026)
+
+Existing fiscal-year usage and audit endpoints now have independent SQL/HTTPS/JWT acceptance for the SYS03-OP03 atomic task: an authorized actor reads a tenant-scoped, pageable fiscal-year-created audit event with the actual actor and non-default timestamp; a newly created calendar has zero journals, unposted journals and recurring generations. A valid non-member JWT cannot read either endpoint (403), while production HTTPS/JWT/OpenAPI and isolated SQL prove the endpoint contract and stored audit data. Existing fiscal-domain tests also reject limited branch scope and unauthorized audit, and cover period closure/reopening audits. No changes to original analysis, business policies, migrations or production endpoints. This does not close the full SYS03 screen or decide GL12 fiscal close policy. Final acceptance requires exact-head CI on sys.
+
+
+
+## SYS01-OP02 — company save and status atomicity acceptance (3 November 2026)
+
+Already implemented company PUT and status endpoints now have additional focused positive/negative acceptance. Domain tests deny status changes by actors without Configure permission, assert stale version rejection, single idempotent replay and exactly one audit/revision per accepted status, with successful reactivation. Disposable SQL integration forces a company.status-changed audit constraint failure and asserts transaction rollback of status, GUID version, numeric revision, audit and receipt; the exact same request then succeeds after removing the temporary disposable-test constraint. Production HTTPS/JWT/SQL already tests company save/edit, inactive-company write denial and reactivation. No original analysis, migrations or policy changes. Final acceptance requires green CI on the exact sys head; SYS01 overall remains partial.
+
+
+
+## SYS01-OP03 — company usage and audit read acceptance (3 November 2026)
+
+Existing GET /api/v1/companies/{companyId}/usage and /profile-audit-events are tested without changing the API contract: an authenticated all-branch owner receives an authoritative SQL-derived company-scoped count for branches, accounts, currencies, fiscal years, journals, recurring templates and exchange rates, including the functional-currency-change guard. Audits return only company-profile actions, are pageable, and remain readable with an inactive company. The production HTTPS/JWT/SQL host checks an initial new tenant with exactly one bootstrap currency, no other usage, an inactive state and an existing three-event profile audit; an unrelated JWT must receive HTTP 403 for both resources. SQL integration independently compares the usage API with the actual database tables and checks audit pagination and non-member denial. No original specification, schema, financial policy or production endpoint changes. Completion requires passing CI on the exact sys commit; SYS01 overall remains partial due approved-country/FX-conversion gaps.
+
+## SYS02-AC01 — positive branch operational/reporting scope (3 November 2026)
+
+Added isolated SQL positive acceptance that provisions an independent sibling branch, verifies a branch-scoped trial balance includes posted journals from the original branch only, confirms the sibling's zero activity and exact selected branch ID, and compares both branches and their journals with the authoritative SQL tables. This covers the SYS02 positive outcome of an independent operational/reporting scope without assuming new location types, managers or permission policies absent from the original specification. CI on the exact `sys` SHA remains required; SYS02 screen is not thereby complete.
+
+## SYS01-OP01 — search/new legal-company acceptance (3 November 2026)
+
+The existing authenticated company provisioning POST remains reserved for a signed platform-administrator identity (no trusting caller-controlled X-Role). The existing membership-scoped GET /api/v1/companies gains a backward-compatible optional search query for code or Arabic company name, applied only *after* membership scoping, with case-insensitive text matching. Production HTTPS/JWT/SQL acceptance verifies code and Arabic queries, zero-result queries and denial of cross-tenant discovery; SQL integration independently verifies member-scoped listing after provisioning. No new financial policy, schema, data migration, production data change or modification to the original analysis. CI on the exact `sys` SHA is required for final acceptance.
+
+## SYS01-FG04 — tax registration, fiscal start and locality acceptance (3 November 2026)
+
+SYS01-F13/F14/F19/F20: extended isolated SQL and production HTTPS/JWT GET-after-PUT verification for TaxRegistration with preserved leading zeros, required FiscalYearStartsOn, required City and optional District. Existing domain acceptance already rejects blank City and fiscal-year edits that would contradict an existing calendar; no new policy was introduced for conditionally required tax registration. Source specification and diagrams are unchanged. CI on the exact `sys` SHA is required before final verification.
+
+## SYS01-FG05 — address fields and leading-zero acceptance (3 November 2026)
+
+SYS01-F21..F24: extended the existing company positive SQL and production HTTPS/JWT acceptance to roundtrip mandatory Street and optional BuildingNumber, PostalCode and AdditionalNumber, preserving leading zeros in all three text identifiers. Added a negative domain test rejecting an empty required Street alongside the existing length bound. Existing authorized PUT, row revision, audit and replay checks remain. No new validation policy or schema change; source dictionary/diagrams unchanged. CI on the exact `sys` SHA is required for final task acceptance.
+
+## SYS01-AC01 — positive legal-entity and independent-book SQL acceptance (3 November 2026)
+
+Added a focused real-SQL acceptance path for two independent legal companies: separate functional-currency bootstrap and membership, same account code with independent account identity, posted journal totals present only in the original company, an empty secondary company trial balance, and a denied cross-tenant report read by an otherwise authorized user of the primary company. This is an explicit positive verification of SYS01 company/book isolation; it does not assume an additional hidden ledger table or complete the remaining SYS01 screen fields. Source analysis and diagrams are unchanged. CI on the exact `sys` commit remains necessary before final task acceptance.
+
+## SYS01-FG06 — company audit-field acceptance (3 November 2026)
+
+Added focused SQL-backed assertions for `SYS01-F15..F18`: `company.created` and `company.edited` preserve the actual caller (`ActorId`), valid ordered `OccurredAt` timestamps and correct company/resource scoping, while the company revision advances exactly once despite concurrent idempotent replay. The production HTTPS/JWT acceptance now verifies all three profile audit events (`created`, `edited`, `status-changed`), their originating subject, tenant/resource identifiers and chronological timestamps, and a non-member JWT's HTTP 403 audit denial. The original dictionary maps creator, creation and last modification to authoritative audit events rather than mutable Company profile fields. All changes are acceptance tests only, with no new schema, policy, endpoints or modifications to the original analysis. Final acceptance requires isolated SQL and production HTTPS/JWT/OpenAPI/Release CI on the exact `sys` commit SHA; no claim that the complete SYS01 screen is implemented.
+
+## SYS01-FG01 — identity/code/Arabic name coverage and ID generation review (3 November 2026)
+
+The atomic Notion task SYS01-FG01 covers company ID, company scope, code and Arabic name. Existing company creation accepts a GUID supplied in CreateCompanyRequest.Id by the platform provisioning caller, whereas the original SYS01-F01 field labels the internal ID "computed/system." Do not silently equate a caller-supplied GUID with a server-generated field or change the provisioning/API contract without resolving that interpretation. Focused acceptance checks the current persisted ID, code and Arabic name in isolated SQL and production HTTPS/JWT/SQL, with commits 6ecc3a888167bfae98995e0771ca1e0db4ceafe7 and e030702f5e7de85f1e49ce5376a30330d0eabf2e. These additions are **not** evidence of complete source conformance for SYS01-FG01; keep the Notion task in progress and verify CI. No original analysis or migration change.
+
+## SYS01-FG02 — verified-field acceptance under CI (3 November 2026)
+
+Notion task SYS01-FG02 covers EnglishName (optional), IsActive (required), Notes (optional) and LegalName (required); all are mapped as implemented in docs/backend/fields-implementation.csv and persisted by Company.Configure. Focused domain tests now assert their roundtrip, CompanySqlIntegration checks notes persisted in the isolated SQL-backed service, and HostedApiIntegration checks EnglishName, Notes and LegalName through production HTTPS/JWT/SQL GET following authorized PUT. The existing host workflow verifies disabled/enabled company status, revision and audit. Related commits baa08a7691effaf16d461c60fc05e55034f1e308, 6444bf9610d5369d68d094afc2aba4d29591f1b9 and bf6430715b86e1c8863f67f0ff46bc784ebf442d require successful final CI before this atomic field task is closed. No schema/policy/analysis changes; SYS01 screen remains partial due unrelated policy gaps.
+
+## SYS01-AC02 — authenticated negative HTTP acceptance under CI (3 November 2026)
+
+Beyond the 376/376 green domain and isolated SQL evidence in [CI #41561704708](https://github.com/ameenalqershi/ameen-erp/actions/runs/41561704708), production host acceptance at 6dea75f75117f74642e2322dab9290f606379c59 requests a real HTTPS PUT signed with authorized JWT to switch an existing journal-bearing company to a valid NOK card. Expected HTTP 409 functional_currency_in_use must leave SQL-backed company currency, scale, revision, GUID token and audit count unchanged. This must pass final CI before Notion SYS01-AC02 is marked complete; it is not an implementation of a historical currency-conversion project.
+
+## SYS01-AC02 / SYS06-AC02 — focused SYS acceptance in progress (3 November 2026)
+
+- **SYS06-AC02 (partial)**: Program.cs asserts disabled ERP membership remains persisted with a changed GUID concurrency token, a new audit record, and denied journal replay and account reads. The initial assertion used numeric version arithmetic and failed compilation; fixed on 569cae5ed48b54d6ecb541dad14bcdf4e2eabc95, which passed [branch CI #41561059527](https://github.com/ameenalqershi/ameen-erp/actions/runs/41561059527), **376/376 tests, 0 failed**, including SQL/HTTPS/JWT/OpenAPI/Release. This does **not** implement or close identity-provider login uniqueness, password-export exclusion, MFA or SYS06 as a whole. Notion SYS06-AC02 remains in progress.
+- **SYS01-AC02 (under verification)**: Added an application negative acceptance after a cancelled journal: refusing functional-currency change must not update currency, scale, revision, GUID version or audit. Added a separate isolated live SQL test in CompanySqlIntegration: after an existing persisted journal, a proposed change from the functional currency to an active NOK card must return functional_currency_in_use without changing company version, revision, SQL audit count or idempotency receipt. These tests do not authorize a historical currency-conversion project or modify original analysis. Latest SYS01 test commits 47f1f66d01cba4c5ce73788e12773526414b9b28, 298f045df472f59aae011c9eacf050ec9524caf0, and compile-helper fix ac4c758f8fbd487e68344070da5b40a72d16eb45 require CI approval on the resulting head before task completion; Notion SYS01-AC02 remains in progress.
+- Both batches are scoped to SYS. The GL agent's files, source diagrams and financial policies are unchanged.
 
 ## SYS04-CTRL01 — verified currency precision and functional currency guard (3 November 2026)
 

@@ -940,6 +940,63 @@ public static class HostedApiIntegration
                         "SYS04-AC02 rejected precision edit wrote currency audit");
                 Console.WriteLine("  HOST PASS SYS04-AC02 referenced currency precision edit refused atomically over HTTPS/JWT/SQL");
 
+                // SYS01-AC02: an existing posted journal forbids functional-currency
+                // conversion on the real authenticated production HTTP + SQL path.
+                var sys01Path = $"/api/v1/companies/{companyId}";
+                Guid sys01Version;
+                int sys01Revision;
+                int sys01Scale;
+                string sys01Code, sys01Name, sys01Country, sys01Functional;
+                using (var response = await client.GetAsync(sys01Path))
+                using (var detail = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK, "SYS01-AC02 prerequisite company detail unavailable");
+                    var c = detail.RootElement;
+                    sys01Version = c.GetProperty("version").GetGuid();
+                    sys01Revision = c.GetProperty("revision").GetInt32();
+                    sys01Scale = c.GetProperty("currencyScale").GetInt32();
+                    sys01Code = c.GetProperty("code").GetString()!;
+                    sys01Name = c.GetProperty("name").GetString()!;
+                    sys01Country = c.GetProperty("countryCode").GetString()!;
+                    sys01Functional = c.GetProperty("functionalCurrency").GetString()!;
+                }
+                int sys01AuditBefore;
+                using (var response = await client.GetAsync(sys01Path + "/profile-audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK, "SYS01-AC02 prerequisite audit unavailable");
+                    sys01AuditBefore = json.RootElement.GetProperty("totalCount").GetInt32();
+                }
+                using (var request = new HttpRequestMessage(HttpMethod.Put, sys01Path))
+                {
+                    request.Headers.Add("Idempotency-Key", Fixture.Key());
+                    request.Content = new StringContent(JsonSerializer.Serialize(new EditCompanyRequest(
+                        sys01Version, sys01Code, sys01Name, sys01Country, "NOK", Fixture.Profile(),
+                        "منع تحويل العملة بعد وجود قيود"), JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var response = await client.SendAsync(request);
+                    Ensure(response.StatusCode == HttpStatusCode.Conflict &&
+                        (await response.Content.ReadAsStringAsync()).Contains("functional_currency_in_use", StringComparison.Ordinal),
+                        "SYS01-AC02 production HTTP accepted a historical functional-currency change");
+                }
+                using (var response = await client.GetAsync(sys01Path))
+                using (var detail = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    var c = detail.RootElement;
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        c.GetProperty("functionalCurrency").GetString() == sys01Functional &&
+                        c.GetProperty("currencyScale").GetInt32() == sys01Scale &&
+                        c.GetProperty("revision").GetInt32() == sys01Revision &&
+                        c.GetProperty("version").GetGuid() == sys01Version,
+                        "SYS01-AC02 rejected HTTP conversion mutated company in SQL");
+                }
+                using (var response = await client.GetAsync(sys01Path + "/profile-audit-events"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == sys01AuditBefore,
+                        "SYS01-AC02 rejected HTTP conversion added audit");
+                Console.WriteLine("  HOST PASS SYS01-AC02 functional-currency conversion denied atomically over HTTPS/JWT/SQL");
+
+
                 var centersPath = $"/api/v1/companies/{companyId}/cost-centers";
                 var rootCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-ROOT", "مركز عام", null));
                 var childCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-CHILD", "مركز فرعي", journalRequest.BranchId, rootCenter.ResourceId, EnglishName: "HTTP center"));
@@ -962,13 +1019,57 @@ public static class HostedApiIntegration
                 Authenticate(Token("runtime-admin", "erp.platform-admin"));
                 var companyReceipt = await Command(client, "/api/v1/companies", company);
                 var companyPath = $"/api/v1/companies/{company.Id}";
-                var companyProfile = company.Profile with { CommercialRegistration = "00042", City = "مدينة معدلة", PostalCode = "00123" };
+                // SYS01-OP01: search is scoped to visible companies, never
+                // to all tenants. Positive code/Arabic queries and negative scope.
+                using (var byCode = await client.GetAsync("/api/v1/companies?search=HTTPTEST"))
+                using (var json = JsonDocument.Parse(await byCode.Content.ReadAsStringAsync()))
+                    Ensure(byCode.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.EnumerateArray().Any(x => x.GetProperty("id").GetGuid() == company.Id),
+                        "SYS01-OP01 authorized company code search omitted its tenant");
+                using (var byArabic = await client.GetAsync("/api/v1/companies?search=" + Uri.EscapeDataString("شركة HTTP")))
+                using (var json = JsonDocument.Parse(await byArabic.Content.ReadAsStringAsync()))
+                    Ensure(byArabic.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.EnumerateArray().Any(x => x.GetProperty("id").GetGuid() == company.Id),
+                        "SYS01-OP01 Arabic company search omitted its tenant");
+                using (var absent = await client.GetAsync("/api/v1/companies?search=NOT-PRESENT-COMPANY"))
+                using (var json = JsonDocument.Parse(await absent.Content.ReadAsStringAsync()))
+                    Ensure(absent.StatusCode == HttpStatusCode.OK && json.RootElement.GetArrayLength() == 0,
+                        "SYS01-OP01 unknown search leaked companies");
+                Authenticate(Token("sql-clerk"));
+                using (var deniedSearch = await client.GetAsync("/api/v1/companies?search=HTTPTEST"))
+                using (var json = JsonDocument.Parse(await deniedSearch.Content.ReadAsStringAsync()))
+                    Ensure(deniedSearch.StatusCode == HttpStatusCode.OK && json.RootElement.GetArrayLength() == 0,
+                        "SYS01-OP01 another tenant's company is visible to a non-member");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS01-OP01 authorized creation, code/Arabic search, empty match and tenant isolation over HTTPS/JWT/SQL");
+
+                var companyProfile = company.Profile with { CommercialRegistration = "00042", City = "مدينة معدلة", PostalCode = "00123",
+                    EnglishName = "HTTP legal name", Notes = "ملاحظة HTTP", Street = "شارع HTTP",
+                    BuildingNumber = "0007", AdditionalNumber = "0009",
+                    TaxRegistration = "000456", District = "حي HTTP" };
                 companyReceipt = await Command(client, companyPath, new EditCompanyRequest(companyReceipt.Version, company.Code, company.Name,
                     company.CountryCode, company.FunctionalCurrency, companyProfile, "استكمال البيانات"), method: HttpMethod.Put);
                 using (var companyDetail = await client.GetAsync(companyPath))
                 using (var json = JsonDocument.Parse(await companyDetail.Content.ReadAsStringAsync()))
-                    Ensure(json.RootElement.GetProperty("commercialRegistration").GetString() == "00042" &&
-                        json.RootElement.GetProperty("revision").GetInt32() == 2 && json.RootElement.GetProperty("isProfileComplete").GetBoolean(), "Company HTTP profile differs");
+                    Ensure(json.RootElement.GetProperty("id").GetGuid() == company.Id &&
+                        json.RootElement.GetProperty("code").GetString() == company.Code &&
+                        json.RootElement.GetProperty("name").GetString() == company.Name &&
+                        json.RootElement.GetProperty("commercialRegistration").GetString() == "00042" &&
+                        json.RootElement.GetProperty("revision").GetInt32() == 2 &&
+                        json.RootElement.GetProperty("englishName").GetString() == "HTTP legal name" &&
+                        json.RootElement.GetProperty("notes").GetString() == "ملاحظة HTTP" &&
+                        json.RootElement.GetProperty("legalName").GetString() == companyProfile.LegalName &&
+                        json.RootElement.GetProperty("street").GetString() == "شارع HTTP" &&
+                        json.RootElement.GetProperty("buildingNumber").GetString() == "0007" &&
+                        json.RootElement.GetProperty("postalCode").GetString() == "00123" &&
+                        json.RootElement.GetProperty("additionalNumber").GetString() == "0009" &&
+                        json.RootElement.GetProperty("taxRegistration").GetString() == "000456" &&
+                        json.RootElement.GetProperty("city").GetString() == "مدينة معدلة" &&
+                        json.RootElement.GetProperty("district").GetString() == "حي HTTP" &&
+                        json.RootElement.GetProperty("fiscalYearStartsOn").GetString() == "2026-01-01" &&
+                        json.RootElement.GetProperty("isProfileComplete").GetBoolean(), "SYS01-FG02 company HTTP profile differs");
+                Console.WriteLine("  HOST PASS SYS01-FG05 address and zero-prefixed building/postal/additional numbers over HTTPS/JWT/SQL");
+                Console.WriteLine("  HOST PASS SYS01-FG04 tax code, fiscal-year start, city and district over HTTPS/JWT/SQL");
                 companyReceipt = await Command(client, companyPath + "/status", new SetCompanyStatusRequest(companyReceipt.Version, false, "إيقاف"));
                 using (var blockedWrite = new HttpRequestMessage(HttpMethod.Post, companyPath + "/branches"))
                 {
@@ -980,6 +1081,68 @@ public static class HostedApiIntegration
                 using (var log = await client.GetAsync(companyPath + "/profile-audit-events"))
                 using (var json = JsonDocument.Parse(await log.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Company HTTP audit differs");
+                // SYS01-FG06: prove system-owned audit fields on production HTTPS/JWT/SQL,
+                // and forbid reading the profile audit with a non-member JWT.
+                using (var auditResponse = await client.GetAsync(companyPath + "/profile-audit-events"))
+                using (var auditJson = JsonDocument.Parse(await auditResponse.Content.ReadAsStringAsync()))
+                {
+                    Ensure(auditResponse.StatusCode == HttpStatusCode.OK,
+                        "SYS01-FG06 authorized company audit was not returned");
+                    var events = auditJson.RootElement.GetProperty("items").EnumerateArray().ToArray();
+                    Ensure(events.Length == 3, "SYS01-FG06 expected exactly three profile audit events");
+                    var created = events.Single(x => x.GetProperty("action").GetString() == "company.created");
+                    var edited = events.Single(x => x.GetProperty("action").GetString() == "company.edited");
+                    var disabled = events.Single(x => x.GetProperty("action").GetString() == "company.status-changed");
+                    Ensure(events.All(x => x.GetProperty("actorId").GetString() == "runtime-admin" &&
+                        x.GetProperty("resourceId").GetGuid() == company.Id &&
+                        x.GetProperty("companyId").GetGuid() == company.Id),
+                        "SYS01-FG06 caller identity or tenant scope was not preserved");
+                    var createdAt = created.GetProperty("occurredAt").GetDateTimeOffset();
+                    var editedAt = edited.GetProperty("occurredAt").GetDateTimeOffset();
+                    var statusAt = disabled.GetProperty("occurredAt").GetDateTimeOffset();
+                    Ensure(createdAt != default && editedAt >= createdAt && statusAt >= editedAt &&
+                        companyReceipt.Version != Guid.Empty,
+                        "SYS01-FG06 server audit timestamps or concurrency token invalid");
+                }
+                Authenticate(Token("sql-clerk"));
+                using (var deniedAudit = await client.GetAsync(companyPath + "/profile-audit-events"))
+                    Ensure(deniedAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS01-FG06 unauthorized JWT could read company profile audit");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS01-FG06 actor, chronological audit, tenant scope and forbidden audit access over HTTPS/JWT/SQL");
+                // SYS01-OP03: usage and audit remain readable for an inactive
+                // tenant, but neither endpoint accepts an unrelated JWT.
+                using (var usageResponse = await client.GetAsync(companyPath + "/usage"))
+                using (var usageJson = JsonDocument.Parse(await usageResponse.Content.ReadAsStringAsync()))
+                {
+                    Ensure(usageResponse.StatusCode == HttpStatusCode.OK, "SYS01-OP03 inactive company usage unavailable");
+                    var usage = usageJson.RootElement;
+                    Ensure(usage.GetProperty("companyId").GetGuid() == company.Id &&
+                        usage.GetProperty("branchCount").GetInt32() == 0 &&
+                        usage.GetProperty("accountCount").GetInt32() == 0 &&
+                        usage.GetProperty("currencyCount").GetInt32() == 1 &&
+                        usage.GetProperty("fiscalYearCount").GetInt32() == 0 &&
+                        usage.GetProperty("journalCount").GetInt32() == 0 &&
+                        usage.GetProperty("recurringTemplateCount").GetInt32() == 0 &&
+                        usage.GetProperty("exchangeRateCount").GetInt32() == 0 &&
+                        usage.GetProperty("canChangeFunctionalCurrency").GetBoolean(),
+                        "SYS01-OP03 tenant-scoped initial usage snapshot differs");
+                }
+                using (var auditResponse = await client.GetAsync(companyPath + "/profile-audit-events?offset=1&limit=1"))
+                using (var auditJson = JsonDocument.Parse(await auditResponse.Content.ReadAsStringAsync()))
+                    Ensure(auditResponse.StatusCode == HttpStatusCode.OK &&
+                        auditJson.RootElement.GetProperty("totalCount").GetInt32() == 3 &&
+                        auditJson.RootElement.GetProperty("items").GetArrayLength() == 1,
+                        "SYS01-OP03 audit pagination or count differs");
+                Authenticate(Token("sql-clerk"));
+                using (var deniedUsage = await client.GetAsync(companyPath + "/usage"))
+                    Ensure(deniedUsage.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS01-OP03 unrelated JWT read another company's usage");
+                using (var deniedAudit = await client.GetAsync(companyPath + "/profile-audit-events"))
+                    Ensure(deniedAudit.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS01-OP03 unrelated JWT read another company's audit");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS01-OP03 inactive usage, audit pagination and unauthorized JWT isolation over HTTPS/SQL");
                 await Command(client, companyPath + "/status", new SetCompanyStatusRequest(companyReceipt.Version, true, "تفعيل"));
                 Console.WriteLine("  HOST PASS SYS01 required profile, PUT edit, integer revision, inactive-company write guard and reactivation");
                 var branchesPath = companyPath + "/branches";
@@ -997,6 +1160,35 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(branchesPath + $"/{childBranch.ResourceId}/audit-events"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("totalCount").GetInt32() == 3, "Branch HTTP audit failed");
+                // SYS02-OP03: usage and audit are tenant-scoped even with
+                // active/disabled branches and a valid unrelated JWT.
+                var sys02UsagePath = branchesPath + $"/{parentBranch.ResourceId}/usage";
+                var sys02AuditPath = branchesPath + $"/{childBranch.ResourceId}/audit-events";
+                using (var response = await client.GetAsync(sys02UsagePath))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("branchId").GetGuid() == parentBranch.ResourceId &&
+                        json.RootElement.GetProperty("childCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("costCenterCount").GetInt32() == 0 &&
+                        json.RootElement.GetProperty("journalCount").GetInt32() == 0 &&
+                        json.RootElement.GetProperty("recurringTemplateCount").GetInt32() == 0 &&
+                        !json.RootElement.GetProperty("hasSubtreeFinancialUsage").GetBoolean(),
+                        "SYS02-OP03 production branch usage snapshot differs");
+                using (var response = await client.GetAsync(sys02AuditPath + "?offset=1&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 3 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 1,
+                        "SYS02-OP03 production branch audit pagination differs");
+                Authenticate(Token("sql-clerk"));
+                using (var response = await client.GetAsync(sys02UsagePath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP03 unrelated JWT read another tenant's branch usage");
+                using (var response = await client.GetAsync(sys02AuditPath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS02-OP03 unrelated JWT read another tenant's branch audit");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS02-OP03 usage, audit paging and unrelated JWT denial over HTTPS/SQL");
                 Console.WriteLine("  HOST PASS SYS02 branch addresses, tree, edit, search, usage, status and audit over HTTPS/JWT/SQL");
 
                 var calendarPath = companyPath + "/fiscal-years";
@@ -1015,6 +1207,41 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}/usage"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(json.RootElement.GetProperty("journalCount").GetInt32() == 0, "Calendar HTTP usage failed");
+                // SYS03-OP03: calendar usage and audit remain tenant-scoped and
+                // deny a valid JWT without membership in the company.
+                var sys03AuditPath = calendarPath + $"/{fiscalYear.ResourceId}/audit-events";
+                var sys03UsagePath = calendarPath + $"/{fiscalYear.ResourceId}/usage";
+                using (var response = await client.GetAsync(sys03AuditPath + "?offset=0&limit=1"))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                {
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("items").GetArrayLength() == 1,
+                        "SYS03-OP03 calendar audit paging differs");
+                    var audit = json.RootElement.GetProperty("items")[0];
+                    Ensure(audit.GetProperty("companyId").GetGuid() == company.Id &&
+                        audit.GetProperty("resourceId").GetGuid() == fiscalYear.ResourceId &&
+                        audit.GetProperty("action").GetString() == "fiscal-year.created" &&
+                        audit.GetProperty("actorId").GetString() == "runtime-admin",
+                        "SYS03-OP03 audit leaked another tenant or actor");
+                }
+                using (var response = await client.GetAsync(sys03UsagePath))
+                using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("fiscalYearId").GetGuid() == fiscalYear.ResourceId &&
+                        json.RootElement.GetProperty("journalCount").GetInt32() == 0 &&
+                        json.RootElement.GetProperty("unpostedJournalCount").GetInt32() == 0 &&
+                        json.RootElement.GetProperty("recurringGenerationCount").GetInt32() == 0,
+                        "SYS03-OP03 fresh calendar usage differs");
+                Authenticate(Token("sql-clerk"));
+                using (var response = await client.GetAsync(sys03AuditPath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS03-OP03 unrelated JWT read fiscal audit");
+                using (var response = await client.GetAsync(sys03UsagePath))
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden,
+                        "SYS03-OP03 unrelated JWT read fiscal usage");
+                Authenticate(Token("runtime-admin", "erp.platform-admin"));
+                Console.WriteLine("  HOST PASS SYS03-OP03 usage and audit tenant isolation over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS SYS03 explicit periods, calendar state, search, usage and audit over HTTPS/JWT/SQL");
 
                 // SYS03-GAP04: closing a fiscal year is a GL12 period operation, never a delete

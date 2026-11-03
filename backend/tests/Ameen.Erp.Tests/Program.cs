@@ -410,7 +410,15 @@ Test("SYS06: disabled membership immediately loses read and replay access", asyn
 {
     var key = Fixture.Key(); await f.Draft(key: key);
     var member = f.Store.All<Membership>().Single(x => x.Subject == f.Clerk.Subject);
+    var memberId = member.Id;
+    var oldVersion = member.Version;
+    var existingAuditCount = f.Store.Count<AuditEvent>();
     await f.Service.Membership.SetMembershipStatus(f.CompanyId, member.Id, f.Owner, Fixture.Key(), new(member.Version, false, "تعطيل"), default);
+    var disabled = f.Store.All<Membership>().Single(x => x.Id == memberId);
+    Assert(!disabled.IsActive && disabled.Version != oldVersion,
+        "SYS06 disabled membership must remain stored with a new version");
+    Assert(f.Store.Count<AuditEvent>() > existingAuditCount,
+        "SYS06 disabling membership must preserve history and append audit");
     await Error("permission_denied", () => f.Draft(key: key));
     await Error("permission_denied", () => f.Service.Account.ListAccounts(f.CompanyId, f.Clerk, null, 0, 10, default));
 });

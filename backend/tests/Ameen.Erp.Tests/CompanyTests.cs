@@ -13,13 +13,15 @@ public static class CompanyTests
                 TaxRegistration = "000456", District = "حي الاختبار", BuildingNumber = "001", PostalCode = "00012", AdditionalNumber = "0034" };
             var r = await f.Service.Company.EditCompany(f.CompanyId, f.Owner, Fixture.Key(), Edit(c) with { Profile = profile }, default);
             c = await Company(f);
-            Ensure(c.Version == r.Version && c.Revision == 2 && c.IsProfileComplete && c.CommercialRegistration == "000123" && c.PostalCode == "00012");
+            Ensure(c.Version == r.Version && c.Revision == 2 && c.IsProfileComplete && c.CommercialRegistration == "000123" && c.PostalCode == "00012" &&
+                c.EnglishName == "Example company" && c.Notes == "ملاحظات" && c.LegalName == profile.LegalName && c.IsActive);
             Ensure(c.FiscalYearStartsOn == new DateOnly(2026, 1, 1) && c.District == "حي الاختبار");
             Ensure((await f.Service.Company.ListCompanyAudit(f.CompanyId, f.Owner, 0, 10, default)).TotalCount == 2);
         });
         test("SYS01: required legal fields and profile reject null/empty without creating tenant", async f =>
         {
-            foreach (var profile in new[] { Fixture.Profile() with { LegalName = " " }, Fixture.Profile() with { City = "" }, Fixture.Profile() with { Street = new string('x', 301) } })
+            foreach (var profile in new[] { Fixture.Profile() with { LegalName = " " }, Fixture.Profile() with { City = "" },
+                Fixture.Profile() with { Street = " " }, Fixture.Profile() with { Street = new string('x', 301) } })
                 await Error("invalid_text", () => f.Service.Company.CreateCompany(f.Owner, Fixture.Key(), new(Guid.NewGuid(), "INVALID", "غير صالح", "YE", "SAR", 2, profile), default));
             await Error("company_profile_required", () => f.Service.Company.CreateCompany(f.Owner, Fixture.Key(), new(Guid.NewGuid(), "INVALID", "غير صالح", "YE", "SAR", 2, null!), default));
             Ensure(f.Store.Count<Company>() == 1);
@@ -38,7 +40,14 @@ public static class CompanyTests
         {
             await f.Service.Currency.CreateCurrency(f.CompanyId, f.Owner, Fixture.Key(), new("USD", 2, "دولار"), default);
             await f.Action(await f.Draft(), "cancel", reason: "إلغاء"); var c = await Company(f);
+            var auditBefore = f.Store.Count<AuditEvent>();
             await Error("functional_currency_in_use", () => f.Service.Company.EditCompany(f.CompanyId, f.Owner, Fixture.Key(), Edit(c) with { FunctionalCurrency = "USD" }, default));
+            var rejected = await Company(f);
+            Ensure(rejected.FunctionalCurrency == c.FunctionalCurrency &&
+                rejected.CurrencyScale == c.CurrencyScale &&
+                rejected.Revision == c.Revision &&
+                rejected.Version == c.Version &&
+                f.Store.Count<AuditEvent>() == auditBefore);
             Ensure((await f.Service.Company.GetCompanyUsage(f.CompanyId, f.Owner, default)).CanChangeFunctionalCurrency == false);
         });
         test("SYS01: exchange-rate history blocks base-currency change before any journal", async f =>
@@ -96,6 +105,28 @@ public static class CompanyTests
             var c = await Company(f); await Error("company_exists", () => f.Service.Company.EditCompany(f.CompanyId, f.Owner, Fixture.Key(), Edit(c) with { Code = "OTHER" }, default));
             await Error("permission_denied", () => f.Service.Company.EditCompany(f.CompanyId, new Actor("outsider", true), Fixture.Key(), Edit(c), default));
             await Error("all_branches_required", () => f.Service.Company.GetCompanyUsage(f.CompanyId, f.Limited, default));
+        });
+        test("SYS01-OP02: status save rejects unauthorized and stale edits without audit", async f =>
+        {
+            var before = await Company(f);
+            var initialAuditCount = f.Store.Count<AuditEvent>();
+            await Error("permission_denied", () => f.Service.Company.SetCompanyStatus(
+                f.CompanyId, f.Clerk, Fixture.Key(), new(before.Version, false, "رفض صلاحية"), default));
+            Ensure((await Company(f)).IsActive && f.Store.Count<AuditEvent>() == initialAuditCount);
+            var key = Fixture.Key();
+            var request = new SetCompanyStatusRequest(before.Version, false, "تعطيل معتمد");
+            var disabled = await f.Service.Company.SetCompanyStatus(f.CompanyId, f.Owner, key, request, default);
+            Ensure(await f.Service.Company.SetCompanyStatus(f.CompanyId, f.Owner, key, request, default) == disabled);
+            await Error("version_conflict", () => f.Service.Company.SetCompanyStatus(
+                f.CompanyId, f.Owner, Fixture.Key(), new(before.Version, true, "إصدار قديم"), default));
+            var persisted = await Company(f);
+            Ensure(!persisted.IsActive && persisted.Version == disabled.Version &&
+                persisted.Revision == before.Revision + 1 &&
+                f.Store.Count<AuditEvent>() == initialAuditCount + 1);
+            var restored = await f.Service.Company.SetCompanyStatus(
+                f.CompanyId, f.Owner, Fixture.Key(), new(disabled.Version, true, "إعادة تفعيل"), default);
+            Ensure((await Company(f)).IsActive && (await Company(f)).Version == restored.Version &&
+                f.Store.Count<AuditEvent>() == initialAuditCount + 2);
         });
         test("SYS01: metadata edit is replayable, stale-protected and rollback-safe", async f =>
         {
