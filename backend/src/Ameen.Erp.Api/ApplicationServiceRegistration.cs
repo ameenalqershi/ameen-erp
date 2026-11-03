@@ -9,6 +9,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<AccountService>();
         services.AddScoped<AuditService>();
         services.AddScoped<BranchService>();
+        services.AddScoped<CashBoxService>();
         services.AddScoped<CompanyService>();
         services.AddScoped<CostCenterService>();
         services.AddScoped<CurrencyService>();

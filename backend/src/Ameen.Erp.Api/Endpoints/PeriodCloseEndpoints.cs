@@ -11,6 +11,9 @@ internal static class PeriodCloseEndpoints
         const string p = EndpointRoutes.Company;
         app.MapGet(p + "/periods/{id:guid}/close-preview", async (Guid companyId, Guid id, int? offset, int? limit, PeriodCloseService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.PreviewPeriodClose(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct))).Produces<PeriodClosePreview>().RequireAuthorization().WithTags("GL11 Period close");
+        app.MapGet(p + "/periods/{id:guid}/execution-history", async (Guid companyId, Guid id, int? offset, int? limit, PeriodCloseService s, HttpContext h, CancellationToken ct) =>
+            Results.Ok(await s.PeriodExecutionHistory(companyId, id, Actor(h), offset ?? 0, limit ?? 50, ct)))
+            .Produces<PeriodExecutionSummary>().RequireAuthorization().WithTags("GL11 Period close");
         app.MapPost(p + "/periods/{id:guid}/close", async (Guid companyId, Guid id, ChangePeriodRequest r, PeriodCloseService s, HttpContext h, CancellationToken ct) =>
             Results.Ok(await s.ChangePeriod(companyId, id, Actor(h), Key(h), r, true, ct))).Produces<CommandReceipt>().RequireAuthorization().WithTags("GL11 Period close");
         app.MapPost(p + "/periods/{id:guid}/reopen", async (Guid companyId, Guid id, ChangePeriodRequest r, PeriodCloseService s, HttpContext h, CancellationToken ct) =>

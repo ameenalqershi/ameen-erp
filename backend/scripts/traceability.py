@@ -139,21 +139,21 @@ screen("GL01", "GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}
        [(15, "AuditEvent.ActorId: account.created"), (16, "AuditEvent.OccurredAt: account.created"), (18, "AuditEvent.OccurredAt: account.edited / account.status-changed; /audit-events")])
 MAP["GL01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["AccountTests.cs", "AccountSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
-screen("GL02", "GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs",
+screen("GL02", "GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs",
        "افتتاح عام مصدره GeneralOpening ومرجع ميزان وتاريخ تشغيل وعملة وظيفية أو أجنبية بسعر تاريخي مثبت؛ قيد متزن ودورة مستقلة واعتماد وترحيل وعكس تاريخي؛ منع الحسابات الرقابية؛ معاينة حسابات التسوية التاريخية للمخزون دون عد القيد مرتين؛ إصدار ووقت تعديل يشملان حجز العكس وإلغاءه وترحيله؛ استبدال رأس المسودة والسطور مع نقل الفرع والفترة وترقيم السنة وإعادة التحقق؛ معاينة الأثر التفصيلية للمدين والدائن وسعر السطر والفرق دون تسجيل حركة أو تغيير القيد",
-       "الطباعة والاستيراد؛ تصفير حساب التسوية بوابة شاملة غير منفذ؛ الذمم والمصادر غير المنفذة ليست مطابقة",
+       "الطباعة متاحة كصفحة RTL HTML للمتصفح فقط؛ تصدير PDF/اختيار قالب رسمي غير معتمد؛ استيراد الافتتاح وتصفير حساب التسوية بوابة شاملة غير منفذ؛ الذمم والمصادر غير المنفذة ليست مطابقة",
        {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number (JV yearly sequence)", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State with linked historical reversal", 13: "OperationStartsOn", 14: "PreviousTrialBalanceReference", 15: "Lines.AccountId: non-control only", 16: "Lines.Debit", 17: "Lines.Credit", 18: "Lines.CostCenterId", 19: "CreatedBy", 20: "CreatedAt"})
-MAP["GL02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["GeneralOpeningTests.cs", "GeneralOpeningReversalTests.cs", "DraftJournalHeaderTests.cs", "DraftHeaderSqlIntegration.cs", "JournalProcessingSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+MAP["GL02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["GeneralOpeningTests.cs", "GeneralOpeningReversalTests.cs", "GeneralOpeningPrintSqlIntegration.cs", "DraftJournalHeaderTests.cs", "DraftHeaderSqlIntegration.cs", "JournalProcessingSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 for n, binding, status in [(4, "FiscalPeriod.FiscalYearId via settlement-preview", "derived"), (8, "OpeningCurrencyCode: active functional or foreign opening currency", "implemented"), (9, "OpeningExchangeRate: dated FX snapshot equal to latest effective rate; exact reversal", "implemented"), (21, "OpeningRevision: content, workflow and reversal reservation/release/post", "implemented"), (22, "OpeningModifiedAt: content, workflow and reversal reservation/release/post", "implemented")]:
     MAP["GL02"]["fields"][f"GL02-F{n:02}"] = dict(status=status, binding=binding)
-screen("GL03", "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due",
+screen("GL03", "GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due",
        "قيد يدوي متعدد العملات والمراكز بدورة مستقلة وأرقام وسعر تاريخي؛ تعديل رأس المسودة والسطور مع إعادة ربط الفترة وترقيم السنة والتحقق من السعر النافذ؛ حقلا العكس التلقائي المشروط وموعده؛ توليد مسودة عكس مرتبطة عند الاستحقاق وفق صلاحيات Reverse/Draft ونطاق الفرع مع منع التكرار حتى بعد إلغاء المسودة؛ مشغل مفوض اختياري لا يعتمد أو يرحّل القيد تلقائيًا؛ معاينة أثر القيد اليدوي والعكس قبل التقديم بسطور المبالغ الأصلية والمحوّلة وفرق الاتزان وفحص الموانع دون تعديل الأستاذ أو التدقيق",
        "المشروع والطرف والمرفقات وأنواع القيود GL14؛ تفعيل عامل العكس المجدول في بيئة النشر مشروط بإعداد ActorSubject المفوض؛ لا يعد توليد مسودة العكس موافقة أو ترحيلًا",
        {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 14: "AutomaticReversal boolean in create/edit/detail/list; default false for legacy records", 15: "ReversalDate conditional input / AutomaticReversalDate nullable historical due date; SQL 026", 16: "Lines[].AccountId", 17: "Lines[].Debit", 18: "Lines[].Credit", 19: "Lines[].CurrencyCode", 20: "Lines[].ExchangeRate (ExchangeRateId on input)", 21: "Lines[].CostCenterId", 24: "Lines[].Description", 25: "CreatedBy", 26: "CreatedAt", 27: "Revision: server integer; Version UUID is a separate concurrency token"},
        [(28, "AuditEvent.OccurredAt: journal.edited")])
 MAP["GL03"]["fields"]["GL03-F28"] = dict(status="implemented", binding="LastModifiedAt server datetimeoffset; successful edit/workflow/reversal link mutation; atomic with audit and receipt")
 MAP["GL03"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
-    ["JournalAuditTests.cs", "DraftJournalHeaderTests.cs", "DraftHeaderSqlIntegration.cs", "JournalImpactPreviewTests.cs", "ScheduledReversalTests.cs", "ScheduledReversalSqlIntegration.cs", "ScheduledReversalHostedIntegration.cs", "HttpIntegration.cs", "SqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs", "OpenApiSnapshotTests.cs"])
+    ["JournalAuditTests.cs", "JournalPrintTests.cs", "JournalPrintSqlIntegration.cs", "DraftJournalHeaderTests.cs", "DraftHeaderSqlIntegration.cs", "JournalImpactPreviewTests.cs", "ScheduledReversalTests.cs", "ScheduledReversalSqlIntegration.cs", "ScheduledReversalHostedIntegration.cs", "HttpIntegration.cs", "SqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs", "OpenApiSnapshotTests.cs"])
 screen("GL04", "GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events",
        "قالب شهري أو ربع سنوي أو سنوي بتاريخ نهاية اختياري دون تاريخ مصطنع؛ توليد يدوي أو مجدول لمسودة واحدة لكل فترة مع مشغّل مفوض عند تفعيله؛ رقم إصدار تعديل صحيح وآخر تعديل خادمي؛ مصدر وإصدار تاريخي ومواعيد ثابتة وأسعار نافذة؛ بحث وتعطيل وسجل استخدام وتغييرات",
        "الفرع في المخطط شرطي لكن العقد الحالي يتطلبه (GL04-F02)؛ خيارات دورية أخرى غير معتمدة؛ يلزم تفعيل المشغل على الإنتاج",
@@ -182,17 +182,17 @@ MAP["GL05"]["fields"]["GL05-F04"] = dict(status="implemented", binding="processi
 MAP["GL06"]["fields"]["GL06-F04"] = dict(status="partial", binding="processing-queue.source: journal provenance only; source documents route separately")
 MAP["GL06"]["fields"]["GL06-F05"] = dict(status="implemented", binding="processing-queue.numberRange: selected fiscal-year JV number or inclusive range; sequenceFrom/sequenceTo backward-compatible; authorized branch/state/source scoped")
 MAP["GL06"]["fields"]["GL06-F08"] = dict(status="implemented", binding="JournalProcessingPreview.CanExecute/ErrorCode; JournalProcessingRow.ErrorCode/Receipt/RejectionRecorded")
-screen("GL07", "POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due",
+screen("GL07", "POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due",
        "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا؛ تشغيل العكس المجدول للقيود اليدوية المرحّلة المستحقة فقط عبر فحص مفوض وفرعي مع إنشاء مسودة عكس مستقلة بلا اعتماد/ترحيل آلي؛ سجل تاريخي يمنع تكرار التوليد بعد الإلغاء؛ ترقية SQL 026 وعكس ذري قابل لإعادة المحاولة؛ معاينة أثر مسودة العكس بسعر ومبالغ تاريخية معكوسة حرفيًا وفرق اتزان قبل الاعتماد دون تعديل الأستاذ أو سجل التدقيق",
        "عكس مستندات الدفاتر المساعدة وفحص التبعيات والضريبة؛ مشغل العكس اختياري وغير مثبت التفعيل في الإنتاج؛ الأنواع غير اليدوية تظل تعكس من مستند المصدر",
        {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 13: "ReversesJournalId", 14: "ReversalReason", 15: "AccountingDate", 16: "CreatedBy", 17: "CreatedAt", 18: "JournalEntry.Revision: server integer separate from Version UUID", 19: "JournalEntry.LastModifiedAt: server datetimeoffset, shared journal audit"})
 MAP["GL07"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in
-    ["JournalAuditTests.cs", "JournalImpactPreviewTests.cs", "ScheduledReversalTests.cs", "ScheduledReversalSqlIntegration.cs", "ScheduledReversalHostedIntegration.cs",
+    ["JournalAuditTests.cs", "JournalPrintTests.cs", "JournalPrintSqlIntegration.cs", "JournalImpactPreviewTests.cs", "ScheduledReversalTests.cs", "ScheduledReversalSqlIntegration.cs", "ScheduledReversalHostedIntegration.cs",
      "HttpIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs", "OpenApiSnapshotTests.cs"])
-screen("GL11", "POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview",
+screen("GL11", "POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history",
        "معاينة إقفال الأستاذ بشروط مفصلة وموانع مقسمة؛ تنفيذ يعيد فحص القيود المعلقة واتزان المرحل داخل المعاملة", "إقفال ERP شامل ومطابقة بنوك وذمم ومخزون وضريبة وأصول وقيد نتائج السنة وإصدار عددي للإجراء",
        {1: "route.companyId", 4: "route.id (period only)", 7: "PeriodClosePreview.Checks.Code (GL only)", 8: "PeriodClosePreview.Checks.Passed (GL only)"}, [(9, "AuditEvent.ActorId: period.closed"), (10, "AuditEvent.ActorId"), (11, "AuditEvent.OccurredAt")])
-MAP["GL11"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+MAP["GL11"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/PeriodExecutionHistorySqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
 screen("GL12", "POST /companies/{companyId}/periods/{id}/reopen",
        "فتح فترة بصلاحية مستقلة وسبب مسجل", "مرجع موافقة مستقل ونافذة فتح مؤقتة وإعادة إقفال تلقائي",
        {1: "route.companyId", 4: "route.id", 5: "ChangePeriodRequest.Reason", 10: "Version"}, [(8, "AuditEvent.ActorId"), (9, "AuditEvent.OccurredAt")])
@@ -245,6 +245,38 @@ screen("INV04", "GET/POST /companies/{companyId}/items; GET/PUT /{id}; POST /{id
        {1: "Item.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "Type", 9: "GroupId", 10: "BaseUnitId", 11: "Tracking", 12: "ShelfLifeDays", 13: "ReorderLevel", 15: "Units[].UnitId", 16: "Units[].FactorToBase", 17: "Units[].Barcode", 18: "Units[].SalePrice (functional currency)", 21: "Revision"},
        [(19, "AuditEvent.ActorId: item.created"), (20, "AuditEvent.OccurredAt: item.created"), (22, "AuditEvent.OccurredAt: item.edited / item.status-changed")])
 MAP["INV04"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["ItemTests.cs", "ItemSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+screen("CASH01", "GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status",
+       "بطاقة صندوق بنطاق الشركة والفرع، حساب تفصيلي فعال وعملة وأمين عضوية نشطة؛ حقول 16 كاملة وإصدار/توقيت خادم؛ إنشاء وتعديل وتعطيل وبحث واستخدام قيد مرجعي وتدقيق ذري وتكرار آمن",
+       "لا يوجد رصيد صندوق متاح أو منع سحب على مستوى CASH04؛ عرض الاستخدام يحصي القيود المرجعية لا الرصيد؛ صلاحيات الصندوق المستقلة وسياسة التشغيل وتكامل سندات القبض والصرف لم تنفذ؛ شاشة CASH01 جزئية",
+       {1: "CashBox.Id: server GUID", 2: "CashBox.CompanyId from route", 3: "Code", 4: "Name",
+        5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "AccountId: active posting account",
+        9: "BranchId: active authorized branch", 10: "CustodianMembershipId: active membership in branch",
+        11: "CurrencyCode: active company currency", 12: "BalanceLimit decimal(20,6)",
+        13: "CreatedBy: server subject", 14: "CreatedAt: server UTC",
+        15: "Revision: server integer", 16: "LastModifiedAt: server UTC"})
+MAP["CASH01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["CashBoxTests.cs", "CashBoxSqlIntegration.cs", "SqlIntegration.cs", "OpenApiSnapshotTests.cs"])
+
+screen("CASH02", "internal EF/SQL schema 032 only; no CASH02 public API",
+       "بنية بطاقة بنك تحمل حقول CASH02-F01..F17، ومفاتيح مركبة للشركة والحساب والفرع والعملة وIBAN اختياري؛ منع تعديل البيانات البنكية قبل اعتماد الصلاحيات ومراجعة تغيير المستفيدين؛ ترقية ذرية قابلة للإعادة",
+       "لا يمكن إنشاء/تحرير حساب بنكي عبر API حتى اعتماد التحقق الشرطي لوجوب IBAN وبيانات المستفيدين ومسار المراجعة؛ لا دفتر تسوية أو CASH07/CASH10 أو استعمال تشغيلي للبطاقة؛ الحقول بنية مخزنة فقط",
+       {})
+for n, binding in {
+    1:"BankAccount.Id: internal GUID only", 2:"BankAccount.CompanyId: tenant key only",
+    3:"BankAccount.Code: nvarchar(32) unique per company", 4:"BankAccount.Name: nvarchar(200)",
+    5:"BankAccount.EnglishName: nullable", 6:"BankAccount.IsActive: blocked writes",
+    7:"BankAccount.Notes: nullable", 8:"BankAccount.BankName: nvarchar(200)",
+    9:"BankAccount.AccountNumber: nvarchar(64), preserves leading zeros",
+    10:"BankAccount.Iban: nullable canonical IBAN; conditional country requirement not implemented",
+    11:"BankAccount.LedgerAccountId: tenant FK", 12:"BankAccount.CurrencyCode: tenant FK",
+    13:"BankAccount.BranchId: tenant FK", 14:"BankAccount.CreatedBy: internal actor",
+    15:"BankAccount.CreatedAt: datetimeoffset", 16:"BankAccount.Revision: positive int",
+    17:"BankAccount.LastModifiedAt: datetimeoffset"
+}.items():
+    MAP["CASH02"]["fields"][f"CASH02-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["CASH02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in
+    ["BankAccountFoundationTests.cs", "BankAccountSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("RPT01", "GET /companies/{companyId}/reports/trial-balance",
        "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج", "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
        {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 9: "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)", 10: "query.costCenterId", 11: "query.showZero"})
@@ -347,6 +379,7 @@ def generate():
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
         "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
+        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",

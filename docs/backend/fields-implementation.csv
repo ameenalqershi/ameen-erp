@@ -267,56 +267,56 @@ GL01,GL01-F15,أنشأه,system,audit,AuditEvent.ActorId: account.created,GET/PO
 GL01,GL01-F16,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: account.created,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
 GL01,GL01-F17,رقم إصدار التعديل,system,implemented,Revision (server integer); Version is a separate UUID concurrency token,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
 GL01,GL01-F18,آخر تعديل,system,audit,AuditEvent.OccurredAt: account.edited / account.status-changed; /audit-events,GET/POST /companies/{companyId}/accounts; GET/PUT /accounts/{id}; POST /status; GET /usage|audit-events
-GL02,GL02-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F03,الفرع,required,implemented,BranchId,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F04,السنة,system,derived,FiscalPeriod.FiscalYearId via settlement-preview,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F05,رقم المستند,system,implemented,Number (JV yearly sequence),GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F06,تاريخ الوثيقة,required,implemented,DocumentDate,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F07,تاريخ الأثر,required,implemented,AccountingDate,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F08,العملة,required,implemented,OpeningCurrencyCode: active functional or foreign opening currency,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F09,سعر الصرف,required,implemented,OpeningExchangeRate: dated FX snapshot equal to latest effective rate; exact reversal,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F10,البيان,required,implemented,Description,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F11,المرجع الخارجي,optional,implemented,ExternalReference,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F12,الحالة,system,implemented,State with linked historical reversal,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F13,تاريخ بداية التشغيل,required,implemented,OperationStartsOn,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F14,مرجع ميزان سابق,required,implemented,PreviousTrialBalanceReference,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F15,الحساب,required,implemented,Lines.AccountId: non-control only,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F16,مدين,required,implemented,Lines.Debit,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F17,دائن,required,implemented,Lines.Credit,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F18,مركز التكلفة,conditional,implemented,Lines.CostCenterId,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F19,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F20,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F21,رقم إصدار التعديل,system,implemented,"OpeningRevision: content, workflow and reversal reservation/release/post",GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL02,GL02-F22,آخر تعديل,system,implemented,"OpeningModifiedAt: content, workflow and reversal reservation/release/post",GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview; journal submit|approve|return|post|cancel|reverse and processing APIs
-GL03,GL03-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F03,الفرع,required,implemented,BranchId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F04,السنة,system,derived,FiscalPeriod.FiscalYearId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F05,رقم المستند,system,implemented,Number,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F06,تاريخ الوثيقة,required,implemented,DocumentDate,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F07,تاريخ الأثر,required,implemented,AccountingDate,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F08,العملة,required,partial,currency is on each line; no single document currency,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F09,سعر الصرف,required,partial,rate is on each line; no single document rate,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F10,البيان,required,implemented,Description,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F11,المرجع الخارجي,optional,implemented,ExternalReference,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F12,الحالة,system,implemented,State,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F13,نوع القيد,required,partial,Source: Manual / Recurring / Reversal provenance; configurable journal-type catalog is pending,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F14,قيد عكسي تلقائي,required,implemented,AutomaticReversal boolean in create/edit/detail/list; default false for legacy records,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F15,تاريخ العكس,conditional,implemented,ReversalDate conditional input / AutomaticReversalDate nullable historical due date; SQL 026,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F16,الحساب,required,implemented,Lines[].AccountId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F17,مدين,required,implemented,Lines[].Debit,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F18,دائن,required,implemented,Lines[].Credit,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F19,عملة السطر,required,implemented,Lines[].CurrencyCode,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F20,سعر السطر,required,implemented,Lines[].ExchangeRate (ExchangeRateId on input),GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F21,مركز التكلفة,conditional,implemented,Lines[].CostCenterId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL02,GL02-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F03,الفرع,required,implemented,BranchId,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F04,السنة,system,derived,FiscalPeriod.FiscalYearId via settlement-preview,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F05,رقم المستند,system,implemented,Number (JV yearly sequence),GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F06,تاريخ الوثيقة,required,implemented,DocumentDate,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F07,تاريخ الأثر,required,implemented,AccountingDate,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F08,العملة,required,implemented,OpeningCurrencyCode: active functional or foreign opening currency,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F09,سعر الصرف,required,implemented,OpeningExchangeRate: dated FX snapshot equal to latest effective rate; exact reversal,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F10,البيان,required,implemented,Description,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F11,المرجع الخارجي,optional,implemented,ExternalReference,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F12,الحالة,system,implemented,State with linked historical reversal,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F13,تاريخ بداية التشغيل,required,implemented,OperationStartsOn,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F14,مرجع ميزان سابق,required,implemented,PreviousTrialBalanceReference,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F15,الحساب,required,implemented,Lines.AccountId: non-control only,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F16,مدين,required,implemented,Lines.Debit,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F17,دائن,required,implemented,Lines.Credit,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F18,مركز التكلفة,conditional,implemented,Lines.CostCenterId,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F19,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F20,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F21,رقم إصدار التعديل,system,implemented,"OpeningRevision: content, workflow and reversal reservation/release/post",GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL02,GL02-F22,آخر تعديل,system,implemented,"OpeningModifiedAt: content, workflow and reversal reservation/release/post",GET/POST /companies/{companyId}/general-openings; GET/PUT /{id}; GET /{id}/settlement-preview|impact-preview|print (printable RTL HTML); journal submit|approve|return|post|cancel|reverse and processing APIs
+GL03,GL03-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F03,الفرع,required,implemented,BranchId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F04,السنة,system,derived,FiscalPeriod.FiscalYearId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F05,رقم المستند,system,implemented,Number,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F06,تاريخ الوثيقة,required,implemented,DocumentDate,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F07,تاريخ الأثر,required,implemented,AccountingDate,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F08,العملة,required,partial,currency is on each line; no single document currency,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F09,سعر الصرف,required,partial,rate is on each line; no single document rate,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F10,البيان,required,implemented,Description,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F11,المرجع الخارجي,optional,implemented,ExternalReference,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F12,الحالة,system,implemented,State,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F13,نوع القيد,required,partial,Source: Manual / Recurring / Reversal provenance; configurable journal-type catalog is pending,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F14,قيد عكسي تلقائي,required,implemented,AutomaticReversal boolean in create/edit/detail/list; default false for legacy records,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F15,تاريخ العكس,conditional,implemented,ReversalDate conditional input / AutomaticReversalDate nullable historical due date; SQL 026,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F16,الحساب,required,implemented,Lines[].AccountId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F17,مدين,required,implemented,Lines[].Debit,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F18,دائن,required,implemented,Lines[].Credit,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F19,عملة السطر,required,implemented,Lines[].CurrencyCode,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F20,سعر السطر,required,implemented,Lines[].ExchangeRate (ExchangeRateId on input),GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F21,مركز التكلفة,conditional,implemented,Lines[].CostCenterId,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
 GL03,GL03-F22,المشروع,conditional,pending,,
 GL03,GL03-F23,الطرف,conditional,pending,,
-GL03,GL03-F24,بيان السطر,required,implemented,Lines[].Description,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F25,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F26,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F27,رقم إصدار التعديل,system,implemented,Revision: server integer; Version UUID is a separate concurrency token,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL03,GL03-F28,آخر تعديل,system,implemented,LastModifiedAt server datetimeoffset; successful edit/workflow/reversal link mutation; atomic with audit and receipt,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F24,بيان السطر,required,implemented,Lines[].Description,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F25,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F26,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F27,رقم إصدار التعديل,system,implemented,Revision: server integer; Version UUID is a separate concurrency token,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL03,GL03-F28,آخر تعديل,system,implemented,LastModifiedAt server datetimeoffset; successful edit/workflow/reversal link mutation; atomic with audit and receipt,GET/POST /companies/{companyId}/journals; GET/PUT /journals/{id}; GET /journals/{id}/impact-preview|print (manual HTML); POST /companies/{companyId}/journals/reversals/run-due
 GL04,GL04-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events
 GL04,GL04-F02,الفرع,conditional,partial,"BranchId required; analysis marks branch conditional, no company-wide template policy yet",GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events
 GL04,GL04-F03,الحالة,system,implemented,IsActive,GET/POST /companies/{companyId}/recurring-journals; GET/PUT /recurring-journals/{id}; POST /status|generate|run-due; GET /generations|schedule|audit-events
@@ -359,25 +359,25 @@ GL06,GL06-F10,أنشأه,system,implemented,JournalProcessingBatch.ActorId / Jou
 GL06,GL06-F11,وقت الإنشاء,system,implemented,JournalProcessingBatch.CreatedAt: server time,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}
 GL06,GL06-F12,رقم إصدار التعديل,system,implemented,JournalProcessingBatch.Revision: integer independent of Version UUID,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}
 GL06,GL06-F13,آخر تعديل,system,implemented,JournalProcessingBatch.LastModifiedAt: server time; recorded per-item audit,POST /companies/{companyId}/journals/{id}/post; GET /journals/processing-queue; GET /{id}/processing-preview|processing-history; POST /journals/process-batch; GET /journals/processing-batches/by-key/{batchKey}
-GL07,GL07-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F02,الشركة,system,implemented,CompanyId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F03,الفرع,required,implemented,BranchId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F04,السنة,system,derived,FiscalPeriod.FiscalYearId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F05,رقم المستند,system,implemented,Number,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F06,تاريخ الوثيقة,required,implemented,DocumentDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F07,تاريخ الأثر,required,implemented,AccountingDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F08,العملة,required,partial,Lines[].CurrencyCode copied from original,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F09,سعر الصرف,required,partial,Lines[].ExchangeRate copied from original,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F10,البيان,required,implemented,Description,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F11,المرجع الخارجي,optional,implemented,ExternalReference,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F12,الحالة,system,implemented,State,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F13,القيد الأصلي,required,implemented,ReversesJournalId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F14,سبب العكس,required,implemented,ReversalReason,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F15,تاريخ العكس,required,implemented,AccountingDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F16,أنشأه,system,implemented,CreatedBy,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F17,وقت الإنشاء,system,implemented,CreatedAt,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F18,رقم إصدار التعديل,system,implemented,JournalEntry.Revision: server integer separate from Version UUID,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
-GL07,GL07-F19,آخر تعديل,system,implemented,"JournalEntry.LastModifiedAt: server datetimeoffset, shared journal audit",POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F01,المعرف الداخلي,system,implemented,JournalEntry.Id,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F02,الشركة,system,implemented,CompanyId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F03,الفرع,required,implemented,BranchId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F04,السنة,system,derived,FiscalPeriod.FiscalYearId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F05,رقم المستند,system,implemented,Number,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F06,تاريخ الوثيقة,required,implemented,DocumentDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F07,تاريخ الأثر,required,implemented,AccountingDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F08,العملة,required,partial,Lines[].CurrencyCode copied from original,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F09,سعر الصرف,required,partial,Lines[].ExchangeRate copied from original,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F10,البيان,required,implemented,Description,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F11,المرجع الخارجي,optional,implemented,ExternalReference,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F12,الحالة,system,implemented,State,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F13,القيد الأصلي,required,implemented,ReversesJournalId,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F14,سبب العكس,required,implemented,ReversalReason,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F15,تاريخ العكس,required,implemented,AccountingDate,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F16,أنشأه,system,implemented,CreatedBy,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F17,وقت الإنشاء,system,implemented,CreatedAt,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F18,رقم إصدار التعديل,system,implemented,JournalEntry.Revision: server integer separate from Version UUID,POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
+GL07,GL07-F19,آخر تعديل,system,implemented,"JournalEntry.LastModifiedAt: server datetimeoffset, shared journal audit",POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview|print (reversal HTML); POST /companies/{companyId}/journals/reversals/run-due
 GL08,GL08-F01,الشركة,system,pending,,
 GL08,GL08-F02,الفرع,conditional,pending,,
 GL08,GL08-F03,الحالة,system,pending,,
@@ -432,17 +432,17 @@ GL10,GL10-F11,أنشأه,system,pending,,
 GL10,GL10-F12,وقت الإنشاء,system,pending,,
 GL10,GL10-F13,رقم إصدار التعديل,system,pending,,
 GL10,GL10-F14,آخر تعديل,system,pending,,
-GL11,GL11-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
 GL11,GL11-F02,الفرع,conditional,pending,,
-GL11,GL11-F03,الحالة,system,partial,FiscalPeriod.IsClosed: general ledger only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F04,الفترة أو السنة,required,implemented,route.id (period only),POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F03,الحالة,system,partial,FiscalPeriod.IsClosed: general ledger only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F04,الفترة أو السنة,required,implemented,route.id (period only),POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
 GL11,GL11-F05,نوع الإقفال,required,pending,,
 GL11,GL11-F06,حساب الأرباح المرحلة,conditional,pending,,
-GL11,GL11-F07,فحص المطابقة,system,partial,PeriodClosePreview.Checks.Code: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F08,النتيجة,system,partial,PeriodClosePreview.Checks.Passed: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F09,المعتمد,system,audit,AuditEvent.ActorId: period.closed,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F10,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
-GL11,GL11-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview
+GL11,GL11-F07,فحص المطابقة,system,partial,PeriodClosePreview.Checks.Code: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F08,النتيجة,system,partial,PeriodClosePreview.Checks.Passed: general ledger checks only,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F09,المعتمد,system,audit,AuditEvent.ActorId: period.closed,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F10,أنشأه,system,audit,AuditEvent.ActorId,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
+GL11,GL11-F11,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,POST /companies/{companyId}/periods/{id}/close; GET /companies/{companyId}/periods/{id}/close-preview|execution-history
 GL11,GL11-F12,رقم إصدار التعديل,system,pending,,
 GL11,GL11-F13,آخر تعديل,system,pending,,
 GL12,GL12-F01,الشركة,system,implemented,route.companyId,POST /companies/{companyId}/periods/{id}/reopen
@@ -486,39 +486,39 @@ GL14,GL14-F10,أنشأه,system,partial,"CreatedBy: server actor field, no servi
 GL14,GL14-F11,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset only,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F12,رقم إصدار التعديل,system,partial,Revision: server int plus expected-revision domain guard; no API concurrency acceptance,internal EF model and SQL 027 only; no public GL14 API
 GL14,GL14-F13,آخر تعديل,system,partial,LastModifiedAt: datetimeoffset only,internal EF model and SQL 027 only; no public GL14 API
-CASH01,CASH01-F01,المعرف الداخلي,system,pending,,
-CASH01,CASH01-F02,الشركة,system,pending,,
-CASH01,CASH01-F03,الرمز,required,pending,,
-CASH01,CASH01-F04,الاسم العربي,required,pending,,
-CASH01,CASH01-F05,الاسم الإنجليزي,optional,pending,,
-CASH01,CASH01-F06,فعال,required,pending,,
-CASH01,CASH01-F07,ملاحظات,optional,pending,,
-CASH01,CASH01-F08,حساب الصندوق,required,pending,,
-CASH01,CASH01-F09,الفرع,required,pending,,
-CASH01,CASH01-F10,الأمين,required,pending,,
-CASH01,CASH01-F11,العملة,required,pending,,
-CASH01,CASH01-F12,سقف الرصيد,optional,pending,,
-CASH01,CASH01-F13,أنشأه,system,pending,,
-CASH01,CASH01-F14,وقت الإنشاء,system,pending,,
-CASH01,CASH01-F15,رقم إصدار التعديل,system,pending,,
-CASH01,CASH01-F16,آخر تعديل,system,pending,,
-CASH02,CASH02-F01,المعرف الداخلي,system,pending,,
-CASH02,CASH02-F02,الشركة,system,pending,,
-CASH02,CASH02-F03,الرمز,required,pending,,
-CASH02,CASH02-F04,الاسم العربي,required,pending,,
-CASH02,CASH02-F05,الاسم الإنجليزي,optional,pending,,
-CASH02,CASH02-F06,فعال,required,pending,,
-CASH02,CASH02-F07,ملاحظات,optional,pending,,
-CASH02,CASH02-F08,اسم البنك,required,pending,,
-CASH02,CASH02-F09,رقم الحساب,required,pending,,
-CASH02,CASH02-F10,IBAN,conditional,pending,,
-CASH02,CASH02-F11,حساب الأستاذ,required,pending,,
-CASH02,CASH02-F12,العملة,required,pending,,
-CASH02,CASH02-F13,الفرع,required,pending,,
-CASH02,CASH02-F14,أنشأه,system,pending,,
-CASH02,CASH02-F15,وقت الإنشاء,system,pending,,
-CASH02,CASH02-F16,رقم إصدار التعديل,system,pending,,
-CASH02,CASH02-F17,آخر تعديل,system,pending,,
+CASH01,CASH01-F01,المعرف الداخلي,system,implemented,CashBox.Id: server GUID,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F02,الشركة,system,implemented,CashBox.CompanyId from route,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F04,الاسم العربي,required,implemented,Name,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F05,الاسم الإنجليزي,optional,implemented,EnglishName,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F06,فعال,required,implemented,IsActive,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F08,حساب الصندوق,required,implemented,AccountId: active posting account,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F09,الفرع,required,implemented,BranchId: active authorized branch,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F10,الأمين,required,implemented,CustodianMembershipId: active membership in branch,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F11,العملة,required,implemented,CurrencyCode: active company currency,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F12,سقف الرصيد,optional,implemented,"BalanceLimit decimal(20,6)",GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F13,أنشأه,system,implemented,CreatedBy: server subject,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F14,وقت الإنشاء,system,implemented,CreatedAt: server UTC,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F15,رقم إصدار التعديل,system,implemented,Revision: server integer,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH01,CASH01-F16,آخر تعديل,system,implemented,LastModifiedAt: server UTC,GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|/{id}/usage|/{id}/audit-events; PUT /{id}; POST /{id}/status
+CASH02,CASH02-F01,المعرف الداخلي,system,partial,BankAccount.Id: internal GUID only,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F02,الشركة,system,partial,BankAccount.CompanyId: tenant key only,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F03,الرمز,required,partial,BankAccount.Code: nvarchar(32) unique per company,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F04,الاسم العربي,required,partial,BankAccount.Name: nvarchar(200),internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F05,الاسم الإنجليزي,optional,partial,BankAccount.EnglishName: nullable,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F06,فعال,required,partial,BankAccount.IsActive: blocked writes,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F07,ملاحظات,optional,partial,BankAccount.Notes: nullable,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F08,اسم البنك,required,partial,BankAccount.BankName: nvarchar(200),internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F09,رقم الحساب,required,partial,"BankAccount.AccountNumber: nvarchar(64), preserves leading zeros",internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F10,IBAN,conditional,partial,BankAccount.Iban: nullable canonical IBAN; conditional country requirement not implemented,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F11,حساب الأستاذ,required,partial,BankAccount.LedgerAccountId: tenant FK,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F12,العملة,required,partial,BankAccount.CurrencyCode: tenant FK,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F13,الفرع,required,partial,BankAccount.BranchId: tenant FK,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F14,أنشأه,system,partial,BankAccount.CreatedBy: internal actor,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F15,وقت الإنشاء,system,partial,BankAccount.CreatedAt: datetimeoffset,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F16,رقم إصدار التعديل,system,partial,BankAccount.Revision: positive int,internal EF/SQL schema 032 only; no CASH02 public API
+CASH02,CASH02-F17,آخر تعديل,system,partial,BankAccount.LastModifiedAt: datetimeoffset,internal EF/SQL schema 032 only; no CASH02 public API
 CASH03,CASH03-F01,المعرف الداخلي,system,pending,,
 CASH03,CASH03-F02,الشركة,system,pending,,
 CASH03,CASH03-F03,الفرع,required,pending,,

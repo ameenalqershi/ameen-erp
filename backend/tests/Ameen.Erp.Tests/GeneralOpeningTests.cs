@@ -31,6 +31,46 @@ public static class GeneralOpeningTests
                 after.Lines.Length == draft.Lines.Length &&
                 f.Store.Count<AuditEvent>() == auditCount && f.Store.Count<OutboxEvent>() == outboxCount);
         });
+        test("GL02-A07: print snapshot is a read-only authorized copy of historical opening", async f =>
+        {
+            var request = Request(f.Request(175.25m, 175.25m)) with
+            {
+                Description = "افتتاح أول المدة", ExternalReference = "000021-OPEN",
+                PreviousTrialBalanceReference = "TB-HIST-002"
+            };
+            var created = await Create(f, request);
+            var journal = await f.Journal(created.ResourceId);
+            var initialAudits = f.Store.Count<AuditEvent>();
+            var initialReceipts = f.Store.Count<IdempotencyRecord>();
+            var initialNumbers = f.Store.All<NumberSequence>().Sum(x => x.LastNumber);
+            var view = await f.Service.Journal.GeneralOpeningPrint(f.CompanyId, created.ResourceId, f.Clerk, default);
+            Ensure(view.JournalId == created.ResourceId && view.Number == journal.Number &&
+                view.CompanyName.Length > 0 && view.BranchName.Length > 0 &&
+                view.State == nameof(JournalState.Draft) &&
+                view.DocumentDate == journal.DocumentDate && view.AccountingDate == journal.AccountingDate &&
+                view.OperationStartsOn == request.OperationStartsOn && view.ExternalReference == "000021-OPEN" &&
+                view.PreviousTrialBalanceReference == "TB-HIST-002" &&
+                view.OpeningCurrency == "SAR" && view.OpeningExchangeRate == 1m &&
+                view.FunctionalCurrency == "SAR" && view.Description == "افتتاح أول المدة" &&
+                view.Revision == journal.OpeningRevision &&
+                view.Lines.Count == 2 && view.Lines.All(x => x.AccountCode.Length > 0 &&
+                    x.AccountName.Length > 0 && x.ExchangeRate == 1m && x.CurrencyCode == "SAR") &&
+                view.TotalDebit == 175.25m && view.TotalCredit == 175.25m &&
+                view.FunctionalDebit == 175.25m && view.FunctionalCredit == 175.25m);
+            var repeated = await f.Service.Journal.GeneralOpeningPrint(f.CompanyId, created.ResourceId, f.Clerk, default);
+            Ensure(repeated.Number == view.Number && repeated.Revision == view.Revision &&
+                repeated.Lines.Count == view.Lines.Count &&
+                f.Store.Count<AuditEvent>() == initialAudits &&
+                f.Store.Count<IdempotencyRecord>() == initialReceipts &&
+                f.Store.All<NumberSequence>().Sum(x => x.LastNumber) == initialNumbers &&
+                f.Store.Count<OutboxEvent>() == 0);
+            var other = await Create(f, Request(f.Request(branch: f.OtherBranchId)));
+            await Error("branch_access_denied", () => f.Service.Journal.GeneralOpeningPrint(
+                f.CompanyId, other.ResourceId, f.Limited, default));
+            var manual = await f.Draft();
+            await Error("general_opening_required", () => f.Service.Journal.GeneralOpeningPrint(
+                f.CompanyId, manual.ResourceId, f.Clerk, default));
+        });
         test("GL02-A05: opening impact preview is balanced, scoped and has no accounting writes", async f =>
         {
             var created = await Create(f, Request(f.Request(140m, 140m)));

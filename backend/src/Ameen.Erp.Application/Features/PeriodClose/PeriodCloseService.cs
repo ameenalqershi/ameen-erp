@@ -73,6 +73,21 @@ public sealed class PeriodCloseService : ApplicationService
         return new(id, period.Version, clock.UtcNow, true, checks.All(x => x.Passed), checks,
             journals.Count(PostedJournal), journals.Count(PendingJournal), new(issues.Skip(offset).Take(limit).ToArray(), issues.Count, offset, limit), openings.Count);
     }
+    public async Task<PeriodExecutionSummary> PeriodExecutionHistory(
+        Guid cid, Guid id, Actor actor, int offset, int limit, CancellationToken ct)
+    {
+        Paging(offset, limit);
+        await AuthorizeGlobal(cid, actor, Permissions.Read, ct);
+        await AuthorizeGlobal(cid, actor, Permissions.Audit, ct);
+        await AuthorizeGlobal(cid, actor, Permissions.PeriodClose, ct);
+        var period = await Required<FiscalPeriod>(cid, id, ct);
+        var history = await store.ReadPage<AuditEvent>(cid, x => x.ResourceId == id &&
+                (x.Action == "period.closed" || x.Action == "period.reopened"),
+            q => q.OrderByDescending(x => x.OccurredAt).ThenBy(x => x.Id),
+            offset, limit, ct);
+        return new(id, period.Code, period.IsClosed, period.Version, history);
+    }
+
     public Task<CommandReceipt> ChangePeriod(Guid cid, Guid id, Actor actor, string key, ChangePeriodRequest request, bool close, CancellationToken ct) =>
         Command(cid, actor, key, $"period.{(close ? "close" : "reopen")}:{id}", request,
             token => AuthorizeGlobal(cid, actor, close ? Permissions.PeriodClose : Permissions.PeriodReopen, token), async token =>
