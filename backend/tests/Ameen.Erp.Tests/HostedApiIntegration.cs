@@ -1431,6 +1431,41 @@ public static class HostedApiIntegration
                 Authenticate(Token("sql-approver"));
                 Console.WriteLine("  HOST PASS GL11-T02 close POST denies branch-only/nonmember JWT, no SQL side effects, OpenAPI security");
 
+                // GL11-T02/C01: a properly authorized HTTPS close must still
+                // refuse the pending journal discovered by close-preview.
+                // The rejected idempotency key remains reusable after a
+                // separately authorized repair, not recorded as a close.
+                var gl11PendingCounts = await ReadOnlyCounts(connection, companyId);
+                var gl11PendingKey = Fixture.Key();
+                using (var pendingClose = new HttpRequestMessage(HttpMethod.Post,
+                    gl11ClosePath))
+                {
+                    pendingClose.Headers.Add("Idempotency-Key", gl11PendingKey);
+                    pendingClose.Content = new StringContent(
+                        JsonSerializer.Serialize(new ChangePeriodRequest(gl11CloseVersion,
+                            "رفض إقفال فترة لها قيد معلق"), JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var gl11PendingDeniedResponse = await client.SendAsync(pendingClose);
+                    using var gl11PendingErrorBody = JsonDocument.Parse(
+                        await gl11PendingDeniedResponse.Content.ReadAsStringAsync());
+                    Ensure(gl11PendingDeniedResponse.StatusCode == HttpStatusCode.Conflict &&
+                        gl11PendingErrorBody.RootElement.GetProperty("code").GetString() == "unposted_journals",
+                        "GL11-T02 authorized close bypassed unposted journal HTTP blocker");
+                }
+                Ensure(gl11PendingCounts == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T02 rejected pending journal HTTP close changed SQL state");
+                await using (var gl11PendingDb = new ErpDbContext(
+                    new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options))
+                {
+                    var saved = await gl11PendingDb.Set<FiscalPeriod>().AsNoTracking()
+                        .SingleAsync(x => x.CompanyId == companyId && x.Id == periodId);
+                    Ensure(!saved.IsClosed && saved.Version == gl11CloseVersion &&
+                        !await gl11PendingDb.Set<IdempotencyRecord>().AnyAsync(x =>
+                            x.CompanyId == companyId && x.Key == gl11PendingKey),
+                        "GL11-T02 refused HTTP close mutated fiscal period or reserved receipt");
+                }
+                Console.WriteLine("  HOST PASS GL11-T02 authorized close POST returns 409 unposted_journals atomically without consuming Idempotency-Key");
+
                 // GL11-A05: history endpoint is read-only and requires a tenant-wide
                 // PeriodClose + Read + Audit permission set, not merely an OIDC token.
                 var closeHistoryPath = $"/api/v1/companies/{companyId}/periods/{periodId}/execution-history";
