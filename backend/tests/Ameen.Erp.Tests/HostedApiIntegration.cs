@@ -801,6 +801,44 @@ public static class HostedApiIntegration
                     Ensure(json.RootElement.GetProperty("journalCount").GetInt32() == 0, "Calendar HTTP usage failed");
                 Console.WriteLine("  HOST PASS SYS03 explicit periods, calendar state, search, usage and audit over HTTPS/JWT/SQL");
 
+                // SYS03-GAP04: closing a fiscal year is a GL12 period operation, never a delete
+                // or an untracked activation toggle on the SYS03 master card.
+                var fiscalDetailPath = calendarPath + $"/{fiscalYear.ResourceId}";
+                using (var before = await client.GetAsync(fiscalDetailPath))
+                using (var auditBefore = await client.GetAsync(fiscalDetailPath + "/audit-events"))
+                {
+                    Ensure(before.StatusCode == HttpStatusCode.OK && auditBefore.StatusCode == HttpStatusCode.OK,
+                        "SYS03-GAP04 baseline calendar or audit not accessible");
+                    var beforeBody = await before.Content.ReadAsStringAsync();
+                    var auditBeforeBody = await auditBefore.Content.ReadAsStringAsync();
+
+                    using var deniedDelete = await client.DeleteAsync(fiscalDetailPath);
+                    Ensure(deniedDelete.StatusCode == HttpStatusCode.MethodNotAllowed,
+                        "SYS03-GAP04 fiscal year could be deleted instead of closed");
+                    using var disable = new HttpRequestMessage(HttpMethod.Post, fiscalDetailPath + "/status");
+                    disable.Headers.Add("Idempotency-Key", Fixture.Key());
+                    disable.Content = new StringContent("{\\"isActive\\":false}", Encoding.UTF8, "application/json");
+                    using var deniedDisable = await client.SendAsync(disable);
+                    Ensure(deniedDisable.StatusCode == HttpStatusCode.NotFound,
+                        "SYS03-GAP04 fiscal year accepted an unsupported disable endpoint");
+
+                    using var after = await client.GetAsync(fiscalDetailPath);
+                    using var auditAfter = await client.GetAsync(fiscalDetailPath + "/audit-events");
+                    Ensure(after.StatusCode == HttpStatusCode.OK && auditAfter.StatusCode == HttpStatusCode.OK &&
+                        await after.Content.ReadAsStringAsync() == beforeBody &&
+                        await auditAfter.Content.ReadAsStringAsync() == auditBeforeBody,
+                        "SYS03-GAP04 rejected operations changed fiscal periods, state, or audit");
+                }
+                using (var openApi = JsonDocument.Parse(specJson))
+                {
+                    var routes = openApi.RootElement.GetProperty("paths");
+                    Ensure(!routes.GetProperty("/api/v1/companies/{companyId}/fiscal-years/{id}").TryGetProperty("delete", out _) &&
+                        !routes.TryGetProperty("/api/v1/companies/{companyId}/fiscal-years/{id}/status", out _),
+                        "SYS03-GAP04 unsupported lifecycle endpoints appeared in OpenAPI");
+                }
+                Console.WriteLine("  HOST PASS SYS03-GAP04 no delete/disable bypass; unchanged calendar and audit over HTTPS/JWT/SQL");
+
+
                 using var preflight = new HttpRequestMessage(HttpMethod.Options, path);
                 preflight.Headers.Add("Origin", "https://permitted.example");
                 preflight.Headers.Add("Access-Control-Request-Method", "POST");
