@@ -24,6 +24,30 @@ public static class CompanySqlIntegration
         Ensure((await Call(s => s.Company.ListCompanyAudit(cid, owner, 0, 20, default))).Items.Count(x => x.Action == "company.edited") == 1, "Company replay duplicated audit");
         Console.WriteLine("  SQL PASS SYS01 profile, nullable date, leading zeros and concurrent edit replay");
 
+        // SYS01-AC02: a persisted journal permanently blocks an unapproved functional
+        // currency switch, including when the journal was later cancelled.
+        await Call(s => s.Currency.CreateCurrency(cid, owner, Fixture.Key(),
+            new("NOK", 2, "كرونة نرويجية"), default));
+        var beforeConversion = await Call(s => s.Company.GetCompany(cid, owner, default));
+        var conversionKey = Fixture.Key();
+        int conversionAuditCount;
+        await using (var db = Context())
+            conversionAuditCount = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+        await Error("functional_currency_in_use", () => Call(s => s.Company.EditCompany(cid, owner,
+            conversionKey, CompanyTests.Edit(beforeConversion) with { FunctionalCurrency = "NOK" }, default)));
+        await using (var db = Context())
+        {
+            var persisted = await db.Set<Company>().SingleAsync(x => x.Id == cid);
+            Ensure(persisted.FunctionalCurrency == beforeConversion.FunctionalCurrency &&
+                persisted.CurrencyScale == beforeConversion.CurrencyScale &&
+                persisted.Revision == beforeConversion.Revision &&
+                persisted.Version == beforeConversion.Version &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == conversionAuditCount &&
+                !await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == conversionKey),
+                "SYS01-AC02 blocked conversion changed SQL company, audit or receipt");
+        }
+        Console.WriteLine("  SQL PASS SYS01-AC02 post-journal functional currency change is rejected atomically");
+
         var failureRequest = CompanyTests.Edit(company) with { Name = "فشل ثم إعادة" }; var failureKey = Fixture.Key();
         await using (var db = Context()) await db.Database.ExecuteSqlRawAsync("ALTER TABLE [AuditEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_CompanyAudit] CHECK ([Action] <> N'company.edited')");
         try
