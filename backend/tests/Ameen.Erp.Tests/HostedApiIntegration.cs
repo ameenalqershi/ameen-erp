@@ -2600,6 +2600,107 @@ public static class HostedApiIntegration
                         "CASH01 production audit has duplicate or missing create/edit events");
                 Console.WriteLine("  HOST PASS CASH01 SQL-backed HTTPS/OIDC/JWT create/read/edit/replay, account uniqueness, stale edit and audit");
 
+                // GL04-01: start a REAL opted-in recurring draft worker
+                // against this disposable SQL integration database, with
+                // a dedicated member limited to one new branch. This is
+                // never an activation of the VPS/production environment.
+                Authenticate(Token("sql-owner"));
+                var workerBranch = await Command(client, $"/api/v1/companies/{companyId}/branches",
+                    new CreateBranchRequest("GL04-WORKER-CI", "فرع عامل الدوريات", "مدينة", "عنوان"));
+                const string workerSubject = "gl04-recurring-worker-ci";
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest(workerSubject,
+                        new[] { Permissions.RecurringGenerate, Permissions.Draft },
+                        false, new[] { workerBranch.ResourceId }, null));
+                Authenticate(Token("sql-clerk"));
+                var workerTemplate = await Command(client, recurringPath, recurringRequest with
+                {
+                    BranchId = workerBranch.ResourceId,
+                    Name = "GL04 worker isolated monthly occurrence",
+                    GenerationMode = RecurringGenerationMode.Scheduled,
+                    StartsOn = Fixture.Date,
+                    EndsOn = Fixture.Date
+                });
+                using (var beforeHistory = await client.GetAsync(recurringPath + $"/{workerTemplate.ResourceId}/generations"))
+                using (var beforeJson = JsonDocument.Parse(await beforeHistory.Content.ReadAsStringAsync()))
+                    Ensure(beforeHistory.StatusCode == HttpStatusCode.OK &&
+                        beforeJson.RootElement.GetProperty("totalCount").GetInt32() == 0,
+                        "GL04-01 worker test template already has generated SQL occurrences");
+
+                await using (var workerApi = ApiHost.Build(Array.Empty<string>(), b =>
+                {
+                    b.Logging.ClearProviders();
+                    b.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                    {
+                        ["ConnectionStrings:Erp"] = connection,
+                        ["Authentication:Authority"] = issuer,
+                        ["Authentication:Audience"] = audience,
+                        ["RecurringScheduler:Enabled"] = "true",
+                        ["RecurringScheduler:ActorSubject"] = workerSubject,
+                        ["RecurringScheduler:IntervalMinutes"] = "1440"
+                    });
+                    b.WebHost.ConfigureKestrel(k => k.Listen(IPAddress.Loopback, 0,
+                        l => l.UseHttps(certificate)));
+                    b.Services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme,
+                        o => o.BackchannelHttpHandler = PinnedTransport(certificate));
+                }))
+                {
+                    await workerApi.StartAsync();
+                    try
+                    {
+                        RecurringJournalGeneration? generatedOccurrence = null;
+                        JournalEntry? generatedDraft = null;
+                        for (var attempt = 0; attempt < 100; attempt++)
+                        {
+                            await using var testScope = workerApi.Services.CreateAsyncScope();
+                            var db = testScope.ServiceProvider.GetRequiredService<ErpDbContext>();
+                            generatedOccurrence = await db.Set<RecurringJournalGeneration>().AsNoTracking()
+                                .FirstOrDefaultAsync(x => x.CompanyId == companyId &&
+                                    x.TemplateId == workerTemplate.ResourceId);
+                            if (generatedOccurrence is not null)
+                            {
+                                generatedDraft = await db.Set<JournalEntry>().AsNoTracking()
+                                    .SingleAsync(x => x.CompanyId == companyId &&
+                                        x.Id == generatedOccurrence.JournalId);
+                                break;
+                            }
+                            await Task.Delay(100);
+                        }
+                        Ensure(generatedOccurrence is not null && generatedDraft is not null &&
+                            generatedDraft.State == JournalState.Draft &&
+                            generatedDraft.Source == JournalSource.Recurring &&
+                            generatedDraft.RecurringTemplateId == workerTemplate.ResourceId &&
+                            generatedDraft.BranchId == workerBranch.ResourceId &&
+                            generatedDraft.Lines.Sum(x => x.FunctionalDebit) ==
+                                recurringRequest.Lines.Sum(x => x.Debit) &&
+                            generatedDraft.Lines.Sum(x => x.FunctionalCredit) ==
+                                recurringRequest.Lines.Sum(x => x.Credit),
+                            "GL04-01 started opt-in recurring worker did not persist one unposted historical draft");
+                    }
+                    finally { await workerApi.StopAsync(); }
+                }
+
+                Authenticate(Token(workerSubject));
+                using (var due = new HttpRequestMessage(HttpMethod.Post, recurringPath + "/run-due"))
+                {
+                    due.Content = new StringContent(JsonSerializer.Serialize(
+                        new RunDueRecurringRequest(Fixture.Date, 10), JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var response = await client.SendAsync(due);
+                    using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        body.RootElement.GetProperty("selectedCount").GetInt32() == 0 &&
+                        body.RootElement.GetProperty("generatedCount").GetInt32() == 0,
+                        "GL04-01 restricted actor's re-scan duplicated a scheduler-created journal");
+                }
+                Authenticate(Token("sql-clerk"));
+                using (var afterHistory = await client.GetAsync(recurringPath + $"/{workerTemplate.ResourceId}/generations"))
+                using (var afterJson = JsonDocument.Parse(await afterHistory.Content.ReadAsStringAsync()))
+                    Ensure(afterHistory.StatusCode == HttpStatusCode.OK &&
+                        afterJson.RootElement.GetProperty("totalCount").GetInt32() == 1,
+                        "GL04-01 real opted-in worker did not retain exactly one durable SQL occurrence");
+                Console.WriteLine("  HOST PASS GL04-01 started opt-in recurring worker branch-scoped: one Draft, no auto-post or replay, isolated SQL");
+
             }
             finally { await api.StopAsync(); }
         }
