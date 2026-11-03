@@ -21,6 +21,25 @@ public static class ItemGroupUsageTests
         f.Service.ItemGroup.ListItemGroupItems(f.CompanyId, group, f.Owner, descendants, active, offset, limit, default);
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV02-GAP02: stocked items require both accounts and lock mapped group structure", async f =>
+        {
+            var request = await ItemTests.Setup(f);
+            var root = await f.Service.ItemGroup.GetItemGroup(f.CompanyId, request.GroupId, f.Owner, default);
+            var noStock = await f.Service.ItemGroup.CreateItemGroup(f.CompanyId, f.Owner, Fixture.Key(),
+                new("NO-STOCK", "بلا حساب مخزون", root.SalesAccountId), default);
+            await Error("stock_accounts_required", () => f.Service.Item.CreateItem(f.CompanyId, f.Owner,
+                Fixture.Key(), request with { Code = "REJECT-STOCK", GroupId = noStock.ResourceId,
+                    Units = request.Units.Select(x => x with { Barcode = null }).ToArray() }, default));
+            var created = await Add(f, new Tree(root.Id, Guid.Empty, Guid.Empty, Guid.Empty, request), root.Id, "LOCK-STOCK");
+            var saved = await f.Service.ItemGroup.GetItemGroup(f.CompanyId, root.Id, f.Owner, default);
+            await Error("item_group_in_use", () => f.Service.ItemGroup.EditItemGroup(f.CompanyId, root.Id,
+                f.Owner, Fixture.Key(), ItemGroupTests.Edit(saved) with { Code = "OTHER" }, default));
+            await f.Service.Item.SetItemStatus(f.CompanyId, created.ResourceId, f.Owner, Fixture.Key(),
+                new(created.Version, false, "إيقاف"), default);
+            var usage = await f.Service.ItemGroup.GetItemGroupUsage(f.CompanyId, root.Id, f.Owner, default);
+            Ensure(usage.StructureLocked && usage.SubtreeItems == 1 && usage.ActiveSubtreeItems == 0 &&
+                f.Store.Count<JournalEntry>() == 0 && f.Store.Count<StockMovement>() == 0);
+        });
         test("INV02 usage: direct and descendant counts exclude unrelated groups without double counting", async f =>
         {
             var t = await Setup(f); await Add(f, t, t.Root, "01"); await Add(f, t, t.Child, "02"); await Add(f, t, t.Leaf, "03"); await Add(f, t, t.Other, "04");
