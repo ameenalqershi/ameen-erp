@@ -89,8 +89,14 @@ public static class BranchSqlIntegration
         var legacyRequest = new CreateJournalRequest(b.Id, new DateOnly(2026, 1, 15),
             new DateOnly(2026, 1, 15), "فحص جاهزية فرع قديم", null,
             Array.Empty<JournalLineRequest>());
+        // A scoped actor is required so the readiness guard, not authorization,
+        // is the reason this legacy branch refuses operational writes.
+        var legacyActor = new Actor("sys02-legacy-branch-qa");
+        await Call(s => s.Membership.GrantMembership(cid, owner, Fixture.Key(),
+            new GrantMembershipRequest(legacyActor.Subject,
+                new[] { Permissions.Read, Permissions.Draft }, false, new[] { b.Id }, null), default));
         await Error("branch_profile_incomplete", () =>
-            Call(s => s.Journal.CreateJournal(cid, new Actor("sql-clerk"), Fixture.Key(), legacyRequest, default)));
+            Call(s => s.Journal.CreateJournal(cid, legacyActor, Fixture.Key(), legacyRequest, default)));
         await Error("branch_profile_incomplete", () =>
             Call(s => s.Branch.SetBranchStatus(cid, b.Id, owner, Fixture.Key(),
                 new(b.Version, true, "تفعيل"), default)));
