@@ -1,5 +1,12 @@
 # سجل تقدم وتسليم الباك إند
 
+## GL03-FG03 — تحقق حقل البيان والمرجع الخارجي والحالة (3 نوفمبر 2026)
+
+على فرع `gl` المحدث من `main=23f47d3d6b0ef728f8064ef933e14ff6cd0dcca0`، أضيف قبول مستقل للحقول `GL03-F10` و`GL03-F11` و`GL03-F12` دون تغيير قواعد المالية: اختبار مجال إيجابي/سلبي للبيان العربي Unicode والمرجع الخارجي الذي يحفظ الأصفار البادئة، والبحث ضمن الشركة/الفرع/المصدر والحالة النظامية `Draft/Submitted`، والتعديل مع إعادة نفس مفتاح الطلب ورفع Revision مرة واحدة فقط. اختبارات الرفض تتحقق من الحقل الفارغ ومحارف التحكم وطول المرجع الأكبر من 100 ومن **ذرية عدم إنشاء قيد أو تدقيق أو سجل طلب أو استهلاك رقم**. أُضيف اختبار SQL مستقل `JournalHeaderFieldsSqlIntegration.cs` على قاعدة مؤقتة، واختبار HTTPS/JWT/SQL على API الإنتاجية داخل `JournalHeaderFieldsHttpIntegration.cs` مع منع العميل من إرسال حالة مزوّرة.
+
+فحوص المجال/النموذج/HTTP/OpenAPI المحلية على .NET 10: **377/377 PASS، صفر فشل**. اختبار SQL الحقيقي وHTTPS/JWT/SQL يحتاج اجتياز GitHub CI على SHA الجديد. **GL03-F09 ما زال جزئيًا:** قاموس الأصل يطلب سعر صرف في header بينما النموذج المالي الحالي يعرّف العملة والسعر على السطور؛ لا يُنشأ سعر رأس مصطنع ولا يُعدّ GL03-FG03 مكتملًا قبل اعتماد توافق عقد الرأس مع قيود متعددة العملات. لا تعديل في التحليل أو المخططات الأصلية أو SQL migrations أو سلوك الترحيل.
+
+
 ## SYS04-CTRL01 — verified currency precision and functional currency guard (3 November 2026)
 
 The source control `SYS04-CTRL01` forbids retroactive precision changes and locates functional currency configuration in SYS01 company. Current `CurrencyService` enforces forbidden functional-currency disable and scale edits, and rejects precision changes once cards are referenced by accounts, FX rates, journals or recurring templates. Domain and service tests cover these references, active status, audit, rollback, idempotency and permission; the added production HTTPS/JWT/SQL negative acceptance `SYS04-AC02` demonstrates an in-use CAD account prevents a scale 2→3 edit without changing revision, version or audit. This rule was already implemented and is now accepted under the same successful **375/375 branch and PR CI** linked in the SYS04-AC02 evidence above. No new financial policy or original-analysis edits; broader SYS04 migration decisions remain open.

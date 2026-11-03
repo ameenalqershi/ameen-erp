@@ -1214,6 +1214,11 @@ public static class HostedApiIntegration
                         "SYS02-GAP02 explicit journal cost center did not persist through SQL");
                 Console.WriteLine("  HOST PASS SYS02-GAP02 branch default metadata does not inject journal cost center; required and explicit cases over HTTPS/JWT/SQL");
 
+                // GL03-F10/F11/F12: keep the independent journal-header regression at the end
+                // so it cannot affect accounting totals asserted by the other host scenarios.
+                Authenticate(Token("sql-clerk"));
+                await JournalHeaderFieldsHttpIntegration.Run(client, path, journalRequest);
+
 
 
             }
