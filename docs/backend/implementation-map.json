@@ -6,11 +6,11 @@
   "partially_implemented_screens": 33,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 327,
+    "implemented": 328,
     "audit": 49,
     "derived": 5,
     "partial": 79,
-    "pending": 2299
+    "pending": 2298
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -624,7 +624,7 @@
         },
         "GL14-F06": {
           "status": "partial",
-          "binding": "Origin: Manual/Automatic enum plus domain-only MatchesSource guard; no GL03 enforcement"
+          "binding": "Origin: Manual/Automatic enum plus domain-only MatchesSource guard; unknown hydrated values fail closed in domain acceptance; no GL03 enforcement"
         },
         "GL14-F07": {
           "status": "partial",
@@ -1296,7 +1296,11 @@
         },
         "GL07-F18": {
           "status": "implemented",
-          "binding": "Version"
+          "binding": "JournalEntry.Revision: server integer separate from Version UUID"
+        },
+        "GL07-F19": {
+          "status": "implemented",
+          "binding": "JournalEntry.LastModifiedAt: server datetimeoffset, shared journal audit"
         },
         "GL07-F04": {
           "status": "derived",

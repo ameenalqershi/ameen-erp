@@ -110,7 +110,7 @@ screen("GL14", "internal EF model and SQL 027 only; no public GL14 API",
 for n, binding in {
     1:"CompanyId: EF/SQL tenant key only", 2:"BranchId: nullable tenant FK only",
     3:"IsActive: persisted server state only", 4:"Code: nvarchar(32) unique per company only",
-    5:"Name: nvarchar(200) only", 6:"Origin: Manual/Automatic enum plus domain-only MatchesSource guard; no GL03 enforcement",
+    5:"Name: nvarchar(200) only", 6:"Origin: Manual/Automatic enum plus domain-only MatchesSource guard; unknown hydrated values fail closed in domain acceptance; no GL03 enforcement",
     7:"NumberSeriesId: tenant FK; active/scope checks pending", 8:"ApprovalRouteId: required tenant FK via SQL 028; active route validation pending",
     9:"RequiresAttachment: bit only", 10:"CreatedBy: server actor field, no service",
     11:"CreatedAt: datetimeoffset only", 12:"Revision: server int plus expected-revision domain guard; no API concurrency acceptance",
@@ -185,7 +185,7 @@ MAP["GL06"]["fields"]["GL06-F08"] = dict(status="implemented", binding="JournalP
 screen("GL07", "POST /companies/{companyId}/journals/{id}/reverse; GET /companies/{companyId}/journals/{id}/impact-preview; POST /companies/{companyId}/journals/reversals/run-due",
        "مسودة عكس مرتبطة ثم اعتماد وترحيل؛ نسخ المبالغ التاريخية حرفيًا؛ تشغيل العكس المجدول للقيود اليدوية المرحّلة المستحقة فقط عبر فحص مفوض وفرعي مع إنشاء مسودة عكس مستقلة بلا اعتماد/ترحيل آلي؛ سجل تاريخي يمنع تكرار التوليد بعد الإلغاء؛ ترقية SQL 026 وعكس ذري قابل لإعادة المحاولة؛ معاينة أثر مسودة العكس بسعر ومبالغ تاريخية معكوسة حرفيًا وفرق اتزان قبل الاعتماد دون تعديل الأستاذ أو سجل التدقيق",
        "عكس مستندات الدفاتر المساعدة وفحص التبعيات والضريبة؛ مشغل العكس اختياري وغير مثبت التفعيل في الإنتاج؛ الأنواع غير اليدوية تظل تعكس من مستند المصدر",
-       {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 13: "ReversesJournalId", 14: "ReversalReason", 15: "AccountingDate", 16: "CreatedBy", 17: "CreatedAt", 18: "Version"})
+       {1: "JournalEntry.Id", 2: "CompanyId", 3: "BranchId", 5: "Number", 6: "DocumentDate", 7: "AccountingDate", 10: "Description", 11: "ExternalReference", 12: "State", 13: "ReversesJournalId", 14: "ReversalReason", 15: "AccountingDate", 16: "CreatedBy", 17: "CreatedAt", 18: "JournalEntry.Revision: server integer separate from Version UUID", 19: "JournalEntry.LastModifiedAt: server datetimeoffset, shared journal audit"})
 MAP["GL07"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in
     ["JournalAuditTests.cs", "JournalImpactPreviewTests.cs", "ScheduledReversalTests.cs", "ScheduledReversalSqlIntegration.cs", "ScheduledReversalHostedIntegration.cs",
      "HttpIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs", "OpenApiSnapshotTests.cs"])

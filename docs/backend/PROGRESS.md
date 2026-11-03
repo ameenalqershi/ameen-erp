@@ -4,6 +4,13 @@
 
 This isolated SYS09-FG04 verification adds a domain regression that checks stale revision, invalid amount/currency, regressed audit timestamp, status update and stage replacement failures leave header, stages, audit values, and version unchanged; a valid edit advances revision and timestamp. No SYS09/GL14 write authorization, financial policy, original analysis, SQL schema, or production state changes. This test deliverable is not full SYS09-FG04 acceptance: audited SQL/HTTP administration remains blocked by SYS07 role policy and approved document-kind/FX mappings. Earlier branch SHA `d553cd6d401d2cc71b1d45b417c3dad96895db9e` passed [branch CI #41537610765](https://github.com/ameenalqershi/ameen-erp/actions/runs/41537610765) and [PR CI #41537618397](https://github.com/ameenalqershi/ameen-erp/actions/runs/41537618397), including isolated SQL Server, Release, HTTP/JWT and OpenAPI. The integration baseline `main=d02dbb0140a4c2e5cdf619d363c2ca9121d2743f` passed [main CI #41537496717](https://github.com/ameenalqershi/ameen-erp/actions/runs/41537496717). [PR #13](https://github.com/ameenalqershi/ameen-erp/pull/13) remains unmerged. The immediately following disabled-candidate section is a historical pre-merge checkpoint for a *different* SYS09-FG04 increment; its 'CI/main merge pending' statement does not describe current PR #13. The final documentation commit requires its own fresh branch and PR CI before acceptance. **0 new completed Notion tasks.**
 
+## GL14-T02 — negative source acceptance, bounded partial evidence (2 November 2026)
+
+Added one independent GL14-F06 regression for an unknown hydrated origin: source matching fails closed, reference preflight returns `InvalidSnapshot`, and restoring a valid origin still returns `UnresolvedPolicy`. No GL14 write, route activation, GL03 binding, or reversal policy was enabled. PR #17 rejected reference edit atomicity remains excluded. Local Release build and domain/model checks passed. Initial sandboxed `verify.py` ran **364/366**, with two HTTP/OpenAPI host failures due to blocked sockets; coordinator reran the exact branch on the authorized VPS host using .NET 10 and writable NuGet cache: **366/366 passed, 0 failed**, including HTTP and OpenAPI. Live SQL was not run locally; isolated SQL CI is required on the PR. GL14 remains partial; reversal separation needs an approved binding contract. Live GitHub PR overlap rechecked by the coordinator before PR creation.
+
+## GL07-F18/F19 — تصحيح ربط حقول التدقيق المشتركة (2 نوفمبر 2026)
+
+طُوبق قاموس الحقول الأصلي ومخطط GL وقيد اليومية المشترك: `GL07-F18` هو `JournalEntry.Revision` الصحيح، عدد صحيح يولده الخادم، و`Version` رمز UUID مستقل للتزامن؛ `GL07-F19` هو `JournalEntry.LastModifiedAt` بوقت الخادم. يوجد الحقلان في نموذج القيد، تخزين EF، وقراءة القيد/القائمة، ويغطي `JournalAuditTests` تقدم الإصدار والوقت عبر دورة العكس وفشل العمليات دون أثر. صُحح ربط التتبع والمصفوفات المولدة فقط؛ لم يتغير سلوك مالي أو تحليل أصلي أو مخطط SQL. تبقى شاشة GL07 **جزئية**: عكس المستندات التابعة والتبعيات والضرائب وتشغيل المجدول إنتاجيًا ضمن الفجوات الحالية، ولا يزيل تصحيح التدقيق هذه الموانع.
 
 ## SYS09-FG04 — disabled candidate does not reserve approval interval (3 November 2026)
 
@@ -463,6 +470,10 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 
 قبل أي استكمال: نفّذ فحص المصفوفات والسجل، واقرأ حالة Git. بعد دفعتك حدّث هذا القسم والنتيجة والمصفوفات؛ لا تترك عبارة «قيد التنفيذ» إذا سلمت دفعة مكتملة.
 
+## GL14-02 — isolated rejected-edit audit regression (AGENT-03, 2 November 2026)
+
+On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb0140a4c2e5cdf619d363c2ca9121d2743f`, a non-authorizing GL14 domain regression verifies that invalid number series or approval route references and regressed timestamps reject edits and disable without altering code, origin, references, name, attachment requirement, creator, audit timestamps, revision or optimistic version. A valid edit updates permitted fields and advances audit exactly once. Local .NET 10 Release and HTTP/OpenAPI test host: **366/366 passed, 0 failed**; traceability and progress checks succeeded. On head `d709d42920a9ed75cb1ef77e08e422f16265baa7`, [branch CI #41538563967](https://github.com/ameenalqershi/ameen-erp/actions/runs/41538563967) and [PR CI #41538585623](https://github.com/ameenalqershi/ameen-erp/actions/runs/41538585623) both **SUCCESS** including isolated SQL Server, Release, HTTP/JWT and OpenAPI. [PR #17](https://github.com/ameenalqershi/ameen-erp/pull/17) is unmerged; its final documentation SHA requires fresh CI. No original analysis/schema, SYS07/SYS09 guard, approved document-kind mapping, GL14 API, production writes or financial policy changed. **GL14-02 remains PARTIAL, 0 new completed Notion tasks.**
+
 <!-- generated-progress:start -->
 
 ## ملخص آلي من الأدلة المسجلة
@@ -471,7 +482,7 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 
 آخر تقرير محفوظ: `2026-11-02T19:37:11.777004+00:00`؛ النتيجة `passed`؛ 356/356، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (381/2759)؛ الحقول الجزئية: 79. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **13.8%** (382/2759)؛ الحقول الجزئية: 79. نسبة الشاشات التي بدأ تنفيذها: **22.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -499,9 +510,9 @@ python3 backend/scripts/verify.py --sql --dotnet /root/.dotnet10/dotnet
 | --- | --- |
 | audit | 49 |
 | derived | 5 |
-| implemented | 327 |
+| implemented | 328 |
 | partial | 79 |
-| pending | 2299 |
+| pending | 2298 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 

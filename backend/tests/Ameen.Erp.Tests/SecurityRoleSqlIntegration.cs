@@ -59,6 +59,22 @@ public static class SecurityRoleSqlIntegration
         db.Add(role);
         try { await db.SaveChangesAsync(); throw new Exception("SYS07 accepted unverified grant"); }
         catch (BusinessException ex) when (ex.Code == "security_role_policy_unavailable") { }
+        // SYS07-GAP01: never allow a detached role edit or deletion to bypass
+        // the currently unapproved role administration and audit policy.
+        foreach (var state in new[] { EntityState.Modified, EntityState.Deleted })
+        {
+            await using var guarded = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()
+                .UseSqlServer(connection).Options);
+            var candidate = new SecurityRole(companyId, null, "Guarded role",
+                "No runtime authorization", "sql-test", DateTimeOffset.UtcNow);
+            guarded.Entry(candidate).State = state;
+            try
+            {
+                await guarded.SaveChangesAsync();
+                throw new Exception($"Unverified SYS07 role {state} reached SQL");
+            }
+            catch (BusinessException ex) when (ex.Code == "security_role_policy_unavailable") { }
+        }
         await using var check = new ErpDbContext(new DbContextOptionsBuilder<ErpDbContext>()
             .UseSqlServer(connection).Options);
         Ensure(!await check.Set<SecurityRole>().AnyAsync() && !await check.Set<SecurityRoleRule>().AnyAsync(),

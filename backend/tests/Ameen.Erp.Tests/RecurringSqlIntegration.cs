@@ -153,6 +153,68 @@ FROM [RecurringJournalGenerations] WHERE [CompanyId]={cid} AND [TemplateId]={tem
                 "SQL scheduled generation automatically posted or lost provenance");
         }
         Console.WriteLine("  SQL PASS GL04-GP01 scheduled mode, nine due periods, replay uniqueness and draft-only accounting");
+        // GL04-T02: two independent SQL scopes must not create a second receipt or draft
+        // after the worker has committed a due batch. This also verifies that replay
+        // preserves audit, numbering and outbox state, not merely the occurrence count.
+        long replaySequence;
+        int replayAudits, replayReceipts, replayOutbox, replayJournals;
+        await using (var db = Context())
+        {
+            replaySequence = await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).Select(x => x.LastNumber).SingleAsync();
+            replayAudits = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            replayReceipts = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            replayOutbox = await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid);
+            replayJournals = await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid);
+        }
+        var replayWorkers = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ =>
+            Call(s => s.RecurringJournal.RunScheduledDue(cid, clerk, new DateOnly(2026, 9, 30), 100, default))));
+        Ensure(replayWorkers.All(x => x.SelectedCount == 0 && x.GeneratedCount == 0 && x.FailedCount == 0),
+            "Independent SQL scheduler workers selected already committed periods");
+        await using (var db = Context())
+        {
+            Ensure(await db.Set<RecurringJournalGeneration>().CountAsync(x => x.CompanyId == cid &&
+                x.TemplateId == scheduled.ResourceId) == 9, "Scheduler replay changed occurrence count");
+            Ensure(await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid) == replayJournals &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == replayAudits &&
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == replayReceipts &&
+                await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) == replayOutbox &&
+                await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).Select(x => x.LastNumber).SingleAsync() == replaySequence,
+                "Scheduler replay changed journal, audit, receipt, outbox or numbering");
+        }
+        Console.WriteLine("  SQL PASS GL04-T02 independent scheduled replay workers preserve all durable accounting effects");
+        // GL04-T02: a disabled scheduled template must not create due occurrences.
+        // The test uses an explicitly scoped branch, without assuming company-level templates.
+        var disabled = await Call(s => s.RecurringJournal.CreateRecurringJournal(cid, clerk, Fixture.Key(),
+            scheduledRequest with { Name = "SQL disabled scheduled template" }, default));
+        await Call(s => s.RecurringJournal.SetRecurringStatus(cid, disabled.ResourceId, clerk, Fixture.Key(),
+            new SetRecurringStatusRequest(disabled.Version, false, "Disabled before due generation"), default));
+        int disabledDraftCount, disabledAuditCount, disabledReceiptCount, disabledOutboxCount;
+        long disabledSequence;
+        await using (var db = Context())
+        {
+            disabledDraftCount = await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid);
+            disabledAuditCount = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            disabledReceiptCount = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            disabledOutboxCount = await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid);
+            disabledSequence = await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).Select(x => x.LastNumber).SingleAsync();
+        }
+        var disabledRun = await Call(s => s.RecurringJournal.RunScheduledDue(cid, clerk, new DateOnly(2026, 9, 30), 100, default));
+        Ensure(disabledRun.SelectedCount == 0 && disabledRun.GeneratedCount == 0 && disabledRun.FailedCount == 0,
+            "Disabled scheduled template was selected for generation");
+        await using (var db = Context())
+        {
+            Ensure(!await db.Set<RecurringJournalGeneration>().AnyAsync(x => x.CompanyId == cid &&
+                x.TemplateId == disabled.ResourceId), "Disabled scheduled template generated an occurrence");
+            Ensure(await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid) == disabledDraftCount &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == disabledAuditCount &&
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == disabledReceiptCount &&
+                await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) == disabledOutboxCount &&
+                await db.Set<NumberSequence>().Where(x => x.CompanyId == cid).Select(x => x.LastNumber).SingleAsync() == disabledSequence,
+                "Disabled scheduled template produced accounting side effects");
+        }
+        Console.WriteLine("  SQL PASS GL04-T02 disabled scheduled templates generate no drafts or durable side effects");
+
+
 
         var auditCard = await Call(s => s.RecurringJournal.CreateRecurringJournal(cid, clerk, Fixture.Key(),
             request with { Name = "SQL audit rollback" }, default));

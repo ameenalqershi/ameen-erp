@@ -29,11 +29,44 @@ Test("BR01 AT01: unbalanced journal cannot submit and remains draft", async f =>
     Assert((await f.Journal(draft.ResourceId)).State == JournalState.Draft);
     Assert(f.Store.Count<OutboxEvent>() == 0);
 });
+Test("GL03-T01/T02: balanced posting reaches ledger while rejected journal leaves no financial effect", async f =>
+{
+    var accepted = await f.Draft(f.Request(100, 100));
+    var rejected = await f.Draft(f.Request(100, 99));
+    var beforeOutbox = f.Store.Count<OutboxEvent>();
+    await Error("journal_unbalanced", () => f.Action(rejected, "submit"));
+    Assert((await f.Journal(rejected.ResourceId)).State == JournalState.Draft);
+    var submitted = await f.Action(accepted, "submit");
+    var approved = await f.Action(submitted, "approve", f.Approver);
+    await f.Action(approved, "post", f.Approver);
+    Assert((await f.Journal(accepted.ResourceId)).State == JournalState.Posted);
+    Assert((await f.Journal(rejected.ResourceId)).State == JournalState.Draft);
+    Assert(f.Store.Count<OutboxEvent>() == beforeOutbox + 1);
+    var ledger = await f.Service.Report.AccountLedger(f.CompanyId, f.CashId, f.Clerk,
+        new(2026, 10, 1), new(2026, 10, 31), null, 0, 10, default);
+    Assert(ledger.Entries.TotalCount == 1 && ledger.ClosingBalance == 100,
+        "Rejected journal affected the ledger or valid posting was missing");
+});
 Test("BR01: line must contain exactly one positive side", async f =>
 {
     var request = f.Request(); request.Lines[0] = request.Lines[0] with { Credit = 1 };
     await Error("invalid_journal_side", () => f.Draft(request));
     Assert(f.Store.Count<JournalEntry>() == 0);
+});
+Test("GL03-T02: zero-side journal line rejects without persisting journal, audit or outbox", async f =>
+{
+    var initialJournals = f.Store.Count<JournalEntry>();
+    var initialAudits = f.Store.Count<AuditEvent>();
+    var initialOutbox = f.Store.Count<OutboxEvent>();
+    var initialReceipts = f.Store.Count<IdempotencyRecord>();
+    var request = f.Request();
+    request.Lines[0] = request.Lines[0] with { Debit = 0, Credit = 0 };
+    await Error("invalid_journal_side", () => f.Draft(request));
+    Assert(f.Store.Count<JournalEntry>() == initialJournals &&
+        f.Store.Count<AuditEvent>() == initialAudits &&
+        f.Store.Count<OutboxEvent>() == initialOutbox &&
+        f.Store.Count<IdempotencyRecord>() == initialReceipts,
+        "Rejected zero-side line changed journal, audit, outbox or receipt state");
 });
 Test("BR01: disallow negative or excessive precision amounts", async f =>
 {

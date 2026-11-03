@@ -226,6 +226,7 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK &&
                         json.RootElement.GetProperty("revision").GetInt32() == 3 &&
+                        json.RootElement.GetProperty("lastModifiedAt").GetDateTimeOffset() >= json.RootElement.GetProperty("createdAt").GetDateTimeOffset() &&
                         !json.RootElement.GetProperty("allSucceeded").GetBoolean() &&
                         json.RootElement.GetProperty("rows").GetArrayLength() == 2,
                         "GL06 durable processing batch not retrievable over HTTPS/JWT/SQL");
@@ -236,6 +237,45 @@ public static class HostedApiIntegration
                 using (var response = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     await Command(client, path + $"/{processingSubmitted.ResourceId}/post", new TransitionRequest(json.RootElement.GetProperty("version").GetGuid()));
+                // GL06-T01 positive acceptance: submit, approve and post through the
+                // production HTTPS/JWT batch endpoint, then replay its durable key.
+                Authenticate(Token("sql-clerk"));
+                var positiveDraft = await Command(client, path, journalRequest);
+                var positiveSubmitted = await Command(client, path + $"/{positiveDraft.ResourceId}/submit",
+                    new TransitionRequest(positiveDraft.Version));
+                Authenticate(Token("sql-approver"));
+                var positiveApproved = await Command(client, path + $"/{positiveDraft.ResourceId}/approve",
+                    new TransitionRequest(positiveSubmitted.Version));
+                var positiveBatchKey = Fixture.Key();
+                var positiveRequest = new ProcessJournalsRequest("post",
+                    new[] { new JournalProcessingItem(positiveApproved.ResourceId, positiveApproved.Version, Fixture.Key()) }, positiveBatchKey);
+                string? firstRow = null;
+                for (var replayAttempt = 0; replayAttempt < 2; replayAttempt++)
+                {
+                    using var response = await client.PostAsync(path + "/process-batch",
+                        new StringContent(JsonSerializer.Serialize(positiveRequest, JsonDefaults.Options), Encoding.UTF8, "application/json"));
+                    using var positiveBody = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.OK && positiveBody.RootElement.GetProperty("allSucceeded").GetBoolean() &&
+                        positiveBody.RootElement.GetProperty("succeededCount").GetInt32() == 1 &&
+                        positiveBody.RootElement.GetProperty("failedCount").GetInt32() == 0,
+                        "GL06 positive HTTPS/JWT batch posting failed");
+                    var row = positiveBody.RootElement.GetProperty("rows")[0].GetRawText();
+                    Ensure(firstRow is null || firstRow == row, "GL06 positive HTTP posting replay changed receipt");
+                    firstRow = row;
+                }
+                using (var response = await client.GetAsync(path + "/processing-batches/by-key/" + positiveBatchKey))
+                using (var positiveBody = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        positiveBody.RootElement.GetProperty("revision").GetInt32() == 2 &&
+                        positiveBody.RootElement.GetProperty("allSucceeded").GetBoolean() &&
+                        positiveBody.RootElement.GetProperty("rows").GetArrayLength() == 1,
+                        "GL06 positive durable batch revision or outcome differed on HTTPS/JWT/SQL");
+                using (var response = await client.GetAsync(path + $"/{positiveDraft.ResourceId}"))
+                using (var positiveBody = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+                    Ensure(response.StatusCode == HttpStatusCode.OK &&
+                        positiveBody.RootElement.GetProperty("state").GetString() == "Posted",
+                        "GL06 positive batch did not persist posted journal state");
+                Console.WriteLine("  HOST PASS GL06-T01 positive batch post, durable replay and posted state over HTTPS/JWT/SQL");
                 Console.WriteLine("  HOST PASS GL05/06 preview, mixed batch with per-item keys, replay and rejection history over HTTPS/JWT/SQL");
 
                 Authenticate(Token("sql-clerk"));

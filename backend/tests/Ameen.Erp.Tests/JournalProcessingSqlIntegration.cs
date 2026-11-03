@@ -125,6 +125,43 @@ public static class JournalProcessingSqlIntegration
                     x.Action == "journal.processing.batch-item") == 3,
                 "GL06 technical-failure attempt/audit history was not immutable across retry");
         }
+        // AT03: replay the finished durable batch from a fresh SQL scope. A replay must
+        // not increment its revision, append another decision audit or emit another event.
+        var recoveredReplay = await Call(s => s.Journal.ProcessJournals(cid, approver, durableRequest, default));
+        Ensure(recoveredReplay.Rows.SequenceEqual(retried.Rows) && recoveredReplay.AllSucceeded,
+            "AT03 durable SQL replay changed the original posting receipts");
+        await using (var db = Context())
+        {
+            var batch = await db.Set<JournalProcessingBatch>().SingleAsync(x => x.CompanyId == cid && x.BatchKey == durableKey);
+            var ids = retryItems.Select(x => x.JournalId).ToArray();
+            Ensure(batch.Revision == 4 && batch.Rows().Length == retryItems.Length,
+                "AT03 replay advanced an already completed durable batch");
+            Ensure(await db.Set<OutboxEvent>().CountAsync(x => ids.Contains(x.ResourceId)) == 2,
+                "AT03 replay duplicated journal outbox effects");
+            Ensure(await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid && x.ResourceId == batch.Id &&
+                x.Action == "journal.processing.batch-item") == 3,
+                "AT03 replay appended a duplicate batch decision audit");
+        }
+        try
+        {
+            await Call(s => s.Journal.ProcessJournals(cid, approver,
+                durableRequest with { Items = retryItems.Reverse().ToArray() }, default));
+            throw new Exception("AT03 reused batch key with different request was accepted");
+        }
+        catch (BusinessException e) when (e.Code == "idempotency_conflict") { }
+        Console.WriteLine("  SQL PASS AT03 durable completed-batch replay, stable revision/outbox/audit and changed-payload rejection");
+        // GL06-A05: durable result history must not be disclosed to another
+        // authenticated actor, even when that actor created the source journal.
+        try
+        {
+            await Call(s => s.Journal.DurableBatch(cid, clerk, durableKey, default));
+            throw new Exception("GL06 durable batch leaked results to a different actor");
+        }
+        catch (BusinessException e) when (e.Code == "processing_batch_not_found") { }
+        var originalHistory = await Call(s => s.Journal.DurableBatch(cid, approver, durableKey, default));
+        Ensure(originalHistory.Rows.Length == 2 && originalHistory.AllSucceeded,
+            "GL06 durable batch result unavailable to its authorized actor");
+        Console.WriteLine("  SQL PASS GL06-A05 durable result history is owner-scoped without cross-actor disclosure");
         Console.WriteLine("  SQL PASS GL06-GP02 durable technical errors, independent retry, action revision and audit history");
         // Simulate stale tracked membership/period reads in a reused scoped service, then revoke externally.
         await using (var db = Context())
@@ -146,6 +183,34 @@ public static class JournalProcessingSqlIntegration
             }
         }
         Console.WriteLine("  SQL PASS GL05/06 mixed concurrent batch replay, durable rejection, per-document rollback/retry, history and refreshed authorization");
+        // GL06-T02 extra concurrency acceptance: the same durable key must not create
+        // multiple batch headers, decision records or financial outbox events.
+        var concurrentApproved = await Approve(await Draft());
+        var concurrentBatchKey = Fixture.Key();
+        var concurrentItem = new JournalProcessingItem(concurrentApproved.ResourceId,
+            concurrentApproved.Version, Fixture.Key());
+        var concurrentRequest = new ProcessJournalsRequest("post",
+            new[] { concurrentItem }, concurrentBatchKey);
+        var concurrentResults = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ =>
+            Call(s => s.Journal.ProcessJournals(cid, approver, concurrentRequest, default))));
+        Ensure(concurrentResults.All(x => x.AllSucceeded && x.Rows.Length == 1 &&
+            x.Rows[0].Receipt == concurrentResults[0].Rows[0].Receipt),
+            "GL06 concurrent durable batch replays diverged");
+        await using (var db = Context())
+        {
+            var batches = await db.Set<JournalProcessingBatch>().Where(x => x.CompanyId == cid &&
+                x.BatchKey == concurrentBatchKey).ToArrayAsync();
+            Ensure(batches.Length == 1 && batches[0].Revision == 2 &&
+                batches[0].Rows().Length == 1,
+                "GL06 concurrent durable replay duplicated or advanced the batch header");
+            Ensure(await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid &&
+                x.ResourceId == concurrentApproved.ResourceId) == 1,
+                "GL06 concurrent durable replay duplicated financial outbox events");
+            Ensure(await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid &&
+                x.ResourceId == batches[0].Id && x.Action == "journal.processing.batch-item") == 1,
+                "GL06 concurrent durable replay duplicated batch decision history");
+        }
+        Console.WriteLine("  SQL PASS GL06 concurrent durable batch key preserves one header, one decision and one outbox");
         // GL02-GP01: verify the real persisted SQL snapshot, posted reversal and dated FX constraint.
         await Call(s => s.Currency.CreateCurrency(cid, owner, Fixture.Key(), new("CHF", 2, "فرنك"), default));
         var datedRate = await Call(s => s.ExchangeRate.CreateExchangeRate(cid, owner, Fixture.Key(),
