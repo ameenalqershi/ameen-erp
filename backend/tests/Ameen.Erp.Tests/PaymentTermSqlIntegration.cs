@@ -25,6 +25,17 @@ public static class PaymentTermSqlIntegration
             "SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name='PaymentTerms'").SingleAsync()==0,
             "SYS16 failed schema left an orphaned card table");
         await db.Database.ExecuteSqlRawAsync("DROP TABLE [PaymentTermLines]");
+        // Simulate a concurrently shipped module using version 033 before
+        // SYS16. A missing SYS16 table must cause an explicit rejection.
+        await db.Database.ExecuteSqlRawAsync(
+            "INSERT dbo.__AmeenSchemaVersions([Version],[AppliedAt]) VALUES(33,SYSUTCDATETIME())");
+        await Reject("schema 033 owned by another feature",
+            db.Database.ExecuteSqlRawAsync(script),51002);
+        Ensure(await db.Database.SqlQueryRaw<int>(
+            "SELECT COUNT(*) AS [Value] FROM sys.tables WHERE name IN ('PaymentTerms','PaymentTermLines')")
+            .SingleAsync()==0,"SYS16 wrong-owner migration created a partial table");
+        await db.Database.ExecuteSqlRawAsync(
+            "DELETE FROM dbo.__AmeenSchemaVersions WHERE [Version]=33");
         await db.Database.ExecuteSqlRawAsync(script);
         await db.Database.ExecuteSqlRawAsync(script);
         Ensure(await db.Database.SqlQueryRaw<int>(
