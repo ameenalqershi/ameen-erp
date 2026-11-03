@@ -95,10 +95,10 @@ SYS06,SYS06-F10,البريد,optional,pending,,
 SYS06,SYS06-F11,اللغة,required,pending,,
 SYS06,SYS06-F12,حالة الحساب,required,partial,Membership.IsActive (ERP membership only),POST /companies/{companyId}/memberships/{id}/status
 SYS06,SYS06-F13,مصادقة إضافية,required,pending,,
-SYS06,SYS06-F14,أنشأه,system,pending,,
-SYS06,SYS06-F15,وقت الإنشاء,system,pending,,
-SYS06,SYS06-F16,رقم إصدار التعديل,system,partial,Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented,POST /companies/{companyId}/memberships/{id}/status
-SYS06,SYS06-F17,آخر تعديل,system,pending,,
+SYS06,SYS06-F14,أنشأه,system,partial,Membership.CreatedBy: real server grant actor on new memberships; older origins remain unknown,POST /companies/{companyId}/memberships/{id}/status
+SYS06,SYS06-F15,وقت الإنشاء,system,partial,Membership.CreatedAt: grant timestamp on new memberships; historical values stay NULL,POST /companies/{companyId}/memberships/{id}/status
+SYS06,SYS06-F16,رقم إصدار التعديل,system,partial,"Membership.Revision int?: numeric revision 1 at grant, increments on approved regrant/status; GUID Version retains concurrency; old rows unknown",POST /companies/{companyId}/memberships/{id}/status
+SYS06,SYS06-F17,آخر تعديل,system,partial,Membership.LastModifiedAt: creation and successful regrant/status timestamp; old un-attributed rows remain unknown,POST /companies/{companyId}/memberships/{id}/status
 SYS07,SYS07-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F02,الفرع,conditional,partial,SecurityRole.BranchId: tenant FK only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F03,الحالة,system,partial,SecurityRole.IsActive: stored only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only

@@ -65,7 +65,14 @@ MAP["SYS05"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs;
 screen("SYS06", "POST /companies/{companyId}/memberships/{id}/status",
        "تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC", "شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا",
        {1: "Membership.Id", 2: "CompanyId"})
-MAP["SYS06"]["fields"]["SYS06-F16"] = dict(status="partial", binding="Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented")
+for n, binding in {
+    14:"Membership.CreatedBy: real server grant actor on new memberships; older origins remain unknown",
+    15:"Membership.CreatedAt: grant timestamp on new memberships; historical values stay NULL",
+    16:"Membership.Revision int?: numeric revision 1 at grant, increments on approved regrant/status; GUID Version retains concurrency; old rows unknown",
+    17:"Membership.LastModifiedAt: creation and successful regrant/status timestamp; old un-attributed rows remain unknown"
+}.items():
+    MAP["SYS06"]["fields"][f"SYS06-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["SYS06"]["test_file"] = "backend/tests/Ameen.Erp.Tests/Program.cs; backend/tests/Ameen.Erp.Tests/MembershipStatusSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/MembershipAuditSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
 screen("SYS07", "GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only",
        "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته؛ أساس كتالوج أدوار SYS07 وقواعد السماح/المنع وحد المبلغ/العملة وFK إلى SYS09؛ ربط مستخدم-دور SQL 030 ومقيّم مستقل غير مفعل؛ استبدال قواعد الدور ذريًا مع فحص إصدار التعديل؛ رفض لقطات الأدوار الناقصة أو العابرة للشركات وتكرار الروابط قبل تقييم المنح؛ رفض عناصر قواعد الدور الفارغة دون تغيير الدور (مجال فقط)؛ رفض اللقطات الداخلية ذات قواعد مكررة أو عابرة للشركات في تقييم الدور المباشر والمسنَد (مجال فقط)؛ رفض القواعد المحمّلة برموز غير قياسية أو سقف/عملة غير متسق وصفوف اللقطات الفارغة (مجال فقط)",
        "إدارة الأدوار وربطها بالعضويات عبر API وإنفاذ المنع الصريح ونطاق الفرع والمبلغ والعملة والعمليات المنفصلة والتدقيق وقبول API؛ كتابة الأدوار والروابط محجوبة",

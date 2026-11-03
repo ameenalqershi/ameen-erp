@@ -406,6 +406,40 @@ Test("SYS10: cancelled document numbers are never reused", async f =>
     var r = await f.Draft(); await f.Action(r, "cancel", reason: "إلغاء");
     Assert((await f.Draft()).Number == "JV-2026-000002");
 });
+Test("SYS06-FG05: new membership numeric revisions and replay are atomic", async f =>
+{
+    var prior = new Membership(f.CompanyId, "unknown-legacy", new[] { Permissions.Read },
+        true, Array.Empty<Guid>());
+    Assert(prior.CreatedBy is null && prior.CreatedAt is null && prior.Revision is null &&
+        prior.LastModifiedAt is null, "SYS06 fabricated legacy audit metadata");
+    var subject = "sys06-audit-member";
+    var granted = await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+        new(subject, new[] { Permissions.Read }, true, Array.Empty<Guid>(), null), default);
+    var member = f.Store.All<Membership>().Single(x => x.Id == granted.ResourceId);
+    Assert(member.CreatedBy == f.Owner.Subject && member.CreatedAt is not null &&
+        member.LastModifiedAt == member.CreatedAt && member.Revision == 1,
+        "SYS06 member not initialized with real actor/time and numeric revision");
+    var key = Fixture.Key();
+    var edit = await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, key,
+        new(subject, new[] { Permissions.Read, Permissions.Members }, true,
+            Array.Empty<Guid>(), granted.Version), default);
+    var auditBeforeReplay = f.Store.Count<AuditEvent>();
+    var replay = await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, key,
+        new(subject, new[] { Permissions.Read, Permissions.Members }, true,
+            Array.Empty<Guid>(), granted.Version), default);
+    Assert(edit == replay && member.Revision == 2 &&
+        f.Store.Count<AuditEvent>() == auditBeforeReplay,
+        "SYS06 replay advanced audit revision or duplicated history");
+    await Error("version_conflict", () => f.Service.Membership.SetMembershipStatus(
+        f.CompanyId, member.Id, f.Owner, Fixture.Key(),
+        new(granted.Version, false, "نسخة قديمة"), default));
+    Assert(member.Revision == 2 && member.IsActive, "SYS06 stale update mutated member");
+    await f.Service.Membership.SetMembershipStatus(f.CompanyId, member.Id, f.Owner,
+        Fixture.Key(), new(edit.Version, false, "تعطيل موثق"), default);
+    var current = f.Store.All<Membership>().Single(x => x.Id == granted.ResourceId);
+    Assert(current.Revision == 3 && !current.IsActive &&
+        current.LastModifiedAt >= current.CreatedAt, "SYS06 status did not advance revision");
+});
 Test("SYS06: disabled membership immediately loses read and replay access", async f =>
 {
     var key = Fixture.Key(); await f.Draft(key: key);
