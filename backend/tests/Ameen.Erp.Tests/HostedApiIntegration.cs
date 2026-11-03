@@ -880,6 +880,43 @@ public static class HostedApiIntegration
                         "SYS04-OP03 unrelated actor read currency audit");
                 Authenticate(Token("sql-owner"));
                 Console.WriteLine("  HOST PASS SYS04-OP03 currency usage, audit, disabled history and forbidden access over HTTPS/JWT/SQL");
+
+                // SYS04-AC02: an existing account reference freezes currency
+                // precision even if no journal has been posted. The rejection
+                // must not mutate the card version or its audit history.
+                var sys04UsedCurrency = await Command(client, currenciesPath,
+                    new CreateCurrencyRequest("CAD", 2, "دولار كندي", "Canadian dollar"));
+                await Command(client, $"/api/v1/companies/{companyId}/accounts",
+                    new CreateAccountRequest("SYS04-CAD-REF", "حساب كندي", AccountType.Asset,
+                        null, true, false, false, "CAD", NormalBalance.Debit));
+                using (var negativeEdit = new HttpRequestMessage(HttpMethod.Put,
+                    currenciesPath + $"/{sys04UsedCurrency.ResourceId}"))
+                {
+                    negativeEdit.Headers.Add("Idempotency-Key", Fixture.Key());
+                    negativeEdit.Content = new StringContent(JsonSerializer.Serialize(
+                        new EditCurrencyRequest(sys04UsedCurrency.Version, 3, "دولار كندي",
+                            "Canadian dollar", null, null, null, "محاولة تغيير دقة مستخدمة"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var rejectedPrecision = await client.SendAsync(negativeEdit);
+                    using var error = JsonDocument.Parse(await rejectedPrecision.Content.ReadAsStringAsync());
+                    Ensure(rejectedPrecision.StatusCode == HttpStatusCode.Conflict &&
+                        error.RootElement.GetProperty("code").GetString() == "currency_precision_in_use",
+                        "SYS04-AC02 referenced currency accepted retrospective precision change");
+                }
+                using (var detail = await client.GetAsync(currenciesPath + $"/{sys04UsedCurrency.ResourceId}"))
+                using (var json = JsonDocument.Parse(await detail.Content.ReadAsStringAsync()))
+                    Ensure(detail.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("scale").GetInt32() == 2 &&
+                        json.RootElement.GetProperty("revision").GetInt32() == 1 &&
+                        json.RootElement.GetProperty("version").GetGuid() == sys04UsedCurrency.Version,
+                        "SYS04-AC02 rejected precision edit mutated currency state");
+                using (var history = await client.GetAsync(currenciesPath + $"/{sys04UsedCurrency.ResourceId}/audit-events"))
+                using (var json = JsonDocument.Parse(await history.Content.ReadAsStringAsync()))
+                    Ensure(history.StatusCode == HttpStatusCode.OK &&
+                        json.RootElement.GetProperty("totalCount").GetInt32() == 1,
+                        "SYS04-AC02 rejected precision edit wrote currency audit");
+                Console.WriteLine("  HOST PASS SYS04-AC02 referenced currency precision edit refused atomically over HTTPS/JWT/SQL");
+
                 var centersPath = $"/api/v1/companies/{companyId}/cost-centers";
                 var rootCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-ROOT", "مركز عام", null));
                 var childCenter = await Command(client, centersPath, new CreateCostCenterRequest("HTTP-CHILD", "مركز فرعي", journalRequest.BranchId, rootCenter.ResourceId, EnglishName: "HTTP center"));
