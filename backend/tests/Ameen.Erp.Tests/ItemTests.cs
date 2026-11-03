@@ -35,6 +35,48 @@ public static class ItemTests
             await Error("quantity_precision", () => f.Service.Item.ConvertItemQuantity(f.CompanyId, r.ResourceId, f.Clerk, request.BaseUnitId, 0.5m, default));
             await Error("quantity_overflow", () => f.Service.Item.ConvertItemQuantity(f.CompanyId, r.ResourceId, f.Clerk, box, 99_999_999_999_999m, default));
         });
+        test("INV03-AC02 INV04: one shared unit has item-specific conversion ratios", async f =>
+        {
+            var request = await Setup(f);
+            var first = await Create(f, request);
+            var secondUnits = request.Units.Select((x, index) => x with
+            {
+                Barcode = index == 0 ? "00001-2" : "00012-2",
+                FactorToBase = index == 0 ? 1m : 24m
+            }).ToArray();
+            var second = await Create(f, request with { Code = "002", Name = "صنف ثان", Units = secondUnits });
+            var box = request.Units[1].UnitId;
+            var firstConversion = await f.Service.Item.ConvertItemQuantity(f.CompanyId, first.ResourceId, f.Clerk, box, 2m, default);
+            var secondConversion = await f.Service.Item.ConvertItemQuantity(f.CompanyId, second.ResourceId, f.Clerk, box, 2m, default);
+            Ensure(firstConversion.BaseQuantity == 24m && secondConversion.BaseQuantity == 48m);
+            var outside = await f.Service.Unit.CreateUnit(f.CompanyId, f.Owner, Fixture.Key(),
+                new("OUTSIDE", "وحدة غير مرتبطة", "OUTSIDE", 0, "مرجع منفصل"), default);
+            await Error("item_unit_not_found", () => f.Service.Item.ConvertItemQuantity(f.CompanyId,
+                first.ResourceId, f.Clerk, outside.ResourceId, 1m, default));
+            Ensure(f.Store.Count<StockMovement>() == 0 && f.Store.Count<JournalEntry>() == 0);
+        });
+        test("INV03-GAP01: alternative unit usage stays visible and immutable after item deactivation", async f =>
+        {
+            var request = await Setup(f);
+            var itemReceipt = await Create(f, request);
+            var boxId = request.Units[1].UnitId;
+            var box = await f.Service.Unit.GetUnit(f.CompanyId, boxId, f.Owner, default);
+            Ensure((await f.Service.Unit.ListUnitItems(f.CompanyId, boxId, f.Owner, 0, 10, default)).TotalCount == 1);
+            await Error("unit_structure_in_use", () => f.Service.Unit.EditUnit(f.CompanyId, boxId, f.Owner,
+                Fixture.Key(), UnitTests.Edit(box) with { StandardCode = "CTN" }, default));
+            await f.Service.Item.SetItemStatus(f.CompanyId, itemReceipt.ResourceId, f.Owner,
+                Fixture.Key(), new(itemReceipt.Version, false, "إيقاف الصنف"), default);
+            await f.Service.Unit.SetUnitStatus(f.CompanyId, boxId, f.Owner, Fixture.Key(),
+                new(box.Version, false, "إيقاف وحدة الصنف غير الفعال"), default);
+            box = await f.Service.Unit.GetUnit(f.CompanyId, boxId, f.Owner, default);
+            Ensure(!box.IsActive);
+            Ensure((await f.Service.Unit.ListUnitItems(f.CompanyId, boxId, f.Owner, 0, 10, default)).TotalCount == 1);
+            await Error("unit_structure_in_use", () => f.Service.Unit.EditUnit(f.CompanyId, boxId, f.Owner,
+                Fixture.Key(), UnitTests.Edit(box) with { QuantityScale = 3 }, default));
+            var inactiveItem = await f.Service.Item.GetItem(f.CompanyId, itemReceipt.ResourceId, f.Owner, default);
+            await Error("inactive_unit", () => f.Service.Item.SetItemStatus(f.CompanyId, inactiveItem.Id,
+                f.Owner, Fixture.Key(), new(inactiveItem.Version, true, "محاولة إعادة التفعيل"), default));
+        });
         test("INV04: services cannot carry stock policy and serial base units cannot allow fractions", async f =>
         {
             var r = await Setup(f);
