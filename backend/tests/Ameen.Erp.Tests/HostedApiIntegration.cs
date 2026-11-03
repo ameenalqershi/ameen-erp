@@ -1052,9 +1052,9 @@ public static class HostedApiIntegration
                     malformed.Headers.Add("Idempotency-Key", Fixture.Key());
                     malformed.Content = new StringContent(JsonSerializer.Serialize(sysMissingCenter, JsonDefaults.Options),
                         Encoding.UTF8, "application/json");
-                    using var denied = await client.SendAsync(malformed);
-                    using var error = JsonDocument.Parse(await denied.Content.ReadAsStringAsync());
-                    Ensure((int)denied.StatusCode == 422 &&
+                    using var deniedCenter = await client.SendAsync(malformed);
+                    using var error = JsonDocument.Parse(await deniedCenter.Content.ReadAsStringAsync());
+                    Ensure((int)deniedCenter.StatusCode == 422 &&
                         error.RootElement.GetProperty("code").GetString() == "cost_center_required",
                         "SYS02-GAP02 required center was improperly substituted from branch default");
                 }
