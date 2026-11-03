@@ -179,6 +179,7 @@ public static class SqlIntegration
             await JournalProcessingSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
             await DraftHeaderSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await JournalClosedPeriodSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
+            await JournalUnbalancedPostingSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await RecurringSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await ScheduledReversalSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Clerk, f.Approver, f.Request());
             await AccountSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner, f.Clerk, f.Request());
