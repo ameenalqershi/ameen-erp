@@ -1,5 +1,12 @@
 # سجل تقدم وتسليم الباك إند
 
+## SYS02-GAP02 — branch default cost center never auto-populates journal lines (3 November 2026)
+
+The SYS02 specification records `Branch.DefaultCostCenterId` as configuration only, not permission to silently populate `JournalLine.CostCenterId`. This branch adds a service acceptance test and a production-host HTTPS/JWT/SQL test. Both cover the persisted branch default reference, a valid manual journal retaining null line cost centers, a `RequiresCostCenter` account that still rejects a missing dimension despite the branch default (`cost_center_required`), and the explicit cost center being accepted and persisted when the client provides it. The service test also checks that a rejected draft leaves journal, audit and idempotency receipt counts unchanged. No default injection, financial mapping policy, schema change or source-analysis edit was introduced.
+
+**Gate:** candidate SYS02-GAP02 acceptance only while the `sys` commit's isolated SQL/domain/HTTP/JWT/OpenAPI/Release CI is pending. Do not mark complete without a successful full workflow. [Branch sys](https://github.com/ameenalqershi/ameen-erp/tree/sys); [PR #30](https://github.com/ameenalqershi/ameen-erp/pull/30) remains separate from `main`. SYS02-GAP01 (site type and manager policy) is independent and still unresolved.
+
+
 
 ## SYS03-GAP03 — ambiguous recurring due dates in custom fiscal periods (3 November 2026)
 
