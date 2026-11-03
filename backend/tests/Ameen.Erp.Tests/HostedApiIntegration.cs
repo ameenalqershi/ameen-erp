@@ -387,7 +387,7 @@ public static class HostedApiIntegration
                         EndsOn = new(2035, 12, 31) });
                 var ambiguousHistoryPath = recurringPath + $"/{ambiguousTemplate.ResourceId}/generations";
                 var ambiguousAuditPath = recurringPath + $"/{ambiguousTemplate.ResourceId}/audit-events";
-                string historyBefore, auditBefore, journalBefore;
+                string historyBefore, ambiguousAuditSnapshot, journalBefore;
                 using (var history = await client.GetAsync(ambiguousHistoryPath))
                 using (var audit = await client.GetAsync(ambiguousAuditPath))
                 using (var journals = await client.GetAsync(path + "?source=Recurring"))
@@ -395,7 +395,7 @@ public static class HostedApiIntegration
                     Ensure(history.StatusCode == HttpStatusCode.OK && audit.StatusCode == HttpStatusCode.OK &&
                         journals.StatusCode == HttpStatusCode.OK, "SYS03-GAP03 preflight reads failed");
                     historyBefore = await history.Content.ReadAsStringAsync();
-                    auditBefore = await audit.Content.ReadAsStringAsync();
+                    ambiguousAuditSnapshot = await audit.Content.ReadAsStringAsync();
                     journalBefore = await journals.Content.ReadAsStringAsync();
                 }
                 using (var request = new HttpRequestMessage(HttpMethod.Post, recurringPath + $"/{ambiguousTemplate.ResourceId}/generate"))
@@ -416,7 +416,7 @@ public static class HostedApiIntegration
                     Ensure(history.StatusCode == HttpStatusCode.OK && audit.StatusCode == HttpStatusCode.OK &&
                         journals.StatusCode == HttpStatusCode.OK &&
                         await history.Content.ReadAsStringAsync() == historyBefore &&
-                        await audit.Content.ReadAsStringAsync() == auditBefore &&
+                        await audit.Content.ReadAsStringAsync() == ambiguousAuditSnapshot &&
                         await journals.Content.ReadAsStringAsync() == journalBefore,
                         "SYS03-GAP03 rejected due generation changed journal, generation history or audit");
                 Console.WriteLine("  HOST PASS SYS03-GAP03 ambiguous custom period rejects without journal, audit or generation over HTTPS/JWT/SQL");
