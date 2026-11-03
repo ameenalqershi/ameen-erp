@@ -18,11 +18,21 @@ public static class WarehouseSqlIntegration
         var key = Fixture.Key(); var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Call(s => s.Warehouse.CreateWarehouse(cid, owner, key, request, default))));
         Ensure(results.All(x => x == results[0]), "Warehouse replay differs");
         var w = await Call(s => s.Warehouse.GetWarehouse(cid, results[0].ResourceId, owner, default));
+        var originalSqlLocationId = w.Locations.Single().Id;
         var edit = WarehouseTests.Edit(w) with { Name = "معدل", Locations = new[] { new WarehouseLocationRequest("001", "رف معدل") } }; key = Fixture.Key();
         results = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Call(s => s.Warehouse.EditWarehouse(cid, w.Id, owner, key, edit, default))));
         Ensure(results.All(x => x == results[0]), "Warehouse edit replay differs");
         w = await Call(s => s.Warehouse.GetWarehouse(cid, w.Id, owner, default));
-        Ensure(w.Revision == 2 && w.Locations.Single().Description == "رف معدل", "Location replacement differs");
+        Ensure(w.Revision == 2 && w.Locations.Single().Description == "رف معدل" &&
+            w.Locations.Single().Id == originalSqlLocationId,
+            "SQL location description edit silently replaced its stable identity");
+        var preservedLocationId = w.Locations.Single().Id;
+        var descriptive = WarehouseTests.Edit(w) with { Name = "اسم SQL جديد" };
+        var descriptiveEdit = await Call(s => s.Warehouse.EditWarehouse(cid, w.Id, owner, Fixture.Key(), descriptive, default));
+        w = await Call(s => s.Warehouse.GetWarehouse(cid, w.Id, owner, default));
+        Ensure(w.Version == descriptiveEdit.Version && w.Name == "اسم SQL جديد" &&
+            w.Locations.Single().Id == preservedLocationId,
+            "A descriptive SQL edit must preserve the warehouse location primary key");
         Ensure((await Call(s => s.Warehouse.SearchWarehouses(cid, owner, "SQL warehouse", branch.ResourceId, true, 0, 10, default))).TotalCount == 1, "SQL warehouse search differs");
         Ensure((await Call(s => s.Warehouse.ListAccountWarehouses(cid, account.ResourceId, owner, 0, 10, default))).TotalCount == 1, "SQL warehouse account usage differs");
         await using (var db = Context()) await db.Database.ExecuteSqlRawAsync("ALTER TABLE [AuditEvents] WITH NOCHECK ADD CONSTRAINT [CK_Test_WarehouseAudit] CHECK ([Action] <> 'warehouse.edited')");

@@ -42,10 +42,31 @@ public static class SqlIntegration
                 await ChequeSqlIntegration.Upgrade(db);
                 await ChequeMovementSqlIntegration.Upgrade(db);
                 await PaymentTermSqlIntegration.Upgrade(db);
+                await CashAdvanceSqlIntegration.Upgrade(db);
+                await BankReconciliationSqlIntegration.Upgrade(db);
+                await GeneralOptionsSqlIntegration.Upgrade(db);
+                await PrintTemplateSqlIntegration.Upgrade(db);
+                await DataImportSqlIntegration.Upgrade(db);
+                await BackupConfigurationSqlIntegration.Upgrade(db);
+                await UserDataScopeSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await using (var paymentSchemaDb = f.Context())
                 await PaymentTermSqlIntegration.Guard(paymentSchemaDb, f.CompanyId, f.BranchId, f.CashId);
+            await using (var advanceSchemaDb = f.Context())
+                await CashAdvanceSqlIntegration.Guard(advanceSchemaDb, f.CompanyId, f.BranchId);
+            await using (var reconDb = f.Context())
+                await BankReconciliationSqlIntegration.Guard(reconDb, f.CompanyId, f.BranchId);
+            await using (var optionsDb = f.Context())
+                await GeneralOptionsSqlIntegration.Guard(optionsDb, f.CompanyId, f.BranchId, f.CashId);
+            await using (var templatesDb = f.Context())
+                await PrintTemplateSqlIntegration.Guard(templatesDb, f.CompanyId, f.BranchId);
+            await using (var dataImportDb = f.Context())
+                await DataImportSqlIntegration.Guard(dataImportDb, f.CompanyId, f.BranchId);
+            await using (var backupsDb = f.Context())
+                await BackupConfigurationSqlIntegration.Guard(backupsDb, f.CompanyId, f.BranchId);
+            await using (var dataScopeDb = f.Context())
+                await UserDataScopeSqlIntegration.Guard(dataScopeDb, f.CompanyId, f.BranchId, f.Owner.Subject);
             await MembershipStatusSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             await MembershipUsageSqlIntegration.Run(options.ConnectionString, f.CompanyId, f.Owner);
             // CASH02 structural acceptance does not activate banking API/EF writes.
@@ -314,8 +335,12 @@ public static class SqlIntegration
                 f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
             await PeriodReadyCloseSqlAcceptance.Run(options.ConnectionString,
                 f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
+            await PeriodConcurrentCloseSqlAcceptance.Run(options.ConnectionString,
+                f.CompanyId, f.Owner, f.Approver);
             await PeriodUnbalancedCloseSqlAcceptance.Run(options.ConnectionString,
                 f.CompanyId, f.Owner, f.Clerk, f.Approver, f.Request());
+            await PeriodPendingInventoryCloseSqlAcceptance.Run(options.ConnectionString,
+                f.CompanyId, f.BranchId, f.Owner, f.Clerk, f.Approver);
         }
         finally
         {

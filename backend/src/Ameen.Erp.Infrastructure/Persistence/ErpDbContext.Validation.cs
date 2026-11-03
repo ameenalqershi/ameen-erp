@@ -33,6 +33,24 @@ public sealed partial class ErpDbContext
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
             "cash_receipt_policy_unavailable",
             "لا يمكن حفظ سند قبض قبل اعتماد التحصيل والفواتير والشيكات والترحيل.", ErrorKind.Conflict);
+        // CASH06 HR03 holder, advance type values, settlement and additional
+        // disbursement are unapproved; no financial-looking write is allowed.
+        Check.That(!ChangeTracker.Entries<CashAdvance>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<CashAdvanceLine>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cash_advance_policy_unavailable",
+            "لا يمكن حفظ عهدة أو تسوية قبل اعتماد صاحب العهدة وربط المصروف ودورة الصرف.",
+            ErrorKind.Conflict);
+        // CASH10 is structural only. No approved statement import dedup,
+        // bank/ledger movement binding, matching policy or GL journal exists.
+        Check.That(!ChangeTracker.Entries<BankReconciliation>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<BankReconciliationLine>().Any(e =>
+                e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "bank_reconciliation_policy_unavailable",
+            "لا يمكن حفظ المطابقة قبل اعتماد حركات البنك والدفتر ومنع استيراد الكشف مرتين.",
+            ErrorKind.Conflict);
         // CASH11 is structural-only. No approved count-to-ledger snapshot, adjustment
         // authorization, lifecycle or branch permissions exist yet. Prevent writes
         // through any EF caller, including child-only changes and deletions.
@@ -42,6 +60,50 @@ public sealed partial class ErpDbContext
             e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
             "cash_count_policy_unavailable",
             "لا يمكن حفظ الجرد قبل اعتماد الرصيد والتسوية والمراجعة.", ErrorKind.Conflict);
+        // SYS08 user/role scope metadata has no approved grant/deny evaluator,
+        // active status policy or account/customer group catalogues. Deny any
+        // insert/update/delete, including line-only mutation through direct EF.
+        Check.That(!ChangeTracker.Entries<UserDataScope>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<UserDataScopeLine>().Any(e =>
+                e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "user_data_scope_policy_unavailable",
+            "نطاق بيانات المستخدم محجوب حتى اعتماد سياسة التفويض ومجموعات الحسابات والعملاء.",
+            ErrorKind.Conflict);
+        // SYS15-01 has no approved operational restore privileges, isolated
+        // validation, encryption key management or backup worker. No direct
+        // EF caller may activate or mutate an unapproved job configuration.
+        Check.That(!ChangeTracker.Entries<BackupJobConfiguration>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "backup_job_policy_unavailable",
+            "إعدادات النسخ والاستعادة محجوبة حتى اعتماد التفويض والتشفير والاستعادة المعزولة.",
+            ErrorKind.Conflict);
+        // SYS13-01 stores only metadata. Import/replay/preview, balance control,
+        // approvals and tenant-scoped file parsing need separate approved rules.
+        Check.That(!ChangeTracker.Entries<DataImportBatch>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<DataImportFieldMapping>().Any(e =>
+                e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "data_import_policy_unavailable",
+            "الاستيراد محجوب حتى اعتماد المعاينة والتحقق من الرصيد والتكرار والصلاحيات.",
+            ErrorKind.Conflict);
+        // SYS12-01 is structural only. Country-required fields, legal print
+        // content, template preview and watermarking have no approved policy.
+        Check.That(!ChangeTracker.Entries<PrintTemplate>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "print_template_policy_unavailable",
+            "حفظ قوالب الطباعة محجوب حتى اعتماد محتوى البلد ووسم المسودة وقواعد الصلاحية.",
+            ErrorKind.Conflict);
+        // SYS11-01: selectable catalogues, approval/versioning and posting-account
+        // routing are not specified. Fail closed for headers and lines, including
+        // direct EF callers, rather than silently enabling financial mappings.
+        Check.That(!ChangeTracker.Entries<GeneralOptionsPolicy>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<GeneralOptionsAccountLine>().Any(e =>
+                e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "general_options_policy_unavailable",
+            "حفظ الخيارات والربط المحاسبي محجوب حتى اعتماد كتالوج القيم والتفويض وتاريخ السريان.",
+            ErrorKind.Conflict);
         // SYS16-01: schema/domain foundation only. No verified payment-policy
         // transaction/API exists yet; even direct EF callers must fail closed.
         Check.That(!ChangeTracker.Entries<PaymentTerm>().Any(e =>
