@@ -18,11 +18,24 @@ public static class PeriodExecutionHistorySqlIntegration
             return await action(new TestServices(new SqlErpStore(db),
                 new SqlTransactionRunner(db, new FixedClock()), new FixedClock()));
         }
+        // Earlier SQL suites may create journals in December (or another month).
+        // Pick a genuinely unused open period rather than bypassing the close
+        // guard or assuming any month is empty.
         FiscalPeriod period;
         await using (var db = Context())
+        {
+            var usedJournalPeriods = await db.Set<JournalEntry>()
+                .Where(x => x.CompanyId == cid).Select(x => x.FiscalPeriodId)
+                .Distinct().ToArrayAsync();
+            var usedOpeningPeriods = await db.Set<InventoryOpening>()
+                .Where(x => x.CompanyId == cid).Select(x => x.FiscalPeriodId)
+                .Distinct().ToArrayAsync();
             period = await db.Set<FiscalPeriod>().AsNoTracking()
-                .SingleAsync(x => x.CompanyId == cid && x.StartsOn == new DateOnly(2026, 12, 1));
-        Ensure(!period.IsClosed, "Test December period unexpectedly closed");
+                .Where(x => x.CompanyId == cid && !x.IsClosed &&
+                    !usedJournalPeriods.Contains(x.Id) && !usedOpeningPeriods.Contains(x.Id))
+                .OrderBy(x => x.StartsOn).FirstAsync();
+        }
+        Ensure(!period.IsClosed, "GL11 SQL history fixture requires an open unused period");
 
         var closed = await Call(s => s.PeriodClose.ChangePeriod(cid, period.Id,
             approver, Fixture.Key(), new(period.Version, "إقفال SQL خاص بالسجل"),
