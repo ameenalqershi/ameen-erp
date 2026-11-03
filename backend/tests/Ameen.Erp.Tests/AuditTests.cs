@@ -42,6 +42,30 @@ public static class AuditTests
             var result = await f.Service.Audit.ListAudit(f.CompanyId, f.Owner, 0, 10, default, new(2025, 1, 2), new(2025, 1, 2), "User", "test.created", resource);
             Ensure(result.TotalCount == 2 && result.Items[0].Id == last.Id && result.Items[1].Id == first.Id);
         });
+        test("SYS14-GAP02: omitted and one-sided UTC date filters preserve authorized history", async f =>
+        {
+            var reference=Guid.NewGuid();
+            var before=Add(f,"sys14-date-user","test.optional",
+                new DateTimeOffset(2024,2,28,23,59,59,TimeSpan.Zero),reference);
+            var inside=Add(f,"sys14-date-user","test.optional",
+                new DateTimeOffset(2024,2,29,12,0,0,TimeSpan.Zero),reference);
+            var after=Add(f,"sys14-date-user","test.optional",
+                new DateTimeOffset(2024,3,1,0,0,0,TimeSpan.Zero),reference);
+            var count=f.Store.Count<AuditEvent>();var receipts=f.Store.Count<IdempotencyRecord>();
+            async Task<Page<AuditEvent>> Read(DateOnly? from=null,DateOnly? to=null) =>
+                await f.Service.Audit.ListAudit(f.CompanyId,f.Owner,0,20,default,
+                    from,to,"sys14-date-user","test.optional",reference);
+            var all=await Read();
+            var lower=await Read(from:new(2024,2,29));
+            var upper=await Read(to:new(2024,2,29));
+            var exact=await Read(from:new(2024,2,29),to:new(2024,2,29));
+            Ensure(all.TotalCount==3 && all.Items.Select(x=>x.Id).ToHashSet().SetEquals(
+                new[]{before.Id,inside.Id,after.Id}) &&
+                lower.TotalCount==2 && !lower.Items.Any(x=>x.Id==before.Id) &&
+                upper.TotalCount==2 && !upper.Items.Any(x=>x.Id==after.Id) &&
+                exact.TotalCount==1 && exact.Items.Single().Id==inside.Id &&
+                f.Store.Count<AuditEvent>()==count && f.Store.Count<IdempotencyRecord>()==receipts);
+        });
         test("SYS14: UTC conversion respects timestamp offsets and maximum calendar date", async f =>
         {
             var id = Guid.NewGuid(); var e = Add(f, "u", "test", new DateTimeOffset(2025, 1, 2, 1, 0, 0, TimeSpan.FromHours(3)), id);

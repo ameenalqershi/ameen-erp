@@ -27,6 +27,19 @@ public static class AuditSqlIntegration
         Ensure(page.TotalCount == 2 && page.Items.Single().Id == first.Id);
         Ensure((await service.GetAuditEvent(cid, first.Id, owner, default)).ActorId == "CaseUser");
         Ensure((await service.ListAudit(cid, owner, 0, 10, default, DateOnly.MaxValue, DateOnly.MaxValue, resourceId: resource)).TotalCount == 0);
+        // SYS14-GAP02: each date bound is optional for the already-deployed audit API.
+        var all=await service.ListAudit(cid,owner,0,20,default,
+            actorId:"CaseUser",action:"test.audit",resourceId:resource);
+        var onlyFrom=await service.ListAudit(cid,owner,0,20,default,
+            from:new(2024,2,29),actorId:"CaseUser",action:"test.audit",resourceId:resource);
+        var onlyTo=await service.ListAudit(cid,owner,0,20,default,
+            to:new(2024,2,29),actorId:"CaseUser",action:"test.audit",resourceId:resource);
+        Ensure(all.TotalCount==4 && onlyFrom.TotalCount==3 && onlyTo.TotalCount==3 &&
+            onlyFrom.Items.All(x=>x.OccurredAt>=new DateTimeOffset(2024,2,29,0,0,0,TimeSpan.Zero)) &&
+            onlyTo.Items.All(x=>x.OccurredAt<new DateTimeOffset(2024,3,1,0,0,0,TimeSpan.Zero)) &&
+            (await service.ListAudit(cid,owner,0,20,default,
+                new(2024,2,29),new(2024,2,29),"CaseUser","test.audit",resource)).TotalCount==2);
+        Console.WriteLine("  SQL PASS SYS14-GAP02 no/one-sided UTC date filters preserve authorized history");
         // SYS14-AC01: edits created by the real company service are recoverable
         // as historical before/after snapshots and link to the same tenant source.
         var companyEdits=await service.ListAudit(cid,owner,0,50,default,
