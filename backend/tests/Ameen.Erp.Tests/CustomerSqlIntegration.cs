@@ -1,0 +1,99 @@
+using Ameen.Erp.Domain;
+using Ameen.Erp.Infrastructure;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+
+namespace Ameen.Erp.Tests;
+
+// These integration checks run solely inside the disposable SQL database created by SqlIntegration.
+public static class CustomerSqlIntegration
+{
+    public static async Task Upgrade(ErpDbContext db)
+    {
+        var script = await File.ReadAllTextAsync(Path.Combine(
+            AppContext.BaseDirectory,"database","046_customers_foundation.sql"));
+        await db.Database.ExecuteSqlRawAsync("CREATE TABLE [Customers] ([Conflict] int NOT NULL)");
+        await RejectSql("SAL01 pre-existing table conflict",db.Database.ExecuteSqlRawAsync(script),2714);
+        Ensure(await Count(db,"SELECT COUNT(*) AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=46")==0,
+            "SAL01 rolled back transaction still recorded schema version");
+        await db.Database.ExecuteSqlRawAsync("DROP TABLE [Customers]");
+        await db.Database.ExecuteSqlRawAsync(
+            "INSERT dbo.__AmeenSchemaVersions([Version],[AppliedAt]) VALUES(46,SYSUTCDATETIME())");
+        await RejectSql("SAL01 wrong schema owner",db.Database.ExecuteSqlRawAsync(script),51002);
+        await db.Database.ExecuteSqlRawAsync("DELETE dbo.__AmeenSchemaVersions WHERE [Version]=46");
+        await db.Database.ExecuteSqlRawAsync(script);
+        await db.Database.ExecuteSqlRawAsync(script);
+        Ensure(await Count(db,"SELECT COUNT(*) AS [Value] FROM dbo.__AmeenSchemaVersions WHERE [Version]=46")==1,
+            "SAL01 replay changed schema version");
+        Ensure(await Count(db,"SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('dbo.Customers')")==29,
+            "SAL01 missing original fields or system concurrency field");
+        Ensure(await Count(db,"SELECT COUNT(*) AS [Value] FROM sys.foreign_keys WHERE parent_object_id=OBJECT_ID('dbo.Customers')")==3,
+            "SAL01 expected company/account/currency references");
+        Ensure(await Count(db,@"SELECT COUNT(*) AS [Value] FROM sys.foreign_key_columns fc
+          JOIN sys.foreign_keys fk ON fk.object_id=fc.constraint_object_id
+          WHERE fk.parent_object_id=OBJECT_ID('dbo.Customers')
+          AND fk.name IN ('FK_Customer_ControlAccount','FK_Customer_Currency')")==4,
+          "SAL01 account and currency FKs must include CompanyId");
+        Ensure(await db.Set<Customer>().CountAsync()==0, "SAL01 migration seeded fake customer");
+        Console.WriteLine("  SQL PASS SAL01-01 atomic/replayed migration, 29 columns, tenant references, no seed");
+    }
+
+    public static async Task Guard(ErpDbContext db, Guid companyId, Guid controlAccountId, string actor)
+    {
+        var currencyId=await db.Set<Currency>().Where(x=>x.CompanyId==companyId && x.Code=="SAR")
+            .Select(x=>x.Id).SingleAsync();
+        var now=new DateTimeOffset(2026,11,4,0,0,0,TimeSpan.Zero);
+        var customerId=Guid.NewGuid(); var category=Guid.NewGuid(); var country=Guid.NewGuid();
+        await db.Database.ExecuteSqlInterpolatedAsync($@"
+          INSERT INTO dbo.Customers
+          (CompanyId,Id,Version,Code,Name,EnglishName,IsActive,LegalName,
+           CustomerCategoryId,ControlAccountId,TransactionCurrencyId,CreditLimit,
+           CreditDays,CountryId,CreatedBy,CreatedAt,Revision,LastModifiedAt,BuildingNumber,PostalCode)
+          VALUES({companyId},{customerId},{Guid.NewGuid()},{"00045"},{"عميل"}, {"Customer"},{true},{"اسم قانوني"},
+                 {category},{controlAccountId},{currencyId},{12.123456m},
+                 {5},{country},{actor},{now},{1},{now},{"0007"},{"0050"})");
+        db.ChangeTracker.Clear();
+        var saved=await db.Set<Customer>().AsNoTracking().SingleAsync(x=>x.CompanyId==companyId && x.Id==customerId);
+        Ensure(saved.Code=="00045" && saved.Name=="عميل" && saved.EnglishName=="Customer" &&
+          saved.LegalName=="اسم قانوني" && saved.CreditLimit==12.123456m && saved.CreditDays==5 &&
+          saved.BuildingNumber=="0007" && saved.PostalCode=="0050" &&
+          saved.CustomerCategoryId==category && saved.CountryId==country &&
+          saved.ControlAccountId==controlAccountId && saved.TransactionCurrencyId==currencyId &&
+          saved.CreatedBy==actor && saved.CreatedAt==now && saved.LastModifiedAt==now && saved.Revision==1,
+          "SAL01 EF/SQL roundtrip mismatch");
+        await RejectSql("other account",db.Database.ExecuteSqlInterpolatedAsync(
+          $"UPDATE dbo.Customers SET ControlAccountId={Guid.NewGuid()} WHERE CompanyId={companyId} AND Id={customerId}"),547);
+        await RejectSql("other currency",db.Database.ExecuteSqlInterpolatedAsync(
+          $"UPDATE dbo.Customers SET TransactionCurrencyId={Guid.NewGuid()} WHERE CompanyId={companyId} AND Id={customerId}"),547);
+        await RejectSql("credit negative",db.Database.ExecuteSqlInterpolatedAsync(
+          $"UPDATE dbo.Customers SET CreditLimit={-1m} WHERE CompanyId={companyId} AND Id={customerId}"),547);
+        await RejectSql("credit days negative",db.Database.ExecuteSqlInterpolatedAsync(
+          $"UPDATE dbo.Customers SET CreditDays={-1} WHERE CompanyId={companyId} AND Id={customerId}"),547);
+        await RejectSql("audit backwards",db.Database.ExecuteSqlInterpolatedAsync(
+          $"UPDATE dbo.Customers SET LastModifiedAt={now.AddDays(-1)} WHERE CompanyId={companyId} AND Id={customerId}"),547);
+        var audits=await db.Set<AuditEvent>().CountAsync();
+        var outbox=await db.Set<OutboxEvent>().CountAsync();
+        var journals=await db.Set<JournalEntry>().CountAsync();
+        var rejected = new Customer(companyId,"NEW","عميل جديد","قانوني",
+          category,controlAccountId,currencyId,0,0,country,actor,now);
+        db.Add(rejected);
+        try {await db.SaveChangesAsync();throw new Exception("SAL01 unauthorized EF write succeeded");}
+        catch(BusinessException e) when(e.Code=="customer_policy_unavailable") { }
+        db.Entry(rejected).State=EntityState.Detached;
+        Ensure(await db.Set<Customer>().CountAsync()==1 &&
+          await db.Set<AuditEvent>().CountAsync()==audits &&
+          await db.Set<OutboxEvent>().CountAsync()==outbox &&
+          await db.Set<JournalEntry>().CountAsync()==journals,
+          "SAL01 unauthorized EF write changed rows, audit, outbox, or ledger");
+        Console.WriteLine("  SQL PASS SAL01-01 roundtrip, tenant FK, invalid credit/audit and fail-closed EF");
+    }
+
+    private static async Task<int> Count(ErpDbContext db,string sql)=>
+        await db.Database.SqlQueryRaw<int>(sql).SingleAsync();
+    private static async Task RejectSql(string description,Task action,int number)
+    {
+        try {await action; throw new Exception(description+" unexpectedly succeeded");}
+        catch(SqlException e) when(e.Errors.Cast<SqlError>().Any(x=>x.Number==number)) { }
+    }
+    private static void Ensure(bool ok,string message) {if(!ok)throw new Exception(message);}
+}

@@ -49,8 +49,11 @@ public static class SqlIntegration
                 await DataImportSqlIntegration.Upgrade(db);
                 await BackupConfigurationSqlIntegration.Upgrade(db);
                 await UserDataScopeSqlIntegration.Upgrade(db);
+                await CustomerSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
+            await using (var customerDb = f.Context())
+                await CustomerSqlIntegration.Guard(customerDb, f.CompanyId, f.EquityId, f.Owner.Subject);
             await using (var paymentSchemaDb = f.Context())
                 await PaymentTermSqlIntegration.Guard(paymentSchemaDb, f.CompanyId, f.BranchId, f.CashId);
             await using (var advanceSchemaDb = f.Context())
