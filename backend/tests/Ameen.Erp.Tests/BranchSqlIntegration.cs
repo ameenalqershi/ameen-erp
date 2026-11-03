@@ -78,9 +78,31 @@ public static class BranchSqlIntegration
             await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Branches] SET [City]=NULL, [Address]=NULL WHERE [CompanyId]={cid} AND [Id]={b.Id}");
         }
         b = await Call(s => s.Branch.GetBranch(cid, b.Id, owner, default));
-        await Error("branch_profile_incomplete", () => Call(s => s.Branch.SetBranchStatus(cid, b.Id, owner, Fixture.Key(), new(b.Version, true, "تفعيل"), default)));
-        b = await Call(s => s.Branch.GetBranch(cid, b.Id, owner, default));
-        await Call(s => s.Branch.EditBranch(cid, b.Id, owner, Fixture.Key(), BranchTests.Edit(b) with { City = "مدينة", Address = "عنوان مستكمل" }, default));
+        // SYS02-GAP03: legacy rows may have nullable location columns after upgrade;
+        // no operational path may treat that active but incomplete branch as ready.
+        var legacyVersion = b.Version;
+        var beforeLegacyAudit = await Call(s => s.Branch.ListBranchAudit(cid, b.Id, owner, 0, 20, default));
+        Ensure(!b.IsProfileComplete && b.IsActive,
+            "SYS02-GAP03 setup must simulate an existing active branch lacking location data");
+        await Error("branch_profile_incomplete", () =>
+            Call(s => s.Branch.ActiveBranch(cid, b.Id, default)));
+        await Error("branch_profile_incomplete", () =>
+            Call(s => s.Branch.SetBranchStatus(cid, b.Id, owner, Fixture.Key(),
+                new(b.Version, true, "تفعيل"), default)));
+        var refused = await Call(s => s.Branch.GetBranch(cid, b.Id, owner, default));
+        Ensure(refused.Version == legacyVersion && !refused.IsProfileComplete && refused.IsActive,
+            "SYS02-GAP03 refused activation mutated the legacy branch");
+        Ensure((await Call(s => s.Branch.ListBranchAudit(cid, b.Id, owner, 0, 20, default))).TotalCount
+            == beforeLegacyAudit.TotalCount, "SYS02-GAP03 refused activation wrote audit");
+        b = refused;
+        var restored = await Call(s => s.Branch.EditBranch(cid, b.Id, owner, Fixture.Key(),
+            BranchTests.Edit(b) with { City = "مدينة", Address = "عنوان مستكمل" }, default));
+        var recovered = await Call(s => s.Branch.ActiveBranch(cid, b.Id, default));
+        Ensure(recovered.IsProfileComplete && recovered.IsActive && recovered.Version == restored.Version,
+            "SYS02-GAP03 branch did not recover after completing legacy address");
+        Ensure((await Call(s => s.Branch.ListBranchAudit(cid, b.Id, owner, 0, 20, default))).TotalCount
+            == beforeLegacyAudit.TotalCount + 1, "SYS02-GAP03 address restoration is not audited");
+        Console.WriteLine("  SQL PASS SYS02-GAP03 legacy incomplete branch refuses use/activation, remains unchanged, recovers with one audit");
         Console.WriteLine("  SQL PASS SYS02 concurrent replay, SQL search, rollback/retry, runtime role, tenant FKs and legacy address completion");
     }
     private static void Ensure(bool condition, string message) { if (!condition) throw new Exception(message); }
