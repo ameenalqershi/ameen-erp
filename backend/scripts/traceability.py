@@ -43,8 +43,12 @@ screen("SYS03", "GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}
        "تعديل تقويم قائم وإصدار عددي وإقفال السنة الشامل غير منفذ؛ لا يوجد تقويم مختلف لكل فرع؛ الفترة ذات أكثر من موعد دوري ترفض التوليد؛ لا حذف أو تعطيل بديل للإقفال",
        {1: "CompanyId", 3: "FiscalCalendar.State (GeneralLedgerOnly)", 4: "FiscalYear.Code", 5: "FiscalYear.StartsOn", 6: "FiscalYear.EndsOn", 7: "FiscalPeriod.Code / FiscalPeriodRequest.Code", 8: "FiscalPeriod.StartsOn / FiscalPeriodRequest.StartsOn", 9: "FiscalPeriod.EndsOn / FiscalPeriodRequest.EndsOn", 10: "FiscalPeriod.IsClosed"},
        [(11, "AuditEvent.ActorId: fiscal-year.created"), (12, "AuditEvent.OccurredAt: fiscal-year.created"), (14, "AuditEvent.OccurredAt: period.closed / period.reopened")])
+MAP["SYS03"]["fields"]["SYS03-F13"] = dict(status="partial",
+    binding="FiscalYear.Revision int? = 1 on new years, nullable for historical un-attributed rows; edit calendar + increments pending; migration 046")
+MAP["SYS03"]["fields"]["SYS03-F14"] = dict(status="partial",
+    binding="FiscalYear.LastModifiedAt at creation; period.closed/reopened in AuditEvent; calendar edit timestamps pending")
 MAP["SYS03"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
-    ["FiscalCalendarTests.cs", "FiscalCalendarSqlIntegration.cs", "HostedApiIntegration.cs"])
+    ["FiscalCalendarTests.cs", "FiscalCalendarSqlIntegration.cs", "FiscalYearAuditSqlIntegration.cs", "HostedApiIntegration.cs"])
 screen("SYS04", "GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
        "بطاقة عملة بأسماء ورمز عرض واسم جزء وإصدار عددي؛ تحرير وحالة وبحث وتدقيق؛ قفل الدقة بعد الاستخدام وفحص التعطيل عند الترحيل",
        "الرمز الداخلي موحد مع رمز العملة ولا يربط بقائمة ISO خارجية وغير قابل لإعادة التسمية؛ أسماء العملة الوظيفية والبطاقات القديمة تبدأ برمز ISO وتحتاج تحريرًا؛ تحويل الدقة التاريخية غير متاح",
@@ -61,7 +65,17 @@ MAP["SYS05"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs;
 screen("SYS06", "POST /companies/{companyId}/memberships/{id}/status",
        "تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC", "شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا",
        {1: "Membership.Id", 2: "CompanyId"})
-MAP["SYS06"]["fields"]["SYS06-F16"] = dict(status="partial", binding="Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented")
+# SYS06 membership metadata is now recorded for fresh ERP access grants only.
+# IdP-owned user profile fields (and unknown historic creators) remain outstanding.
+for n, binding in {
+    14: "Membership.CreatedBy: server actor for new ERP grants only; legacy/IdP identity profile unknown",
+    15: "Membership.CreatedAt: server UTC time for new ERP grants only; legacy/IdP identity profile unknown",
+    16: "Membership.Revision int?: creation 1, authorized grant/status increments; legacy unknown; GUID Version separate",
+    17: "Membership.LastModifiedAt: server UTC time for new ERP grants/changes; legacy/IdP profile unknown",
+}.items():
+    MAP["SYS06"]["fields"][f"SYS06-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["SYS06"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["Program.cs", "MembershipAuditSqlIntegration.cs", "MembershipStatusSqlIntegration.cs", "HostedApiIntegration.cs"])
 screen("SYS07", "GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only",
        "منح عمليات خادمية صريحة لمستخدم داخل شركة؛ منع تغيير المستخدم لصلاحياته؛ أساس كتالوج أدوار SYS07 وقواعد السماح/المنع وحد المبلغ/العملة وFK إلى SYS09؛ ربط مستخدم-دور SQL 030 ومقيّم مستقل غير مفعل؛ استبدال قواعد الدور ذريًا مع فحص إصدار التعديل؛ رفض لقطات الأدوار الناقصة أو العابرة للشركات وتكرار الروابط قبل تقييم المنح؛ رفض عناصر قواعد الدور الفارغة دون تغيير الدور (مجال فقط)؛ رفض اللقطات الداخلية ذات قواعد مكررة أو عابرة للشركات في تقييم الدور المباشر والمسنَد (مجال فقط)؛ رفض القواعد المحمّلة برموز غير قياسية أو سقف/عملة غير متسق وصفوف اللقطات الفارغة (مجال فقط)",
        "إدارة الأدوار وربطها بالعضويات عبر API وإنفاذ المنع الصريح ونطاق الفرع والمبلغ والعملة والعمليات المنفصلة والتدقيق وقبول API؛ كتابة الأدوار والروابط محجوبة",

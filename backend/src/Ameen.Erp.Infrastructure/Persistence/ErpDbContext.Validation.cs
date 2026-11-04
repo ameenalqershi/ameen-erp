@@ -8,6 +8,14 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // SAL01-01 structural only. Customer classification (SAL15), country
+        // identity rules, credit override authorization and SAL09 are unavailable.
+        Check.That(!ChangeTracker.Entries<Customer>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "customer_policy_unavailable",
+            "حفظ بطاقة العميل محجوب حتى اكتمال التصنيف والهوية والتفويض والائتمان.",
+            ErrorKind.Conflict);
+
         // CASH09 transition list, authorized actor, cheque clearing, bank
         // debit and returned receivables are unapproved. Do not record an
         // apparent financial transition through any EF caller.

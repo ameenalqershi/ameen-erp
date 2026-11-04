@@ -9,6 +9,28 @@ public static class FiscalCalendarTests
         new[] { new FiscalPeriodRequest("2027-H1", new(2027, 1, 1), new(2027, 6, 30)), new FiscalPeriodRequest("2027-H2", new(2027, 7, 1), new(2027, 12, 31)) });
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS03-FG04 partial: new fiscal year has server actor/time and numeric creation revision", async f =>
+        {
+            // A pre-audit fiscal year remains historically unknown; no actor/time is invented.
+            var existing = new FiscalYear(f.CompanyId, "LEGACY-OLD",
+                new DateOnly(2025, 1, 1), new DateOnly(2025, 12, 31));
+            Ensure(existing.Revision is null && existing.CreatedBy is null &&
+                existing.CreatedAt is null && existing.LastModifiedAt is null);
+            var receipt = await f.Service.FiscalCalendar.CreateFiscalYear(f.CompanyId, f.Owner,
+                Fixture.Key(), Request(), default);
+            var year = (await f.Service.FiscalCalendar.GetFiscalCalendar(f.CompanyId,
+                receipt.ResourceId, f.Owner, default)).Year;
+            Ensure(year.CreatedBy == f.Owner.Subject && year.CreatedAt is not null &&
+                year.Revision == 1 && year.LastModifiedAt == year.CreatedAt);
+            var history = await f.Service.FiscalCalendar.ListFiscalYearAudit(f.CompanyId,
+                year.Id, f.Owner, 0, 10, default);
+            Ensure(history.Items.Count == 1 && history.Items[0].ActorId == year.CreatedBy &&
+                history.Items[0].OccurredAt == year.CreatedAt);
+            var oldVersion = year.Version;
+            await f.Service.FiscalCalendar.GetFiscalCalendar(f.CompanyId, year.Id,
+                f.Owner, default);
+            Ensure(year.Version == oldVersion && year.Revision == 1);
+        });
         test("SYS03: custom periods are sorted, exact and audited", async f =>
         {
             var request = Request() with { Periods = Request().Periods!.Reverse().ToArray() };
@@ -35,6 +57,24 @@ public static class FiscalCalendarTests
                 f.Store.Count<FiscalPeriod>() == periodsBefore &&
                 f.Store.Count<AuditEvent>() == auditsBefore &&
                 !f.Store.All<IdempotencyRecord>().Any(x => rejectedKeys.Contains(x.Key)));
+        });
+        test("SYS03-03: changed calendar creation payload cannot reuse key or write side effects", async f =>
+        {
+            var key = Fixture.Key(); var original = Request();
+            var first = await f.Service.FiscalCalendar.CreateFiscalYear(f.CompanyId, f.Owner, key, original, default);
+            Ensure(await f.Service.FiscalCalendar.CreateFiscalYear(f.CompanyId, f.Owner, key, original, default) == first);
+            var years = f.Store.Count<FiscalYear>(); var periods = f.Store.Count<FiscalPeriod>();
+            var audits = f.Store.Count<AuditEvent>(); var receipts = f.Store.Count<IdempotencyRecord>();
+            await Error("idempotency_conflict", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId, f.Owner, key, original with { Code = "2027-CHANGED" }, default));
+            await Error("idempotency_conflict", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId, f.Owner, key, original with { Periods = new[] {
+                    original.Periods![0] with { Code = "2027-FIRST" }, original.Periods[1]
+                } }, default));
+            Ensure(f.Store.Count<FiscalYear>() == years && f.Store.Count<FiscalPeriod>() == periods &&
+                f.Store.Count<AuditEvent>() == audits && f.Store.Count<IdempotencyRecord>() == receipts);
+            Ensure((await f.Service.FiscalCalendar.GetFiscalCalendar(f.CompanyId,
+                first.ResourceId, f.Owner, default)).Periods.Count == 2);
         });
         test("SYS03: custom coverage rejects gaps overlaps outside bounds and missing ends atomically", async f =>
         {
