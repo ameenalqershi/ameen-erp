@@ -31,6 +31,31 @@ public static class SecurityRoleFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS07-FG05: revision overflow rejects every role mutation without audit drift", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+            var role = new SecurityRole(f.CompanyId, f.BranchId, "Reviewer", "Review", f.Owner.Subject, now);
+            var revision = typeof(SecurityRole).GetProperty(nameof(SecurityRole.Revision))!;
+            revision.SetValue(role, int.MaxValue);
+            var originalRules = role.Rules.ToArray();
+            var originalCreatedBy = role.CreatedBy;
+            var originalCreatedAt = role.CreatedAt;
+            var originalModifiedAt = role.LastModifiedAt;
+            Expect("invalid_role_revision", () => role.Edit("Changed", "Updated", int.MaxValue, now.AddMinutes(1)));
+            Expect("invalid_role_revision", () => role.SetActive(false, int.MaxValue, now.AddMinutes(1)));
+            Expect("invalid_role_revision", () => role.AddRule("GL03", "POST", true, null, null, now.AddMinutes(1)));
+            Expect("invalid_role_revision", () => role.ReplaceRules(new[] {
+                new SecurityRoleRuleDraft("GL03", "POST", true, null, null)
+            }, int.MaxValue, now.AddMinutes(1)));
+            Ensure(role.Revision == int.MaxValue && role.Name == "Reviewer" &&
+                role.Responsibility == "Review" && role.IsActive &&
+                role.CreatedBy == originalCreatedBy && role.CreatedAt == originalCreatedAt &&
+                role.LastModifiedAt == originalModifiedAt &&
+                role.Rules.SequenceEqual(originalRules),
+                "Rejected revision-overflow mutation changed role audit or rules");
+            return Task.CompletedTask;
+        });
+
         test("SYS07 foundation: invalid policy, duplicate rule and stale revision are atomic", f =>
         {
             var now = DateTimeOffset.UtcNow;
