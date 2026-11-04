@@ -301,7 +301,7 @@ for n, binding in {
     9: "PaymentTermLine.Percent: decimal(9,6); domain sum exactly 100 if present; EF writes blocked",
     10: "PaymentTermLine.DaysFromBase: nonnegative int",
     11: "PaymentTerm.CreatedBy: internal server-owned actor, no API yet",
-    12: "PaymentTerm.CreatedAt: internal datetimeoffset, no API yet",
+    12: "PaymentTerm.CreatedAt: internal datetimeoffset; new card rejects default audit time; no API yet",
     13: "PaymentTerm.Revision: positive int, no API yet",
     14: "PaymentTerm.LastModifiedAt: internal datetimeoffset, no API yet"
 }.items():

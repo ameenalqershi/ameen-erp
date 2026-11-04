@@ -2085,7 +2085,7 @@
         },
         "SYS16-F12": {
           "status": "partial",
-          "binding": "PaymentTerm.CreatedAt: internal datetimeoffset, no API yet"
+          "binding": "PaymentTerm.CreatedAt: internal datetimeoffset; new card rejects default audit time; no API yet"
         },
         "SYS16-F13": {
           "status": "partial",

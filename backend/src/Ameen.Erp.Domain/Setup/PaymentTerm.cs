@@ -35,6 +35,8 @@ public sealed class PaymentTerm : CompanyEntity
         var validatedCode = Check.Code(code, "رمز طريقة الدفع");
         var validatedName = Check.Text(name, "اسم طريقة الدفع");
         var validatedActor = Check.Text(createdBy, "منشئ طريقة الدفع", 200);
+        Check.That(now != default, "payment_term_audit_time_invalid",
+            "وقت إنشاء طريقة الدفع غير صالح.");
         var plan = schedule?.ToArray() ?? Array.Empty<(decimal Percent, int DaysFromBase)>();
         foreach (var (percent, days) in plan)
         {
