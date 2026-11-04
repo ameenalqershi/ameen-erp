@@ -1405,6 +1405,11 @@ public static class HostedApiIntegration
                     new GrantMembershipRequest(gl11LimitedSubject,
                         new[] { Permissions.Read, Permissions.PeriodClose }, false,
                         new[] { journalRequest.BranchId }, null));
+                const string gl11CloseWithoutRead = "gl11-http-close-without-read";
+                Authenticate(Token("sql-owner"));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest(gl11CloseWithoutRead,
+                        new[] { Permissions.PeriodClose }, true, Array.Empty<Guid>(), null));
                 var gl11BeforeDenied = await ReadOnlyCounts(connection, companyId);
                 async Task DeniedGl11Close(string subject, string errorCode)
                 {
@@ -1445,6 +1450,13 @@ public static class HostedApiIntegration
                         body.RootElement.GetProperty("code").GetString() == errorCode,
                         "GL11-T02 close-preview exposed company-wide blockers to " + subject);
                 }
+                // GL11-A01: PeriodClose alone does not grant the separate Read
+                // permission required to inspect company-wide journal blockers.
+                // Use an unrestricted membership to isolate the Read guard from
+                // the all-branches guard already covered above.
+                await DeniedGl11Preview(gl11CloseWithoutRead, "permission_denied");
+                // The same actor must not lose its legitimate close permission;
+                // this test covers preview disclosure, not close authorization.
                 await DeniedGl11Preview(gl11LimitedSubject, "all_branches_required");
                 await DeniedGl11Preview("gl11-http-no-membership", "permission_denied");
                 Ensure(gl11BeforeDenied == await ReadOnlyCounts(connection, companyId),
