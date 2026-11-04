@@ -33,6 +33,20 @@ public static class GeneralOptionsFoundationTests
                 "SYS11 structural card activated a financial workflow");
             return Task.CompletedTask;
         });
+        test("SYS11-FG04: default audit creation timestamp rejects policy before linking accounts", f =>
+        {
+            var beforeAudit = f.Store.Count<AuditEvent>();
+            Error("general_options_audit_time_invalid", () => new GeneralOptionsPolicy(
+                f.CompanyId, f.BranchId, "test-only", "test-valuation", true, "test-delivery",
+                4, f.Owner.Subject, default,
+                new[] { ("test-event", "test-role", f.CashId, "test-scope") }));
+            Ensure(f.Store.Count<GeneralOptionsPolicy>() == 0 &&
+                f.Store.Count<GeneralOptionsAccountLine>() == 0 &&
+                f.Store.Count<AuditEvent>() == beforeAudit &&
+                f.Store.Count<JournalEntry>() == 0,
+                "SYS11 rejected audit timestamp must not mutate policy, accounts or ledger");
+            return Task.CompletedTask;
+        });
         test("SYS11-01: malformed references, precision and required text fail closed", f =>
         {
             var now = new FixedClock().UtcNow;

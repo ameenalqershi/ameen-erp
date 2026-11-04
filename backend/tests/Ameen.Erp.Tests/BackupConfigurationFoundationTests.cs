@@ -28,6 +28,19 @@ public static class BackupConfigurationFoundationTests
                 "SYS15 schema-only card scheduled or executed a real backup");
             return Task.CompletedTask;
         });
+        test("SYS15-FG04: default backup configuration audit timestamp rejects without scheduling", f =>
+        {
+            var beforeAudit = f.Store.Count<AuditEvent>();
+            Error("backup_audit_time_invalid", () => new BackupJobConfiguration(
+                f.CompanyId, f.BranchId, "test-only", "test-backup",
+                "no-execution-schedule", "no-execution-destination",
+                7, true, null, f.Owner.Subject, default));
+            Ensure(f.Store.Count<BackupJobConfiguration>() == 0 &&
+                f.Store.Count<AuditEvent>() == beforeAudit &&
+                f.Store.Count<JournalEntry>() == 0,
+                "SYS15 rejected timestamp must not schedule backup or mutate audit");
+            return Task.CompletedTask;
+        });
         test("SYS15-01: blank backup scope, retention, name and references reject", f =>
         {
             var now=new FixedClock().UtcNow;

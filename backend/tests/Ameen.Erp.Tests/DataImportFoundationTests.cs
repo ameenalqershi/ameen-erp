@@ -35,6 +35,20 @@ public static class DataImportFoundationTests
                 "SYS13 schema metadata performed an import or financial operation");
             return Task.CompletedTask;
         });
+        test("SYS13-FG04: default import audit timestamp rejects before mapping materialization", f =>
+        {
+            var beforeAudit = f.Store.Count<AuditEvent>();
+            Error("data_import_audit_time_invalid", () => new DataImportBatch(
+                f.CompanyId, f.BranchId, "test-only", "unapproved-kind", "file-id",
+                new DateOnly(2026, 10, 31), "unapproved-policy", f.Owner.Subject,
+                default, new[] { ("source", "target", (string?)null) }));
+            Ensure(f.Store.Count<DataImportBatch>() == 0 &&
+                f.Store.Count<DataImportFieldMapping>() == 0 &&
+                f.Store.Count<AuditEvent>() == beforeAudit &&
+                f.Store.Count<JournalEntry>() == 0,
+                "SYS13 rejected timestamp must not save import, mappings or ledger");
+            return Task.CompletedTask;
+        });
         test("SYS13-01: invalid required fields and source mapping rejected without writes", f =>
         {
             var now=new FixedClock().UtcNow;

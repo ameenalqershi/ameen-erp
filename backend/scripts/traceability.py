@@ -285,6 +285,79 @@ screen("CASH01", "GET/POST /companies/{companyId}/cash-boxes; GET /search|/{id}|
 MAP["CASH01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CashBoxTests.cs", "CashBoxSqlIntegration.cs", "SqlIntegration.cs", "OpenApiSnapshotTests.cs"])
 
+# SYS11/SYS12/SYS13/SYS15 are guarded structural foundations, not runtime services.
+# Their source fields must be traceable even while operation catalogues are unapproved.
+_source_only = {
+    "SYS11": (
+        "GeneralOptionsPolicy; GeneralOptionsAccountLine",
+        "الخيارات العامة والربط المحاسبي: بطاقات وسطور مرجعية محمية في SQL/EF بنطاق الشركة؛ لا تفعيل للربط أو الترحيل",
+        "قوائم النوع والحدث ودور الحساب والنطاق وصلاحيات التحرير والموافقة لم تعتمد؛ API وHTTP/JWT التشغيلي غير منفذين",
+        {
+            1:"GeneralOptionsPolicy.CompanyId tenant key", 2:"GeneralOptionsPolicy.BranchId nullable tenant FK",
+            3:"GeneralOptionsPolicy.StatusCode opaque", 4:"GeneralOptionsPolicy.InventoryValuationCode opaque",
+            5:"GeneralOptionsPolicy.BlockNegativeStock stored, not enforced", 6:"GeneralOptionsPolicy.SalesDeliveryModeCode opaque",
+            7:"GeneralOptionsPolicy.QuantityPrecision nonnegative", 8:"GeneralOptionsAccountLine.EventCode opaque",
+            9:"GeneralOptionsAccountLine.AccountRoleCode opaque", 10:"GeneralOptionsAccountLine.AccountId tenant FK",
+            11:"GeneralOptionsAccountLine.Scope opaque", 12:"GeneralOptionsPolicy.CreatedBy internal",
+            13:"GeneralOptionsPolicy.CreatedAt rejects default creation time; no API",
+            14:"GeneralOptionsPolicy.Revision positive int, no API",
+            15:"GeneralOptionsPolicy.LastModifiedAt internal, no API"
+        }, ["GeneralOptionsFoundationTests.cs","GeneralOptionsSqlIntegration.cs"]),
+    "SYS12": (
+        "PrintTemplate",
+        "قالب طباعة بنيوي محمي في SQL/EF بنطاق الشركة دون اعتماد قوالب بلد أو طباعة فعلية",
+        "قائمة الوثائق واللغات ومقاسات الورق والحقول الإلزامية والوسم والواجهات والتفويض غير معتمدة",
+        {
+            1:"PrintTemplate.CompanyId tenant key", 2:"PrintTemplate.BranchId nullable tenant FK",
+            3:"PrintTemplate.StatusCode opaque", 4:"PrintTemplate.DocumentTypeCode opaque",
+            5:"PrintTemplate.LanguageCode opaque", 6:"PrintTemplate.PaperSizeCode opaque",
+            7:"PrintTemplate.Name Unicode", 8:"PrintTemplate.VersionCode source string",
+            9:"PrintTemplate.IsDraft stored only, no watermark renderer",
+            10:"PrintTemplate.CreatedBy internal", 11:"PrintTemplate.CreatedAt rejects default creation time; no API",
+            12:"PrintTemplate.Revision positive int, no API",
+            13:"PrintTemplate.LastModifiedAt internal, no API"
+        }, ["PrintTemplateFoundationTests.cs","PrintTemplateSqlIntegration.cs"]),
+    "SYS13": (
+        "DataImportBatch; DataImportFieldMapping",
+        "دفعة استيراد وحقول ربط بنيوية محمية في SQL/EF؛ لم ينفذ استيراد أو معاينة أو قيد",
+        "قائمة أنواع البيانات وسياسة التكرار والمطابقة ومعاينة الأخطاء والاعتماد والتنفيذ والتكامل غير معتمدة",
+        {
+            1:"DataImportBatch.CompanyId tenant key", 2:"DataImportBatch.BranchId nullable tenant FK",
+            3:"DataImportBatch.StatusCode opaque", 4:"DataImportBatch.DataKindCode opaque",
+            5:"DataImportBatch.FileIdentifier stored, no file IO", 6:"DataImportBatch.CutoffDate DateOnly",
+            7:"DataImportBatch.DuplicatePolicyCode opaque", 8:"DataImportFieldMapping.SourceColumn",
+            9:"DataImportFieldMapping.TargetField", 10:"DataImportFieldMapping.DefaultValue nullable",
+            11:"DataImportBatch.CreatedBy internal",
+            12:"DataImportBatch.CreatedAt rejects default creation time; no API",
+            13:"DataImportBatch.Revision positive int, no API",
+            14:"DataImportBatch.LastModifiedAt internal, no API"
+        }, ["DataImportFoundationTests.cs","DataImportSqlIntegration.cs"]),
+    "SYS15": (
+        "BackupJobConfiguration",
+        "بطاقة تهيئة نسخة محمية بنطاق الشركة؛ لا نسخ أو استعادة أو جدولة تشغيلية",
+        "تفويض الاستعادة والتشفير والجدولة والاحتفاظ واختبار استعادة معزول غير معتمدة؛ API غير منفذ",
+        {
+            1:"BackupJobConfiguration.CompanyId tenant key", 2:"BackupJobConfiguration.BranchId nullable tenant FK",
+            3:"BackupJobConfiguration.StatusCode opaque", 4:"BackupJobConfiguration.Name Unicode",
+            5:"BackupJobConfiguration.ScheduleText stored, never scheduled",
+            6:"BackupJobConfiguration.Destination stored, never accessed",
+            7:"BackupJobConfiguration.RetentionPolicy nonnegative, unit unapproved",
+            8:"BackupJobConfiguration.IsEncrypted stored, no cryptography worker",
+            9:"BackupJobConfiguration.LastTestReference nullable, no real restore",
+            10:"BackupJobConfiguration.CreatedBy internal",
+            11:"BackupJobConfiguration.CreatedAt rejects default creation time; no API",
+            12:"BackupJobConfiguration.Revision positive int, no API",
+            13:"BackupJobConfiguration.LastModifiedAt internal, no API"
+        }, ["BackupConfigurationFoundationTests.cs","BackupConfigurationSqlIntegration.cs"]),
+}
+for _id, (_entities, _built, _remaining, _fields, _tests) in _source_only.items():
+    screen(_id, "internal domain/EF/SQL schema only; no public operation API",
+           _built, _remaining, {})
+    for _field, _binding in _fields.items():
+        MAP[_id]["fields"][f"{_id}-F{_field:02}"] = dict(
+            status="partial", binding=f"{_binding}; structural foundation only")
+    MAP[_id]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + t for t in _tests)
+
 screen("SYS16", "internal EF/SQL schema 033 only; public SYS16 payment API not enabled",
        "بنية أصلية لبطاقات طرق الدفع وخطط الأقساط: الشركة والفرع والرمز والاسم والوسيلة والحساب الاختياري وأيام السماح والنسب والاستحقاق والتدقيق؛ هجرة ذرية idempotent ومراجع SQL مركبة بالشركة؛ مجموع نسب خطة معطاة يساوي 100 في Domain، ورفض EF لأي كتابة غير معتمدة",
        "كتابة وقراءة SYS16 عبر API والبحث والتعديل والتعطيل والاستخدام وسجل التدقيق؛ اعتماد قائمة أنواع الوسائل التفصيلية وشروط إلزام الحساب، صلاحيات الفرع والحساب، ربط SAL06/PUR07/POS03 ومنع ترحيل البطاقة نقدًا؛ لا تعتبر البيانات schema-only وسيلة دفع تشغيلية",

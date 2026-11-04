@@ -36,6 +36,7 @@ public sealed class BackupJobConfiguration : CompanyEntity
         LastTestReference = string.IsNullOrWhiteSpace(lastTestReference) ? null :
             Check.Text(lastTestReference, "مرجع آخر اختبار", 200);
         CreatedBy = Check.Text(createdBy, "المنشئ", 200);
+        Check.That(now != default, "backup_audit_time_invalid", "وقت إنشاء مهمة النسخ غير صالح.");
         CreatedAt = now;
         LastModifiedAt = now;
     }
