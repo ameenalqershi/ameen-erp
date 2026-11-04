@@ -1386,6 +1386,22 @@ public static class HostedApiIntegration
                     gl11CloseVersion = json.RootElement.GetProperty("expectedVersion").GetGuid();
                 }
 
+                // GL11-A01: malformed preview pagination must fail before any
+                // ledger read and never create journal/audit/receipt/outbox rows.
+                var gl11InvalidPagingBefore = await ReadOnlyCounts(connection, companyId);
+                foreach (var query in new[] { "offset=-1&limit=1", "offset=1000001&limit=1", "offset=0&limit=0", "offset=0&limit=201" })
+                {
+                    using var invalidPreview = await client.GetAsync(
+                        $"/api/v1/companies/{companyId}/periods/{periodId}/close-preview?{query}");
+                    using var invalidBody = JsonDocument.Parse(await invalidPreview.Content.ReadAsStringAsync());
+                    Ensure(invalidPreview.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        invalidBody.RootElement.GetProperty("code").GetString() == "invalid_pagination",
+                        "GL11 preview accepted invalid pagination: " + query);
+                }
+                Ensure(gl11InvalidPagingBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL11 invalid preview pagination mutated SQL state");
+                Console.WriteLine("  HOST PASS GL11 preview invalid pagination rejected without SQL mutation");
+
                 // GL11-T02/A01: a valid signed JWT and PeriodClose on only one
                 // branch cannot authorize the company-wide close operation.
                 // The service must deny these BEFORE the pending-journal guard
@@ -1720,6 +1736,20 @@ public static class HostedApiIntegration
                         gl12PageJson.RootElement.GetProperty("history").GetProperty("totalCount").GetInt32() == 1 &&
                         gl12PageJson.RootElement.GetProperty("history").GetProperty("items").GetArrayLength() == 0,
                         "GL12 HTTP reopen audit paging duplicated a decision");
+                // GL12-A05: invalid history paging is rejected without writing
+                // another reopen event, receipt or journal change.
+                var gl12InvalidPagingBefore = await ReadOnlyCounts(connection, companyId);
+                foreach (var query in new[] { "offset=-1&limit=1", "offset=0&limit=0", "offset=0&limit=201" })
+                {
+                    using var invalidHistory = await client.GetAsync(gl12Path + "/reopen-history?" + query);
+                    using var invalidBody = JsonDocument.Parse(await invalidHistory.Content.ReadAsStringAsync());
+                    Ensure(invalidHistory.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        invalidBody.RootElement.GetProperty("code").GetString() == "invalid_pagination",
+                        "GL12 reopen history accepted invalid pagination: " + query);
+                }
+                Ensure(gl12InvalidPagingBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL12 invalid history pagination mutated SQL state");
+                Console.WriteLine("  HOST PASS GL12 reopen history invalid paging rejected without SQL mutation");
                 using (var gl11Denied = await client.GetAsync(gl12Path + "/execution-history"))
                     Ensure(gl11Denied.StatusCode == HttpStatusCode.Forbidden,
                         "GL12-only reviewer gained unauthorized PeriodClose audit access");
