@@ -109,10 +109,10 @@ SYS07,SYS07-F07,العملية,required,partial,SecurityRoleRule.OperationCode: 
 SYS07,SYS07-F08,مسموح,required,partial,SecurityRoleRule.Allowed: no runtime enforcement,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F09,حد المبلغ,conditional,partial,"SecurityRoleRule.AmountLimit: decimal(20,6), no runtime enforcement",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F10,عملة الحد,conditional,partial,"SecurityRoleRule.CurrencyId: tenant FK, no runtime enforcement",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
-SYS07,SYS07-F11,أنشأه,system,audit,AuditEvent.ActorId,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
-SYS07,SYS07-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
-SYS07,SYS07-F13,رقم إصدار التعديل,system,implemented,Version,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
-SYS07,SYS07-F14,آخر تعديل,system,partial,SecurityRole.LastModifiedAt: internal server timestamp only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F11,أنشأه,system,partial,"SecurityRole.CreatedBy: bounded creator, validated in hydrated snapshots; operational audit pending",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F12,وقت الإنشاء,system,partial,"SecurityRole.CreatedAt: nondefault time, validated before role construction and grant evaluation",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F13,رقم إصدار التعديل,system,partial,"SecurityRole.Revision: positive in hydrated snapshots, domain change guards; SQL/API pending",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
+SYS07,SYS07-F14,آخر تعديل,system,partial,"SecurityRole.LastModifiedAt: chronology validated in every role snapshot, operational API pending",GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS08,SYS08-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/memberships
 SYS08,SYS08-F02,الفرع,conditional,pending,,
 SYS08,SYS08-F03,الحالة,system,pending,,

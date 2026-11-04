@@ -1,3 +1,9 @@
+## SYS07-AC02 / FG05 and SYS08-AC02 — fail-closed hydrated role and assignment snapshots (5 November 2026)
+
+An independent security correction validates the *entire hydrated SYS07 role header* before any direct or assigned role grant: nonempty identity, valid branch scope, creator, name, responsibility and nondefault creation time, positive revision and chronological last-modified timestamp. It also rejects missing or duplicate rule persistence IDs even when screen/operation tuples differ. SYS08's pure assigned-role evaluator now fails closed when a tenant-scoped assignment snapshot includes a foreign, malformed or duplicated link (including an unrelated membership), or a blank membership subject. Positive tests ensure a normal tenant-scoped grant remains valid and unrelated valid links do not suppress it. Negative domain regressions individually corrupt and restore each field to demonstrate there is never an authorization bypass.
+
+This improves the **pure, currently unconnected** permission evaluator and safe role creation only; it does not grant access to HTTP/JWT, does not enable SYS07/SYS08 CRUD or role persistence and does not assert full acceptance of the security module. SYS07 rules and SYS08 scopes still require approved role catalogs, group/warehouse/cashbox branch policies, audited role administration, complete tenant-scoped snapshots and authorised integration. No financial actions or production role grants are created; no original analysis or diagrams modified. Verify Release and all existing tests locally and isolated SQL/HTTPS/JWT/OpenAPI CI on the final SHA; SUPERVISOR alone reviews/integrates.
+
 ## SAL01-01 — بنية بطاقة العميل فقط (4 نوفمبر 2026)
 
 **تحديث قبول 4 نوفمبر:** نجح CI على SHA `3d8c991b5846ccf4491e212706b032d80e549cc4` في [GitHub Actions #41887573897](https://github.com/ameenalqershi/ameen-erp/actions/runs/41887573897): `518/518 passed; 0 failed`، بما يشمل SQL Server المعزول وترقية SQL 046 وعزل الشركة ومنع تكرار رمز العميل وتدقيق الحقول والائتمان. فشل التشغيل القديم قبل تخصيص Runner، ولا يمثل فشل اختبارات. PR #118 لا يزال Draft، وتظل الشاشة جزئية لحين الاعتماديات والسياسات وواجهات التشغيل؛ لا تُحوّل إلى مكتملة.
@@ -1295,7 +1301,7 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 
 آخر تقرير محفوظ: `2026-11-02T19:37:11.777004+00:00`؛ النتيجة `passed`؛ 356/356، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 248. نسبة الشاشات التي بدأ تنفيذها: **28.7%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **14.4%** (396/2759)؛ الحقول الجزئية: 251. نسبة الشاشات التي بدأ تنفيذها: **28.7%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -1321,10 +1327,10 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 
 | الحالة | العدد |
 | --- | --- |
-| audit | 46 |
+| audit | 44 |
 | derived | 4 |
-| implemented | 349 |
-| partial | 248 |
+| implemented | 348 |
+| partial | 251 |
 | pending | 2112 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.

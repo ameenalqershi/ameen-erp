@@ -19,6 +19,7 @@ public sealed class SecurityRole : CompanyEntity
     public SecurityRole(Guid companyId, Guid? branchId, string name, string responsibility,
         string actor, DateTimeOffset now) : base(companyId)
     {
+        Check.That(now != default, "invalid_role_audit_time", "وقت إنشاء الدور غير صالح.");
         Check.That(branchId != Guid.Empty, "invalid_role_branch", "الفرع غير صالح.");
         BranchId = branchId;
         Name = Check.Text(name, "الدور", 200);
@@ -96,9 +97,16 @@ public sealed class SecurityRole : CompanyEntity
     // A corrupt or cross-tenant rule snapshot must never turn into a grant.
     internal bool HasValidRuleSnapshot()
     {
-        if (Rules is null) return false;
+        // A hydrated role header can bypass the constructor. Never grant from
+        // invalid identity, audit chronology or source text, even with valid rules.
+        if (Id == Guid.Empty || CompanyId == Guid.Empty || BranchId == Guid.Empty ||
+            Revision <= 0 || CreatedAt == default || LastModifiedAt < CreatedAt ||
+            !CanonicalText(Name, 200) || !CanonicalText(Responsibility, 500) ||
+            !CanonicalText(CreatedBy, 200) || Rules is null) return false;
         var keys = new HashSet<(string Screen, string Operation, Guid? Currency)>();
-        return Rules.All(x => x is not null && x.CompanyId == CompanyId &&
+        var identities = new HashSet<Guid>();
+        return Rules.All(x => x is not null && x.Id != Guid.Empty &&
+            identities.Add(x.Id) && x.CompanyId == CompanyId &&
             x.RoleId == Id &&
             IsCanonicalStoredCode(x.ScreenCode, 32) &&
             IsCanonicalStoredCode(x.OperationCode, 64) &&
@@ -108,6 +116,10 @@ public sealed class SecurityRole : CompanyEntity
               decimal.Round(x.AmountLimit.Value, 6) == x.AmountLimit.Value)) &&
             keys.Add((x.ScreenCode, x.OperationCode, x.CurrencyId)));
     }
+
+    private static bool CanonicalText(string? value, int max) =>
+        !string.IsNullOrEmpty(value) && value.Length <= max &&
+        value == value.Trim() && !value.Any(char.IsControl);
 
     // A database snapshot is not necessarily constructed through the domain
     // constructor. Recheck its canonical representation before granting access.
