@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 43,
+  "partially_implemented_screens": 44,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 46,
     "derived": 4,
-    "partial": 248,
-    "pending": 2112
+    "partial": 274,
+    "pending": 2086
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2765,6 +2765,118 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CashCountFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashCountSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "PUR01": {
+      "api": "internal SQL/EF 049 only; no authorized PUR01 HTTP API",
+      "implemented": "Supplier schema/field values, tenant-scoped account/currency references, unique code and audit structure; EF writes blocked until reviewed",
+      "remaining": "Separate reviewer for bank beneficiary/IBAN changes, country-dependent registration/IBAN rules, partner scope/permissions and safe create/edit/status/usage API with SQL/JWT/HTTP acceptance, PUR03/PUR11 posting",
+      "fields": {
+        "PUR01-F01": {
+          "status": "partial",
+          "binding": "Supplier.Id (server GUID)"
+        },
+        "PUR01-F02": {
+          "status": "partial",
+          "binding": "Supplier.CompanyId (tenant key)"
+        },
+        "PUR01-F03": {
+          "status": "partial",
+          "binding": "Supplier.Code nvarchar(32) (unique company code)"
+        },
+        "PUR01-F04": {
+          "status": "partial",
+          "binding": "Supplier.Name nvarchar(200)"
+        },
+        "PUR01-F05": {
+          "status": "partial",
+          "binding": "Supplier.EnglishName nullable nvarchar(200)"
+        },
+        "PUR01-F06": {
+          "status": "partial",
+          "binding": "Supplier.IsActive stored only, no status action"
+        },
+        "PUR01-F07": {
+          "status": "partial",
+          "binding": "Supplier.Notes nullable nvarchar(2000)"
+        },
+        "PUR01-F08": {
+          "status": "partial",
+          "binding": "Supplier.LegalName nvarchar(200)"
+        },
+        "PUR01-F09": {
+          "status": "partial",
+          "binding": "Supplier.ControlAccountId tenant FK"
+        },
+        "PUR01-F10": {
+          "status": "partial",
+          "binding": "Supplier.TransactionCurrencyId tenant FK"
+        },
+        "PUR01-F11": {
+          "status": "partial",
+          "binding": "Supplier.PaymentTerms required nvarchar(2000)"
+        },
+        "PUR01-F12": {
+          "status": "partial",
+          "binding": "Supplier.DueDays int nonnegative"
+        },
+        "PUR01-F13": {
+          "status": "partial",
+          "binding": "Supplier.TaxNumber nullable; conditional country policy unavailable"
+        },
+        "PUR01-F14": {
+          "status": "partial",
+          "binding": "Supplier.CountryId GUID required; country catalogue FK unavailable"
+        },
+        "PUR01-F15": {
+          "status": "partial",
+          "binding": "Supplier.BankBeneficiary nullable; separate reviewer unavailable"
+        },
+        "PUR01-F16": {
+          "status": "partial",
+          "binding": "Supplier.Iban nullable; country-specific validation unavailable"
+        },
+        "PUR01-F17": {
+          "status": "partial",
+          "binding": "Supplier.CreatedBy actor stored (no API)"
+        },
+        "PUR01-F18": {
+          "status": "partial",
+          "binding": "Supplier.CreatedAt datetimeoffset(7) required"
+        },
+        "PUR01-F19": {
+          "status": "partial",
+          "binding": "Supplier.Revision initialized at 1 (no edit API)"
+        },
+        "PUR01-F20": {
+          "status": "partial",
+          "binding": "Supplier.LastModifiedAt initialized at creation (no edit API)"
+        },
+        "PUR01-F21": {
+          "status": "partial",
+          "binding": "Supplier.City required nvarchar(200)"
+        },
+        "PUR01-F22": {
+          "status": "partial",
+          "binding": "Supplier.District nullable nvarchar(200)"
+        },
+        "PUR01-F23": {
+          "status": "partial",
+          "binding": "Supplier.Street required nvarchar(200)"
+        },
+        "PUR01-F24": {
+          "status": "partial",
+          "binding": "Supplier.BuildingNumber nullable nvarchar(32)"
+        },
+        "PUR01-F25": {
+          "status": "partial",
+          "binding": "Supplier.PostalCode nullable nvarchar(32)"
+        },
+        "PUR01-F26": {
+          "status": "partial",
+          "binding": "Supplier.AdditionalNumber nullable nvarchar(32)"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/SupplierFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SupplierSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "RPT01": {
       "api": "GET /companies/{companyId}/reports/trial-balance",

@@ -52,6 +52,7 @@ public static class SqlIntegration
                 await FiscalYearAuditSqlIntegration.Upgrade(db);
                 await MembershipAuditSqlIntegration.Upgrade(db);
                 await CustomerSqlIntegration.Upgrade(db);
+                await SupplierSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await using (var fiscalAuditDb = f.Context())
@@ -60,6 +61,8 @@ public static class SqlIntegration
                 await MembershipAuditSqlIntegration.Guard(membershipAuditDb, f.CompanyId, f.Owner.Subject);
             await using (var customerDb = f.Context())
                 await CustomerSqlIntegration.Guard(customerDb, f.CompanyId, f.EquityId, f.Owner.Subject);
+            await using (var supplierDb = f.Context())
+                await SupplierSqlIntegration.Guard(supplierDb, f.CompanyId, f.EquityId, f.Owner.Subject);
             await using (var paymentSchemaDb = f.Context())
                 await PaymentTermSqlIntegration.Guard(paymentSchemaDb, f.CompanyId, f.BranchId, f.CashId);
             await using (var advanceSchemaDb = f.Context())

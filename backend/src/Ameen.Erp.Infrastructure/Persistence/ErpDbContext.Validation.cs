@@ -8,6 +8,14 @@ public sealed partial class ErpDbContext
     private void ValidateChanges()
     {
         ChangeTracker.DetectChanges();
+        // PUR01 foundation only. Bank beneficiary changes require a different
+        // reviewer and tax/IBAN requirements depend on country-specific rules.
+        // Preserve a fail-closed boundary for all insert/edit/delete operations.
+        Check.That(!ChangeTracker.Entries<Supplier>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "supplier_policy_unavailable",
+            "حفظ بطاقة المورد محجوب حتى اعتماد مراجعة البنك وقواعد الدولة والتفويض.",
+            ErrorKind.Conflict);
         // SAL01-01 structural only. Customer classification (SAL15), country
         // identity rules, credit override authorization and SAL09 are unavailable.
         Check.That(!ChangeTracker.Entries<Customer>().Any(e =>
