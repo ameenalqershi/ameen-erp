@@ -11,6 +11,58 @@ public static class NumberingTests
     private static Task<CommandReceipt> Create(Fixture f,CreateNumberSeriesRequest? r=null,string? key=null)=>f.Service.Numbering.Create(f.CompanyId,f.Owner,key??Fixture.Key(),r??Request(f),default);
     public static void Register(Action<string,Func<Fixture,Task>> test)
     {
+        test("SYS10-FG03: missing creation audit timestamp rejects series without reserving",f=>
+        {
+            var audits=f.Store.Count<AuditEvent>();
+            var receipts=f.Store.Count<IdempotencyRecord>();
+            try
+            {
+                _=new DocumentNumberSeries(f.CompanyId,f.BranchId,NumberingDocumentKind.Journal,
+                    Year(f),"JV-",7,f.Owner.Subject,default);
+                throw new Exception("Expected missing series creation timestamp");
+            }
+            catch(BusinessException ex) when(ex.Code=="invalid_numbering_audit_time") {}
+            Ensure(f.Store.Count<DocumentNumberSeries>()==0 &&
+                f.Store.Count<DocumentNumberAllocation>()==0 &&
+                f.Store.Count<AuditEvent>()==audits &&
+                f.Store.Count<IdempotencyRecord>()==receipts);
+            return Task.CompletedTask;
+        });
+        test("SYS10: invalid reservation identity, sequence, actor or timestamp rejects before state effects",f=>
+        {
+            var now=new DateTimeOffset(2026,11,5,0,0,0,TimeSpan.Zero);
+            var series=new DocumentNumberSeries(f.CompanyId,f.BranchId,NumberingDocumentKind.Journal,
+                Year(f),"JV-",7,f.Owner.Subject,now);
+            var version=series.Version;
+            var auditCount=f.Store.Count<AuditEvent>();
+            var allocationCount=f.Store.Count<DocumentNumberAllocation>();
+            void Reject(string expected,Guid branch,Guid sourceVersion,long seq,
+                string number,string actor,DateTimeOffset at)
+            {
+                try
+                {
+                    _=new DocumentNumberAllocation(series,branch,sourceVersion,seq,number,actor,at);
+                    throw new Exception("Unexpected reservation acceptance");
+                }
+                catch(BusinessException ex) when(ex.Code==expected) {}
+            }
+            Reject("invalid_number_allocation_reference",Guid.Empty,version,7,"JV-000007",f.Owner.Subject,now);
+            Reject("invalid_number_allocation_reference",f.BranchId,Guid.Empty,7,"JV-000007",f.Owner.Subject,now);
+            Reject("invalid_number_allocation_sequence",f.BranchId,version,0,"JV-000000",f.Owner.Subject,now);
+            Reject("invalid_text",f.BranchId,version,7,"",f.Owner.Subject,now);
+            Reject("invalid_text",f.BranchId,version,7,"JV-000007","",now);
+            Reject("invalid_number_allocation_audit_time",f.BranchId,version,7,"JV-000007",f.Owner.Subject,default);
+            Ensure(series.NextNumber==7 && series.Revision==1 && series.Version==version &&
+                f.Store.Count<DocumentNumberAllocation>()==allocationCount &&
+                f.Store.Count<AuditEvent>()==auditCount);
+            var valid=new DocumentNumberAllocation(series,f.BranchId,version,7,
+                "JV-000007",f.Owner.Subject,now);
+            Ensure(valid.CompanyId==f.CompanyId && valid.BranchId==f.BranchId &&
+                valid.SeriesId==series.Id && valid.SeriesVersion==version &&
+                valid.Sequence==7 && valid.ReservedAt==now &&
+                valid.Number=="JV-000007" && valid.ReservedBy==f.Owner.Subject);
+            return Task.CompletedTask;
+        });
         test("SYS10 atomicity: invalid edit prefix, audit time and allocation preserve series state",f=>
         {
             var now=new DateTimeOffset(2026,11,2,12,0,0,TimeSpan.Zero);

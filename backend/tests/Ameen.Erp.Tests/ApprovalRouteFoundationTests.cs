@@ -8,6 +8,20 @@ public static class ApprovalRouteFoundationTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS09-FG04: missing creation audit timestamp rejects route with no state effects", f =>
+        {
+            var audits=f.Store.Count<AuditEvent>();
+            var journals=f.Store.Count<JournalEntry>();
+            Expect("invalid_approval_audit_time", () => new ApprovalRoute(
+                f.CompanyId, f.BranchId, "journal", 0m, 100m, Guid.NewGuid(),
+                true, f.Owner.Subject, default));
+            Ensure(f.Store.Count<ApprovalRoute>()==0 &&
+                f.Store.Count<ApprovalRouteStage>()==0 &&
+                f.Store.Count<AuditEvent>()==audits &&
+                f.Store.Count<JournalEntry>()==journals,
+                "SYS09 rejected creation time changed staged approval or finance");
+            return Task.CompletedTask;
+        });
         test("SYS09 foundation: amount, stage, branch, currency and audit fields retain exact types", f =>
         {
             var now = new DateTimeOffset(2026, 11, 2, 5, 0, 0, TimeSpan.Zero);

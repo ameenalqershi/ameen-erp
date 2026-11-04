@@ -549,7 +549,7 @@
         },
         "SYS09-F13": {
           "status": "partial",
-          "binding": "CreatedAt: datetimeoffset; hydrated audit preflight only"
+          "binding": "CreatedAt: datetimeoffset; creation rejects unset timestamp; hydrated audit preflight only"
         },
         "SYS09-F14": {
           "status": "partial",
@@ -601,7 +601,7 @@
         },
         "SYS10-F09": {
           "status": "implemented",
-          "binding": "CreatedAt"
+          "binding": "CreatedAt: nondefault domain audit guard"
         },
         "SYS10-F10": {
           "status": "implemented",
