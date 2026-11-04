@@ -681,6 +681,7 @@ FinancialMappingTests.Register(Test);
 JournalDocumentTypeFoundationTests.Register(Test);
 ApprovalRouteFoundationTests.Register(Test);
 SecurityRoleFoundationTests.Register(Test);
+CustomerCollectionFollowUpFoundationTests.Register(Test);
 UserDataScopeFoundationTests.Register(Test);
 tests.Add(("HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON", HttpIntegration.Run));
 tests.Add(("OpenAPI: production routes expose optional draft headers without SQL dependency", OpenApiSnapshotTests.Run));
