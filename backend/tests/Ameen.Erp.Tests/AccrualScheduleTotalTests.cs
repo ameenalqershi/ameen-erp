@@ -48,6 +48,34 @@ public static class AccrualScheduleTotalTests
                 "GL09 invalid schedule snapshot was accepted");
             return Task.CompletedTask;
         });
+        test("GL09-F14/F20: storage precision cannot be silently rounded into a balanced schedule", f =>
+        {
+            var p1 = Guid.NewGuid();
+            var p2 = Guid.NewGuid();
+            Ensure(AccrualScheduleTotalPolicy.Evaluate(0.123456m,
+                new[] { new AccrualSchedulePeriod(p1, 0.123456m) }) ==
+                    AccrualScheduleTotalStatus.Balanced,
+                "Decimal(20,6) exact schedule amount should be accepted");
+            Ensure(AccrualScheduleTotalPolicy.Evaluate(0.1234567m,
+                new[] { new AccrualSchedulePeriod(p1, 0.1234567m) }) ==
+                    AccrualScheduleTotalStatus.InvalidSnapshot,
+                "Contract total exceeding Decimal(20,6) scale was accepted");
+            Ensure(AccrualScheduleTotalPolicy.Evaluate(10m,
+                new[]
+                {
+                    new AccrualSchedulePeriod(p1, 5.0000001m),
+                    new AccrualSchedulePeriod(p2, 4.9999999m)
+                }) == AccrualScheduleTotalStatus.InvalidSnapshot,
+                "Mutually canceling overscale lines were accepted because their sum matched");
+            Ensure(AccrualScheduleTotalPolicy.Evaluate(10m,
+                new[] { new AccrualSchedulePeriod(p1, 100_000_000_000_000m) }) ==
+                    AccrualScheduleTotalStatus.InvalidSnapshot &&
+                AccrualScheduleTotalPolicy.Evaluate(100_000_000_000_000m,
+                    new[] { new AccrualSchedulePeriod(p1, 10m) }) ==
+                    AccrualScheduleTotalStatus.InvalidSnapshot,
+                "Amount exceeding Decimal(20,6) integer precision was accepted");
+            return Task.CompletedTask;
+        });
         test("GL09-C01 partial: decimal overflow fails without monetary rounding", f =>
         {
             var snapshot = new[]
