@@ -72,7 +72,7 @@ SAL12,SAL,متابعة التحصيل وحد الائتمان,not-started,,,ال
 SAL13,SAL,حركات المبيعات والمرتجعات,not-started,,,الشاشة كاملة,
 SAL14,SAL,عرض أسعار المبيعات,not-started,,,الشاشة كاملة,
 SAL15,SAL,مجموعات العملاء وسياسات الائتمان,not-started,,,الشاشة كاملة,
-PUR01,PUR,بطاقة المورد,not-started,,,الشاشة كاملة,
+PUR01,PUR,بطاقة المورد,partial,internal SQL/EF 049 only; no authorized PUR01 HTTP API,"Supplier schema/field values, tenant-scoped account/currency references, unique code and audit structure; EF writes blocked until reviewed","Separate reviewer for bank beneficiary/IBAN changes, country-dependent registration/IBAN rules, partner scope/permissions and safe create/edit/status/usage API with SQL/JWT/HTTP acceptance, PUR03/PUR11 posting",backend/tests/Ameen.Erp.Tests/SupplierFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SupplierSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs
 PUR02,PUR,أسعار واتفاقيات الموردين,not-started,,,الشاشة كاملة,
 PUR03,PUR,أرصدة الموردين أول المدة,not-started,,,الشاشة كاملة,
 PUR04,PUR,طلب شراء داخلي,not-started,,,الشاشة كاملة,

@@ -1,3 +1,11 @@
+## PUR01-01 / PUR01-FG01–FG07 — بطاقة المورد، أساس بنيوي محجوب تشغيليًا (5 نوفمبر 2026)
+
+أضيف على فرع `temp/pur01-supplier-foundation-20261105-chat` كيان `Supplier` مطابق لمجموعات حقول PUR01 الأصلية، وتهيئة EF ذات مفاتيح شركة مركبة، وترقية SQL `049_suppliers_foundation.sql` ذرية قابلة للإعادة دون إنشاء مورد وهمي، ومجموعة اختبارات المجال وSQL المعزول. لا تعديل لملفات `muhaseb-erp-analysis`. حالة الشاشة والمهام دقيقة الحقول **جزئية** فقط؛ لا تسجّل كاكتمل لمجرد توفر عمود SQL.
+
+التعطيل المتعمد لجميع عمليات EF على المورد (`supplier_policy_unavailable`) يحمي التغيير البنكي الذي يحتاج مراجعًا آخر، والتحقق الضريبي/IBAN المحدد بالدولة غير المعتمد، وحقوق الوصول والذمم وربط PUR03/PUR11/GL/CASH. **لا endpoint تشغيلي ولا عمليات شراء/مخزون/أستاذ أو ذمم**. يلزم اعتماد العقود الأصلية وتنفيذ API/HTTP/JWT وعزل وتزامن ومراجعة البنك قبل رفع حالة اكتمال PUR01-01.
+
+فحوص التنفيذ: `SupplierFoundationTests` + `SupplierSqlIntegration` (الترقية المتكررة، rollback، خطأ صاحب نسخة SQL، 27 عمودًا، مراجع الشركة/الحساب/العملة، كود المورد الفريد وعزل tenant ورفض تعديل EF). نجاح SQL الحي يجب إثباته منفصلًا في CI على **HEAD**، وليس عبر فحوص .NET المحلية. فحص `backend/scripts/verify.py` على الشجرة الحالية: **534/534 PASS، 0 failed** باستخدام .NET 10، شمل بناء Release وحالات المجال وHTTP/OpenAPI والتحليل والمخططات وtraceability؛ `liveSqlRequested=false` لعدم وجود `AMEEN_TEST_SQL_CONNECTION` معزول. لا تعني النتيجة اجتياز SQL الحي أو إغلاق المهمة.
+
 ## CORE DGM-01–15 — تحقق آلي من خرائط التنقل (4 نوفمبر 2026)
 
 أضيف حارس قراءة فقط يطابق 15 خريطة تنقل أصلية مع 150 شاشة في سجل التحليل، ويتحقق من المعرّفات والتسميات والفئات والحواف وصحة SVG، مع 8 اختبارات قبول موجبة وسالبة في `backend/scripts/tests/test_module_diagram_navigation.py`. يرجع إلى [تقرير التدقيق](core-module-diagram-navigation-audit-20261104.md). المخرجات لا تمثل تبعيات بناء أو اكتمال الشاشات. التنفيذ على `temp/core-diagram-nav-audit-20261104-chat` ولا دمج مباشر؛ يحتاج اختبار CI على HEAD النهائي ومراجعة SUPERVISOR قبل إغلاق مهام DGM-01–15.
@@ -1299,11 +1307,11 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 
 ## ملخص آلي من الأدلة المسجلة
 
-الشاشات: 150؛ منفذة جزئيًا: 43؛ لم تبدأ: 107؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
+الشاشات: 150؛ منفذة جزئيًا: 44؛ لم تبدأ: 106؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
 
 آخر تقرير محفوظ: `2026-11-02T19:37:11.777004+00:00`؛ النتيجة `passed`؛ 356/356، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 248. نسبة الشاشات التي بدأ تنفيذها: **28.7%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 274. نسبة الشاشات التي بدأ تنفيذها: **29.3%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -1314,7 +1322,7 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | CASH | 11 | 9 | 2 |
 | INV | 16 | 6 | 10 |
 | SAL | 15 | 0 | 15 |
-| PUR | 13 | 0 | 13 |
+| PUR | 13 | 1 | 12 |
 | POS | 6 | 0 | 6 |
 | IMP | 6 | 0 | 6 |
 | FA | 6 | 0 | 6 |
@@ -1332,8 +1340,8 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | audit | 46 |
 | derived | 4 |
 | implemented | 349 |
-| partial | 248 |
-| pending | 2112 |
+| partial | 274 |
+| pending | 2086 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 
@@ -1439,7 +1447,7 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 
 | الشاشة | الاسم | الحالة | المنفذ | المتبقي |
 | --- | --- | --- | --- | --- |
-| PUR01 | بطاقة المورد | not-started | — | الشاشة كاملة |
+| PUR01 | بطاقة المورد | partial | Supplier schema/field values, tenant-scoped account/currency references, unique code and audit structure; EF writes blocked until reviewed | Separate reviewer for bank beneficiary/IBAN changes, country-dependent registration/IBAN rules, partner scope/permissions and safe create/edit/status/usage API with SQL/JWT/HTTP acceptance, PUR03/PUR11 posting |
 | PUR02 | أسعار واتفاقيات الموردين | not-started | — | الشاشة كاملة |
 | PUR03 | أرصدة الموردين أول المدة | not-started | — | الشاشة كاملة |
 | PUR04 | طلب شراء داخلي | not-started | — | الشاشة كاملة |
@@ -1571,7 +1579,7 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | [module-CASH](../../muhaseb-erp-analysis/diagrams/source/module-CASH.mmd) | partial | CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH03 أساس سند قبض بنيوي فقط مع حظر كتابته؛ CASH07/CASH08 أساس شيكات بنيوي فقط مع حظر كتابتها؛ CASH09 أساس حركة شيك بنيوي مع منع جميع الكتابات؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ |
 | [module-INV](../../muhaseb-erp-analysis/diagrams/source/module-INV.mmd) | partial | وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ |
 | [module-SAL](../../muhaseb-erp-analysis/diagrams/source/module-SAL.mmd) | not-started | لم يبدأ التنفيذ |
-| [module-PUR](../../muhaseb-erp-analysis/diagrams/source/module-PUR.mmd) | not-started | لم يبدأ التنفيذ |
+| [module-PUR](../../muhaseb-erp-analysis/diagrams/source/module-PUR.mmd) | partial | PUR01 أساس بطاقة المورد البنيوي فقط دون دورة مورد أو حفظ مفوض؛ بقية شاشات المشتريات غير منفذة |
 | [module-POS](../../muhaseb-erp-analysis/diagrams/source/module-POS.mmd) | not-started | لم يبدأ التنفيذ |
 | [module-IMP](../../muhaseb-erp-analysis/diagrams/source/module-IMP.mmd) | not-started | لم يبدأ التنفيذ |
 | [module-FA](../../muhaseb-erp-analysis/diagrams/source/module-FA.mmd) | not-started | لم يبدأ التنفيذ |

@@ -522,6 +522,34 @@ for n, binding in {
 MAP["CASH11"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name
     for name in ["CashCountFoundationTests.cs", "CashCountSqlIntegration.cs", "SqlIntegration.cs"])
 
+# PUR01 supplier-card structural foundation; all bindings are partial because
+# operational EF writes and bank review/country rules remain fail-closed.
+screen("PUR01", "internal SQL/EF 049 only; no authorized PUR01 HTTP API",
+       "Supplier schema/field values, tenant-scoped account/currency references, unique code and audit structure; EF writes blocked until reviewed",
+       "Separate reviewer for bank beneficiary/IBAN changes, country-dependent registration/IBAN rules, partner scope/permissions and safe create/edit/status/usage API with SQL/JWT/HTTP acceptance, PUR03/PUR11 posting",
+       {})
+for n, binding in {
+    1: "Supplier.Id (server GUID)", 2: "Supplier.CompanyId (tenant key)",
+    3: "Supplier.Code nvarchar(32) (unique company code)", 4: "Supplier.Name nvarchar(200)",
+    5: "Supplier.EnglishName nullable nvarchar(200)", 6: "Supplier.IsActive stored only, no status action",
+    7: "Supplier.Notes nullable nvarchar(2000)", 8: "Supplier.LegalName nvarchar(200)",
+    9: "Supplier.ControlAccountId tenant FK", 10: "Supplier.TransactionCurrencyId tenant FK",
+    11: "Supplier.PaymentTerms required nvarchar(2000)", 12: "Supplier.DueDays int nonnegative",
+    13: "Supplier.TaxNumber nullable; conditional country policy unavailable",
+    14: "Supplier.CountryId GUID required; country catalogue FK unavailable",
+    15: "Supplier.BankBeneficiary nullable; separate reviewer unavailable",
+    16: "Supplier.Iban nullable; country-specific validation unavailable",
+    17: "Supplier.CreatedBy actor stored (no API)", 18: "Supplier.CreatedAt datetimeoffset(7) required",
+    19: "Supplier.Revision initialized at 1 (no edit API)",
+    20: "Supplier.LastModifiedAt initialized at creation (no edit API)",
+    21: "Supplier.City required nvarchar(200)", 22: "Supplier.District nullable nvarchar(200)",
+    23: "Supplier.Street required nvarchar(200)", 24: "Supplier.BuildingNumber nullable nvarchar(32)",
+    25: "Supplier.PostalCode nullable nvarchar(32)", 26: "Supplier.AdditionalNumber nullable nvarchar(32)",
+}.items():
+    MAP["PUR01"]["fields"][f"PUR01-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["PUR01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["SupplierFoundationTests.cs", "SupplierSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("RPT01", "GET /companies/{companyId}/reports/trial-balance",
        "أول المدة والحركة وآخرها بالوظيفية؛ تجميع مستوى الدليل ومرشح المركز وإخفاء الصفري دون ازدواج", "طرق عرض العملات ومستوى التفصيل والطباعة والتصدير وتحسين أحجام كبيرة",
        {1: "CompanyId", 2: "BranchIds", 3: "query.from", 4: "query.to", 9: "query.accountLevel (null = posting leaves; 1..20 = maximum displayed depth)", 10: "query.costCenterId", 11: "query.showZero"})
@@ -623,6 +651,7 @@ def generate():
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
         "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH03 أساس سند قبض بنيوي فقط مع حظر كتابته؛ CASH07/CASH08 أساس شيكات بنيوي فقط مع حظر كتابتها؛ CASH09 أساس حركة شيك بنيوي مع منع جميع الكتابات؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
         "module-RPT": "ميزان وأستاذ جزئيان",
+        "module-PUR": "PUR01 أساس بطاقة المورد البنيوي فقط دون دورة مورد أو حفظ مفوض؛ بقية شاشات المشتريات غير منفذة",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",
         "document-lifecycle": "الدورة منفذة للقيد اليدوي؛ الرفض يعيد Draft مع سبب وتاريخ في التدقيق؛ محاولة الترحيل ليست حالة دائمة",

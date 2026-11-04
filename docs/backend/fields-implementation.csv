@@ -1344,32 +1344,32 @@ SAL15,SAL15-F14,أنشأه,system,pending,,
 SAL15,SAL15-F15,وقت الإنشاء,system,pending,,
 SAL15,SAL15-F16,رقم إصدار التعديل,system,pending,,
 SAL15,SAL15-F17,آخر تعديل,system,pending,,
-PUR01,PUR01-F01,المعرف الداخلي,system,pending,,
-PUR01,PUR01-F02,الشركة,system,pending,,
-PUR01,PUR01-F03,الرمز,required,pending,,
-PUR01,PUR01-F04,الاسم العربي,required,pending,,
-PUR01,PUR01-F05,الاسم الإنجليزي,optional,pending,,
-PUR01,PUR01-F06,فعال,required,pending,,
-PUR01,PUR01-F07,ملاحظات,optional,pending,,
-PUR01,PUR01-F08,الاسم القانوني,required,pending,,
-PUR01,PUR01-F09,حساب الرقابة,required,pending,,
-PUR01,PUR01-F10,عملة التعامل,required,pending,,
-PUR01,PUR01-F11,شروط السداد,required,pending,,
-PUR01,PUR01-F12,أيام الاستحقاق,required,pending,,
-PUR01,PUR01-F13,الرقم الضريبي,conditional,pending,,
-PUR01,PUR01-F14,الدولة,required,pending,,
-PUR01,PUR01-F15,المستفيد البنكي,optional,pending,,
-PUR01,PUR01-F16,IBAN,conditional,pending,,
-PUR01,PUR01-F17,أنشأه,system,pending,,
-PUR01,PUR01-F18,وقت الإنشاء,system,pending,,
-PUR01,PUR01-F19,رقم إصدار التعديل,system,pending,,
-PUR01,PUR01-F20,آخر تعديل,system,pending,,
-PUR01,PUR01-F21,المدينة,required,pending,,
-PUR01,PUR01-F22,الحي,optional,pending,,
-PUR01,PUR01-F23,الشارع,required,pending,,
-PUR01,PUR01-F24,رقم المبنى,conditional,pending,,
-PUR01,PUR01-F25,الرمز البريدي,conditional,pending,,
-PUR01,PUR01-F26,الرقم الإضافي,conditional,pending,,
+PUR01,PUR01-F01,المعرف الداخلي,system,partial,Supplier.Id (server GUID),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F02,الشركة,system,partial,Supplier.CompanyId (tenant key),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F03,الرمز,required,partial,Supplier.Code nvarchar(32) (unique company code),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F04,الاسم العربي,required,partial,Supplier.Name nvarchar(200),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F05,الاسم الإنجليزي,optional,partial,Supplier.EnglishName nullable nvarchar(200),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F06,فعال,required,partial,"Supplier.IsActive stored only, no status action",internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F07,ملاحظات,optional,partial,Supplier.Notes nullable nvarchar(2000),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F08,الاسم القانوني,required,partial,Supplier.LegalName nvarchar(200),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F09,حساب الرقابة,required,partial,Supplier.ControlAccountId tenant FK,internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F10,عملة التعامل,required,partial,Supplier.TransactionCurrencyId tenant FK,internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F11,شروط السداد,required,partial,Supplier.PaymentTerms required nvarchar(2000),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F12,أيام الاستحقاق,required,partial,Supplier.DueDays int nonnegative,internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F13,الرقم الضريبي,conditional,partial,Supplier.TaxNumber nullable; conditional country policy unavailable,internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F14,الدولة,required,partial,Supplier.CountryId GUID required; country catalogue FK unavailable,internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F15,المستفيد البنكي,optional,partial,Supplier.BankBeneficiary nullable; separate reviewer unavailable,internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F16,IBAN,conditional,partial,Supplier.Iban nullable; country-specific validation unavailable,internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F17,أنشأه,system,partial,Supplier.CreatedBy actor stored (no API),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F18,وقت الإنشاء,system,partial,Supplier.CreatedAt datetimeoffset(7) required,internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F19,رقم إصدار التعديل,system,partial,Supplier.Revision initialized at 1 (no edit API),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F20,آخر تعديل,system,partial,Supplier.LastModifiedAt initialized at creation (no edit API),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F21,المدينة,required,partial,Supplier.City required nvarchar(200),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F22,الحي,optional,partial,Supplier.District nullable nvarchar(200),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F23,الشارع,required,partial,Supplier.Street required nvarchar(200),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F24,رقم المبنى,conditional,partial,Supplier.BuildingNumber nullable nvarchar(32),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F25,الرمز البريدي,conditional,partial,Supplier.PostalCode nullable nvarchar(32),internal SQL/EF 049 only; no authorized PUR01 HTTP API
+PUR01,PUR01-F26,الرقم الإضافي,conditional,partial,Supplier.AdditionalNumber nullable nvarchar(32),internal SQL/EF 049 only; no authorized PUR01 HTTP API
 PUR02,PUR02-F01,الشركة,system,pending,,
 PUR02,PUR02-F02,الفرع,conditional,pending,,
 PUR02,PUR02-F03,الحالة,system,pending,,
