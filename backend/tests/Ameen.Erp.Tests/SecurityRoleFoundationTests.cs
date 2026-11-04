@@ -50,6 +50,35 @@ public static class SecurityRoleFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS07-FG05: server-owned role audit fields remain atomic across rejected changes", f =>
+        {
+            var created = new DateTimeOffset(2026, 11, 4, 10, 0, 0, TimeSpan.Zero);
+            var actor = f.Owner.Subject;
+            var role = new SecurityRole(f.CompanyId, f.BranchId, "Auditor", "Audit role", actor, created);
+            Ensure(role.CreatedBy == actor && role.CreatedAt == created &&
+                role.LastModifiedAt == created && role.Revision == 1,
+                "SYS07-FG05 initial creator/time/revision mismatch");
+            role.Edit("Auditor 2", "Audit role", 1, created.AddMinutes(1));
+            Ensure(role.CreatedBy == actor && role.CreatedAt == created &&
+                role.LastModifiedAt == created.AddMinutes(1) && role.Revision == 2,
+                "SYS07-FG05 edit must preserve creator and advance server timestamp");
+            Expect("stale_role_revision", () =>
+                role.SetActive(false, 1, created.AddMinutes(2)));
+            Expect("invalid_role_revision", () =>
+                role.AddRule("GL03", "POST", true, null, null, created));
+            Expect("invalid_role_revision", () =>
+                role.Edit("Invalid", "Audit role", 2, created.AddMinutes(-1)));
+            Ensure(role.IsActive && role.Name == "Auditor 2" &&
+                role.CreatedBy == actor && role.CreatedAt == created &&
+                role.LastModifiedAt == created.AddMinutes(1) && role.Revision == 2 &&
+                role.Rules.Count == 0, "SYS07-FG05 rejected role changes mutated audit metadata");
+            role.SetActive(false, 2, created.AddMinutes(3));
+            Ensure(!role.IsActive && role.LastModifiedAt == created.AddMinutes(3) &&
+                role.Revision == 3 && role.CreatedBy == actor && role.CreatedAt == created,
+                "SYS07-FG05 authorized status transition must advance revision exactly once");
+            return Task.CompletedTask;
+        });
+
         test("SYS07: atomic role rule replacement, revision conflicts and operation isolation", f =>
         {
             var now = new DateTimeOffset(2026, 11, 2, 8, 0, 0, TimeSpan.Zero);
