@@ -219,6 +219,33 @@ public static class SecurityRoleFoundationTests
             return Task.CompletedTask;
         });
 
+        test("SYS08: branch-specific and inactive assigned roles cannot leak grants or denials", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+            var otherBranch = Guid.NewGuid();
+            var member = new Membership(f.CompanyId, f.Owner.Subject,
+                new[] { Permissions.Read }, true, Array.Empty<Guid>());
+            var grant = new SecurityRole(f.CompanyId, f.BranchId, "Grant", "Branch grant", f.Owner.Subject, now);
+            grant.AddRule("GL03", "POST", true, null, null, now);
+            var foreignBranchDeny = new SecurityRole(f.CompanyId, otherBranch, "Other", "Other branch deny", f.Owner.Subject, now);
+            foreignBranchDeny.AddRule("GL03", "POST", false, null, null, now);
+            var links = new[] {
+                new SecurityRoleAssignment(f.CompanyId, member.Id, grant.Id),
+                new SecurityRoleAssignment(f.CompanyId, member.Id, foreignBranchDeny.Id)
+            };
+            bool Allowed(Guid branch) => SecurityRolePolicyEvaluator.Permits(member, links,
+                new[] { grant, foreignBranchDeny }, f.CompanyId, branch, "GL03", "POST", null, null);
+            Ensure(Allowed(f.BranchId), "Deny assigned to another branch must not revoke this branch's grant");
+            Ensure(!Allowed(otherBranch), "Grant assigned to another branch must not authorize this branch");
+            foreignBranchDeny.SetActive(false, now.AddSeconds(1));
+            Ensure(Allowed(f.BranchId) && !Allowed(otherBranch),
+                "Inactive role must neither grant nor deny outside its active branch");
+            grant.SetActive(false, now.AddSeconds(1));
+            Ensure(!Allowed(f.BranchId) && !Allowed(otherBranch),
+                "Inactive assigned grant must fail closed even with complete role snapshot");
+            return Task.CompletedTask;
+        });
+
         test("SYS07: malformed role rule snapshots fail closed for direct and assigned checks", f =>
         {
             var now = DateTimeOffset.UtcNow;
