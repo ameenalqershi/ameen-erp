@@ -51,6 +51,38 @@ class MigrationSequenceAcceptance(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, r"found \[\]"):
             migration_check.check(self.sql, self.ef)
 
+    def test_nonversioned_runtime_role_is_not_a_migration(self):
+        (self.sql / "runtime-role.sql").write_text("SELECT 1;", encoding="utf-8")
+        self.assertEqual(migration_check.check(self.sql, self.ef), 2)
+
+    def test_misnamed_future_migration_is_not_silently_skipped(self):
+        self.make_sql("003-future.sql", 3)
+        with self.assertRaisesRegex(ValueError, "unrecognized migration filename: 003-future.sql"):
+            migration_check.check(self.sql, self.ef)
+
+    def test_unsupported_version_width_is_rejected(self):
+        self.make_sql("0003_future.sql", 3)
+        with self.assertRaisesRegex(ValueError, "unrecognized migration filename: 0003_future.sql"):
+            migration_check.check(self.sql, self.ef)
+
+    def test_renamed_uppercase_sql_is_rejected(self):
+        self.make_sql("003_future.SQL", 3)
+        with self.assertRaisesRegex(ValueError, "unrecognized migration filename: 003_future.SQL"):
+            migration_check.check(self.sql, self.ef)
+
+    def test_extra_unversioned_sql_is_rejected(self):
+        (self.sql / "manual_fix.sql").write_text("SELECT 1;", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "unrecognized migration filename: manual_fix.sql"):
+            migration_check.check(self.sql, self.ef)
+
+    def test_duplicate_version_record_in_single_migration_rejected(self):
+        file = self.sql / "002_users.sql"
+        file.write_text(file.read_text() + "\n" +
+            "INSERT dbo.__AmeenSchemaVersions([Version],[AppliedAt]) VALUES(2,SYSUTCDATETIME());",
+            encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "expected exactly one recorded schema version 2"):
+            migration_check.check(self.sql, self.ef)
+
     def test_ef_schema_contract_must_match_latest_migration(self):
         self.ef.write_text("public const int SchemaVersion = 1;", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "SchemaVersion should be 2"):
