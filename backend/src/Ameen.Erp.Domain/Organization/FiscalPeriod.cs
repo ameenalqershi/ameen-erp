@@ -10,6 +10,9 @@ public sealed class FiscalPeriod : CompanyEntity
     private FiscalPeriod() { }
     public FiscalPeriod(Guid companyId, Guid yearId, string code, DateOnly start, DateOnly end) : base(companyId)
     {
+        Check.That(yearId != Guid.Empty, "invalid_period_year", "مرجع السنة المالية غير صالح.");
+        Check.That(start != default && end != default, "period_date_required",
+            "بداية الفترة المالية ونهايتها مطلوبتان.");
         Check.That(end >= start, "invalid_period", "نهاية الفترة قبل بدايتها.");
         FiscalYearId = yearId; Code = Check.Code(code, "رمز الفترة"); StartsOn = start; EndsOn = end;
     }

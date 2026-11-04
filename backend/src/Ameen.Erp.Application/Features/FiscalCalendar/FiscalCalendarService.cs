@@ -82,6 +82,8 @@ public sealed class FiscalCalendarService : ApplicationService
     public Task<CommandReceipt> CreateFiscalYear(Guid cid, Actor actor, string key, CreateFiscalYearRequest request, CancellationToken ct) =>
         Command(cid, actor, key, "fiscal-year.create", request, token => AuthorizeGlobal(cid, actor, Permissions.Configure, token), async token =>
         {
+            Check.That(request.StartsOn != default && request.EndsOn != default,
+                "fiscal_year_date_required", "بداية السنة المالية ونهايتها مطلوبتان.");
             var company = await Company(cid, token);
             if (!(await store.Find<FiscalYear>(cid, x => true, token)).Any())
                 Check.That(company.FiscalYearStartsOn == request.StartsOn, "company_fiscal_start_mismatch", "بداية أول سنة يجب أن تطابق البداية المحددة في بطاقة الشركة.");

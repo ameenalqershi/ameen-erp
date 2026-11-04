@@ -1,3 +1,9 @@
+## SYS03 — nondefault year and period dates, immutable rejection (5 November 2026)
+
+Source fields SYS03-F05/F06 and SYS03-F08/F09 require explicit calendar dates. This independent additional domain/API guard rejects default year starts/ends, default period starts/ends and an empty period-to-year reference *before* persistence or calendar coverage. A regression checks valid fiscal year/period construction, direct domain rejection, authenticated service rejection for both year dates and both explicit period dates, and absence of added years, periods, audit or idempotency receipts on rejected requests.
+
+SYS03-FG02 and its calendar acceptance tasks were previously completed and are **not counted again**. This adds missing-date safety only; branch-calendar policy, edits to existing calendars, GL11/GL12 close/reopen permissions and historical audit remain their separate dependencies. No migration or business-calendar rule is invented; original analysis/production unchanged. CI on the final SHA must verify isolated SQL, HTTP/JWT/OpenAPI and Release before supervisor integration.
+
 ## SAL01-01 — بنية بطاقة العميل فقط (4 نوفمبر 2026)
 
 **تحديث قبول 4 نوفمبر:** نجح CI على SHA `3d8c991b5846ccf4491e212706b032d80e549cc4` في [GitHub Actions #41887573897](https://github.com/ameenalqershi/ameen-erp/actions/runs/41887573897): `518/518 passed; 0 failed`، بما يشمل SQL Server المعزول وترقية SQL 046 وعزل الشركة ومنع تكرار رمز العميل وتدقيق الحقول والائتمان. فشل التشغيل القديم قبل تخصيص Runner، ولا يمثل فشل اختبارات. PR #118 لا يزال Draft، وتظل الشاشة جزئية لحين الاعتماديات والسياسات وواجهات التشغيل؛ لا تُحوّل إلى مكتملة.
