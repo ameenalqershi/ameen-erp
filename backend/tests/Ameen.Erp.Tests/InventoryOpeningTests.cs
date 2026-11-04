@@ -31,8 +31,143 @@ public static class InventoryOpeningTests
         await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(), new(actor.Subject, new[] { Permissions.Read, Permissions.InventoryApprove }, true, Array.Empty<Guid>(), null), default);
         return actor;
     }
+    private static InventoryOpening DirectOpening(Fixture f, CreateInventoryOpeningRequest request,
+        string actor, DateTimeOffset now)
+    {
+        var period = f.Store.All<FiscalPeriod>().Single(x =>
+            x.StartsOn <= request.AccountingDate && x.EndsOn >= request.AccountingDate);
+        return new InventoryOpening(f.CompanyId, request.BranchId, request.WarehouseId, period,
+            "IO-AUDIT-TEST", request.DocumentDate, request.AccountingDate, request.CutoffDate,
+            request.CurrencyCode, request.CountReference, request.Description, null, actor, now);
+    }
+
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV06-FG07: generated creator and creation timestamp are required before mutation", async f =>
+        {
+            var request = await Setup(f);
+            var when = DateTimeOffset.UtcNow;
+            var good = DirectOpening(f, request, " audit-writer ", when);
+            Ensure(good.CreatedBy == "audit-writer" && good.CreatedAt == when &&
+                good.ModifiedAt == when && good.State == InventoryOpeningState.Draft);
+            await Error("invalid_text", () => Task.FromResult(DirectOpening(f, request, " ", when)));
+            await Error("opening_audit_time_required",
+                () => Task.FromResult(DirectOpening(f, request, "audit-writer", default)));
+            Ensure(f.Store.Count<InventoryOpening>() == 0 && f.Store.Count<JournalEntry>() == 0 &&
+                f.Store.Count<StockMovement>() == 0 && f.Store.Count<OutboxEvent>() == 0);
+        });
+        test("INV06-FG07: invalid audit actor and timestamp cannot approve or post opening", async f =>
+        {
+            var request = await Setup(f);
+            var now = DateTimeOffset.UtcNow;
+            var opening = DirectOpening(f, request, Writer.Subject, now);
+            var initialVersion = opening.Version;
+            await Error("opening_audit_time_required", () =>
+            { opening.Transition("submit", Writer.Subject, default); return Task.CompletedTask; });
+            await Error("invalid_text", () =>
+            { opening.Transition("submit", " ", now); return Task.CompletedTask; });
+            Ensure(opening.State == InventoryOpeningState.Draft && opening.Version == initialVersion);
+            opening.Transition("submit", Writer.Subject, now);
+            await Error("invalid_text", () =>
+            { opening.Transition("approve", " ", now); return Task.CompletedTask; });
+            await Error("opening_audit_time_required", () =>
+            { opening.Transition("approve", "reviewer", default); return Task.CompletedTask; });
+            Ensure(opening.State == InventoryOpeningState.Submitted && opening.ApprovedBy is null);
+            opening.Transition("approve", "reviewer", now);
+            var journalId = Guid.NewGuid();
+            var accountId = Guid.NewGuid();
+            var clearingId = Guid.NewGuid();
+            var settingId = Guid.NewGuid();
+            await Error("invalid_text", () =>
+            { opening.Post(journalId, accountId, clearingId, settingId, " ", now); return Task.CompletedTask; });
+            await Error("opening_audit_time_required", () =>
+            { opening.Post(journalId, accountId, clearingId, settingId, "poster", default); return Task.CompletedTask; });
+            Ensure(opening.State == InventoryOpeningState.Approved && opening.JournalId is null &&
+                opening.PostedAt is null && opening.PostedBy is null);
+            opening.Post(journalId, accountId, clearingId, settingId, "poster", now);
+            Ensure(opening.State == InventoryOpeningState.Posted && opening.PostedBy == "poster" &&
+                opening.JournalId == journalId && opening.PostedAt == now);
+            Ensure(f.Store.Count<InventoryOpening>() == 0 && f.Store.Count<JournalEntry>() == 0 &&
+                f.Store.Count<StockMovement>() == 0 && f.Store.Count<OutboxEvent>() == 0);
+        });
+        test("INV06-FG07: exhausted revision rejects draft edit and submit without partial mutation", async f =>
+        {
+            var request = await Setup(f);
+            var now = DateTimeOffset.UtcNow;
+            var opening = DirectOpening(f, request, Writer.Subject, now);
+            var item = f.Store.All<Item>().Single(x => x.Id == request.Lines.Single().ItemId);
+            var unit = f.Store.All<UnitOfMeasure>().Single(x => x.Id == request.Lines.Single().UnitId);
+            var line = new InventoryOpeningLine(f.CompanyId, opening.Id, 1, item, unit, null,
+                2m, 1m, 2m, 5.25m, 2);
+            typeof(InventoryOpening).GetProperty(nameof(InventoryOpening.Revision))!
+                .SetValue(opening, int.MaxValue);
+            var initialVersion = opening.Version;
+            var initialDescription = opening.Description;
+            await Error("opening_revision_exhausted", () =>
+            { opening.Edit("تعديل يجب رفضه", new[] { line }, now); return Task.CompletedTask; });
+            await Error("opening_revision_exhausted", () =>
+            { opening.Transition("submit", Writer.Subject, now); return Task.CompletedTask; });
+            Ensure(opening.State == InventoryOpeningState.Draft && opening.Description == initialDescription &&
+                opening.Lines.Count == 0 && opening.ApprovedBy is null &&
+                opening.Version == initialVersion && opening.ModifiedAt == now);
+        });
+        test("INV06-FG07: exhausted revision cannot leave partially posted opening", async f =>
+        {
+            var request = await Setup(f);
+            var now = DateTimeOffset.UtcNow;
+            var opening = DirectOpening(f, request, Writer.Subject, now);
+            opening.Transition("submit", Writer.Subject, now);
+            opening.Transition("approve", "reviewer", now);
+            typeof(InventoryOpening).GetProperty(nameof(InventoryOpening.Revision))!
+                .SetValue(opening, int.MaxValue);
+            var initialVersion = opening.Version;
+            await Error("opening_revision_exhausted", () =>
+            {
+                opening.Post(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+                    "poster", now);
+                return Task.CompletedTask;
+            });
+            Ensure(opening.State == InventoryOpeningState.Approved && opening.JournalId is null &&
+                opening.PostedAt is null && opening.PostedBy is null &&
+                opening.Version == initialVersion && opening.ApprovedBy == "reviewer");
+        });
+        test("INV06-OP05: invalid reversal reason must not reserve source or advance audit version", async f =>
+        {
+            var request = await Setup(f);
+            var opening = DirectOpening(f, request, Writer.Subject, DateTimeOffset.UtcNow);
+            var sourceId = Guid.NewGuid();
+            var originalVersion = opening.Version;
+            await Error("invalid_text", () =>
+            { opening.SetReversalSource(sourceId, " "); return Task.CompletedTask; });
+            await Error("invalid_text", () =>
+            { opening.SetReversalSource(sourceId, new string('x', 501)); return Task.CompletedTask; });
+            await Error("opening_reversal_source_conflict", () =>
+            { opening.SetReversalSource(Guid.Empty, "سبب صحيح"); return Task.CompletedTask; });
+            Ensure(opening.State == InventoryOpeningState.Draft &&
+                opening.ReversesOpeningId is null && opening.ReversalReason is null &&
+                opening.Version == originalVersion);
+            opening.SetReversalSource(sourceId, "سبب صحيح");
+            Ensure(opening.ReversesOpeningId == sourceId && opening.ReversalReason == "سبب صحيح" &&
+                opening.Version != originalVersion && f.Store.Count<InventoryOpening>() == 0 &&
+                f.Store.Count<JournalEntry>() == 0 && f.Store.Count<StockMovement>() == 0);
+        });
+        test("INV06-FG07: exhausted revision preserves returned reversal reason and state", async f =>
+        {
+            var request = await Setup(f);
+            var now = DateTimeOffset.UtcNow;
+            var opening = DirectOpening(f, request, Writer.Subject, now);
+            opening.SetReversalSource(Guid.NewGuid(), "سبب أولي");
+            opening.Transition("submit", Writer.Subject, now);
+            opening.Transition("return", "reviewer", now);
+            typeof(InventoryOpening).GetProperty(nameof(InventoryOpening.Revision))!
+                .SetValue(opening, int.MaxValue);
+            var initialVersion = opening.Version;
+            var reason = opening.ReversalReason;
+            await Error("opening_revision_exhausted", () =>
+            { opening.CorrectReversal("سبب آخر", now); return Task.CompletedTask; });
+            Ensure(opening.State == InventoryOpeningState.Returned && opening.ReversalReason == reason &&
+                opening.Version == initialVersion);
+        });
         test("INV06-FG05: opening line constructor enforces positive order and parent identity", async f =>
         {
             await Setup(f);
