@@ -651,6 +651,7 @@ UnitTests.Register(Test);
 ItemGroupTests.Register(Test);
 WarehouseTests.Register(Test);
 InventoryIdentityTests.Register(Test);
+SalesQuotationFoundationTests.Register(Test);
 InventoryResourceUsageTests.Register(Test);
 InventoryStockStructuralGuardTests.Register(Test);
 InventoryHistoricalReferenceGuardTests.Register(Test);
