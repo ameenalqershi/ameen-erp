@@ -485,8 +485,38 @@ public static class HostedApiIntegration
                 using (var gl05HistoryDenied = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}/processing-history"))
                     Ensure(gl05HistoryDenied.StatusCode == HttpStatusCode.Forbidden,
                         "GL05 HTTP read-only member retrieved privileged review audit history");
+                // GL05-A05/T02: both Audit and the journal's Read permission
+                // are required; malformed pagination fails before reading SQL.
+                Authenticate(Token("sql-owner"));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl05-review-audit-only",
+                        new[] { Permissions.Audit }, true, Array.Empty<Guid>(), null));
+                var gl05DeniedBefore = await ReadOnlyCounts(connection, companyId);
+                Authenticate(Token("gl05-review-audit-only"));
+                using (var auditOnlyResponse = await client.GetAsync(
+                    path + $"/{processingSubmitted.ResourceId}/processing-history"))
+                    Ensure(auditOnlyResponse.StatusCode == HttpStatusCode.Forbidden,
+                        "GL05 HTTPS review history disclosed journal data to audit-only actor");
+                Authenticate(Token("sql-owner"));
+                foreach (var query in new[]
+                {
+                    "offset=-1&limit=10", "offset=1000001&limit=10",
+                    "offset=0&limit=0", "offset=0&limit=201"
+                })
+                {
+                    using var invalidHistory = await client.GetAsync(
+                        path + $"/{processingSubmitted.ResourceId}/processing-history?{query}");
+                    using var invalidHistoryBody = JsonDocument.Parse(
+                        await invalidHistory.Content.ReadAsStringAsync());
+                    Ensure(invalidHistory.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                        invalidHistoryBody.RootElement.GetProperty("code").GetString() ==
+                        "invalid_pagination",
+                        "GL05 HTTPS review history accepted invalid pagination: " + query);
+                }
+                Ensure(gl05DeniedBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL05 review history denied/malformed requests mutated SQL journal, audit, receipt or outbox");
                 Authenticate(Token("sql-approver"));
-                Console.WriteLine("  HOST PASS GL05-A05 scoped review outcome/history with paging and JWT audit permission");
+                Console.WriteLine("  HOST PASS GL05-A05/T02 review history Audit+Read, malformed paging fail-closed and SQL nonmutation");
                 // Finish the additional approved journal so it cannot interfere with later close checks.
                 using (var response = await client.GetAsync(path + $"/{processingSubmitted.ResourceId}"))
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
