@@ -42,6 +42,7 @@ def main():
             fingerprint.update(path.read_bytes())
     report["sourceSha256"] = fingerprint.hexdigest()
     commands = [
+        [sys.executable, str(BACKEND / "scripts/check_analysis_baseline.py")],
         [sys.executable, "-m", "unittest", "discover", "-s", str(BACKEND / "scripts/tests"), "-p", "test_*.py"],
         [sys.executable, str(BACKEND / "scripts/check_migration_versions.py")],
         [sys.executable, str(BACKEND / "scripts/traceability.py"), "--check"],
