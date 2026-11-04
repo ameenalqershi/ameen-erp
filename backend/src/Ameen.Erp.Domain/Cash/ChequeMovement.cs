@@ -37,6 +37,8 @@ public sealed class ChequeMovement : CompanyEntity
             "يجب ربط المحضر بشيك وارد أو صادر واحد ضمن الشركة.");
         Check.That(actionDate != default, "cheque_movement_date_required",
             "تاريخ إجراء الشيك مطلوب.");
+        Check.That(createdAt != default, "cheque_movement_created_at_required",
+            "وقت إنشاء حركة الشيك مطلوب.");
         if (fee.HasValue)
             Check.Amount(fee.Value);
         BranchId = branchId;
