@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 43,
+  "partially_implemented_screens": 44,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 46,
     "derived": 4,
-    "partial": 248,
-    "pending": 2112
+    "partial": 270,
+    "pending": 2090
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2277,6 +2277,102 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CashReceiptAllocationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "CASH05": {
+      "api": "internal EF/SQL 049 only; no transfer/approval/GL endpoint",
+      "implemented": "بنية تحويل بين صندوق وبنك أو صناديق/بنوك بمرجعين ذوي نوع صريح؛ 22 حقلاً مصدرها التحليل؛ أسعار الطرفين ودقة المبالغ والعمولة؛ مفاتيح SQL مركبة للشركة مع أعمدة FK تقنية مشروطة؛ ترقية SQL 049 ذرية قابلة للإعادة؛ EF يحجب كل كتابة وأي مستند جديد يجب أن يكون Draft",
+      "remaining": "لم ينفذ اعتماد/ترحيل أو حجز رصيد أو FX/عمولة أو اختيار حسابات GL06، ولا SYS07 والتأكد من المصدر الفعال وHTTP/JWT/API والتزامن؛ الحقول بنيوية محجوبة حتى اعتماد السياسات",
+      "fields": {
+        "CASH05-F01": {
+          "status": "partial",
+          "binding": "CashTransfer.Id / tenant key"
+        },
+        "CASH05-F02": {
+          "status": "partial",
+          "binding": "CashTransfer.CompanyId / tenant key"
+        },
+        "CASH05-F03": {
+          "status": "partial",
+          "binding": "CashTransfer.BranchId / scoped branch FK"
+        },
+        "CASH05-F04": {
+          "status": "partial",
+          "binding": "CashTransfer.FiscalYearId / scoped year FK"
+        },
+        "CASH05-F05": {
+          "status": "partial",
+          "binding": "CashTransfer.Number / document metadata no SYS10 allocator"
+        },
+        "CASH05-F06": {
+          "status": "partial",
+          "binding": "CashTransfer.DocumentDate"
+        },
+        "CASH05-F07": {
+          "status": "partial",
+          "binding": "CashTransfer.AccountingDate"
+        },
+        "CASH05-F08": {
+          "status": "partial",
+          "binding": "CashTransfer.CurrencyCode / tenant FK"
+        },
+        "CASH05-F09": {
+          "status": "partial",
+          "binding": "CashTransfer.ExchangeRate decimal(20.10)"
+        },
+        "CASH05-F10": {
+          "status": "partial",
+          "binding": "CashTransfer.Description"
+        },
+        "CASH05-F11": {
+          "status": "partial",
+          "binding": "CashTransfer.ExternalReference"
+        },
+        "CASH05-F12": {
+          "status": "partial",
+          "binding": "CashTransfer.State Draft-only guard"
+        },
+        "CASH05-F13": {
+          "status": "partial",
+          "binding": "CashTransfer.SourceKind/SourceAccountId / scoped typed FK aliases"
+        },
+        "CASH05-F14": {
+          "status": "partial",
+          "binding": "CashTransfer.DestinationKind/DestinationAccountId / scoped typed FK aliases"
+        },
+        "CASH05-F15": {
+          "status": "partial",
+          "binding": "CashTransfer.SourceAmount decimal(20.6)"
+        },
+        "CASH05-F16": {
+          "status": "partial",
+          "binding": "CashTransfer.DestinationAmount decimal(20.6)"
+        },
+        "CASH05-F17": {
+          "status": "partial",
+          "binding": "CashTransfer.DestinationCurrencyCode / scoped FK"
+        },
+        "CASH05-F18": {
+          "status": "partial",
+          "binding": "CashTransfer.Fee decimal(20.6) optional"
+        },
+        "CASH05-F19": {
+          "status": "partial",
+          "binding": "CashTransfer.CreatedBy"
+        },
+        "CASH05-F20": {
+          "status": "partial",
+          "binding": "CashTransfer.CreatedAt"
+        },
+        "CASH05-F21": {
+          "status": "partial",
+          "binding": "CashTransfer.Revision"
+        },
+        "CASH05-F22": {
+          "status": "partial",
+          "binding": "CashTransfer.LastModifiedAt"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/CashTransferValidationTests.cs; backend/tests/Ameen.Erp.Tests/CashTransferSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "CASH06": {
       "api": "internal EF/SQL schema 039 only; no live advance/settlement API or GL posting",

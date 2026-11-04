@@ -365,6 +365,31 @@ MAP["CASH03"]["test_file"] = "; ".join(
     ["CashReceiptAllocationTests.cs", "CashReceiptFoundationTests.cs",
      "CashReceiptSqlIntegration.cs", "SqlIntegration.cs"])
 
+screen("CASH05", "internal EF/SQL 049 only; no transfer/approval/GL endpoint",
+       "بنية تحويل بين صندوق وبنك أو صناديق/بنوك بمرجعين ذوي نوع صريح؛ 22 حقلاً مصدرها التحليل؛ أسعار الطرفين ودقة المبالغ والعمولة؛ مفاتيح SQL مركبة للشركة مع أعمدة FK تقنية مشروطة؛ ترقية SQL 049 ذرية قابلة للإعادة؛ EF يحجب كل كتابة وأي مستند جديد يجب أن يكون Draft",
+       "لم ينفذ اعتماد/ترحيل أو حجز رصيد أو FX/عمولة أو اختيار حسابات GL06، ولا SYS07 والتأكد من المصدر الفعال وHTTP/JWT/API والتزامن؛ الحقول بنيوية محجوبة حتى اعتماد السياسات",
+       {})
+for n, binding in {
+    1:"CashTransfer.Id / tenant key", 2:"CashTransfer.CompanyId / tenant key",
+    3:"CashTransfer.BranchId / scoped branch FK", 4:"CashTransfer.FiscalYearId / scoped year FK",
+    5:"CashTransfer.Number / document metadata no SYS10 allocator",
+    6:"CashTransfer.DocumentDate", 7:"CashTransfer.AccountingDate",
+    8:"CashTransfer.CurrencyCode / tenant FK", 9:"CashTransfer.ExchangeRate decimal(20.10)",
+    10:"CashTransfer.Description", 11:"CashTransfer.ExternalReference",
+    12:"CashTransfer.State Draft-only guard",
+    13:"CashTransfer.SourceKind/SourceAccountId / scoped typed FK aliases",
+    14:"CashTransfer.DestinationKind/DestinationAccountId / scoped typed FK aliases",
+    15:"CashTransfer.SourceAmount decimal(20.6)",
+    16:"CashTransfer.DestinationAmount decimal(20.6)",
+    17:"CashTransfer.DestinationCurrencyCode / scoped FK",
+    18:"CashTransfer.Fee decimal(20.6) optional", 19:"CashTransfer.CreatedBy",
+    20:"CashTransfer.CreatedAt", 21:"CashTransfer.Revision",
+    22:"CashTransfer.LastModifiedAt"
+}.items():
+    MAP["CASH05"]["fields"][f"CASH05-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["CASH05"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["CashTransferValidationTests.cs", "CashTransferSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("CASH06", "internal EF/SQL schema 039 only; no live advance/settlement API or GL posting",
        "بنية 23 حقلًا أصليًا لعنوان وسطور العهد والسلف التشغيلية: جداول SQL 039 وEF مع مبالغ دقيقة وسعر صرف وفحص مراجع الشركة والفرع والسنة والعملة، وتسجيل وقت/إصدار تدقيق، ومنع الكتابة تشغيلًا",
        "HR03 صاحب العهدة والمصروف الفعلي غير موصولين، ولا قائمة أنواع/حالات العهدة المعتمدة ولا سياسة رد النقد أو الزيادة أو تسوية ذمم GL06؛ كل EF writes محجوبة، وCASH06 API/HTTPS/JWT/Outbox/موافقات غير منفذة",

@@ -23,6 +23,12 @@ public sealed class CashTransfer : CompanyEntity
     public string DestinationCurrencyCode { get; private set; } = "";
     public decimal DestinationExchangeRate { get; private set; }
     public decimal? Fee { get; private set; }
+    // Persisted, optional technical aliases for tenant-scoped FKs to two distinct
+    // account tables. They do not authorize a bank/cashbox or introduce a ledger policy.
+    public Guid? SourceCashBoxId { get; private set; }
+    public Guid? SourceBankAccountId { get; private set; }
+    public Guid? DestinationCashBoxId { get; private set; }
+    public Guid? DestinationBankAccountId { get; private set; }
     public string CreatedBy { get; private set; } = "";
     public DateTimeOffset CreatedAt { get; private set; }
     public int Revision { get; private set; }
@@ -68,6 +74,10 @@ public sealed class CashTransfer : CompanyEntity
         SourceAccountId = source.Id;
         DestinationKind = destination.Kind;
         DestinationAccountId = destination.Id;
+        SourceCashBoxId = source.Kind == CashTransferAccountKind.CashBox ? source.Id : null;
+        SourceBankAccountId = source.Kind == CashTransferAccountKind.BankAccount ? source.Id : null;
+        DestinationCashBoxId = destination.Kind == CashTransferAccountKind.CashBox ? destination.Id : null;
+        DestinationBankAccountId = destination.Kind == CashTransferAccountKind.BankAccount ? destination.Id : null;
         SourceAmount = sourceAmount;
         DestinationAmount = destinationAmount;
         DestinationCurrencyCode = Check.Currency(destinationCurrencyCode);

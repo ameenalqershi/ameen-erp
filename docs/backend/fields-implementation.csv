@@ -567,28 +567,28 @@ CASH04,CASH04-F21,أنشأه,system,pending,,
 CASH04,CASH04-F22,وقت الإنشاء,system,pending,,
 CASH04,CASH04-F23,رقم إصدار التعديل,system,pending,,
 CASH04,CASH04-F24,آخر تعديل,system,pending,,
-CASH05,CASH05-F01,المعرف الداخلي,system,pending,,
-CASH05,CASH05-F02,الشركة,system,pending,,
-CASH05,CASH05-F03,الفرع,required,pending,,
-CASH05,CASH05-F04,السنة,system,pending,,
-CASH05,CASH05-F05,رقم المستند,system,pending,,
-CASH05,CASH05-F06,تاريخ الوثيقة,required,pending,,
-CASH05,CASH05-F07,تاريخ الأثر,required,pending,,
-CASH05,CASH05-F08,العملة,required,pending,,
-CASH05,CASH05-F09,سعر الصرف,required,pending,,
-CASH05,CASH05-F10,البيان,required,pending,,
-CASH05,CASH05-F11,المرجع الخارجي,optional,pending,,
-CASH05,CASH05-F12,الحالة,system,pending,,
-CASH05,CASH05-F13,الحساب المرسل,required,pending,,
-CASH05,CASH05-F14,الحساب المستلم,required,pending,,
-CASH05,CASH05-F15,مبلغ الإرسال,required,pending,,
-CASH05,CASH05-F16,مبلغ الاستلام,required,pending,,
-CASH05,CASH05-F17,عملة الاستلام,required,pending,,
-CASH05,CASH05-F18,عمولة,optional,pending,,
-CASH05,CASH05-F19,أنشأه,system,pending,,
-CASH05,CASH05-F20,وقت الإنشاء,system,pending,,
-CASH05,CASH05-F21,رقم إصدار التعديل,system,pending,,
-CASH05,CASH05-F22,آخر تعديل,system,pending,,
+CASH05,CASH05-F01,المعرف الداخلي,system,partial,CashTransfer.Id / tenant key,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F02,الشركة,system,partial,CashTransfer.CompanyId / tenant key,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F03,الفرع,required,partial,CashTransfer.BranchId / scoped branch FK,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F04,السنة,system,partial,CashTransfer.FiscalYearId / scoped year FK,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F05,رقم المستند,system,partial,CashTransfer.Number / document metadata no SYS10 allocator,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F06,تاريخ الوثيقة,required,partial,CashTransfer.DocumentDate,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F07,تاريخ الأثر,required,partial,CashTransfer.AccountingDate,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F08,العملة,required,partial,CashTransfer.CurrencyCode / tenant FK,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F09,سعر الصرف,required,partial,CashTransfer.ExchangeRate decimal(20.10),internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F10,البيان,required,partial,CashTransfer.Description,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F11,المرجع الخارجي,optional,partial,CashTransfer.ExternalReference,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F12,الحالة,system,partial,CashTransfer.State Draft-only guard,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F13,الحساب المرسل,required,partial,CashTransfer.SourceKind/SourceAccountId / scoped typed FK aliases,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F14,الحساب المستلم,required,partial,CashTransfer.DestinationKind/DestinationAccountId / scoped typed FK aliases,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F15,مبلغ الإرسال,required,partial,CashTransfer.SourceAmount decimal(20.6),internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F16,مبلغ الاستلام,required,partial,CashTransfer.DestinationAmount decimal(20.6),internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F17,عملة الاستلام,required,partial,CashTransfer.DestinationCurrencyCode / scoped FK,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F18,عمولة,optional,partial,CashTransfer.Fee decimal(20.6) optional,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F19,أنشأه,system,partial,CashTransfer.CreatedBy,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F20,وقت الإنشاء,system,partial,CashTransfer.CreatedAt,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F21,رقم إصدار التعديل,system,partial,CashTransfer.Revision,internal EF/SQL 049 only; no transfer/approval/GL endpoint
+CASH05,CASH05-F22,آخر تعديل,system,partial,CashTransfer.LastModifiedAt,internal EF/SQL 049 only; no transfer/approval/GL endpoint
 CASH06,CASH06-F01,المعرف الداخلي,system,partial,CashAdvance.Id internal GUID only,internal EF/SQL schema 039 only; no live advance/settlement API or GL posting
 CASH06,CASH06-F02,الشركة,system,partial,CashAdvance.CompanyId tenant primary key,internal EF/SQL schema 039 only; no live advance/settlement API or GL posting
 CASH06,CASH06-F03,الفرع,required,partial,CashAdvance.BranchId tenant composite FK; operational permission pending,internal EF/SQL schema 039 only; no live advance/settlement API or GL posting

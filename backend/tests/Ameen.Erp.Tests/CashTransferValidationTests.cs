@@ -30,6 +30,26 @@ public static class CashTransferValidationTests
                 throw new Exception("CASH05 draft header fields not preserved");
             return Task.CompletedTask;
         });
+        test("CASH05-FG04: both transfer endpoint types preserve exact FK aliases", f =>
+        {
+            var now = new FixedClock().UtcNow;
+            foreach (var senderKind in new[] { CashTransferAccountKind.CashBox, CashTransferAccountKind.BankAccount })
+            foreach (var receiverKind in new[] { CashTransferAccountKind.CashBox, CashTransferAccountKind.BankAccount })
+            {
+                var sender = new CashTransferAccountRef(senderKind, Guid.NewGuid());
+                var receiver = new CashTransferAccountRef(receiverKind, Guid.NewGuid());
+                var transfer = new CashTransfer(f.CompanyId, f.BranchId, Guid.NewGuid(),
+                    "0005", new DateOnly(2026, 11, 5), new DateOnly(2026, 11, 5),
+                    "SAR", 1m, "نقل", null, "Draft", sender, receiver,
+                    100m, 100m, "SAR", 1m, null, f.Owner.Subject, now);
+                if (transfer.SourceCashBoxId != (senderKind == CashTransferAccountKind.CashBox ? sender.Id : null) ||
+                    transfer.SourceBankAccountId != (senderKind == CashTransferAccountKind.BankAccount ? sender.Id : null) ||
+                    transfer.DestinationCashBoxId != (receiverKind == CashTransferAccountKind.CashBox ? receiver.Id : null) ||
+                    transfer.DestinationBankAccountId != (receiverKind == CashTransferAccountKind.BankAccount ? receiver.Id : null))
+                    throw new Exception("CASH05 typed FK aliases are missing or mismatched");
+            }
+            return Task.CompletedTask;
+        });
         test("CASH05-FG02: invalid draft audit, date and self-transfer are rejected", f =>
         {
             var now = new FixedClock().UtcNow;
