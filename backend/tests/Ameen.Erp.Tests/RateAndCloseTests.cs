@@ -298,6 +298,50 @@ public static class RateAndCloseTests
                 f.Store.Count<OutboxEvent>() == outbox &&
                 f.Store.All<NumberSequence>().Sum(x => x.LastNumber) == numbers);
         });
+        test("GL11/GL12: fully authorized foreign-company reviewer cannot inspect another tenant period", async f =>
+        {
+            // The foreign reader deliberately has ALL required permissions in
+            // the *requested* company. The guard must reject the period ID as
+            // not found, not merely deny a missing membership before lookup.
+            var period = Period(f);
+            var close = await f.Service.PeriodClose.ChangePeriod(
+                f.CompanyId, period.Id, f.Approver, Fixture.Key(),
+                new(period.Version, "إقفال خاص بشركة المصدر"), true, default);
+            await f.Service.PeriodClose.ChangePeriod(
+                f.CompanyId, period.Id, f.Approver, Fixture.Key(),
+                new(close.Version, "فتح خاص بشركة المصدر"), false, default);
+
+            var other = Guid.NewGuid();
+            await f.Service.Company.CreateCompany(f.Owner, Fixture.Key(),
+                new(other, "FOREIGNGL", "شركة اختبار منفصلة", "YE", "SAR", 2,
+                    Fixture.Profile()), default);
+            var foreignReader = new Actor("gl-foreign-company-period-reader");
+            await f.Service.Membership.GrantMembership(other, f.Owner,
+                Fixture.Key(), new(foreignReader.Subject, new[] {
+                    Permissions.Read, Permissions.Audit,
+                    Permissions.PeriodClose, Permissions.PeriodReopen
+                }, true, Array.Empty<Guid>(), null), default);
+
+            var auditBefore = f.Store.Count<AuditEvent>();
+            var receiptBefore = f.Store.Count<IdempotencyRecord>();
+            var journalBefore = f.Store.Count<JournalEntry>();
+            var outboxBefore = f.Store.Count<OutboxEvent>();
+            var versionBefore = Period(f).Version;
+            await Error("reference_not_found", () =>
+                f.Service.PeriodClose.PreviewPeriodClose(other,
+                    period.Id, foreignReader, 0, 10, default));
+            await Error("reference_not_found", () =>
+                f.Service.PeriodClose.PeriodExecutionHistory(other,
+                    period.Id, foreignReader, 0, 10, default));
+            await Error("reference_not_found", () =>
+                f.Service.PeriodClose.ReopenExecutionHistory(other,
+                    period.Id, foreignReader, 0, 10, default));
+            Ensure(f.Store.Count<AuditEvent>() == auditBefore &&
+                f.Store.Count<IdempotencyRecord>() == receiptBefore &&
+                f.Store.Count<JournalEntry>() == journalBefore &&
+                f.Store.Count<OutboxEvent>() == outboxBefore &&
+                Period(f).Version == versionBefore && !Period(f).IsClosed);
+        });
         test("GL11: preview lists pending journals with accurate paginated blockers without writes", async f =>
         {
             await f.Draft(); await f.Draft(); var audit = f.Store.Count<AuditEvent>(); var period = Period(f);
