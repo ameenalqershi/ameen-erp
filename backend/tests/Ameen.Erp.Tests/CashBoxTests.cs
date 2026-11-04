@@ -7,6 +7,19 @@ public static class CashBoxTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("CASH01: default system creation time is rejected before a cashbox is created", f =>
+        {
+            try
+            {
+                _ = new CashBox(f.CompanyId, "BOX", "صندوق", f.CashId, f.BranchId,
+                    Guid.NewGuid(), "SAR", null, f.Owner.Subject, default);
+                throw new Exception("Missing cashbox creation audit time unexpectedly accepted");
+            }
+            catch (BusinessException ex) when (ex.Code == "cashbox_created_at_required") { }
+            Ensure(f.Store.All<CashBox>().Count() == 0);
+            return Task.CompletedTask;
+        });
+
         test("CASH01: rejected domain edits leave every cashbox field unchanged", f =>
         {
             var now = new FixedClock().UtcNow;

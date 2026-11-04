@@ -28,6 +28,8 @@ public sealed class BankAccount : CompanyEntity
         Guid branchId, string createdBy, DateTimeOffset createdAt,
         string? englishName = null, string? notes = null) : base(companyId)
     {
+        Check.That(createdAt != default, "bank_account_created_at_required",
+            "وقت إنشاء الحساب البنكي مطلوب.");
         CreatedBy = Check.Text(createdBy, "منشئ الحساب البنكي");
         CreatedAt = createdAt;
         Configure(code, name, bankName, accountNumber, iban, ledgerAccountId, currencyCode,
