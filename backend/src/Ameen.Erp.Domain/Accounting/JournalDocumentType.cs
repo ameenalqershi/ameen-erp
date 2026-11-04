@@ -37,6 +37,9 @@ public sealed class JournalDocumentType : CompanyEntity
         ApprovalRouteId = approvalRouteId;
         RequiresAttachment = requiresAttachment;
         CreatedBy = Check.Text(actor, "منشئ نوع المستند", 200);
+        // GL14-F11 is generated audit time: never persist an unset timestamp.
+        Check.That(now != default, "invalid_document_type_created_at",
+            "وقت إنشاء نوع المستند غير صالح.");
         CreatedAt = LastModifiedAt = now;
     }
 
