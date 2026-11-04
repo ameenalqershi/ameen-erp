@@ -241,6 +241,11 @@ public static class HostedApiIntegration
                     Ensure(current.StatusCode == HttpStatusCode.OK &&
                         json.RootElement.GetProperty("items").EnumerateArray().Any(x =>
                             x.GetProperty("id").GetGuid() == httpMember.ResourceId &&
+                            x.GetProperty("createdBy").GetString() == "sql-clerk" &&
+                            x.GetProperty("createdAt").GetDateTimeOffset() != default &&
+                            x.GetProperty("revision").GetInt32() == 2 &&
+                            x.GetProperty("lastModifiedAt").GetDateTimeOffset() >=
+                            x.GetProperty("createdAt").GetDateTimeOffset() &&
                             !x.GetProperty("isActive").GetBoolean()),
                         "SYS06 deactivated member was removed from the member register");
                     Ensure(!json.RootElement.GetRawText().Contains("\"password\":", StringComparison.OrdinalIgnoreCase),
@@ -2413,6 +2418,21 @@ public static class HostedApiIntegration
                 using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
                     Ensure(response.StatusCode == HttpStatusCode.OK && json.RootElement.GetProperty("periods").GetArrayLength() == 2 &&
                         json.RootElement.GetProperty("state").GetString() == "Open" && json.RootElement.GetProperty("generalLedgerOnly").GetBoolean(), "Custom HTTP calendar failed");
+                // SYS03-FG04 partial: server-supplied numeric first revision and
+                // creator/time must survive the production HTTPS/JWT/SQL response.
+                using (var auditFields = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}"))
+                using (var auditFieldsJson = JsonDocument.Parse(await auditFields.Content.ReadAsStringAsync()))
+                {
+                    var year = auditFieldsJson.RootElement.GetProperty("year");
+                    Ensure(auditFields.StatusCode == HttpStatusCode.OK &&
+                        year.GetProperty("createdBy").GetString() == "runtime-admin" &&
+                        year.GetProperty("createdAt").GetDateTimeOffset() != default &&
+                        year.GetProperty("lastModifiedAt").GetDateTimeOffset() ==
+                        year.GetProperty("createdAt").GetDateTimeOffset() &&
+                        year.GetProperty("revision").GetInt32() == 1,
+                        "SYS03-FG04 new fiscal-year audit fields missing from HTTPS JSON");
+                }
+                Console.WriteLine("  HOST PASS SYS03-FG04 server-owned year creation actor, UTC time and numeric revision");
                 // SYS03-AC01: new periods are open, contiguous and carry
                 // the exact posting calendar returned by the production API.
                 using (var fiscalPositive = await client.GetAsync(calendarPath + $"/{fiscalYear.ResourceId}"))
