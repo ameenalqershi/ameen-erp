@@ -52,8 +52,8 @@ SYS03,SYS03-F09,نهايتها,required,implemented,FiscalPeriod.EndsOn / Fiscal
 SYS03,SYS03-F10,حالة الفترة,system,partial,FiscalPeriod.IsClosed: general ledger only,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
 SYS03,SYS03-F11,أنشأه,system,audit,AuditEvent.ActorId: fiscal-year.created,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
 SYS03,SYS03-F12,وقت الإنشاء,system,audit,AuditEvent.OccurredAt: fiscal-year.created,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
-SYS03,SYS03-F13,رقم إصدار التعديل,system,pending,,
-SYS03,SYS03-F14,آخر تعديل,system,audit,AuditEvent.OccurredAt: period.closed / period.reopened,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F13,رقم إصدار التعديل,system,partial,"FiscalYear.Revision int? = 1 on new years, nullable for historical un-attributed rows; edit calendar + increments pending; migration 046",GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
+SYS03,SYS03-F14,آخر تعديل,system,partial,FiscalYear.LastModifiedAt at creation; period.closed/reopened in AuditEvent; calendar edit timestamps pending,GET/POST /companies/{companyId}/fiscal-years; GET /search|/{id}|/{id}/usage|/{id}/audit-events; GET /companies/{companyId}/periods
 SYS04,SYS04-F01,المعرف الداخلي,system,implemented,Currency.Id,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS04,SYS04-F02,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
 SYS04,SYS04-F03,الرمز,required,implemented,Code,GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events
@@ -95,10 +95,10 @@ SYS06,SYS06-F10,البريد,optional,pending,,
 SYS06,SYS06-F11,اللغة,required,pending,,
 SYS06,SYS06-F12,حالة الحساب,required,partial,Membership.IsActive (ERP membership only),POST /companies/{companyId}/memberships/{id}/status
 SYS06,SYS06-F13,مصادقة إضافية,required,pending,,
-SYS06,SYS06-F14,أنشأه,system,pending,,
-SYS06,SYS06-F15,وقت الإنشاء,system,pending,,
-SYS06,SYS06-F16,رقم إصدار التعديل,system,partial,Membership.Version: GUID optimistic-concurrency token; numeric audit Revision is not implemented,POST /companies/{companyId}/memberships/{id}/status
-SYS06,SYS06-F17,آخر تعديل,system,pending,,
+SYS06,SYS06-F14,أنشأه,system,partial,Membership.CreatedBy: server actor for new ERP grants only; legacy/IdP identity profile unknown,POST /companies/{companyId}/memberships/{id}/status
+SYS06,SYS06-F15,وقت الإنشاء,system,partial,Membership.CreatedAt: server UTC time for new ERP grants only; legacy/IdP identity profile unknown,POST /companies/{companyId}/memberships/{id}/status
+SYS06,SYS06-F16,رقم إصدار التعديل,system,partial,"Membership.Revision int?: creation 1, authorized grant/status increments; legacy unknown; GUID Version separate",POST /companies/{companyId}/memberships/{id}/status
+SYS06,SYS06-F17,آخر تعديل,system,partial,Membership.LastModifiedAt: server UTC time for new ERP grants/changes; legacy/IdP profile unknown,POST /companies/{companyId}/memberships/{id}/status
 SYS07,SYS07-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F02,الفرع,conditional,partial,SecurityRole.BranchId: tenant FK only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only
 SYS07,SYS07-F03,الحالة,system,partial,SecurityRole.IsActive: stored only,GET/POST /companies/{companyId}/memberships; internal EF/SQL 029 role foundation only

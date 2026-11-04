@@ -51,7 +51,8 @@ public sealed class BankReconciliation : CompanyEntity
     private static void CheckSignedBalance(decimal value)
     {
         // A bank statement can have a negative closing balance (overdraft).
-        Check.That(decimal.Abs(value) < 100_000_000_000_000m &&
+        Check.That(value > -100_000_000_000_000m &&
+            value < 100_000_000_000_000m &&
             decimal.Round(value, 6) == value, "invalid_amount",
             "رصيد الكشف خارج دقة المبلغ.");
     }
