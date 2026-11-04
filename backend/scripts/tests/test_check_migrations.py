@@ -67,9 +67,8 @@ class MigrationSequenceAcceptance(unittest.TestCase):
 
     def test_renamed_uppercase_sql_is_rejected(self):
         self.make_sql("003_future.SQL", 3)
-        # Linux glob is case-sensitive: a file named .SQL is not picked up by
-        # '*.sql'. This case documents that limit rather than claiming coverage.
-        self.assertEqual(migration_check.check(self.sql, self.ef), 2)
+        with self.assertRaisesRegex(ValueError, "unrecognized migration filename: 003_future.SQL"):
+            migration_check.check(self.sql, self.ef)
 
     def test_extra_unversioned_sql_is_rejected(self):
         (self.sql / "manual_fix.sql").write_text("SELECT 1;", encoding="utf-8")
