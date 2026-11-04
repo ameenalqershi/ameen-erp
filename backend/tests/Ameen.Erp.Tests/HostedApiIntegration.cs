@@ -1748,8 +1748,30 @@ public static class HostedApiIntegration
                 // A subsequent authorized reopen must still accept the original
                 // closed-period version: rejected attempts did not mutate it.
                 Authenticate(Token("sql-approver"));
+                // GL12-FG02 bounded acceptance: the already-defined mandatory
+                // reason is validated before any successful reopening. No
+                // approval reference/expiry policy is inferred here.
+                var gl12InvalidReasonBefore = await ReadOnlyCounts(connection, companyId);
+                foreach (var invalidReason in new[] { "", "   ", new string('r', 501), "bad\nreason" })
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Post, gl12Path + "/reopen");
+                    request.Headers.Add("Idempotency-Key", Fixture.Key());
+                    request.Content = new StringContent(JsonSerializer.Serialize(
+                        new ChangePeriodRequest(gl12Closed.Version, invalidReason),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var response = await client.SendAsync(request);
+                    using var invalidReasonError = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.UnprocessableEntity &&
+                           invalidReasonError.RootElement.GetProperty("code").GetString() == "invalid_text",
+                        "GL12-FG02 malformed or blank reopen reason was accepted");
+                }
+                Ensure(gl12InvalidReasonBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL12-FG02 rejected reason changed SQL audit, receipt, journal or outbox");
+                // Reusing the same expected closed-period version for a valid
+                // command establishes rejected attempts did not reopen it.
                 var gl12Reopened = await Command(client, gl12Path + "/reopen",
                     new ChangePeriodRequest(gl12Closed.Version, "GL12 HTTPS إعادة فتح"));
+                Console.WriteLine("  HOST PASS GL12-FG02 invalid reopen reason rejected HTTPS/JWT/SQL without financial side effects");
                 Authenticate(Token("sql-owner"));
                 await Command(client, $"/api/v1/companies/{companyId}/memberships",
                     new GrantMembershipRequest("gl12-read-audit-reopen",
