@@ -29,7 +29,7 @@ def check(migration_dir: Path, ef_context: Path) -> int:
     for candidate in all_sql:
         if candidate.name == "runtime-role.sql":
             continue
-        if not re.fullmatch(r"[0-9]{3}_[A-Za-z0-9_]+\\.sql", candidate.name):
+        if not re.fullmatch(r"[0-9]{3}_[A-Za-z0-9_]+\.sql", candidate.name):
             errors.append(f"unrecognized migration filename: {candidate.name}")
             continue
         if candidate.is_symlink() or not candidate.is_file():
