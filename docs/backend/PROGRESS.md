@@ -2,6 +2,14 @@
 
 أضيف حارس قراءة فقط يطابق 15 خريطة تنقل أصلية مع 150 شاشة في سجل التحليل، ويتحقق من المعرّفات والتسميات والفئات والحواف وصحة SVG، مع 8 اختبارات قبول موجبة وسالبة في `backend/scripts/tests/test_module_diagram_navigation.py`. يرجع إلى [تقرير التدقيق](core-module-diagram-navigation-audit-20261104.md). المخرجات لا تمثل تبعيات بناء أو اكتمال الشاشات. التنفيذ على `temp/core-diagram-nav-audit-20261104-chat` ولا دمج مباشر؛ يحتاج اختبار CI على HEAD النهائي ومراجعة SUPERVISOR قبل إغلاق مهام DGM-01–15.
 
+## INV06-FG05 — حماية ترتيب سطر الافتتاح ومرجعه (5 نوفمبر 2026)
+
+- تزامن فرع `inv` مع أحدث `origin/main` (SHA `4ddca22724a0a7aba0f5d0e45643c3bf99f9207d`) بدمج داخل `inv` فقط، دون تعديل `main` أو تحليل المشروع الأصلي.
+- في `InventoryOpeningLine` أضيف تحقق Domain لمنع `Position <= 0` ومنع `OpeningId == Guid.Empty` اتساقًا مع ترتيب SQL الموجب ومفاتيح المستند؛ لا تغيير لسياسة التقييم أو الترحيل أو الحالة أو قواعد النقدية.
+- حالة قبول INV06-FG05 جديدة تفحص سطرًا صحيحًا، وترتيبين غير صالحين، ومرجع افتتاح فارغًا، وتثبت عدم إنشاء `InventoryOpening` أو `StockMovement` أو `JournalEntry` أو `OutboxEvent` عند الرفض.
+- تحقق محلي: `backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts /tmp/ameen-inv-agent-20261105-patch` = **531/531 passed; 0 failed** مع بناء Release وفحوص البنية/المخططات وHTTP/OpenAPI. لم تتوفر قيمة `AMEEN_TEST_SQL_CONNECTION` محليًا؛ لا يُدّعى قبول SQL حي أو نجاح CI للـ SHA الجديد قبل تحقق نتائج GitHub Actions.
+- هذا اختبار تقوية لمهمة `INV06-FG05` المكتملة سابقًا، ولا يغلق الاعتماديات المحاسبية وFX والجودة أو شاشة INV06 بالكامل. يظل INV07-01 محجوبًا لعقد مصدر الاستلام/GRNI/PUR المعتمد بحسب `INV07-SOURCE-CONTRACT-AUDIT.md`.
+
 ## SAL01-01 — بنية بطاقة العميل فقط (4 نوفمبر 2026)
 
 **تحديث قبول 4 نوفمبر:** نجح CI على SHA `3d8c991b5846ccf4491e212706b032d80e549cc4` في [GitHub Actions #41887573897](https://github.com/ameenalqershi/ameen-erp/actions/runs/41887573897): `518/518 passed; 0 failed`، بما يشمل SQL Server المعزول وترقية SQL 046 وعزل الشركة ومنع تكرار رمز العميل وتدقيق الحقول والائتمان. فشل التشغيل القديم قبل تخصيص Runner، ولا يمثل فشل اختبارات. PR #118 لا يزال Draft، وتظل الشاشة جزئية لحين الاعتماديات والسياسات وواجهات التشغيل؛ لا تُحوّل إلى مكتملة.

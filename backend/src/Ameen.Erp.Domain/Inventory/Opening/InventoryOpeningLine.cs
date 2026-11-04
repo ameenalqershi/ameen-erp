@@ -21,6 +21,8 @@ public sealed class InventoryOpeningLine : CompanyEntity
     public InventoryOpeningLine(Guid cid, Guid openingId, int position, Item item, UnitOfMeasure unit,
         InventoryIdentity? identity, decimal quantity, decimal factor, decimal baseQuantity, decimal cost, int currencyScale) : base(cid)
     {
+        Check.That(openingId != Guid.Empty, "opening_line_scope", "معرف مستند الافتتاح مطلوب.");
+        Check.That(position > 0, "invalid_opening_position", "ترتيب سطر الافتتاح يجب أن يكون موجبًا.");
         Check.That(item.CompanyId == cid && unit.CompanyId == cid && (identity is null || identity.CompanyId == cid && identity.ItemId == item.Id), "opening_line_scope", "مراجع السطر خارج النطاق.");
         Check.That(quantity > 0 && quantity < 100_000_000_000_000m && decimal.Round(quantity, 6) == quantity,
             "invalid_opening_quantity", "الكمية موجبة وبحد أقصى ست خانات عشرية.");

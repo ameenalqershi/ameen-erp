@@ -33,6 +33,24 @@ public static class InventoryOpeningTests
     }
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("INV06-FG05: opening line constructor enforces positive order and parent identity", async f =>
+        {
+            await Setup(f);
+            var item = f.Store.All<Item>().Single();
+            var unit = f.Store.All<UnitOfMeasure>().Single(x => x.Id == item.BaseUnitId);
+            var openingId = Guid.NewGuid();
+            var valid = new InventoryOpeningLine(f.CompanyId, openingId, 1, item, unit,
+                null, 2m, 1m, 2m, 5.25m, 2);
+            Ensure(valid.OpeningId == openingId && valid.Position == 1 && valid.Value == 10.5m);
+            await Error("invalid_opening_position", () => Task.FromResult(
+                new InventoryOpeningLine(f.CompanyId, openingId, 0, item, unit, null, 2m, 1m, 2m, 5.25m, 2)));
+            await Error("invalid_opening_position", () => Task.FromResult(
+                new InventoryOpeningLine(f.CompanyId, openingId, -1, item, unit, null, 2m, 1m, 2m, 5.25m, 2)));
+            await Error("opening_line_scope", () => Task.FromResult(
+                new InventoryOpeningLine(f.CompanyId, Guid.Empty, 1, item, unit, null, 2m, 1m, 2m, 5.25m, 2)));
+            Ensure(f.Store.Count<InventoryOpening>() == 0 && f.Store.Count<StockMovement>() == 0 &&
+                f.Store.Count<JournalEntry>() == 0 && f.Store.Count<OutboxEvent>() == 0);
+        });
         test("INV06-FG01: generated opening header preserves tenant branch and derived year", async f =>
         {
             var request = await Setup(f);
