@@ -635,6 +635,7 @@ BankAccountFoundationTests.Register(Test);
 CashCountFoundationTests.Register(Test);
 CashAdvanceFoundationTests.Register(Test);
 CustomerFoundationTests.Register(Test);
+SalesQuotationFoundationTests.Register(Test);
 BankReconciliationFoundationTests.Register(Test);
 PaymentTermFoundationTests.Register(Test);
 GeneralOptionsFoundationTests.Register(Test);
