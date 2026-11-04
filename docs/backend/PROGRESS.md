@@ -1634,3 +1634,8 @@ Confirmed against the original read-only SYS10 dictionary and current `DocumentN
 ## CORE SPEC01 — تدقيق ربط قرارات النطاق (4 نوفمبر 2026)
 
 أضيف تقرير [تدقيق SPEC01 والقرارات D01–D08](core-spec01-decisions-audit-20261104.md) وحارس `backend/scripts/check_scope_decision_links.py` مع اختبارات قبول إيجابية وسلبية ضمن discovery الحالي لـ `verify.py`. القرارات الثمانية كلها محجوبة في Notion؛ التقرير يربط مصدرها بالمهام الحالية ولا يحسم سياسة أو مالك قرار غير محدد. هذه حزمة قراءة/مطابقة مستقلة من `temp/core-spec01-decision-audit-20261104-chat`؛ تبقى SPEC01 جزئية إلى حين قبول CI/مراجعة SUPERVISOR، وتبقى القرارات محجوبة ولا يتحول تدقيق النطاق إلى شهادة جاهزية إنتاج.
+
+
+## CORE SPEC02 — تدقيق قواعد المحاسبة وأمثلة الأثر (5 نوفمبر 2026)
+
+جرى فحص قواعد BR01–BR20 الأصلية وجدول 26 حدثًا محاسبيًا والمقاطع العامة السبعة دون تغيير المصدر أو استنباط سياسات. أضيف سجل [core-spec02-event-ownership.csv](core-spec02-event-ownership.csv) بربط مجالات الأحداث (PUR/SAL/CASH/INV/FA/HR/MFG/PRJ) وقواعد BR ذات الصلة، مع جعل قبول التنفيذ لجميعها not-verified حتى تثبت أدلة المصدر الفعلية. التوثيق التفصيلي: [core-spec02-accounting-rules-audit-20261105.md](core-spec02-accounting-rules-audit-20261105.md). 8 اختبارات جديدة موجبة وسالبة؛ Python 55/55 PASS. لا تعني مطابقة المرجع اكتمال تنفيذ الدفاتر أو السياسات الضريبية، ومهمة SPEC02 لا تزال جزئية لحين اختبارات المصدر والتوافق والقرار المعتمد وCI.

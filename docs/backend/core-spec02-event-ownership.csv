@@ -1,0 +1,27 @@
+event,owner_module,related_rules,acceptance_evidence
+شراء مباشر آجل,PUR,BR05;BR08;BR13,not-verified
+استلام قبل الفاتورة,PUR,BR05;BR13,not-verified
+فاتورة مقابل الاستلام,PUR,BR05;BR13,not-verified
+بيع مباشر مع التسليم,SAL,BR05;BR12,not-verified
+تكلفة البيع المباشر,SAL,BR05;BR08,not-verified
+تسليم قبل الفوترة,SAL,BR13,not-verified
+فاتورة بعد التسليم,SAL,BR13,not-verified
+فاتورة قبل التسليم,SAL,BR13;BR20,not-verified
+تحصيل عميل,CASH,BR06;BR16,not-verified
+سداد مورد,CASH,BR06;BR10,not-verified
+مرتجع بيع,SAL,BR07;BR11,not-verified
+عكس تكلفة المرتجع,SAL,BR07;BR11,not-verified
+مرتجع شراء,PUR,BR07;BR11,not-verified
+خصم لاحق للعميل,SAL,BR07;BR20,not-verified
+تحويل نقدي داخلي,CASH,BR05;BR10,not-verified
+إرسال مخزون داخلي,INV,BR19,not-verified
+استلام تحويل,INV,BR19,not-verified
+عجز جرد,INV,BR08;BR12,not-verified
+زيادة جرد,INV,BR08,not-verified
+شراء أصل,FA,BR05;BR08,not-verified
+إهلاك,FA,BR08;BR14,not-verified
+استبعاد أصل,FA,BR07,not-verified
+رواتب,HR,BR09,not-verified
+صرف خامات,MFG,BR05;BR12,not-verified
+منتج تام,MFG,BR05;BR08,not-verified
+مستخلص مشروع,PRJ,BR05;BR20,not-verified
