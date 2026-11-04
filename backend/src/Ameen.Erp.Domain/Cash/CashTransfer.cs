@@ -58,7 +58,12 @@ public sealed class CashTransfer : CompanyEntity
         Description = Check.Text(description, "بيان سند التحويل", 1000);
         ExternalReference = string.IsNullOrWhiteSpace(externalReference) ? null :
             Check.Text(externalReference, "المرجع الخارجي", 100);
-        State = Check.Text(state, "حالة التحويل", 32);
+        // The structural constructor must not accept caller-supplied approved or
+        // posted status while the authorization/posting workflow is unavailable.
+        var initialState = Check.Text(state, "حالة التحويل", 32);
+        Check.That(initialState == "Draft", "cash_transfer_draft_only",
+            "لا يمكن إنشاء تحويل معتمد أو مرحّل دون دورة أعمال معتمدة.");
+        State = initialState;
         SourceKind = source.Kind;
         SourceAccountId = source.Id;
         DestinationKind = destination.Kind;

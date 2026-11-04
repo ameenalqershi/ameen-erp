@@ -89,6 +89,43 @@ public static class CashTransferValidationTests
             Reject("invalid_exchange_rate", a, b, destinationRate: 1.00000000001m);
             return Task.CompletedTask;
         });
+        test("CASH05-FG02: caller cannot pre-approve or post a new transfer header", f =>
+        {
+            var sender = new CashTransferAccountRef(CashTransferAccountKind.CashBox, Guid.NewGuid());
+            var receiver = new CashTransferAccountRef(CashTransferAccountKind.BankAccount, Guid.NewGuid());
+            foreach (var forgedState in new[] { "Submitted", "Approved", "Posted" })
+            {
+                try
+                {
+                    _ = new CashTransfer(f.CompanyId, f.BranchId, Guid.NewGuid(),
+                        "0003", new DateOnly(2026, 11, 4), new DateOnly(2026, 11, 5),
+                        "SAR", 1m, "نقل", "EXT-003", forgedState, sender,
+                        receiver, 100m, 100m, "SAR", 1m, 1m,
+                        f.Owner.Subject, new FixedClock().UtcNow);
+                }
+                catch (BusinessException ex) when (ex.Code == "cash_transfer_draft_only")
+                {
+                    continue;
+                }
+                throw new Exception("CASH05 forged initial state was accepted: " + forgedState);
+            }
+            return Task.CompletedTask;
+        });
+        test("CASH05-FG01: external reference, fee and creator remain draft metadata only", f =>
+        {
+            var sender = new CashTransferAccountRef(CashTransferAccountKind.CashBox, Guid.NewGuid());
+            var receiver = new CashTransferAccountRef(CashTransferAccountKind.BankAccount, Guid.NewGuid());
+            var transfer = new CashTransfer(f.CompanyId, f.BranchId, Guid.NewGuid(),
+                "0004", new DateOnly(2026, 11, 4), new DateOnly(2026, 11, 5),
+                "SAR", 1m, "نقل", "EXT-004", "Draft", sender,
+                receiver, 100m, 100m, "SAR", 1m, 2m,
+                f.Owner.Subject, new FixedClock().UtcNow);
+            if (transfer.ExternalReference != "EXT-004" || transfer.Fee != 2m ||
+                transfer.CreatedBy != f.Owner.Subject || transfer.State != "Draft" ||
+                transfer.Revision != 1)
+                throw new Exception("CASH05 draft metadata changed unexpectedly");
+            return Task.CompletedTask;
+        });
     }
 
     private static void Reject(string code, CashTransferAccountRef source,
