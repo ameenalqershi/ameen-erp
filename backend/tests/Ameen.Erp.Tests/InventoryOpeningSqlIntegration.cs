@@ -338,6 +338,181 @@ public static class InventoryOpeningSqlIntegration
             "INV01-GAP02 descriptive edit lost historical warehouse movement references");
         Console.WriteLine("  SQL PASS INV01-GAP02: reversed stock keeps warehouse structure, audits and receipts intact");
 
+        // INV05-GAP03: verify the serial identity guard against real SQL rows, not only MemoryStore.
+        // The full reversal has zero net balance, but its two movements must preserve serial provenance.
+        var serialItem = await Call(s => s.Item.CreateItem(cid, owner, Fixture.Key(),
+            new("OPEN-POSTED-SERIAL", "صنف تسلسلي", ItemType.Goods, ItemTracking.Serial,
+                group.ResourceId, unit.ResourceId, new[] { new ItemUnitRequest(unit.ResourceId, 1m) }), default));
+        var serialReceipt = await Call(s => s.InventoryIdentity.CreateSerial(cid, serialItem.ResourceId, owner, Fixture.Key(),
+            new("SERIAL-HISTORY-CARD", "رقم مخزني تاريخي", null, null, InventoryQualityStatus.Available,
+                SerialNumber: "SERIAL-2026-ONE"), default));
+        var serialSource = request with
+        {
+            CountReference = "HISTORICAL-SERIAL-2026",
+            Lines = new[] { new InventoryOpeningLineRequest(serialItem.ResourceId, unit.ResourceId, 1m, 7m, serialReceipt.ResourceId) }
+        };
+        var serialOpening = await Call(s => s.InventoryOpening.Create(cid, writer, Fixture.Key(), serialSource, default));
+        serialOpening = await Call(s => s.InventoryOpening.Transition(cid, serialOpening.ResourceId, writer,
+            Fixture.Key(), new(serialOpening.Version), "submit", default));
+        serialOpening = await Call(s => s.InventoryOpening.Transition(cid, serialOpening.ResourceId, reviewer,
+            Fixture.Key(), new(serialOpening.Version), "approve", default));
+        var serialPreview = await Call(s => s.InventoryOpening.Preview(cid, serialOpening.ResourceId, writer, default));
+        Ensure(serialPreview.CanPost && serialPreview.PostingPlan is not null, "Serial opening SQL plan unavailable");
+        var postedSerial = await Call(s => s.InventoryOpening.Post(cid, serialOpening.ResourceId, writer, Fixture.Key(),
+            new(serialOpening.Version, serialPreview.PostingPlan!.SettingsVersion, serialPreview.PostingPlan.WarehouseVersion), default));
+        var serialReversal = await Call(s => s.InventoryOpening.CreateReversal(cid, postedSerial.ResourceId, writer, Fixture.Key(),
+            new(postedSerial.Version, Fixture.Date, "عكس تسلسل تاريخي"), default));
+        serialReversal = await Call(s => s.InventoryOpening.Transition(cid, serialReversal.ResourceId, writer,
+            Fixture.Key(), new(serialReversal.Version), "submit", default));
+        serialReversal = await Call(s => s.InventoryOpening.Transition(cid, serialReversal.ResourceId, reviewer,
+            Fixture.Key(), new(serialReversal.Version), "approve", default));
+        await Call(s => s.InventoryOpening.PostReversal(cid, serialReversal.ResourceId, writer, Fixture.Key(),
+            new(serialReversal.Version), default));
+        var serialIdentity = await Call(s => s.InventoryIdentity.GetSerial(cid, serialItem.ResourceId,
+            serialReceipt.ResourceId, owner, default));
+        var serialEdit = new EditInventoryIdentityRequest(serialIdentity.Version, serialIdentity.Code,
+            serialIdentity.Name, serialIdentity.ProductionDate, serialIdentity.ExpiryDate,
+            serialIdentity.QualityStatus, serialIdentity.EnglishName, serialIdentity.Notes,
+            "تثبيت المرجع", SerialNumber: serialIdentity.SerialNumber);
+        int serialAuditBefore, serialReceiptsBefore, serialOutboxBefore, serialJournalsBefore;
+        await using (var db = Context())
+        {
+            var movements = await db.Set<StockMovement>().Where(x => x.CompanyId == cid && x.IdentityId == serialIdentity.Id).ToListAsync();
+            Ensure(movements.Count == 2 && movements.Sum(x => x.BaseQuantity) == 0 &&
+                movements.Sum(x => x.Value) == 0m && serialIdentity.SerialNumber == "SERIAL-2026-ONE",
+                "SQL reversed serial lost signed historical movements");
+            serialAuditBefore = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            serialReceiptsBefore = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            serialOutboxBefore = await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid);
+            serialJournalsBefore = await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid);
+        }
+        foreach (var invalid in new[]
+        {
+            serialEdit with { SerialNumber = "SERIAL-RENUMBER-DENIED" },
+            serialEdit with { Code = "SERIAL-CODE-DENIED" }
+        })
+        {
+            var deniedKey = Fixture.Key();
+            try
+            {
+                await Call(s => s.InventoryIdentity.EditSerial(cid, serialItem.ResourceId,
+                    serialIdentity.Id, owner, deniedKey, invalid, default));
+                throw new Exception("Historical SQL serial renumber accepted");
+            }
+            catch (BusinessException e) when (e.Code == "inventory_identity_in_stock") { }
+            await using var db = Context();
+            Ensure(!await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == deniedKey),
+                "Denied serial SQL edit saved idempotency receipt");
+        }
+        await using (var db = Context())
+        {
+            var saved = await db.Set<InventoryIdentity>().SingleAsync(x => x.CompanyId == cid && x.Id == serialIdentity.Id);
+            Ensure(saved.Version == serialIdentity.Version && saved.Revision == serialIdentity.Revision &&
+                saved.Code == serialIdentity.Code && saved.SerialNumber == serialIdentity.SerialNumber &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == serialAuditBefore &&
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == serialReceiptsBefore &&
+                await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) == serialOutboxBefore &&
+                await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid) == serialJournalsBefore,
+                "Historical SQL serial rejection leaked audit, receipt, journal or outbox");
+        }
+        var harmlessSerial = await Call(s => s.InventoryIdentity.EditSerial(cid, serialItem.ResourceId,
+            serialIdentity.Id, owner, Fixture.Key(), serialEdit with { Name = "وصف تسلسلي بعد العكس" }, default));
+        var savedSerial = await Call(s => s.InventoryIdentity.GetSerial(cid, serialItem.ResourceId,
+            serialIdentity.Id, owner, default));
+        Ensure(savedSerial.Name == "وصف تسلسلي بعد العكس" && savedSerial.Version == harmlessSerial.Version &&
+            savedSerial.SerialNumber == serialIdentity.SerialNumber,
+            "Descriptive SQL serial edit after reversal changed historical number");
+        Console.WriteLine("  SQL PASS INV05-GAP03 historical serial number/code immutable after fully reversed opening, audit/receipt/journal/outbox atomic, descriptive edit allowed");
+
+        // INV05-GAP03: reversed lots retain historic numbers/dates on real SQL, even at zero net stock.
+        var lotItem = await Call(s => s.Item.CreateItem(cid, owner, Fixture.Key(),
+            new("OPEN-POSTED-LOT", "صنف دفعات", ItemType.Goods, ItemTracking.Lot,
+                group.ResourceId, unit.ResourceId, new[] { new ItemUnitRequest(unit.ResourceId, 1m) }), default));
+        var lotReceipt = await Call(s => s.InventoryIdentity.CreateLot(cid, lotItem.ResourceId, owner,
+            Fixture.Key(), new("LOT-HISTORY-CARD", "دفعة تاريخية", new DateOnly(2026, 1, 1),
+                new DateOnly(2027, 1, 1), InventoryQualityStatus.Available, LotNumber: "LOT-2026-ONE"), default));
+        var lotSource = request with
+        {
+            CountReference = "HISTORICAL-LOT-2026",
+            Lines = new[] { new InventoryOpeningLineRequest(lotItem.ResourceId, unit.ResourceId, 2m, 3m, lotReceipt.ResourceId) }
+        };
+        var lotOpening = await Call(s => s.InventoryOpening.Create(cid, writer, Fixture.Key(), lotSource, default));
+        lotOpening = await Call(s => s.InventoryOpening.Transition(cid, lotOpening.ResourceId, writer,
+            Fixture.Key(), new(lotOpening.Version), "submit", default));
+        lotOpening = await Call(s => s.InventoryOpening.Transition(cid, lotOpening.ResourceId, reviewer,
+            Fixture.Key(), new(lotOpening.Version), "approve", default));
+        var lotPreview = await Call(s => s.InventoryOpening.Preview(cid, lotOpening.ResourceId, writer, default));
+        Ensure(lotPreview.CanPost && lotPreview.PostingPlan is not null, "SQL historical lot posting plan unavailable");
+        var postedLot = await Call(s => s.InventoryOpening.Post(cid, lotOpening.ResourceId, writer, Fixture.Key(),
+            new(lotOpening.Version, lotPreview.PostingPlan!.SettingsVersion, lotPreview.PostingPlan.WarehouseVersion), default));
+        var lotReversal = await Call(s => s.InventoryOpening.CreateReversal(cid, postedLot.ResourceId, writer, Fixture.Key(),
+            new(postedLot.Version, Fixture.Date, "عكس الدفعة التاريخية"), default));
+        lotReversal = await Call(s => s.InventoryOpening.Transition(cid, lotReversal.ResourceId, writer,
+            Fixture.Key(), new(lotReversal.Version), "submit", default));
+        lotReversal = await Call(s => s.InventoryOpening.Transition(cid, lotReversal.ResourceId, reviewer,
+            Fixture.Key(), new(lotReversal.Version), "approve", default));
+        await Call(s => s.InventoryOpening.PostReversal(cid, lotReversal.ResourceId, writer,
+            Fixture.Key(), new(lotReversal.Version), default));
+        var lotIdentity = await Call(s => s.InventoryIdentity.GetLot(cid, lotItem.ResourceId,
+            lotReceipt.ResourceId, owner, default));
+        var lotEdit = new EditInventoryIdentityRequest(lotIdentity.Version, lotIdentity.Code,
+            lotIdentity.Name, lotIdentity.ProductionDate, lotIdentity.ExpiryDate,
+            lotIdentity.QualityStatus, lotIdentity.EnglishName, lotIdentity.Notes,
+            "تثبيت تاريخ الدفعة", LotNumber: lotIdentity.LotNumber);
+        int lotAuditsBefore, lotReceiptsBefore, lotOutboxBefore, lotJournalsBefore;
+        await using (var db = Context())
+        {
+            var movements = await db.Set<StockMovement>().Where(x => x.CompanyId == cid &&
+                x.IdentityId == lotIdentity.Id).ToListAsync();
+            Ensure(movements.Count == 2 && movements.Sum(x => x.BaseQuantity) == 0m &&
+                movements.Sum(x => x.Value) == 0m && lotIdentity.LotNumber == "LOT-2026-ONE",
+                "SQL reversed lot lost original and reversal movements");
+            lotAuditsBefore = await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid);
+            lotReceiptsBefore = await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid);
+            lotOutboxBefore = await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid);
+            lotJournalsBefore = await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid);
+        }
+        foreach (var invalid in new[]
+        {
+            lotEdit with { Code = "LOT-HISTORY-RECODE" },
+            lotEdit with { LotNumber = "LOT-2026-RENAMED" },
+            lotEdit with { ProductionDate = new DateOnly(2026, 2, 1) },
+            lotEdit with { ExpiryDate = new DateOnly(2027, 2, 1) }
+        })
+        {
+            var deniedKey = Fixture.Key();
+            try
+            {
+                await Call(s => s.InventoryIdentity.EditLot(cid, lotItem.ResourceId,
+                    lotIdentity.Id, owner, deniedKey, invalid, default));
+                throw new Exception("SQL lot historical date/number mutation accepted");
+            }
+            catch (BusinessException e) when (e.Code == "inventory_identity_in_stock") { }
+            await using var db = Context();
+            Ensure(!await db.Set<IdempotencyRecord>().AnyAsync(x => x.CompanyId == cid && x.Key == deniedKey),
+                "Denied SQL lot edit persisted idempotency receipt");
+        }
+        await using (var db = Context())
+        {
+            var saved = await db.Set<InventoryIdentity>().SingleAsync(x => x.CompanyId == cid && x.Id == lotIdentity.Id);
+            Ensure(saved.Version == lotIdentity.Version && saved.Revision == lotIdentity.Revision &&
+                saved.Code == lotIdentity.Code && saved.LotNumber == lotIdentity.LotNumber &&
+                saved.ProductionDate == lotIdentity.ProductionDate && saved.ExpiryDate == lotIdentity.ExpiryDate &&
+                await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == lotAuditsBefore &&
+                await db.Set<IdempotencyRecord>().CountAsync(x => x.CompanyId == cid) == lotReceiptsBefore &&
+                await db.Set<OutboxEvent>().CountAsync(x => x.CompanyId == cid) == lotOutboxBefore &&
+                await db.Set<JournalEntry>().CountAsync(x => x.CompanyId == cid) == lotJournalsBefore,
+                "SQL lot historical rejection altered immutable identity, audit or financial effects");
+        }
+        var harmlessLot = await Call(s => s.InventoryIdentity.EditLot(cid, lotItem.ResourceId,
+            lotIdentity.Id, owner, Fixture.Key(), lotEdit with { Name = "وصف الدفعة بعد العكس" }, default));
+        var savedLot = await Call(s => s.InventoryIdentity.GetLot(cid, lotItem.ResourceId,
+            lotIdentity.Id, owner, default));
+        Ensure(savedLot.Name == "وصف الدفعة بعد العكس" && savedLot.Version == harmlessLot.Version &&
+            savedLot.LotNumber == lotIdentity.LotNumber && savedLot.ExpiryDate == lotIdentity.ExpiryDate,
+            "SQL lot descriptive edit changed historical identity");
+        Console.WriteLine("  SQL PASS INV05-GAP03 reversed lot number/production/expiry immutable, SQL audit/receipt/journal/outbox atomic, description allowed");
+
         var reversedPrint = await Call(s => s.InventoryOpening.Print(cid, reversal.ResourceId, writer, default));
         Ensure(reversedPrint.ReversesOpeningId == r.ResourceId &&
             reversedPrint.State == nameof(InventoryOpeningState.Posted) &&
