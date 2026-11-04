@@ -679,6 +679,7 @@ JournalAuditTests.Register(Test);
 NumberingTests.Register(Test);
 FinancialMappingTests.Register(Test);
 JournalDocumentTypeFoundationTests.Register(Test);
+ControlReconciliationPolicyTests.Register(Test);
 ApprovalRouteFoundationTests.Register(Test);
 SecurityRoleFoundationTests.Register(Test);
 UserDataScopeFoundationTests.Register(Test);
