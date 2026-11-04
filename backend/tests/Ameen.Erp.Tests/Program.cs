@@ -680,6 +680,7 @@ NumberingTests.Register(Test);
 FinancialMappingTests.Register(Test);
 JournalDocumentTypeFoundationTests.Register(Test);
 ApprovalRouteFoundationTests.Register(Test);
+CurrencyRevaluationPreviewPolicyTests.Register(Test);
 SecurityRoleFoundationTests.Register(Test);
 UserDataScopeFoundationTests.Register(Test);
 tests.Add(("HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON", HttpIntegration.Run));
