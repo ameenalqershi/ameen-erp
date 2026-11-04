@@ -1418,6 +1418,33 @@ public static class HostedApiIntegration
                 }
                 await DeniedGl11Close(gl11LimitedSubject, "all_branches_required");
                 await DeniedGl11Close("gl11-http-no-membership", "permission_denied");
+                // GL11-A01/T02: preview exposes company-wide journal blockers,
+                // so a branch-scoped closer or unrelated JWT must not read it.
+                // Assert the actual HTTPS route and its OpenAPI JWT requirement,
+                // then verify that denied reads leave SQL state untouched.
+                var gl11PreviewPath = $"/api/v1/companies/{companyId}/periods/{periodId}/close-preview?offset=0&limit=1";
+                using (var openApi = JsonDocument.Parse(specJson))
+                {
+                    var previewContract = openApi.RootElement.GetProperty("paths")
+                        .GetProperty("/api/v1/companies/{companyId}/periods/{id}/close-preview")
+                        .GetProperty("get");
+                    Ensure(previewContract.GetProperty("security").GetArrayLength() > 0,
+                        "GL11-T02 close-preview lost JWT OpenAPI security");
+                }
+                async Task DeniedGl11Preview(string subject, string errorCode)
+                {
+                    Authenticate(Token(subject));
+                    using var response = await client.GetAsync(gl11PreviewPath);
+                    using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden &&
+                        body.RootElement.GetProperty("code").GetString() == errorCode,
+                        "GL11-T02 close-preview exposed company-wide blockers to " + subject);
+                }
+                await DeniedGl11Preview(gl11LimitedSubject, "all_branches_required");
+                await DeniedGl11Preview("gl11-http-no-membership", "permission_denied");
+                Ensure(gl11BeforeDenied == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T02 denied preview changed journal, audit, receipt or outbox SQL");
+                Console.WriteLine("  HOST PASS GL11-T02 close-preview JWT/branch denial, OpenAPI and SQL read-only");
                 Ensure(gl11BeforeDenied == await ReadOnlyCounts(connection, companyId),
                     "GL11-T02 denied HTTPS close changed journals, audit, receipts or outbox");
                 await using (var gl11PeriodDb = new ErpDbContext(
