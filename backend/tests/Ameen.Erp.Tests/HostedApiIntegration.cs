@@ -1418,6 +1418,33 @@ public static class HostedApiIntegration
                 }
                 await DeniedGl11Close(gl11LimitedSubject, "all_branches_required");
                 await DeniedGl11Close("gl11-http-no-membership", "permission_denied");
+                // GL11-A01/T02: preview exposes company-wide journal blockers,
+                // so a branch-scoped closer or unrelated JWT must not read it.
+                // Assert the actual HTTPS route and its OpenAPI JWT requirement,
+                // then verify that denied reads leave SQL state untouched.
+                var gl11PreviewPath = $"/api/v1/companies/{companyId}/periods/{periodId}/close-preview?offset=0&limit=1";
+                using (var openApi = JsonDocument.Parse(specJson))
+                {
+                    var previewContract = openApi.RootElement.GetProperty("paths")
+                        .GetProperty("/api/v1/companies/{companyId}/periods/{id}/close-preview")
+                        .GetProperty("get");
+                    Ensure(previewContract.GetProperty("security").GetArrayLength() > 0,
+                        "GL11-T02 close-preview lost JWT OpenAPI security");
+                }
+                async Task DeniedGl11Preview(string subject, string errorCode)
+                {
+                    Authenticate(Token(subject));
+                    using var response = await client.GetAsync(gl11PreviewPath);
+                    using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden &&
+                        body.RootElement.GetProperty("code").GetString() == errorCode,
+                        "GL11-T02 close-preview exposed company-wide blockers to " + subject);
+                }
+                await DeniedGl11Preview(gl11LimitedSubject, "all_branches_required");
+                await DeniedGl11Preview("gl11-http-no-membership", "permission_denied");
+                Ensure(gl11BeforeDenied == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T02 denied preview changed journal, audit, receipt or outbox SQL");
+                Console.WriteLine("  HOST PASS GL11-T02 close-preview JWT/branch denial, OpenAPI and SQL read-only");
                 Ensure(gl11BeforeDenied == await ReadOnlyCounts(connection, companyId),
                     "GL11-T02 denied HTTPS close changed journals, audit, receipts or outbox");
                 await using (var gl11PeriodDb = new ErpDbContext(
@@ -1482,6 +1509,127 @@ public static class HostedApiIntegration
                         "GL11 execution history leaked to an unrelated JWT subject");
                 Authenticate(Token("sql-approver"));
                 Console.WriteLine("  HOST PASS GL11-A05 scoped execution result/history over HTTPS/JWT/SQL");
+
+                // GL11-T01 / GL11-A04: a dedicated empty fiscal period may
+                // close over the actual HTTPS OIDC/JWT pipeline exactly once.
+                // This is GL period close only; it does not close income or
+                // expense balances into retained earnings for the ERP year.
+                Authenticate(Token("sql-owner"));
+                var gl11PositiveYear = await Command(client,
+                    $"/api/v1/companies/{companyId}/fiscal-years",
+                    new CreateFiscalYearRequest("GL11-HTTPS-2053",
+                        new DateOnly(2053, 1, 1), new DateOnly(2053, 12, 31)));
+                FiscalPeriod gl11PositivePeriod;
+                await using (var gl11PositiveDb = new ErpDbContext(
+                    new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options))
+                {
+                    gl11PositivePeriod = await gl11PositiveDb.Set<FiscalPeriod>().AsNoTracking()
+                        .SingleAsync(x => x.CompanyId == companyId &&
+                            x.FiscalYearId == gl11PositiveYear.ResourceId &&
+                            x.StartsOn == new DateOnly(2053, 1, 1));
+                }
+                var gl11PositivePath = $"/api/v1/companies/{companyId}/periods/{gl11PositivePeriod.Id}";
+                Authenticate(Token("sql-approver"));
+                var gl11PositiveBefore = await ReadOnlyCounts(connection, companyId);
+                using (var gl11PositivePreviewResponse = await client.GetAsync(
+                    gl11PositivePath + "/close-preview?offset=0&limit=5"))
+                using (var gl11PositivePreviewBody = JsonDocument.Parse(
+                    await gl11PositivePreviewResponse.Content.ReadAsStringAsync()))
+                {
+                    var gl11PositivePreview = gl11PositivePreviewBody.RootElement;
+                    Ensure(gl11PositivePreviewResponse.StatusCode == HttpStatusCode.OK &&
+                        gl11PositivePreview.GetProperty("generalLedgerOnly").GetBoolean() &&
+                        gl11PositivePreview.GetProperty("canCloseGeneralLedger").GetBoolean() &&
+                        gl11PositivePreview.GetProperty("expectedVersion").GetGuid() == gl11PositivePeriod.Version &&
+                        gl11PositivePreview.GetProperty("unpostedJournalCount").GetInt32() == 0 &&
+                        gl11PositivePreview.GetProperty("issues").GetProperty("totalCount").GetInt32() == 0,
+                        "GL11-T01 empty dedicated period was not safely closeable over HTTPS");
+                }
+                Ensure(gl11PositiveBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T01 preview altered SQL ledger, audit, receipt or outbox");
+                var gl11PositiveKey = Fixture.Key();
+                var gl11PositiveReason = "GL11 HTTPS قبول إقفال الفترة في الأستاذ";
+                var gl11PositiveRequest = new ChangePeriodRequest(gl11PositivePeriod.Version,
+                    gl11PositiveReason);
+                var gl11PositiveClosed = await Command(client, gl11PositivePath + "/close",
+                    gl11PositiveRequest, gl11PositiveKey);
+                var gl11PositiveReplay = await Command(client, gl11PositivePath + "/close",
+                    gl11PositiveRequest, gl11PositiveKey);
+                Ensure(gl11PositiveClosed == gl11PositiveReplay &&
+                    gl11PositiveClosed.Status == "Closed" &&
+                    gl11PositiveClosed.Version != gl11PositivePeriod.Version,
+                    "GL11-T01 HTTPS close or exact idempotency replay diverged");
+                var gl11PositiveAfter = await ReadOnlyCounts(connection, companyId);
+                Ensure(gl11PositiveAfter.Journals == gl11PositiveBefore.Journals &&
+                    gl11PositiveAfter.Audits == gl11PositiveBefore.Audits + 1 &&
+                    gl11PositiveAfter.Receipts == gl11PositiveBefore.Receipts + 1 &&
+                    gl11PositiveAfter.Outbox == gl11PositiveBefore.Outbox,
+                    "GL11-T01 HTTPS close created duplicate receipts, audit or ledger side effects");
+                // GL11-T02/BR09: idempotent replay is only valid for the
+                // identical request. Neither a mutated same-key payload nor
+                // a fresh-key second close may produce another audited close.
+                async Task RejectGl11HttpClose(string key,
+                    ChangePeriodRequest requestBody, string errorCode)
+                {
+                    using var conflictRequest = new HttpRequestMessage(HttpMethod.Post,
+                        gl11PositivePath + "/close");
+                    conflictRequest.Headers.Add("Idempotency-Key", key);
+                    conflictRequest.Content = new StringContent(
+                        JsonSerializer.Serialize(requestBody, JsonDefaults.Options),
+                        Encoding.UTF8, "application/json");
+                    using var conflictResponse = await client.SendAsync(conflictRequest);
+                    using var conflictProblem = JsonDocument.Parse(
+                        await conflictResponse.Content.ReadAsStringAsync());
+                    Ensure(conflictResponse.StatusCode == HttpStatusCode.Conflict &&
+                        conflictProblem.RootElement.GetProperty("code").GetString() == errorCode,
+                        "GL11-T02 HTTPS close failed to reject " + errorCode);
+                }
+                await RejectGl11HttpClose(gl11PositiveKey,
+                    gl11PositiveRequest with { Reason = "نص مغاير بنفس مفتاح الإقفال" },
+                    "idempotency_conflict");
+                var gl11SecondCloseKey = Fixture.Key();
+                await RejectGl11HttpClose(gl11SecondCloseKey,
+                    new ChangePeriodRequest(gl11PositiveClosed.Version,
+                        "محاولة إقفال ثانٍ بفترة مغلقة"), "period_state_conflict");
+                Ensure(gl11PositiveAfter == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T02 conflicting HTTPS closes changed audit, receipts or ledger");
+                await using (var gl11ConflictDb = new ErpDbContext(
+                    new DbContextOptionsBuilder<ErpDbContext>().UseSqlServer(connection).Options))
+                {
+                    var savedPeriod = await gl11ConflictDb.Set<FiscalPeriod>().AsNoTracking()
+                        .SingleAsync(x => x.CompanyId == companyId &&
+                            x.Id == gl11PositivePeriod.Id);
+                    Ensure(savedPeriod.IsClosed && savedPeriod.Version == gl11PositiveClosed.Version &&
+                        !await gl11ConflictDb.Set<IdempotencyRecord>().AnyAsync(x =>
+                            x.CompanyId == companyId && x.Key == gl11SecondCloseKey) &&
+                        await gl11ConflictDb.Set<AuditEvent>().CountAsync(x =>
+                            x.CompanyId == companyId && x.ResourceId == gl11PositivePeriod.Id &&
+                            x.Action == "period.closed") == 1,
+                        "GL11-T02 HTTPS conflicting close consumed receipt or duplicated audit");
+                }
+                Console.WriteLine("  HOST PASS GL11-T02 HTTPS altered replay/second-key close deny 409, SQL audit and receipts unchanged");
+
+                using (var gl11PositiveHistoryResponse = await client.GetAsync(
+                    gl11PositivePath + "/execution-history?offset=0&limit=5"))
+                using (var gl11PositiveHistoryBody = JsonDocument.Parse(
+                    await gl11PositiveHistoryResponse.Content.ReadAsStringAsync()))
+                {
+                    var gl11PositiveSummary = gl11PositiveHistoryBody.RootElement;
+                    var gl11PositiveHistory = gl11PositiveSummary.GetProperty("history");
+                    Ensure(gl11PositiveHistoryResponse.StatusCode == HttpStatusCode.OK &&
+                        gl11PositiveSummary.GetProperty("isClosed").GetBoolean() &&
+                        gl11PositiveSummary.GetProperty("version").GetGuid() == gl11PositiveClosed.Version &&
+                        gl11PositiveHistory.GetProperty("totalCount").GetInt32() == 1 &&
+                        gl11PositiveHistory.GetProperty("items")[0].GetProperty("action").GetString() == "period.closed" &&
+                        gl11PositiveHistory.GetProperty("items")[0].GetProperty("actorId").GetString() == "sql-approver" &&
+                        JsonDocument.Parse(gl11PositiveHistory.GetProperty("items")[0]
+                            .GetProperty("details").GetString()!).RootElement
+                            .GetProperty("reason").GetString() == gl11PositiveReason,
+                        "GL11-T01 HTTPS close decision was not persisted in readable execution history");
+                }
+                Ensure(gl11PositiveAfter == await ReadOnlyCounts(connection, companyId),
+                    "GL11-T01 execution history read changed SQL state");
+                Console.WriteLine("  HOST PASS GL11-T01 eligible HTTPS period close, stable replay, one SQL audit/receipt, scoped history and no ledger side effects");
 
                 // GL12-A05: choose a truly closeable and otherwise unused
                 // test period; never override the period-close safety guard.
