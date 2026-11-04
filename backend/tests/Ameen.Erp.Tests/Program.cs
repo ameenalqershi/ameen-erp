@@ -677,6 +677,7 @@ RecurringTests.Register(Test);
 ScheduledReversalTests.Register(Test);
 JournalAuditTests.Register(Test);
 NumberingTests.Register(Test);
+CurrencyRevaluationLinePreflightTests.Register(Test);
 FinancialMappingTests.Register(Test);
 JournalDocumentTypeFoundationTests.Register(Test);
 ApprovalRouteFoundationTests.Register(Test);
