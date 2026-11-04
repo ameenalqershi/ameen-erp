@@ -7,6 +7,32 @@ public static class CurrencyTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS04-AC03: saturated revision rejects currency field edit before mutation", async f =>
+        {
+            var card = new Currency(f.CompanyId, "USD", 2, "دولار", "Dollar", null, "$", "سنت");
+            typeof(Currency).GetProperty(nameof(card.Revision))!.SetValue(card, int.MaxValue);
+            var originalVersion = card.Version;
+            await Error("currency_revision_exhausted", () =>
+            {
+                card.Configure(3, "جديد", "Changed", "notes", "USD", "cents");
+                return Task.CompletedTask;
+            });
+            Ensure(card.Scale == 2 && card.Name == "دولار" && card.EnglishName == "Dollar" &&
+                card.Notes is null && card.DisplaySymbol == "$" && card.FractionName == "سنت" &&
+                card.Revision == int.MaxValue && card.Version == originalVersion);
+        });
+        test("SYS04-AC04: saturated revision rejects currency deactivation before mutation", async f =>
+        {
+            var card = new Currency(f.CompanyId, "USD", 2, "دولار");
+            typeof(Currency).GetProperty(nameof(card.Revision))!.SetValue(card, int.MaxValue);
+            var originalVersion = card.Version;
+            await Error("currency_revision_exhausted", () =>
+            {
+                card.SetActive(false);
+                return Task.CompletedTask;
+            });
+            Ensure(card.IsActive && card.Revision == int.MaxValue && card.Version == originalVersion);
+        });
         test("SYS04: currency labels, symbol, fraction, revision and active search roundtrip", async f =>
         {
             var r = await Create(f); var c = await f.Service.Currency.GetCurrency(f.CompanyId, r.ResourceId, f.Clerk, default);

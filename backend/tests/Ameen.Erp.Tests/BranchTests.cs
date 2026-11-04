@@ -7,6 +7,33 @@ public static class BranchTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS02-AC03: saturated revision rejects branch metadata edit before mutating card", async f =>
+        {
+            var card = new Branch(f.CompanyId, "OLD", "قديم", "صنعاء", "عنوان أصلي");
+            typeof(Branch).GetProperty(nameof(Branch.Revision))!.SetValue(card, int.MaxValue);
+            var originalVersion = card.Version;
+            await Error("branch_revision_exhausted", () =>
+            {
+                card.Configure("NEW", "جديد", "عدن", "عنوان جديد", f.OtherBranchId, null, "New", "changed");
+                return Task.CompletedTask;
+            });
+            Ensure(card.Code == "OLD" && card.Name == "قديم" && card.City == "صنعاء" &&
+                card.Address == "عنوان أصلي" && card.ParentId is null &&
+                card.EnglishName is null && card.Notes is null &&
+                card.Revision == int.MaxValue && card.Version == originalVersion);
+        });
+        test("SYS02-AC04: saturated revision rejects branch deactivation before mutating card", async f =>
+        {
+            var card = new Branch(f.CompanyId, "OLD", "قديم", "صنعاء", "عنوان أصلي");
+            typeof(Branch).GetProperty(nameof(Branch.Revision))!.SetValue(card, int.MaxValue);
+            var originalVersion = card.Version;
+            await Error("branch_revision_exhausted", () =>
+            {
+                card.SetActive(false);
+                return Task.CompletedTask;
+            });
+            Ensure(card.IsActive && card.Revision == int.MaxValue && card.Version == originalVersion);
+        });
         test("SYS02: bilingual address, parent, search and audit roundtrip", async f =>
         {
             var r = await f.Service.Branch.CreateBranch(f.CompanyId, f.Owner, Fixture.Key(), new("CHILD", "فرع", "صنعاء", "العنوان 001", f.BranchId, null, "Child", "ملاحظة"), default);
