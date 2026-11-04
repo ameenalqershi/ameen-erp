@@ -643,6 +643,7 @@ DataImportFoundationTests.Register(Test);
 BackupConfigurationFoundationTests.Register(Test);
 CashReceiptAllocationTests.Register(Test);
 CashReceiptFoundationTests.Register(Test);
+SalesDeliveryOrderFoundationTests.Register(Test);
 ChequeFoundationTests.Register(Test);
 ChequeMovementFoundationTests.Register(Test);
 FiscalCalendarTests.Register(Test);
