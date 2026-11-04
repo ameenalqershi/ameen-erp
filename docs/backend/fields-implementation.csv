@@ -231,7 +231,7 @@ SYS16,SYS16-F08,أيام السماح,required,partial,PaymentTerm.GraceDays: no
 SYS16,SYS16-F09,نسبة الدفعة,conditional,partial,"PaymentTermLine.Percent: decimal(9,6); domain sum exactly 100 if present; EF writes blocked",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
 SYS16,SYS16-F10,أيام من تاريخ الأساس,conditional,partial,PaymentTermLine.DaysFromBase: nonnegative int,internal EF/SQL schema 033 only; public SYS16 payment API not enabled
 SYS16,SYS16-F11,أنشأه,system,partial,"PaymentTerm.CreatedBy: internal server-owned actor, no API yet",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
-SYS16,SYS16-F12,وقت الإنشاء,system,partial,"PaymentTerm.CreatedAt: internal datetimeoffset, no API yet",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
+SYS16,SYS16-F12,وقت الإنشاء,system,partial,PaymentTerm.CreatedAt: internal datetimeoffset; new card rejects default audit time; no API yet,internal EF/SQL schema 033 only; public SYS16 payment API not enabled
 SYS16,SYS16-F13,رقم إصدار التعديل,system,partial,"PaymentTerm.Revision: positive int, no API yet",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
 SYS16,SYS16-F14,آخر تعديل,system,partial,"PaymentTerm.LastModifiedAt: internal datetimeoffset, no API yet",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
 SYS17,SYS17-F01,الشركة,system,pending,,

@@ -65,6 +65,21 @@ public static class PaymentTermFoundationTests
             Ensure(f.Store.Count<PaymentTerm>() == 0);
             return Task.CompletedTask;
         });
+        test("SYS16-FG04: default creation timestamp is rejected before payment card persistence", f =>
+        {
+            var beforeAudit=f.Store.Count<AuditEvent>();
+            var beforeJournal=f.Store.Count<JournalEntry>();
+            foreach (var kind in Enum.GetValues<PaymentMethodKind>())
+                Error("payment_term_audit_time_invalid", () =>
+                    new PaymentTerm(f.CompanyId, f.BranchId, "PM-01", "طريقة دفع",
+                        kind, f.CashId, 7, new[] { (100m, 0) },
+                        f.Owner.Subject, default));
+            Ensure(f.Store.Count<PaymentTerm>() == 0 &&
+                f.Store.Count<PaymentTermLine>() == 0 &&
+                f.Store.Count<AuditEvent>() == beforeAudit &&
+                f.Store.Count<JournalEntry>() == beforeJournal);
+            return Task.CompletedTask;
+        });
         test("SYS16-01: audit revision cannot overflow or time-travel on status change", f =>
         {
             var card=Create(f,PaymentMethodKind.Cash,null);
