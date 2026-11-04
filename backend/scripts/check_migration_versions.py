@@ -24,7 +24,7 @@ def check(migration_dir: Path, ef_context: Path) -> int:
     errors = []
     # Inventory all SQL files rather than silently omitting a malformed migration.
     # runtime-role.sql is a non-versioned deployment support script, not a migration.
-    all_sql = sorted(migration_dir.glob("*.sql"))
+    all_sql = sorted(p for p in migration_dir.iterdir() if p.suffix.lower() == ".sql")
     files = []
     for candidate in all_sql:
         if candidate.name == "runtime-role.sql":
