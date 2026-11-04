@@ -6,10 +6,10 @@
   "partially_implemented_screens": 43,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 349,
-    "audit": 46,
+    "implemented": 348,
+    "audit": 44,
     "derived": 4,
-    "partial": 248,
+    "partial": 251,
     "pending": 2112
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -408,16 +408,16 @@
           "binding": "SecurityRoleRule.OperationCode: internal model only"
         },
         "SYS07-F13": {
-          "status": "implemented",
-          "binding": "Version"
+          "status": "partial",
+          "binding": "SecurityRole.Revision: positive in hydrated snapshots, domain change guards; SQL/API pending"
         },
         "SYS07-F11": {
-          "status": "audit",
-          "binding": "AuditEvent.ActorId"
+          "status": "partial",
+          "binding": "SecurityRole.CreatedBy: bounded creator, validated in hydrated snapshots; operational audit pending"
         },
         "SYS07-F12": {
-          "status": "audit",
-          "binding": "AuditEvent.OccurredAt"
+          "status": "partial",
+          "binding": "SecurityRole.CreatedAt: nondefault time, validated before role construction and grant evaluation"
         },
         "SYS07-F02": {
           "status": "partial",
@@ -453,7 +453,7 @@
         },
         "SYS07-F14": {
           "status": "partial",
-          "binding": "SecurityRole.LastModifiedAt: internal server timestamp only"
+          "binding": "SecurityRole.LastModifiedAt: chronology validated in every role snapshot, operational API pending"
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleAssignmentSqlIntegration.cs"

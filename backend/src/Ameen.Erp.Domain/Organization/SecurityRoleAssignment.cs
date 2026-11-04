@@ -40,7 +40,13 @@ public static class SecurityRolePolicyEvaluator
         // enumeration is not a trustworthy authorization input.
         var assignmentSnapshot = assignments.ToArray();
         var roleSnapshot = roles.ToArray();
-        if (assignmentSnapshot.Any(x => x is null) || roleSnapshot.Any(x => x is null))
+        // The caller promises a complete tenant-scoped snapshot. A foreign,
+        // malformed or duplicate link can hide a denial and is not safe input.
+        if (member.Id == Guid.Empty || string.IsNullOrWhiteSpace(member.Subject) ||
+            assignmentSnapshot.Any(x => x is null || x.Id == Guid.Empty ||
+                x.CompanyId != companyId || x.MembershipId == Guid.Empty || x.RoleId == Guid.Empty) ||
+            assignmentSnapshot.Select(x => x.Id).Distinct().Count() != assignmentSnapshot.Length ||
+            roleSnapshot.Any(x => x is null))
             return false;
         var links = assignmentSnapshot.Where(x => x.MembershipId == member.Id).ToArray();
         if (links.Length == 0 || links.Any(x => x.CompanyId != companyId) ||

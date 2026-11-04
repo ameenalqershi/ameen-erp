@@ -8,6 +8,132 @@ public static class SecurityRoleFoundationTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS07-FG05: missing role creation time is rejected with no permission or audit effects", f =>
+        {
+            var oldAudits = f.Store.Count<AuditEvent>();
+            var oldRoles = f.Store.Count<SecurityRole>();
+            var oldRules = f.Store.Count<SecurityRoleRule>();
+            Expect("invalid_role_audit_time", () => new SecurityRole(
+                f.CompanyId, f.BranchId, "Poster", "Controlled posting",
+                f.Owner.Subject, default));
+            Ensure(f.Store.Count<AuditEvent>() == oldAudits &&
+                f.Store.Count<SecurityRole>() == oldRoles &&
+                f.Store.Count<SecurityRoleRule>() == oldRules,
+                "Rejected role audit date must not emit grants, rules or audit");
+            return Task.CompletedTask;
+        });
+
+        test("SYS07-AC02: hydrated role header corruption blocks direct and assigned permissions", f =>
+        {
+            var now=new DateTimeOffset(2026,11,5,8,0,0,TimeSpan.Zero);
+            var member=new Membership(f.CompanyId,"sys07-hydrated",new[]{Permissions.Read},
+                false,new[]{f.BranchId});
+            var role=new SecurityRole(f.CompanyId,f.BranchId,"Poster","Posting operations",
+                f.Owner.Subject,now);
+            role.AddRule("GL03","POST",true,null,null,now);
+            var link=new SecurityRoleAssignment(f.CompanyId,member.Id,role.Id);
+            bool Direct() => role.Permits("GL03","POST",null,null);
+            bool Assigned() => SecurityRolePolicyEvaluator.Permits(
+                member,new[]{link},new[]{role},f.CompanyId,f.BranchId,
+                "GL03","POST",null,null);
+            Ensure(Direct() && Assigned(),"The valid role baseline must grant this explicit operation");
+            void Corrupt(string property,object? bad)
+            {
+                var prop=typeof(SecurityRole).GetProperty(property)!;
+                var good=prop.GetValue(role);
+                prop.SetValue(role,bad);
+                Ensure(!Direct() && !Assigned(),
+                    "Malformed hydrated SYS07 role header granted permission: "+property);
+                prop.SetValue(role,good);
+                Ensure(Direct() && Assigned(),
+                    "Restored SYS07 role header lost intended permission: "+property);
+            }
+            Corrupt(nameof(SecurityRole.CreatedAt),default(DateTimeOffset));
+            Corrupt(nameof(SecurityRole.LastModifiedAt),now.AddTicks(-1));
+            Corrupt(nameof(SecurityRole.Revision),0);
+            Corrupt(nameof(SecurityRole.Revision),-1);
+            Corrupt(nameof(SecurityRole.CreatedBy),"");
+            Corrupt(nameof(SecurityRole.CreatedBy)," user ");
+            Corrupt(nameof(SecurityRole.CreatedBy),new string('A',201));
+            Corrupt(nameof(SecurityRole.Name),"");
+            Corrupt(nameof(SecurityRole.Name)," Poster ");
+            Corrupt(nameof(SecurityRole.Name),new string('X',201));
+            Corrupt(nameof(SecurityRole.Responsibility),"\n");
+            Corrupt(nameof(SecurityRole.Responsibility),new string('Y',501));
+            Corrupt(nameof(SecurityRole.BranchId),Guid.Empty);
+            Corrupt(nameof(SecurityRole.Id),Guid.Empty);
+            return Task.CompletedTask;
+        });
+
+        test("SYS07-AC02: duplicate, missing and foreign rule identities never grant", f =>
+        {
+            var now=new DateTimeOffset(2026,11,5,8,0,0,TimeSpan.Zero);
+            var member=new Membership(f.CompanyId,"rule-identity",new[]{Permissions.Read},
+                false,new[]{f.BranchId});
+            var role=new SecurityRole(f.CompanyId,f.BranchId,"Poster","Two distinct operations",
+                f.Owner.Subject,now);
+            role.AddRule("GL03","POST",true,null,null,now);
+            role.AddRule("GL03","EXPORT",true,null,null,now);
+            var link=new SecurityRoleAssignment(f.CompanyId,member.Id,role.Id);
+            bool Grant() => role.Permits("GL03","POST",null,null) &&
+                SecurityRolePolicyEvaluator.Permits(member,new[]{link},new[]{role},
+                    f.CompanyId,f.BranchId,"GL03","POST",null,null);
+            Ensure(Grant(),"Two valid independent rule identifiers must grant");
+            var rule=role.Rules[1];
+            var good=rule.Id;
+            typeof(Entity).GetProperty(nameof(Entity.Id))!.SetValue(rule,Guid.Empty);
+            Ensure(!role.Permits("GL03","POST",null,null) &&
+                !SecurityRolePolicyEvaluator.Permits(member,new[]{link},new[]{role},
+                    f.CompanyId,f.BranchId,"GL03","POST",null,null),
+                "Empty rule identity allowed access");
+            typeof(Entity).GetProperty(nameof(Entity.Id))!.SetValue(rule,role.Rules[0].Id);
+            Ensure(!role.Permits("GL03","POST",null,null),
+                "Two distinct operations with one persistence identity granted");
+            typeof(Entity).GetProperty(nameof(Entity.Id))!.SetValue(rule,good);
+            Ensure(Grant(),"Restored rule identity must restore the valid grant");
+            return Task.CompletedTask;
+        });
+
+        test("SYS07/SYS08-AC02: incomplete tenant assignment identities fail closed", f =>
+        {
+            var now=new DateTimeOffset(2026,11,5,8,0,0,TimeSpan.Zero);
+            var member=new Membership(f.CompanyId,"scope-member",new[]{Permissions.Read},
+                false,new[]{f.BranchId});
+            var grant=new SecurityRole(f.CompanyId,f.BranchId,"Poster","Can post",
+                f.Owner.Subject,now);
+            grant.AddRule("GL03","POST",true,null,null,now);
+            var other=new SecurityRole(f.CompanyId,f.BranchId,"Reader","Separate role",
+                f.Owner.Subject,now);
+            other.AddRule("GL03","READ",true,null,null,now);
+            var link=new SecurityRoleAssignment(f.CompanyId,member.Id,grant.Id);
+            var unrelated=new SecurityRoleAssignment(f.CompanyId,Guid.NewGuid(),other.Id);
+            bool Allowed() => SecurityRolePolicyEvaluator.Permits(member,
+                new[]{link,unrelated},new[]{grant,other},f.CompanyId,f.BranchId,
+                "GL03","POST",null,null);
+            Ensure(Allowed(),"Valid unrelated tenant assignment must not affect grant");
+            void Corrupt(SecurityRoleAssignment row,string property,object bad)
+            {
+                var prop=typeof(SecurityRoleAssignment).GetProperty(property)!;
+                var good=prop.GetValue(row);
+                prop.SetValue(row,bad);
+                Ensure(!Allowed(),"Invalid full-snapshot assignment escaped validation: "+property);
+                prop.SetValue(row,good);
+                Ensure(Allowed(),"Restored tenant snapshot must retain known grant: "+property);
+            }
+            Corrupt(unrelated,nameof(SecurityRoleAssignment.CompanyId),Guid.NewGuid());
+            Corrupt(unrelated,nameof(SecurityRoleAssignment.MembershipId),Guid.Empty);
+            Corrupt(unrelated,nameof(SecurityRoleAssignment.RoleId),Guid.Empty);
+            Corrupt(unrelated,nameof(SecurityRoleAssignment.Id),Guid.Empty);
+            Corrupt(unrelated,nameof(SecurityRoleAssignment.Id),link.Id);
+            var subject=typeof(Membership).GetProperty(nameof(Membership.Subject))!;
+            var savedSubject=subject.GetValue(member);
+            subject.SetValue(member,"");
+            Ensure(!Allowed(),"Corrupt membership identity granted permission");
+            subject.SetValue(member,savedSubject);
+            Ensure(Allowed(),"Restored membership identity lost permission");
+            return Task.CompletedTask;
+        });
+
         test("SYS07 foundation: role header, rule dimensions, explicit deny and amount cap", f =>
         {
             var now = new DateTimeOffset(2026, 11, 2, 6, 0, 0, TimeSpan.Zero);

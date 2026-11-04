@@ -86,7 +86,10 @@ for n, binding in {
     6:"SecurityRoleRule.ScreenCode: internal model only", 7:"SecurityRoleRule.OperationCode: internal model only", 8:"SecurityRoleRule.Allowed: no runtime enforcement",
     9:"SecurityRoleRule.AmountLimit: decimal(20,6), no runtime enforcement",
     10:"SecurityRoleRule.CurrencyId: tenant FK, no runtime enforcement",
-    14:"SecurityRole.LastModifiedAt: internal server timestamp only"
+    11:"SecurityRole.CreatedBy: bounded creator, validated in hydrated snapshots; operational audit pending",
+    12:"SecurityRole.CreatedAt: nondefault time, validated before role construction and grant evaluation",
+    13:"SecurityRole.Revision: positive in hydrated snapshots, domain change guards; SQL/API pending",
+    14:"SecurityRole.LastModifiedAt: chronology validated in every role snapshot, operational API pending"
 }.items():
     MAP["SYS07"]["fields"][f"SYS07-F{n:02}"] = dict(status="partial", binding=binding)
 MAP["SYS07"]["test_file"] = "backend/tests/Ameen.Erp.Tests/SecurityRoleFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SecurityRoleAssignmentSqlIntegration.cs"
