@@ -519,6 +519,12 @@
 اختبار CASH01 SQL إضافي CashBoxSqlIntegration.Guard على قاعدة معزولة يرفض تحديث حقول AccountId, BranchId, CustodianMembershipId, CurrencyCode بمراجع غير صالحة (SQL FK 547)، ويمنع السقف السالب والإصدار الصفري (SQL CHECK 547) وإدراج صندوق مكرر بالحساب/الفرع/العملة ولو تغير الرمز (SQL UNIQUE 2601/2627)، ويعيد قراءة البطاقة والأحداث بعد الرفض لإثبات عدم تسرب تغييرات. لا SQL إنتاجية؛ الاختبار لا يعمل إلا مع backend/scripts/verify.py --sql على قاعدة اختبار مؤقتة. محليًا اجتاز verify.py **404/404 PASS دون SQL حي**. إثبات اختبار SQL الحي وHTTPS/JWT/OpenAPI على SHA النهائي ينتظر CI، ولا تُغلق CASH01-03 حتى CASH04 وضبط الرصيد الحقيقي وصرفه الذري. المرجعان: CASH01-03 وCASH03-CTRL01 في Notion.
 
 
+## SYS05-FG02 — reject missing effective exchange-rate date (5 November 2026)
+
+A required original SYS05-F06 effective date must not silently persist as DateOnly.MinValue. ExchangeRate domain construction now rejects the default date, and the authorized quote service rejects the same unset date for both foreign and functional currency. Independent regressions check direct construction, command-level creation, quote paths, no additional exchange rates/audit/idempotency, and a valid dated quotation. The original financial conversion direction/precision rules and existing rate history remain unchanged.
+
+This does NOT complete SYS05-FG02: approved RateType catalogue, branch scope and active/status/edit lifecycle, pricing/revaluation integration and source policy remain outstanding. Existing operational API/SQL migration is unchanged. Require CI with isolated SQL and HTTPS/JWT/OpenAPI on final SHA before approving this narrow rejection. Analysis and production are unchanged; SUPERVISOR owns integration.
+
 ## SYS05-OP03 — عرض الاستخدام وسجل تغييرات سعر الصرف (3 نوفمبر 2026)
 
 الوظيفة موجودة مسبقًا في `ExchangeRateService.GetExchangeRateUsage` و`ListExchangeRateAudit` وواجهتي `GET /api/v1/companies/{companyId}/exchange-rates/{id}/usage` و`/audit-events`. تحقق الفحص من أن الاستخدام يعرض **مستندات القيود المحفوظة** بفهرسة صفحات مستقرة (ويشمل الملغى والعكس في الاختبارات الموجودة)، وأن سجل التغييرات يُقرأ فقط بصلاحيتي `Audit` و`Read` داخل النطاق المصرح، دون إنشاء نسخة سعر أو تدقيق إضافي. لم تُعتمد سياسة جديدة لتعطيل/تحرير أسعار الصرف، ولم يجر تعديل التحليل الأصلي.

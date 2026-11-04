@@ -9,6 +9,8 @@ public sealed class ExchangeRate : CompanyEntity
     private ExchangeRate() { }
     public ExchangeRate(Guid companyId, string currency, DateOnly date, decimal rate, string source) : base(companyId)
     {
+        Check.That(date != default, "exchange_rate_date_required",
+            "تاريخ سريان سعر الصرف مطلوب.");
         Check.That(rate > 0 && rate < 1_000_000_000m && decimal.Round(rate, 10) == rate,
             "invalid_exchange_rate", "سعر الصرف موجب وبحد أقصى عشر خانات عشرية.");
         CurrencyCode = Check.Currency(currency); EffectiveDate = date;

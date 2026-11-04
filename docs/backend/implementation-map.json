@@ -333,7 +333,7 @@
         },
         "SYS05-F06": {
           "status": "implemented",
-          "binding": "EffectiveDate"
+          "binding": "ExchangeRate.EffectiveDate: required nondefault date at create; quote requires nondefault date; type/branch catalogues remain unapproved"
         },
         "SYS05-F08": {
           "status": "implemented",

@@ -19,6 +19,8 @@ public sealed class ExchangeRateService : ApplicationService
     public async Task<ExchangeRateQuote> QuoteExchangeRate(Guid cid, Actor actor, string currencyCode, DateOnly date, CancellationToken ct)
     {
         await Authorize(cid, actor, Permissions.Read, null, ct);
+        Check.That(date != default, "exchange_rate_date_required",
+            "تاريخ عرض سعر الصرف مطلوب.");
         var company = await Company(cid, ct); var code = Check.Currency(currencyCode);
         await currencyService.RequireCurrency(cid, code, ct);
         if (code == company.FunctionalCurrency) return new(cid, code, company.FunctionalCurrency, date, null, null, 1m, null, true);
