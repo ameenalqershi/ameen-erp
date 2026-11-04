@@ -6,6 +6,53 @@ public static class CashTransferValidationTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("CASH05-FG01: draft header preserves all original transfer fields without posting", f =>
+        {
+            var now = new FixedClock().UtcNow;
+            var a = new CashTransferAccountRef(CashTransferAccountKind.CashBox, Guid.NewGuid());
+            var b = new CashTransferAccountRef(CashTransferAccountKind.BankAccount, Guid.NewGuid());
+            var year = Guid.NewGuid();
+            var transfer = new CashTransfer(f.CompanyId, f.BranchId, year, "0001",
+                new DateOnly(2026, 11, 4), new DateOnly(2026, 11, 5), "SAR",
+                1m, "نقل", null, "Draft", a, b, 100m, 26.666667m, "USD",
+                3.75m, 0m, f.Owner.Subject, now);
+            if (!(transfer.CompanyId == f.CompanyId && transfer.BranchId == f.BranchId &&
+                transfer.FiscalYearId == year && transfer.Number == "0001" &&
+                transfer.DocumentDate == new DateOnly(2026, 11, 4) &&
+                transfer.AccountingDate == new DateOnly(2026, 11, 5) &&
+                transfer.SourceKind == a.Kind && transfer.SourceAccountId == a.Id &&
+                transfer.DestinationKind == b.Kind && transfer.DestinationAccountId == b.Id &&
+                transfer.SourceAmount == 100m && transfer.DestinationAmount == 26.666667m &&
+                transfer.CurrencyCode == "SAR" && transfer.DestinationCurrencyCode == "USD" &&
+                transfer.ExchangeRate == 1m && transfer.DestinationExchangeRate == 3.75m &&
+                transfer.Fee == 0m && transfer.CreatedAt == now && transfer.Revision == 1 &&
+                transfer.LastModifiedAt == now && transfer.State == "Draft"))
+                throw new Exception("CASH05 draft header fields not preserved");
+            return Task.CompletedTask;
+        });
+        test("CASH05-FG02: invalid draft audit, date and self-transfer are rejected", f =>
+        {
+            var now = new FixedClock().UtcNow;
+            var a = new CashTransferAccountRef(CashTransferAccountKind.CashBox, Guid.NewGuid());
+            void RejectDraft(string code, DateOnly date, DateTimeOffset created,
+                CashTransferAccountRef destination)
+            {
+                try
+                {
+                    _ = new CashTransfer(f.CompanyId, f.BranchId, Guid.NewGuid(),
+                        "0002", date, new DateOnly(2026, 11, 5), "SAR", 1m,
+                        "نقل", null, "Draft", a, destination, 10m, 10m,
+                        "SAR", 1m, null, f.Owner.Subject, created);
+                }
+                catch (BusinessException ex) when (ex.Code == code) { return; }
+                throw new Exception("CASH05 draft expected " + code);
+            }
+            var b = new CashTransferAccountRef(CashTransferAccountKind.BankAccount, Guid.NewGuid());
+            RejectDraft("cash_transfer_date_required", default, now, b);
+            RejectDraft("cash_transfer_created_at_required", new DateOnly(2026, 11, 4), default, b);
+            RejectDraft("cash_transfer_same_account", new DateOnly(2026, 11, 4), now, a);
+            return Task.CompletedTask;
+        });
         test("CASH05-AC01: distinct cashbox/bank endpoints and both exchange rates validate", f =>
         {
             var source = new CashTransferAccountRef(CashTransferAccountKind.CashBox, Guid.NewGuid());
