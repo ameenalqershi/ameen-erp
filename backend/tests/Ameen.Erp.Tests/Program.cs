@@ -659,6 +659,7 @@ InventoryOpeningPostingTests.Register(Test);
 InventoryOpeningReversalTests.Register(Test);
 InventoryOpeningPrintTests.Register(Test);
 InventoryReportTests.Register(Test);
+SalesMovementReportFoundationTests.Register(Test);
 JournalProcessingTests.Register(Test);
 JournalImpactPreviewTests.Register(Test);
 GeneralOpeningTests.Register(Test);
