@@ -1699,6 +1699,55 @@ public static class HostedApiIntegration
                 var gl12Path = $"/api/v1/companies/{companyId}/periods/{gl12Period}";
                 var gl12Closed = await Command(client, gl12Path + "/close",
                     new ChangePeriodRequest(gl12PeriodVersion, "GL12 HTTPS إغلاق"));
+                // GL12-T02: existing period-reopen authorization is company-wide.
+                // Exercise the real HTTPS/JWT/SQL mutation route while the
+                // disposable period is Closed; do not infer any unapproved
+                // year-end approval/expiry or tax policy from these checks.
+                Authenticate(Token("sql-owner"));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl12-http-no-reopen",
+                        new[] { Permissions.Read, Permissions.Audit }, true,
+                        Array.Empty<Guid>(), null));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl12-http-branch-reopen",
+                        new[] { Permissions.Read, Permissions.Audit, Permissions.PeriodReopen },
+                        false, new[] { journalRequest.BranchId }, null));
+                await Command(client, $"/api/v1/companies/{companyId}/memberships",
+                    new GrantMembershipRequest("gl12-http-no-read",
+                        new[] { Permissions.Audit, Permissions.PeriodReopen },
+                        true, Array.Empty<Guid>(), null));
+                using (var gl12Spec = JsonDocument.Parse(specJson))
+                {
+                    var gl12Paths = gl12Spec.RootElement.GetProperty("paths");
+                    Ensure(gl12Paths.GetProperty("/api/v1/companies/{companyId}/periods/{id}/reopen")
+                               .GetProperty("post").GetProperty("security").GetArrayLength() > 0 &&
+                           gl12Paths.GetProperty("/api/v1/companies/{companyId}/periods/{id}/reopen-history")
+                               .GetProperty("get").GetProperty("security").GetArrayLength() > 0,
+                        "GL12 reopen or reopening-history lost OpenAPI JWT security");
+                }
+                var gl12DenialBefore = await ReadOnlyCounts(connection, companyId);
+                async Task DeniedGl12Reopen(string subject, string expectedCode)
+                {
+                    Authenticate(Token(subject));
+                    using var request = new HttpRequestMessage(HttpMethod.Post, gl12Path + "/reopen");
+                    request.Headers.Add("Idempotency-Key", Fixture.Key());
+                    request.Content = new StringContent(JsonSerializer.Serialize(
+                        new ChangePeriodRequest(gl12Closed.Version, "GL12 denied HTTP reopen"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var response = await client.SendAsync(request);
+                    using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden &&
+                           json.RootElement.GetProperty("code").GetString() == expectedCode,
+                        "GL12-T02 unauthorized HTTPS reopen: " + subject);
+                }
+                await DeniedGl12Reopen("gl12-http-no-reopen", "permission_denied");
+                await DeniedGl12Reopen("gl12-http-branch-reopen", "all_branches_required");
+                await DeniedGl12Reopen("gl12-http-unrelated", "permission_denied");
+                Ensure(gl12DenialBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL12-T02 denied HTTPS reopen changed SQL audit, receipt, ledger or outbox");
+                // A subsequent authorized reopen must still accept the original
+                // closed-period version: rejected attempts did not mutate it.
+                Authenticate(Token("sql-approver"));
                 var gl12Reopened = await Command(client, gl12Path + "/reopen",
                     new ChangePeriodRequest(gl12Closed.Version, "GL12 HTTPS إعادة فتح"));
                 Authenticate(Token("sql-owner"));
@@ -1710,6 +1759,24 @@ public static class HostedApiIntegration
                     new GrantMembershipRequest("gl12-read-audit-close",
                         new[] { Permissions.Read, Permissions.Audit, Permissions.PeriodClose },
                         true, Array.Empty<Guid>(), null));
+                // GL12-A05: the same tenant and branch boundaries apply to
+                // the read-only reopening decision history, independently of POST.
+                var gl12HistoryDeniedBefore = await ReadOnlyCounts(connection, companyId);
+                async Task DeniedGl12History(string subject, string expectedCode)
+                {
+                    Authenticate(Token(subject));
+                    using var response = await client.GetAsync(gl12Path + "/reopen-history?offset=0&limit=1");
+                    using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                    Ensure(response.StatusCode == HttpStatusCode.Forbidden &&
+                           json.RootElement.GetProperty("code").GetString() == expectedCode,
+                        "GL12-A05 unauthorized HTTPS reopening history: " + subject);
+                }
+                await DeniedGl12History("gl12-http-no-reopen", "permission_denied");
+                await DeniedGl12History("gl12-http-branch-reopen", "all_branches_required");
+                await DeniedGl12History("gl12-http-no-read", "permission_denied");
+                Ensure(gl12HistoryDeniedBefore == await ReadOnlyCounts(connection, companyId),
+                    "GL12-A05 denied HTTPS reopening history changed SQL state");
+                Console.WriteLine("  HOST PASS GL12-T02 HTTPS/JWT reopen denial, GL12-A05 history role/scope denial, OpenAPI and SQL atomicity");
                 Authenticate(Token("gl12-read-audit-reopen"));
                 using (var gl12Http = await client.GetAsync(gl12Path + "/reopen-history?offset=0&limit=1"))
                 using (var gl12Json = JsonDocument.Parse(
