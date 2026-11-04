@@ -61,6 +61,13 @@ public static class BankReconciliationFoundationTests
                 () => Make(null, Guid.NewGuid(), date, date.AddDays(-1), 1m, 1m));
             Reject("bank_reconciliation_date_invalid",
                 () => Make(null, Guid.NewGuid(), default, date, 1m, 1m));
+            Reject("bank_reconciliation_created_at_required",
+                () => new BankReconciliation(f.CompanyId, f.BranchId, "Unreviewed",
+                    Guid.NewGuid(), date, date, -1m, 5m, null,
+                    f.Owner.Subject, default));
+            // Rejection is purely structural; neither valid signed balances
+            // nor existing ledger/bank rows may be modified.
+            Ensure(f.Store.All<JournalEntry>().Count() == 0);
             // Extreme decimal input must fail with a domain error, never OverflowException.
             var validEdge = Make(null, Guid.NewGuid(), date, date,
                 -99_999_999_999_999.999999m, 99_999_999_999_999.999999m);

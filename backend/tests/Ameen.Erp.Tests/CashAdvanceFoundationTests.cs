@@ -78,6 +78,12 @@ public static class CashAdvanceFoundationTests
                     "001", date, date, "SAR", 1m, "purpose", null,
                     "Pending", Guid.NewGuid(), "Type", 1m, default,
                     f.Owner.Subject, now));
+            Reject("cash_advance_created_at_required",
+                () => new CashAdvance(f.CompanyId, f.BranchId, Guid.NewGuid(),
+                    "001", date, date, "SAR", 1m, "purpose", null,
+                    "Pending", Guid.NewGuid(), "Type", 1m, date,
+                    f.Owner.Subject, default));
+            Ensure(f.Store.All<JournalEntry>().Count() == 0);
             Reject("invalid_exchange_rate",
                 () => Make(f.BranchId, Guid.NewGuid(), Guid.NewGuid(), date, 0m, 1m));
             Reject("invalid_exchange_rate",

@@ -1,3 +1,9 @@
+## CASH — عزل كتابة EF للكيانات المحاسبية البنيوية (5 نوفمبر 2026)
+
+حزمة قبول سلبية مستقلة فوق أصل CASH SQL 032–040: فحص صريح عبر `CashUnauthorizedEfMutationSqlIntegration` يثبت رفض **UPDATE وDELETE** للكيانات البنيوية المخزنة فعلًا في SQL المؤقت، وليس فقط رفض INSERT. النطاق يشمل CASH02 (البنك)، CASH03 (سند القبض وسطر التخصيص)، CASH06 (العهدة وسطرها)، CASH07/08 (شيكان وارد وصادر)، CASH09 (حركتان لشيكين بنوع مختلف)، CASH10 (المطابقة وسطرها)، وCASH11 (محضر الجرد وسطره)، أي 13 كيانًا و26 محاولة كتابة محرّمة. لكل محاولة يتحقق الاختبار من رمز منع الكتابة الفعلي، وبقاء Version في SQL، وعدم تغير عدادات AuditEvent/OutboxEvent/JournalEntry. استخدام سجلات مولدة فقط في قاعدة اختبارات SQL معزولة؛ لا تغيير في بيانات الإنتاج أو سياسة المستندات.
+
+تدقيق DOMAIN إضافي لحقل الإنشاء: `CashAdvance` و`BankReconciliation` يرفضان `CreatedAt=default`، مع اختبارات سالبة، دون تعديل سعر الصرف أو قواعد تسوية العهدة/البنك. لا تفعيل لأي CRUD/ترحيل/اعتماد؛ CASH02/03/06/07/08/09/10/11 تبقى **جزئية تشغيليًا**. `CASH04` و`CASH05-02` باقيتان محجوبتين لاعتمادياتهُمَا. فحوص `verify.py` المحلية لا تتضمن SQL Server الحي؛ يجب تأكيد حالة CI وSHA الحزمة النهائي قبل اعتماد دليل SQL.
+
 ## GL11-T02 / GL12 — cross-tenant period read acceptance (4 November 2026)
 
 **Independent regression only; no new accounting rule:** `RateAndCloseTests.cs` verifies that an actor explicitly authorized for Read, Audit, PeriodClose and PeriodReopen in a *different* company cannot query the source company's existing period via GL11 close preview, GL11 execution history, or GL12 reopen-only history. All three must return `reference_not_found`; source period version/status and audit, idempotency, journal, and outbox counts remain unchanged. The original period has real close/reopen audit decisions in the test, rather than an empty-history false positive.

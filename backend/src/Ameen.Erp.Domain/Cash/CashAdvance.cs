@@ -43,6 +43,8 @@ public sealed class CashAdvance : CompanyEntity
             decimal.Round(exchangeRate, 10) == exchangeRate,
             "invalid_exchange_rate", "سعر الصرف موجب ودقيق حتى 10 منازل.");
         Check.Amount(amount, positive: true);
+        Check.That(createdAt != default, "cash_advance_created_at_required",
+            "وقت إنشاء سند العهدة مطلوب.");
         BranchId = branchId;
         FiscalYearId = fiscalYearId;
         Number = Check.Text(number, "رقم مستند العهدة", 64);
