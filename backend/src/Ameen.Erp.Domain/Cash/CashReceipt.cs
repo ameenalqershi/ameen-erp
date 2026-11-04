@@ -48,6 +48,8 @@ public sealed class CashReceipt : CompanyEntity
             decimal.Round(exchangeRate, 10) == exchangeRate, "invalid_exchange_rate",
             "سعر الصرف موجب وبدقة لا تزيد عن عشرة منازل.");
         Check.Amount(amount, positive: true);
+        Check.That(createdAt != default, "cash_receipt_created_at_required",
+            "وقت إنشاء سند القبض مطلوب.");
         BranchId = branchId;
         FiscalYearId = fiscalYearId;
         // Preserve leading zeroes; document numbering scope is deferred to SYS10.

@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Verify approved analysis baseline (CORE-01)
+        run: python3 backend/scripts/check_analysis_baseline.py
       - name: Check handoff inventory
         run: python3 backend/scripts/progress.py --check
       - name: Start isolated SQL Server

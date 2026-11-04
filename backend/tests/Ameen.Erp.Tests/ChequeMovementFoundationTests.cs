@@ -52,6 +52,8 @@ public static class ChequeMovementFoundationTests
                 Create(f, Guid.NewGuid(), null, receivedBankId: Guid.Empty));
             Reject("cheque_movement_date_required", () =>
                 Create(f, Guid.NewGuid(), null, actionDate: new DateOnly()));
+            Reject("cheque_movement_created_at_required", () =>
+                Create(f, Guid.NewGuid(), null, createdAt: default(DateTimeOffset)));
             Reject("invalid_amount", () => Create(f, Guid.NewGuid(), null, fee: -1m));
             Reject("invalid_amount", () => Create(f, Guid.NewGuid(), null, fee: 0.0000001m));
             Reject("invalid_text", () => Create(f, Guid.NewGuid(), null, action: "   "));
@@ -74,11 +76,11 @@ public static class ChequeMovementFoundationTests
     private static ChequeMovement Create(Fixture f, Guid? incoming, Guid? outgoing,
         decimal? fee = null, Guid? branchId = default, Guid? receivedBankId = default,
         DateOnly? actionDate = null, string action = "Structural",
-        bool companyScope = false) =>
+        bool companyScope = false, DateTimeOffset? createdAt = null) =>
         new(f.CompanyId, companyScope ? null : branchId ?? f.BranchId, "Unreviewed",
             incoming, outgoing, action, actionDate ?? new DateOnly(2026,11,3),
             receivedBankId, "000010 reason", fee, f.Owner.Subject,
-            new FixedClock().UtcNow);
+            createdAt ?? new FixedClock().UtcNow);
 
     private static void Reject(string code, Action action)
     {

@@ -86,7 +86,7 @@ public sealed class FiscalCalendarService : ApplicationService
             if (!(await store.Find<FiscalYear>(cid, x => true, token)).Any())
                 Check.That(company.FiscalYearStartsOn == request.StartsOn, "company_fiscal_start_mismatch", "بداية أول سنة يجب أن تطابق البداية المحددة في بطاقة الشركة.");
             Check.That(request.StartsOn >= company.FiscalYearStartsOn, "company_fiscal_start_mismatch", "السنة لا تسبق البداية المحددة في بطاقة الشركة.");
-            var year = new FiscalYear(cid, request.Code, request.StartsOn, request.EndsOn);
+            var year = new FiscalYear(cid, request.Code, request.StartsOn, request.EndsOn, actor.Subject, clock.UtcNow);
             Check.That(!(await store.Find<FiscalYear>(cid, x => x.Code == year.Code || (x.StartsOn <= year.EndsOn && x.EndsOn >= year.StartsOn), token)).Any(),
                 "fiscal_year_overlap", "السنة تتداخل مع سنة قائمة أو تكرر رمزها.", ErrorKind.Conflict);
             var periods = PrepareFiscalPeriods(year, request.Periods);

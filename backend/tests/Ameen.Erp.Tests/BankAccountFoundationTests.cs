@@ -31,6 +31,9 @@ public static class BankAccountFoundationTests
 
         test("CASH02-01: invalid/checksum IBAN and missing mandatory references fail", f =>
         {
+            Error("bank_account_created_at_required", () => new BankAccount(
+                f.CompanyId, "BANK01", "بنك", "اسم البنك", "0001", null,
+                f.CashId, "SAR", f.BranchId, f.Owner.Subject, default));
             Error("invalid_iban", () => Create(f, "GB82 WEST 1234 5698 7654 33"));
             Error("invalid_iban", () => Create(f, "GB00"));
             Error("invalid_iban", () => Create(f, "GB82WEST12345*98765432"));

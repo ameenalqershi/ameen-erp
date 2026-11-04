@@ -86,7 +86,7 @@ public sealed class CompanyService : ApplicationService
             Audit(company.Id, actor, "currency.created", functional, new { after = CurrencyService.CurrencySnapshot(functional), Bootstrap = true });
             // Bootstrap does not grant financial approval or posting implicitly.
             store.Add(new Membership(company.Id, actor.Subject,
-                new[] { Permissions.Read, Permissions.Configure, Permissions.Members, Permissions.Audit }, true, Array.Empty<Guid>()));
+                new[] { Permissions.Read, Permissions.Configure, Permissions.Members, Permissions.Audit }, true, Array.Empty<Guid>(), actor.Subject, clock.UtcNow));
             Audit(company.Id, actor, "company.created", company, new { after = CompanySnapshot(company) });
             return Receipt(company, "Created");
         }, ct);
