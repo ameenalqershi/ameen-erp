@@ -1644,3 +1644,7 @@ Confirmed against the original read-only SYS10 dictionary and current `DocumentN
 ## CORE SPEC01 — تدقيق ربط قرارات النطاق (4 نوفمبر 2026)
 
 أضيف تقرير [تدقيق SPEC01 والقرارات D01–D08](core-spec01-decisions-audit-20261104.md) وحارس `backend/scripts/check_scope_decision_links.py` مع اختبارات قبول إيجابية وسلبية ضمن discovery الحالي لـ `verify.py`. القرارات الثمانية كلها محجوبة في Notion؛ التقرير يربط مصدرها بالمهام الحالية ولا يحسم سياسة أو مالك قرار غير محدد. هذه حزمة قراءة/مطابقة مستقلة من `temp/core-spec01-decision-audit-20261104-chat`؛ تبقى SPEC01 جزئية إلى حين قبول CI/مراجعة SUPERVISOR، وتبقى القرارات محجوبة ولا يتحول تدقيق النطاق إلى شهادة جاهزية إنتاج.
+
+## SAL13 — أبعاد فلترة المبيعات وحجب الربحية (5 نوفمبر 2026)
+
+تم تأسيس SalesMovementReportFilter وSalesMovementReportVisibility دون تشغيل تقرير: فروع مصرح بها، تواريخ، عملة، حالات وتفصيل ومراجع اختيارية، مع منع نطاق فرع خارجي وحجب التكلفة والربح دون تفويض مثبت من الخدمة المستقبلة. ثلاثة اختبارات مجال موجبة وسالبة؛ لا SQL/EF/API ولا احتساب صافي المبيعات أو ربط مستندات SAL06/SAL07. SAL13-01 جزئية وتبقى شروط الإغلاق والتكامل والأمان معلقة، تفصيلًا في [`sal13-report-domain-20261105.md`](sal13-report-domain-20261105.md). يلزم تحقق CI على SHA النهائي قبل مراجعة SUPERVISOR، ولا دمج مباشر.
