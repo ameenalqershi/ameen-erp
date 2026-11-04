@@ -83,6 +83,38 @@ public static class CustomerSqlIntegration
           $"UPDATE dbo.Customers SET CreditDays={-1} WHERE CompanyId={companyId} AND Id={customerId}"),547);
         await RejectSql("audit backwards",db.Database.ExecuteSqlInterpolatedAsync(
           $"UPDATE dbo.Customers SET LastModifiedAt={now.AddDays(-1)} WHERE CompanyId={companyId} AND Id={customerId}"),547);
+        // A customer's code is unique per company, preserving leading zeroes.
+        await RejectSql("duplicate customer code",db.Database.ExecuteSqlInterpolatedAsync($@"
+          INSERT INTO dbo.Customers
+          (CompanyId,Id,Version,Code,Name,IsActive,LegalName,
+           CustomerCategoryId,ControlAccountId,TransactionCurrencyId,
+           CreditLimit,CreditDays,CountryId,CreatedBy,CreatedAt,Revision,LastModifiedAt)
+          VALUES({companyId},{Guid.NewGuid()},{Guid.NewGuid()},{"00045"},{"duplicate"},
+            {true},{"duplicate"},{category},{controlAccountId},{currencyId},
+            CAST(0 AS decimal(20,6)),{0},{country},{actor},{now},{1},{now})"),2601);
+        // A matching code from another tenant must not be returned by a scoped query.
+        Ensure(await db.Set<Customer>().AsNoTracking()
+          .CountAsync(x=>x.CompanyId==Guid.NewGuid() && x.Code=="00045")==0,
+          "SAL01 customer visible to unrelated tenant");
+        Ensure(await db.Set<Customer>().AsNoTracking()
+          .CountAsync(x=>x.CompanyId==companyId && x.Code=="00045")==1,
+          "SAL01 tenant-scoped customer read missing");
+        // SQL cannot silently accept invalid audit revision or a missing company.
+        await RejectSql("invalid revision",db.Database.ExecuteSqlInterpolatedAsync(
+          $"UPDATE dbo.Customers SET Revision={0} WHERE CompanyId={companyId} AND Id={customerId}"),547);
+        await RejectSql("invalid tenant",db.Database.ExecuteSqlInterpolatedAsync(
+          $"UPDATE dbo.Customers SET CompanyId={Guid.NewGuid()} WHERE CompanyId={companyId} AND Id={customerId}"),547);
+        // Optimistic concurrency is a company-scoped version token in the EF mapping.
+        var entityType=db.Model.FindEntityType(typeof(Customer))
+          ?? throw new Exception("SAL01 customer EF entity missing");
+        var versionProperty=entityType.FindProperty(nameof(Customer.Version))
+          ?? throw new Exception("SAL01 customer Version property missing");
+        Ensure(versionProperty.IsConcurrencyToken,"SAL01 EF concurrency token disabled");
+        var key=entityType.FindPrimaryKey()
+          ?? throw new Exception("SAL01 tenant primary key missing");
+        Ensure(key.Properties.Select(x=>x.Name).SequenceEqual(new[]
+          {nameof(Customer.CompanyId),nameof(Customer.Id)}),
+          "SAL01 tenant compound key changed");
         var audits=await db.Set<AuditEvent>().CountAsync();
         var outbox=await db.Set<OutboxEvent>().CountAsync();
         var journals=await db.Set<JournalEntry>().CountAsync();
