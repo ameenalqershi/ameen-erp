@@ -22,7 +22,20 @@ EF_VERSION = re.compile(r"\bconst\s+int\s+SchemaVersion\s*=\s*(\d+)\s*;")
 
 def check(migration_dir: Path, ef_context: Path) -> int:
     errors = []
-    files = sorted(migration_dir.glob("[0-9][0-9][0-9]_*.sql"))
+    # Inventory all SQL files rather than silently omitting a malformed migration.
+    # runtime-role.sql is a non-versioned deployment support script, not a migration.
+    all_sql = sorted(p for p in migration_dir.iterdir() if p.suffix.lower() == ".sql")
+    files = []
+    for candidate in all_sql:
+        if candidate.name == "runtime-role.sql":
+            continue
+        if not re.fullmatch(r"[0-9]{3}_[A-Za-z0-9_]+\.sql", candidate.name):
+            errors.append(f"unrecognized migration filename: {candidate.name}")
+            continue
+        if candidate.is_symlink() or not candidate.is_file():
+            errors.append(f"migration must be a regular file: {candidate.name}")
+            continue
+        files.append(candidate)
     by_version: dict[int, list[str]] = {}
     for f in files:
         number = int(f.name[:3])
