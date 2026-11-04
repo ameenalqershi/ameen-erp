@@ -75,7 +75,7 @@ public static class CashTransferSqlIntegration
             "SAR", 1m, "test transfer", null, "Draft", a, b,
             1m, 1m, "SAR", 1m, null, "test", DateTimeOffset.UtcNow);
         db.Add(invalid);
-        await RejectDomain("cash_transfer_policy_unavailable", db.SaveChangesAsync());
+        await RejectDomain("cash_transfer_policy_unavailable", () => db.SaveChangesAsync());
         db.Entry(invalid).State = EntityState.Detached;
         Console.WriteLine("  SQL PASS CASH05-01 atomic/idempotent 049, typed tenant FKs and blocked EF writes");
     }
@@ -189,11 +189,11 @@ public static class CashTransferSqlIntegration
         var originalJournals = await db.Set<JournalEntry>().CountAsync();
         db.Attach(saved);
         db.Entry(saved).State=EntityState.Modified;
-        await RejectDomain("cash_transfer_policy_unavailable", db.SaveChangesAsync());
+        await RejectDomain("cash_transfer_policy_unavailable", () => db.SaveChangesAsync());
         db.Entry(saved).State=EntityState.Detached;
         db.Attach(saved);
         db.Entry(saved).State=EntityState.Deleted;
-        await RejectDomain("cash_transfer_policy_unavailable", db.SaveChangesAsync());
+        await RejectDomain("cash_transfer_policy_unavailable", () => db.SaveChangesAsync());
         db.Entry(saved).State=EntityState.Detached;
 
         var unchanged = await db.Set<CashTransfer>().AsNoTracking()
@@ -223,9 +223,9 @@ public static class CashTransferSqlIntegration
         catch(SqlException ex) when (ex.Errors.Cast<SqlError>().Any(e=>e.Number==code)) { }
     }
 
-    private static async Task RejectDomain(string code, Task action)
+    private static async Task RejectDomain(string code, Func<Task> action)
     {
-        try { await action; throw new Exception("CASH05 unauthorized EF write accepted"); }
+        try { await action(); throw new Exception("CASH05 unauthorized EF write accepted"); }
         catch(BusinessException ex) when(ex.Code==code) { }
     }
 
