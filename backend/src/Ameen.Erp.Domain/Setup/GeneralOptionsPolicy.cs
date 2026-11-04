@@ -36,6 +36,7 @@ public sealed class GeneralOptionsPolicy : CompanyEntity
         BlockNegativeStock = blockNegativeStock;
         QuantityPrecision = quantityPrecision;
         CreatedBy = Check.Text(createdBy, "المنشئ", 200);
+        Check.That(now != default, "general_options_audit_time_invalid", "وقت إنشاء السياسة غير صالح.");
         CreatedAt = now;
         LastModifiedAt = now;
         Check.That(lines is not null, "general_options_lines_invalid", "سطور الربط غير صالحة.");

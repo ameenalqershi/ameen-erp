@@ -153,48 +153,48 @@ SYS10,SYS10-F08,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{com
 SYS10,SYS10-F09,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F10,رقم إصدار التعديل,system,implemented,Revision: integer separate from Version UUID,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F11,آخر تعديل,system,implemented,LastModifiedAt,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
-SYS11,SYS11-F01,الشركة,system,pending,,
-SYS11,SYS11-F02,الفرع,conditional,pending,,
-SYS11,SYS11-F03,الحالة,system,pending,,
-SYS11,SYS11-F04,نوع تقييم المخزون,required,pending,,
-SYS11,SYS11-F05,منع السالب,required,pending,,
-SYS11,SYS11-F06,نمط البيع والتسليم,required,pending,,
-SYS11,SYS11-F07,دقة الكمية,required,pending,,
-SYS11,SYS11-F08,الحدث,required,pending,,
-SYS11,SYS11-F09,دور الحساب,required,pending,,
-SYS11,SYS11-F10,الحساب,required,pending,,
-SYS11,SYS11-F11,النطاق,required,pending,,
-SYS11,SYS11-F12,أنشأه,system,pending,,
-SYS11,SYS11-F13,وقت الإنشاء,system,pending,,
-SYS11,SYS11-F14,رقم إصدار التعديل,system,pending,,
-SYS11,SYS11-F15,آخر تعديل,system,pending,,
-SYS12,SYS12-F01,الشركة,system,pending,,
-SYS12,SYS12-F02,الفرع,conditional,pending,,
-SYS12,SYS12-F03,الحالة,system,pending,,
-SYS12,SYS12-F04,نوع الوثيقة,required,pending,,
-SYS12,SYS12-F05,اللغة,required,pending,,
-SYS12,SYS12-F06,مقاس الورق,required,pending,,
-SYS12,SYS12-F07,اسم القالب,required,pending,,
-SYS12,SYS12-F08,نسخة القالب,required,pending,,
-SYS12,SYS12-F09,نسخة تجريبية,required,pending,,
-SYS12,SYS12-F10,أنشأه,system,pending,,
-SYS12,SYS12-F11,وقت الإنشاء,system,pending,,
-SYS12,SYS12-F12,رقم إصدار التعديل,system,pending,,
-SYS12,SYS12-F13,آخر تعديل,system,pending,,
-SYS13,SYS13-F01,الشركة,system,pending,,
-SYS13,SYS13-F02,الفرع,conditional,pending,,
-SYS13,SYS13-F03,الحالة,system,pending,,
-SYS13,SYS13-F04,نوع البيانات,required,pending,,
-SYS13,SYS13-F05,معرف الملف,required,pending,,
-SYS13,SYS13-F06,تاريخ القطع,required,pending,,
-SYS13,SYS13-F07,سياسة التكرار,required,pending,,
-SYS13,SYS13-F08,عمود المصدر,required,pending,,
-SYS13,SYS13-F09,حقل الهدف,required,pending,,
-SYS13,SYS13-F10,قيمة افتراضية,optional,pending,,
-SYS13,SYS13-F11,أنشأه,system,pending,,
-SYS13,SYS13-F12,وقت الإنشاء,system,pending,,
-SYS13,SYS13-F13,رقم إصدار التعديل,system,pending,,
-SYS13,SYS13-F14,آخر تعديل,system,pending,,
+SYS11,SYS11-F01,الشركة,system,partial,GeneralOptionsPolicy.CompanyId tenant key; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F02,الفرع,conditional,partial,GeneralOptionsPolicy.BranchId nullable tenant FK; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F03,الحالة,system,partial,GeneralOptionsPolicy.StatusCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F04,نوع تقييم المخزون,required,partial,GeneralOptionsPolicy.InventoryValuationCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F05,منع السالب,required,partial,"GeneralOptionsPolicy.BlockNegativeStock stored, not enforced; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F06,نمط البيع والتسليم,required,partial,GeneralOptionsPolicy.SalesDeliveryModeCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F07,دقة الكمية,required,partial,GeneralOptionsPolicy.QuantityPrecision nonnegative; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F08,الحدث,required,partial,GeneralOptionsAccountLine.EventCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F09,دور الحساب,required,partial,GeneralOptionsAccountLine.AccountRoleCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F10,الحساب,required,partial,GeneralOptionsAccountLine.AccountId tenant FK; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F11,النطاق,required,partial,GeneralOptionsAccountLine.Scope opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F12,أنشأه,system,partial,GeneralOptionsPolicy.CreatedBy internal; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F13,وقت الإنشاء,system,partial,GeneralOptionsPolicy.CreatedAt rejects default creation time; no API; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F14,رقم إصدار التعديل,system,partial,"GeneralOptionsPolicy.Revision positive int, no API; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS11,SYS11-F15,آخر تعديل,system,partial,"GeneralOptionsPolicy.LastModifiedAt internal, no API; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F01,الشركة,system,partial,PrintTemplate.CompanyId tenant key; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F02,الفرع,conditional,partial,PrintTemplate.BranchId nullable tenant FK; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F03,الحالة,system,partial,PrintTemplate.StatusCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F04,نوع الوثيقة,required,partial,PrintTemplate.DocumentTypeCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F05,اللغة,required,partial,PrintTemplate.LanguageCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F06,مقاس الورق,required,partial,PrintTemplate.PaperSizeCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F07,اسم القالب,required,partial,PrintTemplate.Name Unicode; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F08,نسخة القالب,required,partial,PrintTemplate.VersionCode source string; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F09,نسخة تجريبية,required,partial,"PrintTemplate.IsDraft stored only, no watermark renderer; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F10,أنشأه,system,partial,PrintTemplate.CreatedBy internal; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F11,وقت الإنشاء,system,partial,PrintTemplate.CreatedAt rejects default creation time; no API; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F12,رقم إصدار التعديل,system,partial,"PrintTemplate.Revision positive int, no API; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS12,SYS12-F13,آخر تعديل,system,partial,"PrintTemplate.LastModifiedAt internal, no API; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F01,الشركة,system,partial,DataImportBatch.CompanyId tenant key; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F02,الفرع,conditional,partial,DataImportBatch.BranchId nullable tenant FK; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F03,الحالة,system,partial,DataImportBatch.StatusCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F04,نوع البيانات,required,partial,DataImportBatch.DataKindCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F05,معرف الملف,required,partial,"DataImportBatch.FileIdentifier stored, no file IO; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F06,تاريخ القطع,required,partial,DataImportBatch.CutoffDate DateOnly; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F07,سياسة التكرار,required,partial,DataImportBatch.DuplicatePolicyCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F08,عمود المصدر,required,partial,DataImportFieldMapping.SourceColumn; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F09,حقل الهدف,required,partial,DataImportFieldMapping.TargetField; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F10,قيمة افتراضية,optional,partial,DataImportFieldMapping.DefaultValue nullable; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F11,أنشأه,system,partial,DataImportBatch.CreatedBy internal; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F12,وقت الإنشاء,system,partial,DataImportBatch.CreatedAt rejects default creation time; no API; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F13,رقم إصدار التعديل,system,partial,"DataImportBatch.Revision positive int, no API; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS13,SYS13-F14,آخر تعديل,system,partial,"DataImportBatch.LastModifiedAt internal, no API; structural foundation only",internal domain/EF/SQL schema only; no public operation API
 SYS14,SYS14-F01,الشركة,system,implemented,CompanyId,GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}
 SYS14,SYS14-F02,الفروع المصرح بها,required,pending,,
 SYS14,SYS14-F03,من تاريخ,required,partial,from: inclusive UTC date,GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}
@@ -207,19 +207,19 @@ SYS14,SYS14-F09,نوع الحدث,optional,partial,action: stored action key,GET
 SYS14,SYS14-F10,المستخدم,optional,partial,actorId: historical OIDC sub,GET /companies/{companyId}/audit-events?from=&to=&actorId=&action=&resourceId=; GET /audit-events/{id}
 SYS14,SYS14-F11,الشاشة,optional,pending,,
 SYS14,SYS14-F12,رقم المستند,optional,pending,,
-SYS15,SYS15-F01,الشركة,system,pending,,
-SYS15,SYS15-F02,الفرع,conditional,pending,,
-SYS15,SYS15-F03,الحالة,system,pending,,
-SYS15,SYS15-F04,اسم المهمة,required,pending,,
-SYS15,SYS15-F05,الجدول الزمني,required,pending,,
-SYS15,SYS15-F06,وجهة النسخ,required,pending,,
-SYS15,SYS15-F07,سياسة الاحتفاظ,required,pending,,
-SYS15,SYS15-F08,تشفير,required,pending,,
-SYS15,SYS15-F09,مرجع آخر اختبار,optional,pending,,
-SYS15,SYS15-F10,أنشأه,system,pending,,
-SYS15,SYS15-F11,وقت الإنشاء,system,pending,,
-SYS15,SYS15-F12,رقم إصدار التعديل,system,pending,,
-SYS15,SYS15-F13,آخر تعديل,system,pending,,
+SYS15,SYS15-F01,الشركة,system,partial,BackupJobConfiguration.CompanyId tenant key; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F02,الفرع,conditional,partial,BackupJobConfiguration.BranchId nullable tenant FK; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F03,الحالة,system,partial,BackupJobConfiguration.StatusCode opaque; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F04,اسم المهمة,required,partial,BackupJobConfiguration.Name Unicode; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F05,الجدول الزمني,required,partial,"BackupJobConfiguration.ScheduleText stored, never scheduled; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F06,وجهة النسخ,required,partial,"BackupJobConfiguration.Destination stored, never accessed; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F07,سياسة الاحتفاظ,required,partial,"BackupJobConfiguration.RetentionPolicy nonnegative, unit unapproved; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F08,تشفير,required,partial,"BackupJobConfiguration.IsEncrypted stored, no cryptography worker; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F09,مرجع آخر اختبار,optional,partial,"BackupJobConfiguration.LastTestReference nullable, no real restore; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F10,أنشأه,system,partial,BackupJobConfiguration.CreatedBy internal; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F11,وقت الإنشاء,system,partial,BackupJobConfiguration.CreatedAt rejects default creation time; no API; structural foundation only,internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F12,رقم إصدار التعديل,system,partial,"BackupJobConfiguration.Revision positive int, no API; structural foundation only",internal domain/EF/SQL schema only; no public operation API
+SYS15,SYS15-F13,آخر تعديل,system,partial,"BackupJobConfiguration.LastModifiedAt internal, no API; structural foundation only",internal domain/EF/SQL schema only; no public operation API
 SYS16,SYS16-F01,الشركة,system,partial,"PaymentTerm.CompanyId: tenant FK, schema only",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
 SYS16,SYS16-F02,الفرع,conditional,partial,"PaymentTerm.BranchId: nullable composite tenant FK, schema only",internal EF/SQL schema 033 only; public SYS16 payment API not enabled
 SYS16,SYS16-F03,الحالة,system,partial,"PaymentTerm.IsActive: status column, writes blocked",internal EF/SQL schema 033 only; public SYS16 payment API not enabled

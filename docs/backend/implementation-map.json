@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 43,
+  "partially_implemented_screens": 47,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 46,
     "derived": 4,
-    "partial": 248,
-    "pending": 2112
+    "partial": 303,
+    "pending": 2057
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2033,6 +2033,258 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/CashBoxTests.cs; backend/tests/Ameen.Erp.Tests/CashBoxSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs; backend/tests/Ameen.Erp.Tests/OpenApiSnapshotTests.cs"
+    },
+    "SYS11": {
+      "api": "internal domain/EF/SQL schema only; no public operation API",
+      "implemented": "الخيارات العامة والربط المحاسبي: بطاقات وسطور مرجعية محمية في SQL/EF بنطاق الشركة؛ لا تفعيل للربط أو الترحيل",
+      "remaining": "قوائم النوع والحدث ودور الحساب والنطاق وصلاحيات التحرير والموافقة لم تعتمد؛ API وHTTP/JWT التشغيلي غير منفذين",
+      "fields": {
+        "SYS11-F01": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.CompanyId tenant key; structural foundation only"
+        },
+        "SYS11-F02": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.BranchId nullable tenant FK; structural foundation only"
+        },
+        "SYS11-F03": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.StatusCode opaque; structural foundation only"
+        },
+        "SYS11-F04": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.InventoryValuationCode opaque; structural foundation only"
+        },
+        "SYS11-F05": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.BlockNegativeStock stored, not enforced; structural foundation only"
+        },
+        "SYS11-F06": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.SalesDeliveryModeCode opaque; structural foundation only"
+        },
+        "SYS11-F07": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.QuantityPrecision nonnegative; structural foundation only"
+        },
+        "SYS11-F08": {
+          "status": "partial",
+          "binding": "GeneralOptionsAccountLine.EventCode opaque; structural foundation only"
+        },
+        "SYS11-F09": {
+          "status": "partial",
+          "binding": "GeneralOptionsAccountLine.AccountRoleCode opaque; structural foundation only"
+        },
+        "SYS11-F10": {
+          "status": "partial",
+          "binding": "GeneralOptionsAccountLine.AccountId tenant FK; structural foundation only"
+        },
+        "SYS11-F11": {
+          "status": "partial",
+          "binding": "GeneralOptionsAccountLine.Scope opaque; structural foundation only"
+        },
+        "SYS11-F12": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.CreatedBy internal; structural foundation only"
+        },
+        "SYS11-F13": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.CreatedAt rejects default creation time; no API; structural foundation only"
+        },
+        "SYS11-F14": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.Revision positive int, no API; structural foundation only"
+        },
+        "SYS11-F15": {
+          "status": "partial",
+          "binding": "GeneralOptionsPolicy.LastModifiedAt internal, no API; structural foundation only"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/GeneralOptionsFoundationTests.cs; backend/tests/Ameen.Erp.Tests/GeneralOptionsSqlIntegration.cs"
+    },
+    "SYS12": {
+      "api": "internal domain/EF/SQL schema only; no public operation API",
+      "implemented": "قالب طباعة بنيوي محمي في SQL/EF بنطاق الشركة دون اعتماد قوالب بلد أو طباعة فعلية",
+      "remaining": "قائمة الوثائق واللغات ومقاسات الورق والحقول الإلزامية والوسم والواجهات والتفويض غير معتمدة",
+      "fields": {
+        "SYS12-F01": {
+          "status": "partial",
+          "binding": "PrintTemplate.CompanyId tenant key; structural foundation only"
+        },
+        "SYS12-F02": {
+          "status": "partial",
+          "binding": "PrintTemplate.BranchId nullable tenant FK; structural foundation only"
+        },
+        "SYS12-F03": {
+          "status": "partial",
+          "binding": "PrintTemplate.StatusCode opaque; structural foundation only"
+        },
+        "SYS12-F04": {
+          "status": "partial",
+          "binding": "PrintTemplate.DocumentTypeCode opaque; structural foundation only"
+        },
+        "SYS12-F05": {
+          "status": "partial",
+          "binding": "PrintTemplate.LanguageCode opaque; structural foundation only"
+        },
+        "SYS12-F06": {
+          "status": "partial",
+          "binding": "PrintTemplate.PaperSizeCode opaque; structural foundation only"
+        },
+        "SYS12-F07": {
+          "status": "partial",
+          "binding": "PrintTemplate.Name Unicode; structural foundation only"
+        },
+        "SYS12-F08": {
+          "status": "partial",
+          "binding": "PrintTemplate.VersionCode source string; structural foundation only"
+        },
+        "SYS12-F09": {
+          "status": "partial",
+          "binding": "PrintTemplate.IsDraft stored only, no watermark renderer; structural foundation only"
+        },
+        "SYS12-F10": {
+          "status": "partial",
+          "binding": "PrintTemplate.CreatedBy internal; structural foundation only"
+        },
+        "SYS12-F11": {
+          "status": "partial",
+          "binding": "PrintTemplate.CreatedAt rejects default creation time; no API; structural foundation only"
+        },
+        "SYS12-F12": {
+          "status": "partial",
+          "binding": "PrintTemplate.Revision positive int, no API; structural foundation only"
+        },
+        "SYS12-F13": {
+          "status": "partial",
+          "binding": "PrintTemplate.LastModifiedAt internal, no API; structural foundation only"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/PrintTemplateFoundationTests.cs; backend/tests/Ameen.Erp.Tests/PrintTemplateSqlIntegration.cs"
+    },
+    "SYS13": {
+      "api": "internal domain/EF/SQL schema only; no public operation API",
+      "implemented": "دفعة استيراد وحقول ربط بنيوية محمية في SQL/EF؛ لم ينفذ استيراد أو معاينة أو قيد",
+      "remaining": "قائمة أنواع البيانات وسياسة التكرار والمطابقة ومعاينة الأخطاء والاعتماد والتنفيذ والتكامل غير معتمدة",
+      "fields": {
+        "SYS13-F01": {
+          "status": "partial",
+          "binding": "DataImportBatch.CompanyId tenant key; structural foundation only"
+        },
+        "SYS13-F02": {
+          "status": "partial",
+          "binding": "DataImportBatch.BranchId nullable tenant FK; structural foundation only"
+        },
+        "SYS13-F03": {
+          "status": "partial",
+          "binding": "DataImportBatch.StatusCode opaque; structural foundation only"
+        },
+        "SYS13-F04": {
+          "status": "partial",
+          "binding": "DataImportBatch.DataKindCode opaque; structural foundation only"
+        },
+        "SYS13-F05": {
+          "status": "partial",
+          "binding": "DataImportBatch.FileIdentifier stored, no file IO; structural foundation only"
+        },
+        "SYS13-F06": {
+          "status": "partial",
+          "binding": "DataImportBatch.CutoffDate DateOnly; structural foundation only"
+        },
+        "SYS13-F07": {
+          "status": "partial",
+          "binding": "DataImportBatch.DuplicatePolicyCode opaque; structural foundation only"
+        },
+        "SYS13-F08": {
+          "status": "partial",
+          "binding": "DataImportFieldMapping.SourceColumn; structural foundation only"
+        },
+        "SYS13-F09": {
+          "status": "partial",
+          "binding": "DataImportFieldMapping.TargetField; structural foundation only"
+        },
+        "SYS13-F10": {
+          "status": "partial",
+          "binding": "DataImportFieldMapping.DefaultValue nullable; structural foundation only"
+        },
+        "SYS13-F11": {
+          "status": "partial",
+          "binding": "DataImportBatch.CreatedBy internal; structural foundation only"
+        },
+        "SYS13-F12": {
+          "status": "partial",
+          "binding": "DataImportBatch.CreatedAt rejects default creation time; no API; structural foundation only"
+        },
+        "SYS13-F13": {
+          "status": "partial",
+          "binding": "DataImportBatch.Revision positive int, no API; structural foundation only"
+        },
+        "SYS13-F14": {
+          "status": "partial",
+          "binding": "DataImportBatch.LastModifiedAt internal, no API; structural foundation only"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/DataImportFoundationTests.cs; backend/tests/Ameen.Erp.Tests/DataImportSqlIntegration.cs"
+    },
+    "SYS15": {
+      "api": "internal domain/EF/SQL schema only; no public operation API",
+      "implemented": "بطاقة تهيئة نسخة محمية بنطاق الشركة؛ لا نسخ أو استعادة أو جدولة تشغيلية",
+      "remaining": "تفويض الاستعادة والتشفير والجدولة والاحتفاظ واختبار استعادة معزول غير معتمدة؛ API غير منفذ",
+      "fields": {
+        "SYS15-F01": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.CompanyId tenant key; structural foundation only"
+        },
+        "SYS15-F02": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.BranchId nullable tenant FK; structural foundation only"
+        },
+        "SYS15-F03": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.StatusCode opaque; structural foundation only"
+        },
+        "SYS15-F04": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.Name Unicode; structural foundation only"
+        },
+        "SYS15-F05": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.ScheduleText stored, never scheduled; structural foundation only"
+        },
+        "SYS15-F06": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.Destination stored, never accessed; structural foundation only"
+        },
+        "SYS15-F07": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.RetentionPolicy nonnegative, unit unapproved; structural foundation only"
+        },
+        "SYS15-F08": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.IsEncrypted stored, no cryptography worker; structural foundation only"
+        },
+        "SYS15-F09": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.LastTestReference nullable, no real restore; structural foundation only"
+        },
+        "SYS15-F10": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.CreatedBy internal; structural foundation only"
+        },
+        "SYS15-F11": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.CreatedAt rejects default creation time; no API; structural foundation only"
+        },
+        "SYS15-F12": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.Revision positive int, no API; structural foundation only"
+        },
+        "SYS15-F13": {
+          "status": "partial",
+          "binding": "BackupJobConfiguration.LastModifiedAt internal, no API; structural foundation only"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/BackupConfigurationFoundationTests.cs; backend/tests/Ameen.Erp.Tests/BackupConfigurationSqlIntegration.cs"
     },
     "SYS16": {
       "api": "internal EF/SQL schema 033 only; public SYS16 payment API not enabled",

@@ -30,6 +30,18 @@ public static class PrintTemplateFoundationTests
                 "SYS12-only draft was persisted or triggered financial effects");
             return Task.CompletedTask;
         });
+        test("SYS12-FG04: default template audit timestamp rejects before persistence", f =>
+        {
+            var beforeAudit = f.Store.Count<AuditEvent>();
+            Error("print_template_audit_time_invalid", () => new PrintTemplate(
+                f.CompanyId, f.BranchId, "test-only", "doc", "lang", "paper",
+                "test-template", "V1", true, f.Owner.Subject, default));
+            Ensure(f.Store.Count<PrintTemplate>() == 0 &&
+                f.Store.Count<AuditEvent>() == beforeAudit &&
+                f.Store.Count<JournalEntry>() == 0,
+                "SYS12 rejected timestamp must not save template or affect ledger");
+            return Task.CompletedTask;
+        });
         test("SYS12-01: invalid tenant, blank catalog fields or version fail closed", f =>
         {
             var now=new FixedClock().UtcNow;

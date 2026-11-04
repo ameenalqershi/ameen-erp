@@ -34,6 +34,7 @@ public sealed class DataImportBatch : CompanyEntity
         CutoffDate = cutoffDate;
         DuplicatePolicyCode = Check.Text(duplicatePolicyCode, "سياسة التكرار", 64);
         CreatedBy = Check.Text(createdBy, "المنشئ", 200);
+        Check.That(now != default, "data_import_audit_time_invalid", "وقت إنشاء الاستيراد غير صالح.");
         CreatedAt = now; LastModifiedAt = now;
         Mappings = mappings.Select(x => new DataImportFieldMapping(
             companyId, Id, x.SourceColumn, x.TargetField, x.DefaultValue)).ToList();

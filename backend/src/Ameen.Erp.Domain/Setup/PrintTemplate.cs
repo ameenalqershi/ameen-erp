@@ -35,6 +35,7 @@ public sealed class PrintTemplate : CompanyEntity
         VersionCode = Check.Code(versionCode, "نسخة القالب");
         IsDraft = isDraft;
         CreatedBy = Check.Text(createdBy, "منشئ القالب", 200);
+        Check.That(now != default, "print_template_audit_time_invalid", "وقت إنشاء القالب غير صالح.");
         CreatedAt = now;
         LastModifiedAt = now;
     }
