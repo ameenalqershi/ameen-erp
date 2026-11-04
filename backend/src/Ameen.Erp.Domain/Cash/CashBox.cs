@@ -26,6 +26,8 @@ public sealed class CashBox : CompanyEntity
         string createdBy, DateTimeOffset createdAt, string? englishName = null,
         string? notes = null) : base(companyId)
     {
+        Check.That(createdAt != default, "cashbox_created_at_required",
+            "وقت إنشاء بطاقة الصندوق مطلوب.");
         CreatedBy = Check.Text(createdBy, "منشئ بطاقة الصندوق");
         CreatedAt = createdAt;
         Configure(code, name, accountId, branchId, custodianMembershipId,

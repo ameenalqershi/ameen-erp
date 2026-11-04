@@ -34,6 +34,7 @@ public static class ChequeFoundationTests
             Reject("cheque_reference_required", () => Incoming(f, payer: Guid.Empty));
             Reject("cheque_reference_required", () => Incoming(f, collection: Guid.Empty));
             Reject("cheque_date_required", () => Incoming(f, dueDate: new DateOnly()));
+            Reject("cheque_created_at_required", () => Incoming(f, createdAt: default(DateTimeOffset)));
             Reject("invalid_exchange_rate", () => Incoming(f, rate: 0m));
             Reject("invalid_exchange_rate", () => Incoming(f, rate: 1.00000000001m));
             Reject("invalid_amount", () => Incoming(f, amount: 0m));
@@ -67,6 +68,7 @@ public static class ChequeFoundationTests
             Reject("invalid_amount", () => Outgoing(f, amount: -1m));
             Reject("invalid_amount", () => Outgoing(f, amount: 0.0000001m));
             Reject("cheque_date_required", () => Outgoing(f, dueDate: new DateOnly()));
+            Reject("cheque_created_at_required", () => Outgoing(f, createdAt: default(DateTimeOffset)));
             return Task.CompletedTask;
         });
 
@@ -86,23 +88,24 @@ public static class ChequeFoundationTests
 
     private static IncomingCheque Incoming(Fixture f, decimal amount = 1m, decimal rate = 1m,
         Guid? branch = null, Guid? payer = null, Guid? collection = null,
-        DateOnly? dueDate = null) =>
+        DateOnly? dueDate = null, DateTimeOffset? createdAt = null) =>
         new(f.CompanyId, branch ?? f.BranchId, Guid.NewGuid(), "0000010",
             new(2026,11,1), new(2026,11,2), "SAR", rate,
             "شيك وارد بنيوي", "00003", "Unreviewed", "000001234",
             "البنك المسحوب عليه", payer ?? Guid.NewGuid(), amount,
             dueDate ?? new DateOnly(2026,12,1), collection ?? Guid.NewGuid(),
-            f.Owner.Subject, new FixedClock().UtcNow);
+            f.Owner.Subject, createdAt ?? new FixedClock().UtcNow);
 
     private static OutgoingCheque Outgoing(Fixture f, decimal amount = 1m, decimal rate = 1m,
         Guid? bank = null, Guid? beneficiary = null, DateOnly? dueDate = null,
-        string chequeState = "Unreviewed") =>
+        string chequeState = "Unreviewed",
+        DateTimeOffset? createdAt = null) =>
         new(f.CompanyId, f.BranchId, Guid.NewGuid(), "0000020",
             new(2026,11,1), new(2026,11,2), "SAR", rate,
             "شيك صادر بنيوي", "00004", "Unreviewed", "000000987",
             bank ?? Guid.NewGuid(), beneficiary ?? Guid.NewGuid(), amount,
             dueDate ?? new DateOnly(2026,12,1), chequeState,
-            f.Owner.Subject, new FixedClock().UtcNow);
+            f.Owner.Subject, createdAt ?? new FixedClock().UtcNow);
 
     private static void Reject(string code, Action action)
     {

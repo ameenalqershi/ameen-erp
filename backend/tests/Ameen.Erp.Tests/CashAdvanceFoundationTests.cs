@@ -67,6 +67,17 @@ public static class CashAdvanceFoundationTests
                 () => Make(f.BranchId, Guid.NewGuid(), Guid.Empty, date, 1m, 1m));
             Reject("cash_advance_date_required",
                 () => Make(f.BranchId, Guid.NewGuid(), Guid.NewGuid(), default, 1m, 1m));
+            // Both remaining mandatory dates must reject default values as well.
+            Reject("cash_advance_date_required",
+                () => new CashAdvance(f.CompanyId, f.BranchId, Guid.NewGuid(),
+                    "001", date, default, "SAR", 1m, "purpose", null,
+                    "Pending", Guid.NewGuid(), "Type", 1m, date,
+                    f.Owner.Subject, now));
+            Reject("cash_advance_date_required",
+                () => new CashAdvance(f.CompanyId, f.BranchId, Guid.NewGuid(),
+                    "001", date, date, "SAR", 1m, "purpose", null,
+                    "Pending", Guid.NewGuid(), "Type", 1m, default,
+                    f.Owner.Subject, now));
             Reject("invalid_exchange_rate",
                 () => Make(f.BranchId, Guid.NewGuid(), Guid.NewGuid(), date, 0m, 1m));
             Reject("invalid_exchange_rate",

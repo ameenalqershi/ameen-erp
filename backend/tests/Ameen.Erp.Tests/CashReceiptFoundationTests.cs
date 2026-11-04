@@ -55,6 +55,11 @@ public static class CashReceiptFoundationTests
                 new(2026,11,2), "SAR", 1m, "text", null, "Unreviewed",
                 Guid.NewGuid(), "Unclassified", null, null, 1m, null,
                 f.Owner.Subject, new FixedClock().UtcNow));
+            Reject("cash_receipt_created_at_required", () => new CashReceipt(
+                f.CompanyId, f.BranchId, Guid.NewGuid(), "00017", new(2026,11,1),
+                new(2026,11,2), "SAR", 1m, "text", null, "Unreviewed",
+                Guid.NewGuid(), "Unclassified", null, null, 1m, null,
+                f.Owner.Subject, default));
             Reject("invalid_exchange_rate", () => Create(f, rate: 0m));
             Reject("invalid_exchange_rate", () => Create(f, rate: 1.00000000001m));
             Reject("invalid_amount", () => Create(f, amount: 0m));
