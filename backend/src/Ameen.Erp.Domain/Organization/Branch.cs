@@ -20,16 +20,19 @@ public sealed class Branch : CompanyEntity
     public void Configure(string code, string name, string city, string address, Guid? parentId,
         Guid? defaultCostCenterId, string? englishName, string? notes)
     {
+        EnsureRevisionAvailable();
         Code = Check.Code(code, "رمز الفرع"); Name = Check.Text(name, "اسم الفرع");
         City = Check.Text(city, "المدينة"); Address = Check.Text(address, "العنوان", 500);
         EnglishName = englishName is null ? null : Check.Text(englishName, "الاسم الإنجليزي");
         Notes = notes is null ? null : Check.Text(notes, "الملاحظات", 2000);
         ParentId = parentId; DefaultCostCenterId = defaultCostCenterId; Advance();
     }
-    public void SetActive(bool active) { IsActive = active; Advance(); }
+    public void SetActive(bool active) { EnsureRevisionAvailable(); IsActive = active; Advance(); }
+    private void EnsureRevisionAvailable() =>
+        Check.That(Revision < int.MaxValue, "branch_revision_exhausted", "بلغ إصدار الفرع الحد الأقصى.", ErrorKind.Conflict);
     private void Advance()
     {
-        Check.That(Revision < int.MaxValue, "branch_revision_exhausted", "بلغ إصدار الفرع الحد الأقصى.", ErrorKind.Conflict);
+        EnsureRevisionAvailable();
         Revision++; Touch();
     }
 }

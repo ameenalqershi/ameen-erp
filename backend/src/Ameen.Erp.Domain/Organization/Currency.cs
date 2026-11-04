@@ -20,6 +20,7 @@ public sealed class Currency : CompanyEntity
     }
     public void Configure(int scale, string name, string? englishName, string? notes, string? displaySymbol, string? fractionName)
     {
+        EnsureRevisionAvailable();
         Check.That(scale is >= 0 and <= 6, "invalid_scale", "دقة العملة بين صفر وست خانات.");
         Scale = scale; Name = Check.Text(name, "اسم العملة");
         EnglishName = englishName is null ? null : Check.Text(englishName, "الاسم الإنجليزي");
@@ -28,10 +29,12 @@ public sealed class Currency : CompanyEntity
         FractionName = fractionName is null ? null : Check.Text(fractionName, "اسم الجزء", 100);
         Advance();
     }
-    public void SetActive(bool active) { IsActive = active; Advance(); }
+    public void SetActive(bool active) { EnsureRevisionAvailable(); IsActive = active; Advance(); }
+    private void EnsureRevisionAvailable() =>
+        Check.That(Revision < int.MaxValue, "currency_revision_exhausted", "بلغ إصدار العملة الحد الأقصى.", ErrorKind.Conflict);
     private void Advance()
     {
-        Check.That(Revision < int.MaxValue, "currency_revision_exhausted", "بلغ إصدار العملة الحد الأقصى.", ErrorKind.Conflict);
+        EnsureRevisionAvailable();
         Revision++; Touch();
     }
 }
