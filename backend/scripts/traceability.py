@@ -49,6 +49,14 @@ MAP["SYS03"]["fields"]["SYS03-F14"] = dict(status="partial",
     binding="FiscalYear.LastModifiedAt at creation; period.closed/reopened in AuditEvent; calendar edit timestamps pending")
 MAP["SYS03"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["FiscalCalendarTests.cs", "FiscalCalendarSqlIntegration.cs", "FiscalYearAuditSqlIntegration.cs", "HostedApiIntegration.cs"])
+for field, binding in {
+    5: "FiscalYear.StartsOn: nondefault required start date in domain and service",
+    6: "FiscalYear.EndsOn: nondefault required end date with chronological/year-length guard",
+    8: "FiscalPeriod.StartsOn: nondefault required date, validated before coverage",
+    9: "FiscalPeriod.EndsOn: nondefault required date, validated before coverage",
+}.items():
+    MAP["SYS03"]["fields"][f"SYS03-F{field:02}"]["binding"] = binding
+
 screen("SYS04", "GET/POST /companies/{companyId}/currencies; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
        "بطاقة عملة بأسماء ورمز عرض واسم جزء وإصدار عددي؛ تحرير وحالة وبحث وتدقيق؛ قفل الدقة بعد الاستخدام وفحص التعطيل عند الترحيل",
        "الرمز الداخلي موحد مع رمز العملة ولا يربط بقائمة ISO خارجية وغير قابل لإعادة التسمية؛ أسماء العملة الوظيفية والبطاقات القديمة تبدأ برمز ISO وتحتاج تحريرًا؛ تحويل الدقة التاريخية غير متاح",

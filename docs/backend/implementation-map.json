@@ -205,11 +205,11 @@
         },
         "SYS03-F05": {
           "status": "implemented",
-          "binding": "FiscalYear.StartsOn"
+          "binding": "FiscalYear.StartsOn: nondefault required start date in domain and service"
         },
         "SYS03-F06": {
           "status": "implemented",
-          "binding": "FiscalYear.EndsOn"
+          "binding": "FiscalYear.EndsOn: nondefault required end date with chronological/year-length guard"
         },
         "SYS03-F07": {
           "status": "implemented",
@@ -217,11 +217,11 @@
         },
         "SYS03-F08": {
           "status": "implemented",
-          "binding": "FiscalPeriod.StartsOn / FiscalPeriodRequest.StartsOn"
+          "binding": "FiscalPeriod.StartsOn: nondefault required date, validated before coverage"
         },
         "SYS03-F09": {
           "status": "implemented",
-          "binding": "FiscalPeriod.EndsOn / FiscalPeriodRequest.EndsOn"
+          "binding": "FiscalPeriod.EndsOn: nondefault required date, validated before coverage"
         },
         "SYS03-F10": {
           "status": "partial",

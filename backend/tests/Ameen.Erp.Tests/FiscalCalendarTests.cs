@@ -9,6 +9,55 @@ public static class FiscalCalendarTests
         new[] { new FiscalPeriodRequest("2027-H1", new(2027, 1, 1), new(2027, 6, 30)), new FiscalPeriodRequest("2027-H2", new(2027, 7, 1), new(2027, 12, 31)) });
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS03 mandatory year/period dates and year reference fail before fiscal calendar writes", async f =>
+        {
+            var validYear = new FiscalYear(f.CompanyId, "TEST", new(2027,1,1),new(2027,12,31));
+            var validPeriod = new FiscalPeriod(f.CompanyId,validYear.Id,"P01",
+                new(2027,1,1),new(2027,1,31));
+            Ensure(validPeriod.FiscalYearId == validYear.Id &&
+                validPeriod.StartsOn == new DateOnly(2027,1,1) &&
+                validPeriod.EndsOn == new DateOnly(2027,1,31));
+            void Reject(string code, Action action)
+            {
+                try { action(); throw new Exception("Invalid source date accepted"); }
+                catch(BusinessException ex) when(ex.Code==code) {}
+            }
+            Reject("fiscal_year_date_required", () =>
+                new FiscalYear(f.CompanyId,"BAD",default,new(2027,12,31)));
+            Reject("fiscal_year_date_required", () =>
+                new FiscalYear(f.CompanyId,"BAD",new(2027,1,1),default));
+            Reject("period_date_required", () =>
+                new FiscalPeriod(f.CompanyId,validYear.Id,"P01",default,new(2027,1,31)));
+            Reject("period_date_required", () =>
+                new FiscalPeriod(f.CompanyId,validYear.Id,"P01",new(2027,1,1),default));
+            Reject("invalid_period_year", () =>
+                new FiscalPeriod(f.CompanyId,Guid.Empty,"P01",new(2027,1,1),new(2027,1,31)));
+            var beforeYears=f.Store.Count<FiscalYear>();
+            var beforePeriods=f.Store.Count<FiscalPeriod>();
+            var beforeAudits=f.Store.Count<AuditEvent>();
+            var beforeReceipts=f.Store.Count<IdempotencyRecord>();
+            await Error("fiscal_year_date_required", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId,f.Owner,Fixture.Key(),
+                Request() with {StartsOn=default},default));
+            await Error("fiscal_year_date_required", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId,f.Owner,Fixture.Key(),
+                Request() with {EndsOn=default},default));
+            await Error("period_date_required", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId,f.Owner,Fixture.Key(),
+                Request() with {Periods=new[]{
+                    new FiscalPeriodRequest("P01",default,new(2027,6,30)),
+                    Request().Periods![1] }},default));
+            await Error("period_date_required", () => f.Service.FiscalCalendar.CreateFiscalYear(
+                f.CompanyId,f.Owner,Fixture.Key(),
+                Request() with {Periods=new[]{
+                    Request().Periods![0],
+                    new FiscalPeriodRequest("P02",new(2027,7,1),default) }},default));
+            Ensure(f.Store.Count<FiscalYear>()==beforeYears &&
+                f.Store.Count<FiscalPeriod>()==beforePeriods &&
+                f.Store.Count<AuditEvent>()==beforeAudits &&
+                f.Store.Count<IdempotencyRecord>()==beforeReceipts);
+        });
+
         test("SYS03-FG04 partial: new fiscal year has server actor/time and numeric creation revision", async f =>
         {
             // A pre-audit fiscal year remains historically unknown; no actor/time is invented.
