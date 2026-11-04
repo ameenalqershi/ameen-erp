@@ -33,23 +33,32 @@ public sealed class Membership : CompanyEntity
     // Old memberships preserve unknown revision and creator rather than fabricated history.
     public void StampAuthorizedChange(DateTimeOffset now)
     {
-        Check.That(now != default && (CreatedAt is null || now >= CreatedAt),
-            "invalid_membership_audit_time", "وقت تعديل العضوية غير صالح.");
+        ValidateAuditChange(now);
         if (Revision is int revision)
         {
-            Check.That(revision < int.MaxValue, "membership_revision_overflow", "رقم إصدار العضوية استنفد.");
             Revision = revision + 1;
             LastModifiedAt = now;
         }
     }
+    private void ValidateAuditChange(DateTimeOffset now)
+    {
+        Check.That(now != default && (CreatedAt is null || now >= CreatedAt) &&
+            (LastModifiedAt is null || now >= LastModifiedAt),
+            "invalid_membership_audit_time", "وقت تعديل العضوية غير صالح.");
+        Check.That(Revision is not int revision || revision < int.MaxValue,
+            "membership_revision_overflow", "رقم إصدار العضوية استنفد.");
+    }
+
     public void ConfigureAuthorized(IEnumerable<string> permissions, bool allBranches,
         IEnumerable<Guid> branches, DateTimeOffset now)
     {
+        ValidateAuditChange(now);
         Configure(permissions, allBranches, branches);
         StampAuthorizedChange(now);
     }
     public void SetActiveAuthorized(bool active, DateTimeOffset now)
     {
+        ValidateAuditChange(now);
         SetActive(active);
         StampAuthorizedChange(now);
     }
