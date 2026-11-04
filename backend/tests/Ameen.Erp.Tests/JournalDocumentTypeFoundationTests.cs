@@ -28,6 +28,25 @@ public static class JournalDocumentTypeFoundationTests
             Ensure(!type.IsActive && type.Revision == 3, "GL14 disable did not advance revision");
             return Task.CompletedTask;
         });
+        test("GL14-FG04 partial: reject unset generated creation time without audit state", f =>
+        {
+            var numberSeriesId = Guid.NewGuid();
+            var routeId = Guid.NewGuid();
+            Expect("invalid_document_type_created_at", () =>
+                new JournalDocumentType(f.CompanyId, f.BranchId, "JV-AUD",
+                    "نوع قيد", JournalDocumentOrigin.Manual, numberSeriesId, routeId,
+                    false, f.Owner.Subject, default));
+            var created = new DateTimeOffset(2026, 11, 4, 8, 0, 0, TimeSpan.Zero);
+            var card = new JournalDocumentType(f.CompanyId, f.BranchId, "JV-AUD",
+                "نوع قيد", JournalDocumentOrigin.Manual, numberSeriesId, routeId,
+                false, f.Owner.Subject, created);
+            var originalVersion = card.Version;
+            Expect("invalid_document_type_revision", () => card.SetActive(false, 1, default));
+            Ensure(card.CreatedAt == created && card.LastModifiedAt == created &&
+                card.Revision == 1 && card.Version == originalVersion && card.IsActive,
+                "Rejected audit time changed type metadata or active state");
+            return Task.CompletedTask;
+        });
         test("GL14-01: invalid source, reference, branch and stale timestamp rejected", f =>
         {
             var now = DateTimeOffset.UtcNow;
