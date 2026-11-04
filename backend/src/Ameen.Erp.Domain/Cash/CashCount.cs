@@ -28,6 +28,8 @@ public sealed class CashCount : CompanyEntity
             "cash_count_reference_required", "الصندوق والقائم بالجرد مطلوبان.");
         Check.That(cutoffAt != default, "cash_count_cutoff_required",
             "وقت قطع جرد الصندوق مطلوب.");
+        Check.That(createdAt != default, "cash_count_created_at_required",
+            "وقت إنشاء محضر الجرد مطلوب.");
         BranchId = branchId;
         State = Check.Text(state, "حالة محضر الجرد", 32);
         CashBoxId = cashBoxId;
