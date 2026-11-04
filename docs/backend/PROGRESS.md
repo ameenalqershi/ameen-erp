@@ -1,3 +1,13 @@
+## GL11-T02 / GL12 — cross-tenant period read acceptance (4 November 2026)
+
+**Independent regression only; no new accounting rule:** `RateAndCloseTests.cs` verifies that an actor explicitly authorized for Read, Audit, PeriodClose and PeriodReopen in a *different* company cannot query the source company's existing period via GL11 close preview, GL11 execution history, or GL12 reopen-only history. All three must return `reference_not_found`; source period version/status and audit, idempotency, journal, and outbox counts remain unchanged. The original period has real close/reopen audit decisions in the test, rather than an empty-history false positive.
+
+**Local verification:** `python3 backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts /tmp/ameen-gl-tenant-read-20261104-artifacts` returned **531/531 PASS** including domain, EF model, tests, HTTP and OpenAPI. This run did not use live SQL Server or hosted HTTPS/JWT; those require GitHub Actions on the PR head. The GL11 full ERP close/GL12 special exception approval and expiry workflows remain **partial/blocked**, and previous GL11-A05 and GL12-A05 completions are not recounted. No source analysis or production data was changed.
+
+## GL14-FG04 — حماية وقت إنشاء بطاقة النوع المحسوب (4 نوفمبر 2026)
+
+فحص مستقل للحد الأدنى لسلامة GL14-F11: يمنع نموذج JournalDocumentType إنشاء البطاقة بوقت CreatedAt الافتراضي غير المعيّن؛ اختبار قبول سلبي يثبت الرفض وعدم مساس المحاولة اللاحقة الفاشلة بإصدار البطاقة وتدقيقها وحالة تفعيلها. لا تفعيل للكتابة عبر EF/API ولا سياسة موافقات جديدة. يظل GL14-FG04 **جزئيًا / قيد التحقق** حتى اعتماد SYS09 ومسار التوقيع وتكامل GL03 والتحقق SQL/HTTPS/JWT/OpenAPI التشغيلي. الفرع المعزول temp/gl14-audit-createdat-20261104-chat2 للمراجعة، لا دمج مباشر.
+
 ## CORE DGM-01–15 — تحقق آلي من خرائط التنقل (4 نوفمبر 2026)
 
 أضيف حارس قراءة فقط يطابق 15 خريطة تنقل أصلية مع 150 شاشة في سجل التحليل، ويتحقق من المعرّفات والتسميات والفئات والحواف وصحة SVG، مع 8 اختبارات قبول موجبة وسالبة في `backend/scripts/tests/test_module_diagram_navigation.py`. يرجع إلى [تقرير التدقيق](core-module-diagram-navigation-audit-20261104.md). المخرجات لا تمثل تبعيات بناء أو اكتمال الشاشات. التنفيذ على `temp/core-diagram-nav-audit-20261104-chat` ولا دمج مباشر؛ يحتاج اختبار CI على HEAD النهائي ومراجعة SUPERVISOR قبل إغلاق مهام DGM-01–15.
