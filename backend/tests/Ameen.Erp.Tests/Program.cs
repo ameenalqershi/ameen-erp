@@ -667,6 +667,7 @@ DraftJournalHeaderTests.Register(Test);
 JournalHeaderFieldsTests.Register(Test);
 JournalPrintTests.Register(Test);
 JournalLineGuardAcceptance.Register(Test);
+SalesOrderFoundationTests.Register(Test);
 JournalReviewHistoryAcceptance.Register(Test);
 ItemTests.Register(Test);
 ItemGroupUsageTests.Register(Test);
