@@ -66,6 +66,50 @@ public static class InventoryHistoricalReferenceGuardTests
                 f.Store.Count<JournalEntry>() == beforeJournals && f.Store.Count<OutboxEvent>() == beforeOutbox);
         });
 
+        test("INV05-GAP03: fully reversed serial retains its historical number and allows description", async f =>
+        {
+            var source = await ReversedSource(f, ItemTracking.Serial);
+            var line = source.Lines.Single();
+            var identity = await f.Service.InventoryIdentity.GetSerial(f.CompanyId,
+                line.ItemId, line.IdentityId!.Value, f.Owner, default);
+            var original = new EditInventoryIdentityRequest(identity.Version, identity.Code, identity.Name,
+                identity.ProductionDate, identity.ExpiryDate, identity.QualityStatus,
+                identity.EnglishName, identity.Notes, "حماية الرقم التسلسلي",
+                SerialNumber: identity.SerialNumber);
+            var beforeAudits = f.Store.Count<AuditEvent>();
+            var beforeReceipts = f.Store.Count<IdempotencyRecord>();
+            var beforeOutbox = f.Store.Count<OutboxEvent>();
+            var beforeJournals = f.Store.Count<JournalEntry>();
+
+            await Error("inventory_identity_in_stock", () => f.Service.InventoryIdentity.EditSerial(
+                f.CompanyId, line.ItemId, identity.Id, f.Owner, Fixture.Key(),
+                original with { SerialNumber = "CHANGED-AFTER-REVERSE" }, default));
+            await Error("inventory_identity_in_stock", () => f.Service.InventoryIdentity.EditSerial(
+                f.CompanyId, line.ItemId, identity.Id, f.Owner, Fixture.Key(),
+                original with { Code = "CHANGED-SERIAL-CODE" }, default));
+
+            var saved = await f.Service.InventoryIdentity.GetSerial(f.CompanyId,
+                line.ItemId, identity.Id, f.Owner, default);
+            Ensure(saved.Version == identity.Version && saved.Code == identity.Code &&
+                saved.SerialNumber == identity.SerialNumber &&
+                saved.ProductionDate == identity.ProductionDate &&
+                f.Store.Count<AuditEvent>() == beforeAudits &&
+                f.Store.Count<IdempotencyRecord>() == beforeReceipts &&
+                f.Store.Count<OutboxEvent>() == beforeOutbox &&
+                f.Store.Count<JournalEntry>() == beforeJournals &&
+                f.Store.Count<StockMovement>() == 2);
+
+            var changed = await f.Service.InventoryIdentity.EditSerial(f.CompanyId,
+                line.ItemId, identity.Id, f.Owner, Fixture.Key(),
+                original with { Name = "وصف بعد العكس" }, default);
+            saved = await f.Service.InventoryIdentity.GetSerial(f.CompanyId,
+                line.ItemId, identity.Id, f.Owner, default);
+            Ensure(saved.Name == "وصف بعد العكس" && saved.Version == changed.Version &&
+                saved.SerialNumber == identity.SerialNumber &&
+                f.Store.Count<JournalEntry>() == beforeJournals &&
+                f.Store.Count<StockMovement>() == 2);
+        });
+
         test("INV05-GAP03: fully reversed lot remains historically numbered and dated", async f =>
         {
             var source = await ReversedSource(f, ItemTracking.Lot);

@@ -39,6 +39,8 @@ public sealed class IncomingCheque : CompanyEntity
             documentDate, accountingDate, exchangeRate, amount, dueDate);
         Check.That(payerId != Guid.Empty && collectionAccountId != Guid.Empty,
             "cheque_reference_required", "الدافع وحساب تحت التحصيل مطلوبان.");
+        Check.That(createdAt != default, "cheque_created_at_required",
+            "وقت إنشاء الشيك مطلوب.");
         BranchId = branchId;
         FiscalYearId = fiscalYearId;
         Number = Check.Text(number, "رقم المستند", 64);
@@ -99,6 +101,8 @@ public sealed class OutgoingCheque : CompanyEntity
             documentDate, accountingDate, exchangeRate, amount, dueDate);
         Check.That(bankAccountId != Guid.Empty && beneficiaryId != Guid.Empty,
             "cheque_reference_required", "البنك والمستفيد مطلوبان.");
+        Check.That(createdAt != default, "cheque_created_at_required",
+            "وقت إنشاء الشيك مطلوب.");
         BranchId = branchId;
         FiscalYearId = fiscalYearId;
         Number = Check.Text(number, "رقم المستند", 64);
