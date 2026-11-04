@@ -140,6 +140,11 @@ public static class CashAdvanceSqlIntegration
             db.Database.ExecuteSqlInterpolatedAsync(
                 $"DELETE FROM [CashAdvances] WHERE [CompanyId]={companyId} AND [Id]={advanceId}"));
 
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, saved, "cash_advance_policy_unavailable");
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, savedLine, "cash_advance_policy_unavailable");
+
         var unchanged = await db.Set<CashAdvance>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == advanceId);
         Ensure(unchanged.Amount == 123.000001m && unchanged.Revision == 1 &&

@@ -161,6 +161,9 @@ public static class BankAccountSqlIntegration
                 FROM [BankAccounts] WHERE [CompanyId]={companyId} AND [Id]={bankId}");
         }
 
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, before, "bank_account_policy_unavailable");
+
         var after = await db.Set<BankAccount>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == bankId);
         Ensure(after.Version == before.Version && after.Revision == before.Revision &&
