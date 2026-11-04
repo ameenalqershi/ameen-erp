@@ -24,6 +24,8 @@ public sealed class UserDataScope : CompanyEntity
         Check.That(branchId != Guid.Empty && membershipId != Guid.Empty &&
             roleId != Guid.Empty, "data_scope_reference_invalid",
             "الشركة والعضوية والدور وفرع النطاق يجب أن تكون مراجع صحيحة.");
+        Check.That(now != default, "invalid_data_scope_audit_time",
+            "وقت إنشاء نطاق البيانات غير صالح.");
         Check.That(lines is { Count: > 0 }, "data_scope_lines_required",
             "يجب تحديد فرع واحد على الأقل للنطاق.");
         BranchId = branchId;
