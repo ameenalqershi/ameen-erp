@@ -1,3 +1,11 @@
+## INV16-01 — قاعدة أسباب الحركات المخزنية الآمنة دون تشغيل السياسة (5 نوفمبر 2026)
+
+**المصدر المعتمد:** Notion V1 (INV16-01، INV16-FG01..FG04) والتحليل الأصلي `muhaseb-erp-analysis/docs/modules/INV.md`؛ لا يعتمد على مخططات التخطيط الإضافية. حالة مهمة INV16-01 الأم `محجوب` إلى أن تُعتمد قيم اتجاه الحركة والحالة، شروط حساب المقابل ومركز التكلفة، وحدود مسارات الاعتماد/الفرع والمستندات INV07/INV08/INV13/INV14.
+
+**الجزء المنفذ:** إضافة Domain `InventoryMovementReason` وEF `ConfigureInventoryMovementReason` وترقية SQL `049_inventory_movement_reason_foundation.sql` لـ15 حقلاً (المعرّفات التقنية والأصلية والتدقيق)، مع علاقات tenant مركبة للشركة والفرع والحساب المقابل ومسار الاعتماد؛ ترقية XACT_ABORT مع قفل مخطط وإعادة تشغيل آمنة دون بذور. قيم الاتجاه والحالة رموز شكلية غير معتمدة ولا تُعامل كقائمة سياسية نهائية؛ لا تفترض فريدة رمز السبب عبر الفروع. حارس EF `inventory_movement_reason_policy_unavailable` يرفض INSERT/UPDATE/DELETE إلى حين اعتماد دورة الأعمال والموافقة. لا API ولا ترحيل ولا ميزان تكلفة أو حركة مخزون.
+
+**الاختبارات:** `InventoryMovementReasonFoundationTests` تتحقق من الحقول والعزل والشروط الشكلية ورفض المراجع/التوقيت غير الصالح؛ `InventoryMovementReasonSqlIntegration` تختبر ترقية 048→049 الذرية والمتكررة، roundtrip بالـ SQL المعزول في CI، علاقات tenant والمرجع ومسار الاعتماد والتدقيق، وحظر كتابة EF/غياب أثر GL/outbox. **تحقق محلي نهائي:** `python3 backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts /tmp/ameen-inv-v1-inv16-final` = **542/542 PASS؛ 0 FAILED**، بناء Release، traceability وSQL-model وHTTP/OpenAPI؛ **لم يُشغل SQL Server الحي محليًا**. يجب إثبات CI SQL ناجح على SHA النهائي قبل اعتماد الحزمة. لا تُحول المهمة الأم أو أي شاشة تشغيلية إلى مكتملة.
+
 ## GL11-T02 / GL12 — cross-tenant period read acceptance (4 November 2026)
 
 **Independent regression only; no new accounting rule:** `RateAndCloseTests.cs` verifies that an actor explicitly authorized for Read, Audit, PeriodClose and PeriodReopen in a *different* company cannot query the source company's existing period via GL11 close preview, GL11 execution history, or GL12 reopen-only history. All three must return `reference_not_found`; source period version/status and audit, idempotency, journal, and outbox counts remain unchanged. The original period has real close/reopen audit decisions in the test, rather than an empty-history false positive.
