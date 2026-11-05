@@ -1644,3 +1644,8 @@ Confirmed against the original read-only SYS10 dictionary and current `DocumentN
 ## CORE SPEC01 — تدقيق ربط قرارات النطاق (4 نوفمبر 2026)
 
 أضيف تقرير [تدقيق SPEC01 والقرارات D01–D08](core-spec01-decisions-audit-20261104.md) وحارس `backend/scripts/check_scope_decision_links.py` مع اختبارات قبول إيجابية وسلبية ضمن discovery الحالي لـ `verify.py`. القرارات الثمانية كلها محجوبة في Notion؛ التقرير يربط مصدرها بالمهام الحالية ولا يحسم سياسة أو مالك قرار غير محدد. هذه حزمة قراءة/مطابقة مستقلة من `temp/core-spec01-decision-audit-20261104-chat`؛ تبقى SPEC01 جزئية إلى حين قبول CI/مراجعة SUPERVISOR، وتبقى القرارات محجوبة ولا يتحول تدقيق النطاق إلى شهادة جاهزية إنتاج.
+
+
+## CORE SPEC05 — data and controls reference audit (2026-11-05)
+
+Added a read-only traceability audit for the complete original `muhaseb-erp-analysis/docs/05-data-and-controls.md` source. The audit separates 14 cross-screen requirement groups (DC01–DC14) from field-level, BR and AT implementation claims and maps each group to existing V1 Notion tasks. Artifacts: `docs/backend/core-spec05-data-controls-audit-20261105.md`, `docs/backend/core-spec05-data-controls-traceability.csv`, `backend/scripts/check_spec05_data_controls.py`, and eight positive/negative tests in `backend/scripts/tests/test_spec05_data_controls.py`. Every row explicitly records a blocker and an unassigned decision owner where the Notion record has no named owner; runtime acceptance remains `not-verified`. No original analysis, DDL, policy, permission, accounting behavior, production data, or SLA/RPO/RTO was changed or inferred. Validation is pending exact-head CI on the PR; this audit does not close operational requirements in other domains.
