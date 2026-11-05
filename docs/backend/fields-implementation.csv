@@ -1228,22 +1228,22 @@ SAL08,SAL08-F20,أنشأه,system,pending,,
 SAL08,SAL08-F21,وقت الإنشاء,system,pending,,
 SAL08,SAL08-F22,رقم إصدار التعديل,system,pending,,
 SAL08,SAL08-F23,آخر تعديل,system,pending,,
-SAL09,SAL09-F01,المعرف الداخلي,system,pending,,
-SAL09,SAL09-F02,الشركة,system,pending,,
-SAL09,SAL09-F03,الرمز,required,pending,,
-SAL09,SAL09-F04,الاسم العربي,required,pending,,
-SAL09,SAL09-F05,الاسم الإنجليزي,optional,pending,,
-SAL09,SAL09-F06,فعال,required,pending,,
-SAL09,SAL09-F07,ملاحظات,optional,pending,,
-SAL09,SAL09-F08,الموظف,optional,pending,,
-SAL09,SAL09-F09,المنطقة,required,pending,,
-SAL09,SAL09-F10,المشرف,optional,pending,,
-SAL09,SAL09-F11,حساب العهدة,optional,pending,,
-SAL09,SAL09-F12,سياسة العمولة,optional,pending,,
-SAL09,SAL09-F13,أنشأه,system,pending,,
-SAL09,SAL09-F14,وقت الإنشاء,system,pending,,
-SAL09,SAL09-F15,رقم إصدار التعديل,system,pending,,
-SAL09,SAL09-F16,آخر تعديل,system,pending,,
+SAL09,SAL09-F01,المعرف الداخلي,system,partial,SalesRepresentative.Id: tenant PK,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F02,الشركة,system,partial,CompanyId: FK Companies,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F03,الرمز,required,partial,"Code: nvarchar(32), unique per company",No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F04,الاسم العربي,required,partial,Name: nvarchar(200),No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F05,الاسم الإنجليزي,optional,partial,EnglishName: nullable nvarchar(200),No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F06,فعال,required,partial,IsActive: stored only,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F07,ملاحظات,optional,partial,Notes: nullable nvarchar(2000),No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F08,الموظف,optional,partial,"EmployeeId: opaque nullable GUID; HR03 missing, no FK",No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F09,المنطقة,required,partial,Region: required nvarchar(200),No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F10,المشرف,optional,partial,SupervisorId: opaque nullable GUID; target semantics unapproved,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F11,حساب العهدة,optional,partial,CustodyAccountId: nullable composite FK Accounts within company,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F12,سياسة العمولة,optional,partial,"CommissionPolicyId: opaque nullable GUID; SAL10 missing, no FK",No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F13,أنشأه,system,partial,"CreatedBy: nvarchar(200), no actor API",No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F14,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset(7),No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F15,رقم إصدار التعديل,system,partial,Revision: positive SQL integer; no edit workflow,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL09,SAL09-F16,آخر تعديل,system,partial,LastModifiedAt: datetimeoffset(7) >= CreatedAt,No public API; SQL 049 + EF mapping only; EF writes blocked
 SAL10,SAL10-F01,الشركة,system,pending,,
 SAL10,SAL10-F02,الفرع,conditional,pending,,
 SAL10,SAL10-F03,الحالة,system,pending,,
@@ -1327,23 +1327,23 @@ SAL14,SAL14-F25,أنشأه,system,pending,,
 SAL14,SAL14-F26,وقت الإنشاء,system,pending,,
 SAL14,SAL14-F27,رقم إصدار التعديل,system,pending,,
 SAL14,SAL14-F28,آخر تعديل,system,pending,,
-SAL15,SAL15-F01,المعرف الداخلي,system,pending,,
-SAL15,SAL15-F02,الشركة,system,pending,,
-SAL15,SAL15-F03,الرمز,required,pending,,
-SAL15,SAL15-F04,الاسم العربي,required,pending,,
-SAL15,SAL15-F05,الاسم الإنجليزي,optional,pending,,
-SAL15,SAL15-F06,فعال,required,pending,,
-SAL15,SAL15-F07,ملاحظات,optional,pending,,
-SAL15,SAL15-F08,المجموعة الأب,optional,pending,,
-SAL15,SAL15-F09,قائمة الأسعار,required,pending,,
-SAL15,SAL15-F10,حد ائتمان افتراضي,required,pending,,
-SAL15,SAL15-F11,عملة الحد,required,pending,,
-SAL15,SAL15-F12,شروط الدفع,required,pending,,
-SAL15,SAL15-F13,حساب الرقابة,required,pending,,
-SAL15,SAL15-F14,أنشأه,system,pending,,
-SAL15,SAL15-F15,وقت الإنشاء,system,pending,,
-SAL15,SAL15-F16,رقم إصدار التعديل,system,pending,,
-SAL15,SAL15-F17,آخر تعديل,system,pending,,
+SAL15,SAL15-F01,المعرف الداخلي,system,partial,CustomerGroup.Id: tenant PK,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F02,الشركة,system,partial,CompanyId: FK Companies,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F03,الرمز,required,partial,"Code: nvarchar(32), unique per company",No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F04,الاسم العربي,required,partial,Name: nvarchar(200),No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F05,الاسم الإنجليزي,optional,partial,EnglishName: nullable nvarchar(200),No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F06,فعال,required,partial,IsActive: stored only,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F07,ملاحظات,optional,partial,Notes: nullable nvarchar(2000),No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F08,المجموعة الأب,optional,partial,ParentGroupId: nullable same-company self FK,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F09,قائمة الأسعار,required,partial,PriceListId: required opaque GUID; SAL02 provider missing,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F10,حد ائتمان افتراضي,required,partial,"DefaultCreditLimit: decimal(20,6), nonnegative",No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F11,عملة الحد,required,partial,CreditCurrencyId: same-company FK Currencies; active check pending,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F12,شروط الدفع,required,partial,PaymentTermId: same-company FK PaymentTerms; SYS16 writes blocked,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F13,حساب الرقابة,required,partial,ControlAccountId: same-company FK Accounts; active check pending,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F14,أنشأه,system,partial,"CreatedBy: nvarchar(200), no actor API",No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F15,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset(7),No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F16,رقم إصدار التعديل,system,partial,Revision: positive SQL integer; no edit workflow,No public API; SQL 049 + EF mapping only; EF writes blocked
+SAL15,SAL15-F17,آخر تعديل,system,partial,LastModifiedAt: datetimeoffset(7) >= CreatedAt,No public API; SQL 049 + EF mapping only; EF writes blocked
 PUR01,PUR01-F01,المعرف الداخلي,system,pending,,
 PUR01,PUR01-F02,الشركة,system,pending,,
 PUR01,PUR01-F03,الرمز,required,pending,,

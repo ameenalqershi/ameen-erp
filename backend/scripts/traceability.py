@@ -573,6 +573,25 @@ for code, n, binding, status in [
 ]:
     MAP[code]["fields"][f"{code}-F{n:02}"] = dict(status=status, binding=binding)
 
+# SAL09/SAL15 are persisted structurally only. These mappings deliberately
+# remain partial because HR03/SAL10/SAL02/SYS16 and customer-scope policies
+# are not available; no public write API is implied by the SQL/EF schema.
+screen("SAL09", "No public API; SQL 049 + EF mapping only; EF writes blocked",
+       "SalesRepresentatives tenant table, unique company/code, audit, custody-account tenant FK; opaque employee/supervisor/commission IDs retained without fictional FKs",
+       "HR03 employee provider, supervisor target semantics, SAL10 commission policy, customer-scope authorization, active-reference checks and public API/SQL workflow acceptance",
+       {1:"SalesRepresentative.Id: tenant PK",2:"CompanyId: FK Companies",3:"Code: nvarchar(32), unique per company",4:"Name: nvarchar(200)",5:"EnglishName: nullable nvarchar(200)",6:"IsActive: stored only",7:"Notes: nullable nvarchar(2000)",8:"EmployeeId: opaque nullable GUID; HR03 missing, no FK",9:"Region: required nvarchar(200)",10:"SupervisorId: opaque nullable GUID; target semantics unapproved",11:"CustodyAccountId: nullable composite FK Accounts within company",12:"CommissionPolicyId: opaque nullable GUID; SAL10 missing, no FK",13:"CreatedBy: nvarchar(200), no actor API",14:"CreatedAt: datetimeoffset(7)",15:"Revision: positive SQL integer; no edit workflow",16:"LastModifiedAt: datetimeoffset(7) >= CreatedAt"})
+for n in range(1,17):
+    MAP["SAL09"]["fields"][f"SAL09-F{n:02}"]["status"] = "partial"
+MAP["SAL09"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in ["SalesRepresentativeFoundationTests.cs","SalesReferenceSqlIntegration.cs","SqlIntegration.cs"])
+
+screen("SAL15", "No public API; SQL 049 + EF mapping only; EF writes blocked",
+       "CustomerGroups tenant table, unique company/code, same-company parent, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit",
+       "SAL02 price-list provider (PriceListId remains opaque), active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API",
+       {1:"CustomerGroup.Id: tenant PK",2:"CompanyId: FK Companies",3:"Code: nvarchar(32), unique per company",4:"Name: nvarchar(200)",5:"EnglishName: nullable nvarchar(200)",6:"IsActive: stored only",7:"Notes: nullable nvarchar(2000)",8:"ParentGroupId: nullable same-company self FK",9:"PriceListId: required opaque GUID; SAL02 provider missing",10:"DefaultCreditLimit: decimal(20,6), nonnegative",11:"CreditCurrencyId: same-company FK Currencies; active check pending",12:"PaymentTermId: same-company FK PaymentTerms; SYS16 writes blocked",13:"ControlAccountId: same-company FK Accounts; active check pending",14:"CreatedBy: nvarchar(200), no actor API",15:"CreatedAt: datetimeoffset(7)",16:"Revision: positive SQL integer; no edit workflow",17:"LastModifiedAt: datetimeoffset(7) >= CreatedAt"})
+for n in range(1,18):
+    MAP["SAL15"]["fields"][f"SAL15-F{n:02}"]["status"] = "partial"
+MAP["SAL15"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in ["CustomerGroupFoundationTests.cs","SalesReferenceSqlIntegration.cs","SqlIntegration.cs"])
+
 RULES = {
     "BR01": ("manual-journal", "Decimal واتزان دقيق؛ رفض فقدان الدقة؛ فروق التقريب تحتاج سطرًا صريحًا", "Program.cs: BR01 / Wire contract"),
     "BR02": ("partial", "شركة وفرع وحساب ومركز وعملة وسعر ووحدة ومجموعة وصنف؛ مخازن ومواقع؛ لا أطراف أو ضرائب بعد", "Program.cs: BR02; SqlIntegration.cs: company isolation"),

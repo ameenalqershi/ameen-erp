@@ -1309,11 +1309,11 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 
 ## ملخص آلي من الأدلة المسجلة
 
-الشاشات: 150؛ منفذة جزئيًا: 43؛ لم تبدأ: 107؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
+الشاشات: 150؛ منفذة جزئيًا: 45؛ لم تبدأ: 105؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
 
-آخر تقرير محفوظ: `2026-11-02T19:37:11.777004+00:00`؛ النتيجة `passed`؛ 356/356، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
+آخر تقرير محفوظ: `2026-11-05T18:42:25.888630+00:00`؛ النتيجة `passed`؛ 536/536، فشل 0؛ SQL حي مطلوب: `False`. بصمة المصادر: `055c676a4fd23c85fd034aa0a643dd0e44901b57185fb44f3402faccb7ff3d44`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 248. نسبة الشاشات التي بدأ تنفيذها: **28.7%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 281. نسبة الشاشات التي بدأ تنفيذها: **30.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -1323,7 +1323,7 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | GL | 14 | 11 | 3 |
 | CASH | 11 | 9 | 2 |
 | INV | 16 | 6 | 10 |
-| SAL | 15 | 0 | 15 |
+| SAL | 15 | 2 | 13 |
 | PUR | 13 | 0 | 13 |
 | POS | 6 | 0 | 6 |
 | IMP | 6 | 0 | 6 |
@@ -1342,8 +1342,8 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | audit | 46 |
 | derived | 4 |
 | implemented | 349 |
-| partial | 248 |
-| pending | 2112 |
+| partial | 281 |
+| pending | 2079 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 
@@ -1437,13 +1437,13 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | SAL06 | فاتورة المبيعات | not-started | — | الشاشة كاملة |
 | SAL07 | مرتجع المبيعات | not-started | — | الشاشة كاملة |
 | SAL08 | إشعار دائن أو مدين للعميل | not-started | — | الشاشة كاملة |
-| SAL09 | المندوبون والمناطق | not-started | — | الشاشة كاملة |
+| SAL09 | المندوبون والمناطق | partial | SalesRepresentatives tenant table, unique company/code, audit, custody-account tenant FK; opaque employee/supervisor/commission IDs retained without fictional FKs | HR03 employee provider, supervisor target semantics, SAL10 commission policy, customer-scope authorization, active-reference checks and public API/SQL workflow acceptance |
 | SAL10 | العمولات وأهداف المبيعات | not-started | — | الشاشة كاملة |
 | SAL11 | تسوية وتخصيص تحصيل العملاء | not-started | — | الشاشة كاملة |
 | SAL12 | متابعة التحصيل وحد الائتمان | not-started | — | الشاشة كاملة |
 | SAL13 | حركات المبيعات والمرتجعات | not-started | — | الشاشة كاملة |
 | SAL14 | عرض أسعار المبيعات | not-started | — | الشاشة كاملة |
-| SAL15 | مجموعات العملاء وسياسات الائتمان | not-started | — | الشاشة كاملة |
+| SAL15 | مجموعات العملاء وسياسات الائتمان | partial | CustomerGroups tenant table, unique company/code, same-company parent, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit | SAL02 price-list provider (PriceListId remains opaque), active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API |
 
 ### شاشات PUR
 
@@ -1644,3 +1644,7 @@ Confirmed against the original read-only SYS10 dictionary and current `DocumentN
 ## CORE SPEC01 — تدقيق ربط قرارات النطاق (4 نوفمبر 2026)
 
 أضيف تقرير [تدقيق SPEC01 والقرارات D01–D08](core-spec01-decisions-audit-20261104.md) وحارس `backend/scripts/check_scope_decision_links.py` مع اختبارات قبول إيجابية وسلبية ضمن discovery الحالي لـ `verify.py`. القرارات الثمانية كلها محجوبة في Notion؛ التقرير يربط مصدرها بالمهام الحالية ولا يحسم سياسة أو مالك قرار غير محدد. هذه حزمة قراءة/مطابقة مستقلة من `temp/core-spec01-decision-audit-20261104-chat`؛ تبقى SPEC01 جزئية إلى حين قبول CI/مراجعة SUPERVISOR، وتبقى القرارات محجوبة ولا يتحول تدقيق النطاق إلى شهادة جاهزية إنتاج.
+
+## SAL09 / SAL15 — tenant-scoped persistence foundation (5 November 2026)
+
+أُدمجت الأسس البنيوية المعلقة للمندوبين ومجموعات العملاء داخل فرع العمل `sal` ثم أضيفت تهيئة EF وترقية SQL 049 الذرية والمعادة بأمان: SalesRepresentatives وCustomerGroups. يثبت المخطط مفتاح الشركة المركب وفريدة الرمز داخل الشركة، وFK حساب العهدة، وعلاقة المجموعة الأب، وعملة الائتمان وشروط الدفع وحساب الرقابة، مع دقة حد الائتمان 20,6. EmployeeId/SupervisorId/CommissionPolicyId وPriceListId بقيت مراجع GUID غير موصولة لأن مزودي HR03/SAL10/SAL02 غير متاحين. أضيفت حواجز EF لمنع insert/update/delete حتى اعتماد سياسات المراجع ونطاق العميل والائتمان؛ لا توجد API كتابة. اختبارات SQL المعزولة تغطي rollback/idempotency والـ FKs والحقول ورفض الكتابة. التفاصيل: `docs/backend/sal09-sal15-persistence-foundation-20261105.md`. تبقى SAL09-01 وSAL15-01 جزئيتين/محجوبتين تشغيليًا، ولا تُغلق AC/CTRL/OP.
