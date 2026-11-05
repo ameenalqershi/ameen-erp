@@ -1644,3 +1644,28 @@ Confirmed against the original read-only SYS10 dictionary and current `DocumentN
 ## CORE SPEC01 — تدقيق ربط قرارات النطاق (4 نوفمبر 2026)
 
 أضيف تقرير [تدقيق SPEC01 والقرارات D01–D08](core-spec01-decisions-audit-20261104.md) وحارس `backend/scripts/check_scope_decision_links.py` مع اختبارات قبول إيجابية وسلبية ضمن discovery الحالي لـ `verify.py`. القرارات الثمانية كلها محجوبة في Notion؛ التقرير يربط مصدرها بالمهام الحالية ولا يحسم سياسة أو مالك قرار غير محدد. هذه حزمة قراءة/مطابقة مستقلة من `temp/core-spec01-decision-audit-20261104-chat`؛ تبقى SPEC01 جزئية إلى حين قبول CI/مراجعة SUPERVISOR، وتبقى القرارات محجوبة ولا يتحول تدقيق النطاق إلى شهادة جاهزية إنتاج.
+
+
+## CORE SPEC05 — data and controls reference audit (2026-11-05)
+
+Added a read-only traceability audit for the complete original `muhaseb-erp-analysis/docs/05-data-and-controls.md` source. The audit separates 14 cross-screen requirement groups (DC01–DC14) from field-level, BR and AT implementation claims and maps each group to existing V1 Notion tasks. Artifacts: `docs/backend/core-spec05-data-controls-audit-20261105.md`, `docs/backend/core-spec05-data-controls-traceability.csv`, `backend/scripts/check_spec05_data_controls.py`, and eight positive/negative tests in `backend/scripts/tests/test_spec05_data_controls.py`. Every row explicitly records a blocker and an unassigned decision owner where the Notion record has no named owner; runtime acceptance remains `not-verified`. No original analysis, DDL, policy, permission, accounting behavior, production data, or SLA/RPO/RTO was changed or inferred. Exact-head CI on PR #171 passed: 79 Python tests and 533/533 backend/SQL/HTTP integration checks; this audit does not close operational requirements in other domains.
+
+
+## CORE SPEC06 — reference parity evidence audit (2026-11-05)
+
+Added a read-only audit of the complete original `muhaseb-erp-analysis/docs/06-reference-parity.md`, `data/sources.json`, and `data/parity-matrix.csv`. The eight source gaps GAP01–GAP08 are linked to existing Notion decisions/tasks. The source matrix currently contains 150 unique screen rows, all `غير متحقق`; reference build, page/screenshot, owner and verification-date fields remain blank. S01–S03 provide only broad product-domain evidence; S04–S06 remain recorded as inaccessible PDFs. Added report, traceability CSV, fail-closed checker, and eight positive/negative tests. No original analysis or matrix was changed; no parity percentage or match claim is made. D01/D02 and access to an authorized reference build remain prerequisites for actual comparison. Exact-head CI passed on combined PR #171 (79 Python tests; 533/533 backend verification).
+
+
+## CORE SPEC07 — workflow and acceptance-scenario audit (2026-11-05)
+
+Added a read-only traceability audit of the complete original `muhaseb-erp-analysis/docs/07-workflows-and-acceptance.md`. All 30 future acceptance scenarios AT01–AT30 are linked to their existing Notion scenario pages with source screens, expected result and an explicit blocker/dependency. Added a CSV, audit report, fail-closed checker and eight positive/negative tests. The source explicitly describes these as future acceptance tests; no scenario is reported as executed or passed. Policy-sensitive examples (FX valuation, inventory-cost allocation, tax, payroll, manufacturing, project retention) remain examples/dependencies, not new policies. No source-analysis changes.
+
+
+## CORE SPEC08 — report contracts and roadmap audit (2026-11-05)
+
+Added a read-only audit of the complete original `muhaseb-erp-analysis/docs/08-reports-and-roadmap.md`. All 19 report contracts are mapped to existing RPT-CONTRACT-01..19 Notion tasks, and all seven roadmap phases are mapped to existing decision/acceptance tasks. The shared report controls (company/branch/period/currency/conversion/status/extraction time, authorized drill-through, filter-consistent export, single-source aggregation) and report-specific reconciliation rules are recorded. Added two CSV matrices, an audit report, fail-closed checker and eight positive/negative tests. No report query was executed; all evidence remains `not-verified`. The source's no-technology/no-date/no-cost boundary is preserved.
+
+
+## Combined SPEC05–SPEC08 validation (2026-11-05)
+
+PR #171 exact head `32dd2245a10b7dea861774e228719ecbfc38603d` passed GitHub Actions run `42108701864` (run 1073): Python `79/79`, backend/.NET + isolated SQL + HTTP/JWT/OpenAPI verification `533/533`, API publish succeeded, SQL cleanup succeeded. PR #171 remains open and unmerged for SUPERVISOR review. This CI validates the current backend baseline and the four audit guards; it does not mean the 30 AT scenarios, 19 reports, 150 reference screen comparisons, backup/restore or other blocked operational acceptance work has been executed.
