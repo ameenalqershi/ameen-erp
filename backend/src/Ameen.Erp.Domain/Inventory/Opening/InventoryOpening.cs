@@ -36,15 +36,18 @@ public sealed class InventoryOpening : CompanyEntity
     {
         Check.That(documentDate != DateOnly.MinValue && accountingDate != DateOnly.MinValue && cutoffDate != DateOnly.MinValue,
             "opening_dates_required", "تواريخ المستند والأثر والقطع مطلوبة.");
+        Check.That(now != default, "opening_audit_time_required", "وقت إنشاء الافتتاح مطلوب.");
+        var createdBy = Check.Text(actor, "منشئ الافتتاح", 200);
         BranchId = branch; WarehouseId = warehouse; FiscalPeriodId = period.Id; FiscalYearId = period.FiscalYearId; Number = number;
         DocumentDate = documentDate; AccountingDate = accountingDate; CutoffDate = cutoffDate; CurrencyCode = Check.Currency(currency);
         CountReference = Check.Text(countReference, "مرجع الجرد", 100); Description = Check.Text(description, "البيان", 500);
         ExternalReference = externalReference is null ? null : Check.Text(externalReference, "المرجع", 100);
-        CreatedBy = actor; CreatedAt = now; ModifiedAt = now;
+        CreatedBy = createdBy; CreatedAt = now; ModifiedAt = now;
     }
     public void Edit(string description, IEnumerable<InventoryOpeningLine> lines, DateTimeOffset now)
     {
         Check.That(State is InventoryOpeningState.Draft or InventoryOpeningState.Returned, "opening_state_conflict", "التعديل لمسودة أو مستند معاد فقط.", ErrorKind.Conflict);
+        PreflightAdvance(now);
         var list = lines.ToList();
         Check.That(list.Count is >= 1 and <= 200, "invalid_opening_lines", "المستند يتكون من 1 إلى 200 سطر.");
         Check.That(list.All(x => x.CompanyId == CompanyId && x.OpeningId == Id), "opening_line_scope", "السطر خارج المستند.");
@@ -56,10 +59,12 @@ public sealed class InventoryOpening : CompanyEntity
     {
         var required = action switch { "submit" or "cancel" => InventoryOpeningState.Draft, "approve" or "return" => InventoryOpeningState.Submitted, _ => throw new BusinessException("invalid_transition", "الإجراء غير متاح.") };
         Check.That(State == required, "opening_state_conflict", "حالة المستند لا تسمح بالإجراء.", ErrorKind.Conflict);
+        PreflightAdvance(now);
+        var performedBy = Check.Text(actor, "منفذ إجراء الافتتاح", 200);
         if (action == "approve")
         {
-            Check.That(actor != CreatedBy, "self_approval_forbidden", "منشئ المستند لا يعتمده.", ErrorKind.Forbidden);
-            ApprovedBy = actor;
+            Check.That(performedBy != CreatedBy, "self_approval_forbidden", "منشئ المستند لا يعتمده.", ErrorKind.Forbidden);
+            ApprovedBy = performedBy;
         }
         State = action switch { "submit" => InventoryOpeningState.Submitted, "approve" => InventoryOpeningState.Approved, "return" => InventoryOpeningState.Returned, _ => InventoryOpeningState.Cancelled };
         Advance(now);
@@ -68,12 +73,14 @@ public sealed class InventoryOpening : CompanyEntity
     {
         Check.That(State == InventoryOpeningState.Draft && ReversesOpeningId is null && sourceId != Guid.Empty && sourceId != Id,
             "opening_reversal_source_conflict", "مصدر العكس غير صالح.", ErrorKind.Conflict);
-        ReversesOpeningId = sourceId; ReversalReason = Check.Text(reason, "سبب العكس", 500); Touch();
+        var validatedReason = Check.Text(reason, "سبب العكس", 500);
+        ReversesOpeningId = sourceId; ReversalReason = validatedReason; Touch();
     }
     public void CorrectReversal(string reason, DateTimeOffset now)
     {
         Check.That(ReversesOpeningId is not null && State == InventoryOpeningState.Returned,
             "opening_state_conflict", "التصحيح لمستند عكس معاد فقط.", ErrorKind.Conflict);
+        PreflightAdvance(now);
         ReversalReason = Check.Text(reason, "سبب العكس", 500); State = InventoryOpeningState.Draft; Advance(now);
     }
     public void Post(Guid journalId, Guid inventoryAccountId, Guid clearingAccountId, Guid settingsVersion, string actor, DateTimeOffset now)
@@ -81,12 +88,19 @@ public sealed class InventoryOpening : CompanyEntity
         Check.That(State == InventoryOpeningState.Approved && ApprovedBy is not null, "opening_state_conflict", "الترحيل يتطلب مستندًا معتمدًا.", ErrorKind.Conflict);
         Check.That(journalId != Guid.Empty && inventoryAccountId != Guid.Empty && clearingAccountId != Guid.Empty && settingsVersion != Guid.Empty,
             "invalid_stock_reference", "مراجع الترحيل مطلوبة.");
+        PreflightAdvance(now);
+        var postedBy = Check.Text(actor, "مرحل الافتتاح", 200);
         JournalId = journalId; InventoryAccountId = inventoryAccountId; ClearingAccountId = clearingAccountId;
-        PostingSettingsVersion = settingsVersion; PostedBy = actor; PostedAt = now; State = InventoryOpeningState.Posted; Advance(now);
+        PostingSettingsVersion = settingsVersion; PostedBy = postedBy; PostedAt = now; State = InventoryOpeningState.Posted; Advance(now);
+    }
+    private void PreflightAdvance(DateTimeOffset now)
+    {
+        Check.That(now != default, "opening_audit_time_required", "وقت تغيير الافتتاح مطلوب.");
+        Check.That(Revision < int.MaxValue, "opening_revision_exhausted", "بلغ الإصدار الحد الأقصى.", ErrorKind.Conflict);
     }
     private void Advance(DateTimeOffset now)
     {
-        Check.That(Revision < int.MaxValue, "opening_revision_exhausted", "بلغ الإصدار الحد الأقصى.", ErrorKind.Conflict);
+        PreflightAdvance(now);
         Revision++; ModifiedAt = now; Touch();
     }
 }

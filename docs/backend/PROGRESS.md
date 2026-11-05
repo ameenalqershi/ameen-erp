@@ -1,3 +1,21 @@
+## INV07/08/09/10/12/13/14/15-FG01 — isolated header-scope foundations (5 November 2026)
+
+**Selection:** Notion V1 numbered FG01 tasks only; original inventory analysis, field registry and module-INV diagram. Independent PRE work only; fail-closed INT/AC. INV07 remains blocked by PUR06/PUR07/IMP05/GL06 source contracts; INV08 by valuation + SAL05/MFG03; INV09/10 by in-transit and sender/receiver contracts; INV11 excluded because SAL04 is domain-only and its required SalesOrder provider is not SQL/EF-ready; INV12 by complete stock ledger/cutoff/blind-count replay; INV13 by INV12 and GL03 valuation; INV14 by quality/issue/disposal approval; INV15 by cost layers, IMP06 and GL10.
+
+**Implemented PRE scope:** eight separate tenant-scoped header-scope entities/tables for INV07-FG01, INV08-FG01, INV09-FG01, INV10-FG01, INV12-FG01, INV13-FG01, INV14-FG01 and INV15-FG01. Six tables contain CompanyEntity identity/tenant/version plus required BranchId and FiscalYearId (composite tenant FKs); INV12 has optional BranchId, opaque StatusCode and required WarehouseId; INV15 has optional BranchId, opaque StatusCode and non-default FromDate. Migration 050 is atomic/idempotent and creates 8 tables / 23 tenant-scoped FKs. Field mappings are partial with no API. An EF guard rejects Added/Modified/Deleted across all eight types. No guessed status enum, source discriminator, order/sales reference, valuation/cost, movement, approval or GL route.
+
+**Acceptance boundary:** InventoryDocumentFoundationTests checks field scope and invalid empty identifiers/status/date; InventoryDocumentFoundationSqlIntegration tests migration rollback on collision, idempotency, all eight SQL/EF table mappings, tenant branch/year/warehouse FKs, status/date checks and fail-closed EF writes with no audit/outbox/journal effects. Local Release verification: 546/546 PASS; live SQL unavailable locally and must be verified in CI on the pushed SHA. Eight Notion FG01 tasks are partial after local and SQL CI evidence; each parent screen remains blocked. INV11-FG01 is explicitly blocked in Notion because the SAL04 SalesOrder provider is not SQL/EF-ready; no implementation or invented reference was added. No original analysis or production data is changed.
+
+---
+
+## INV16-01 — قاعدة أسباب الحركات المخزنية الآمنة دون تشغيل السياسة (5 نوفمبر 2026)
+
+**المصدر المعتمد:** Notion V1 (INV16-01، INV16-FG01..FG04) والتحليل الأصلي `muhaseb-erp-analysis/docs/modules/INV.md`؛ لا يعتمد على مخططات التخطيط الإضافية. حالة مهمة INV16-01 الأم `محجوب` إلى أن تُعتمد قيم اتجاه الحركة والحالة، شروط حساب المقابل ومركز التكلفة، وحدود مسارات الاعتماد/الفرع والمستندات INV07/INV08/INV13/INV14.
+
+**الجزء المنفذ:** إضافة Domain `InventoryMovementReason` وEF `ConfigureInventoryMovementReason` وترقية SQL `049_inventory_movement_reason_foundation.sql` لـ15 حقلاً (المعرّفات التقنية والأصلية والتدقيق)، مع علاقات tenant مركبة للشركة والفرع والحساب المقابل ومسار الاعتماد؛ ترقية XACT_ABORT مع قفل مخطط وإعادة تشغيل آمنة دون بذور. قيم الاتجاه والحالة رموز شكلية غير معتمدة ولا تُعامل كقائمة سياسية نهائية؛ لا تفترض فريدة رمز السبب عبر الفروع. حارس EF `inventory_movement_reason_policy_unavailable` يرفض INSERT/UPDATE/DELETE إلى حين اعتماد دورة الأعمال والموافقة. لا API ولا ترحيل ولا ميزان تكلفة أو حركة مخزون.
+
+**الاختبارات:** `InventoryMovementReasonFoundationTests` تتحقق من الحقول والعزل والشروط الشكلية ورفض المراجع/التوقيت غير الصالح؛ `InventoryMovementReasonSqlIntegration` تختبر ترقية 048→049 الذرية والمتكررة، roundtrip بالـ SQL المعزول في CI، علاقات tenant والمرجع ومسار الاعتماد والتدقيق، وحظر كتابة EF/غياب أثر GL/outbox. **تحقق محلي نهائي:** `python3 backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts /tmp/ameen-inv-v1-inv16-final` = **542/542 PASS؛ 0 FAILED**، بناء Release، traceability وSQL-model وHTTP/OpenAPI؛ **لم يُشغل SQL Server الحي محليًا**. يجب إثبات CI SQL ناجح على SHA النهائي قبل اعتماد الحزمة. لا تُحول المهمة الأم أو أي شاشة تشغيلية إلى مكتملة.
+
 ## GL11-T02 / GL12 — cross-tenant period read acceptance (4 November 2026)
 
 **Independent regression only; no new accounting rule:** `RateAndCloseTests.cs` verifies that an actor explicitly authorized for Read, Audit, PeriodClose and PeriodReopen in a *different* company cannot query the source company's existing period via GL11 close preview, GL11 execution history, or GL12 reopen-only history. All three must return `reference_not_found`; source period version/status and audit, idempotency, journal, and outbox counts remain unchanged. The original period has real close/reopen audit decisions in the test, rather than an empty-history false positive.
@@ -11,6 +29,22 @@
 ## CORE DGM-01–15 — تحقق آلي من خرائط التنقل (4 نوفمبر 2026)
 
 أضيف حارس قراءة فقط يطابق 15 خريطة تنقل أصلية مع 150 شاشة في سجل التحليل، ويتحقق من المعرّفات والتسميات والفئات والحواف وصحة SVG، مع 8 اختبارات قبول موجبة وسالبة في `backend/scripts/tests/test_module_diagram_navigation.py`. يرجع إلى [تقرير التدقيق](core-module-diagram-navigation-audit-20261104.md). المخرجات لا تمثل تبعيات بناء أو اكتمال الشاشات. التنفيذ على `temp/core-diagram-nav-audit-20261104-chat` ولا دمج مباشر؛ يحتاج اختبار CI على HEAD النهائي ومراجعة SUPERVISOR قبل إغلاق مهام DGM-01–15.
+
+## INV06-FG07 / INV06-OP05 — حدود التدقيق الذري والعكس (5 نوفمبر 2026)
+
+- **فحص الجاهزية:** Notion V2 View Mode، عرض `READY | INV — المهام الجاهزة`: **0** مهام مصنفة جاهزة ومعتمدة للتنفيذ. عرض INV V2 الدقيق: `INV06-FG07` و`INV06-OP05` مكتملتان سابقًا، لذلك هذه حزمة تقوية رجوعية ولا يُحتسب منها إغلاق جديد.
+- **الحماية:** يرفض `InventoryOpening` في Domain هوية المنشئ الفارغة وتوقيت التدقيق الافتراضي، ويفحص صلاحية وقت التغيير ورقم `Revision` **قبل** أي تحديث لحقول الطلب في `Edit`/`Transition`/`CorrectReversal`/`Post`. يحفظ هوية منفذ الاعتماد والترحيل نصًا صحيحًا. لم تُضف سياسة موافقة أو سعر صرف أو تكلفة جديدة.
+- **عكس الافتتاح:** تحقق `SetReversalSource` من سبب العكس قبل حجز `ReversesOpeningId` أو رفع الإصدار؛ فشل السبب الفارغ أو الطويل لا يترك مرجعًا جزئيًا أو أثرًا تاريخيًا.
+- **القبول:** خمس حالات INV06-FG07 جديدة وحالة INV06-OP05؛ تغطي منشئًا/وقتًا مفقودين، اعتمادًا وترحيلًا بفاعل أو وقت غير صالح، نفاد رقم الإصدار عند تعديل/تقديم/ترحيل/تصحيح العكس، وحماية مرجع العكس عند سبب مرفوض. التحققات السلبية لا تكتب مخزونًا أو قيدًا أو outbox. لم تُعدل مخططات أو ملفات التحليل أو قاعدة الإنتاج.
+- **التحقق المحلي:** `backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts /tmp/ameen-inv-agent-20261105-final` أعطى **537/537 PASS؛ 0 FAILED** بعد بناء Release وفحوص البنية/التتبع وHTTP/OpenAPI. لم يُشغل SQL Server حيًا محليًا. يُلزم CI GitHub مع SQL Server معزول على SHA النهائي ولا يُعلن نجاحه قبل نتيجة الفحص. تبقى تكاملات GL02/FX والجودة والقطع والاستلام INV07+ خارج نطاق هذا التعديل، وليست مهام مكتملة جديدة.
+
+## INV06-FG05 — حماية ترتيب سطر الافتتاح ومرجعه (5 نوفمبر 2026)
+
+- تزامن فرع `inv` مع أحدث `origin/main` (SHA `4ddca22724a0a7aba0f5d0e45643c3bf99f9207d`) بدمج داخل `inv` فقط، دون تعديل `main` أو تحليل المشروع الأصلي.
+- في `InventoryOpeningLine` أضيف تحقق Domain لمنع `Position <= 0` ومنع `OpeningId == Guid.Empty` اتساقًا مع ترتيب SQL الموجب ومفاتيح المستند؛ لا تغيير لسياسة التقييم أو الترحيل أو الحالة أو قواعد النقدية.
+- حالة قبول INV06-FG05 جديدة تفحص سطرًا صحيحًا، وترتيبين غير صالحين، ومرجع افتتاح فارغًا، وتثبت عدم إنشاء `InventoryOpening` أو `StockMovement` أو `JournalEntry` أو `OutboxEvent` عند الرفض.
+- تحقق محلي: `backend/scripts/verify.py --dotnet /root/.dotnet/dotnet --artifacts /tmp/ameen-inv-agent-20261105-patch` = **531/531 passed; 0 failed** مع بناء Release وفحوص البنية/المخططات وHTTP/OpenAPI. لم تتوفر قيمة `AMEEN_TEST_SQL_CONNECTION` محليًا؛ لا يُدّعى قبول SQL حي أو نجاح CI للـ SHA الجديد قبل تحقق نتائج GitHub Actions.
+- هذا اختبار تقوية لمهمة `INV06-FG05` المكتملة سابقًا، ولا يغلق الاعتماديات المحاسبية وFX والجودة أو شاشة INV06 بالكامل. يظل INV07-01 محجوبًا لعقد مصدر الاستلام/GRNI/PUR المعتمد بحسب `INV07-SOURCE-CONTRACT-AUDIT.md`.
 
 ## SAL01-01 — بنية بطاقة العميل فقط (4 نوفمبر 2026)
 
@@ -1309,11 +1343,11 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 
 ## ملخص آلي من الأدلة المسجلة
 
-الشاشات: 150؛ منفذة جزئيًا: 43؛ لم تبدأ: 107؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
+الشاشات: 150؛ منفذة جزئيًا: 51؛ لم تبدأ: 99؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
 
 آخر تقرير محفوظ: `2026-11-02T19:37:11.777004+00:00`؛ النتيجة `passed`؛ 356/356، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 248. نسبة الشاشات التي بدأ تنفيذها: **28.7%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 280. نسبة الشاشات التي بدأ تنفيذها: **34.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -1322,7 +1356,7 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | SYS | 17 | 12 | 5 |
 | GL | 14 | 11 | 3 |
 | CASH | 11 | 9 | 2 |
-| INV | 16 | 6 | 10 |
+| INV | 16 | 14 | 2 |
 | SAL | 15 | 0 | 15 |
 | PUR | 13 | 0 | 13 |
 | POS | 6 | 0 | 6 |
@@ -1342,8 +1376,8 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | audit | 46 |
 | derived | 4 |
 | implemented | 349 |
-| partial | 248 |
-| pending | 2112 |
+| partial | 280 |
+| pending | 2080 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 
@@ -1414,15 +1448,15 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | INV04 | بطاقة الصنف | partial | بطاقة صنف ووحدات خاصة به ومعامل أساسي واحد وباركود فريد وسعر بالعملة الوظيفية؛ تحويل دقيق؛ حماية المجموعات والوحدات المستخدمة؛ بحث وحالة وتدقيق | قوائم نوع الصنف والتتبع نطاق أولي مستنتج من الغرض وINV05 وليست قائمة سياسة نهائية؛ الضريبة وحركة المخزون والدفعات والتسلسل التشغيلي والاستخدام المستندي غير منفذة؛ قفل الصنف بعد الحركة يجب إضافته مع دفتر المخزون |
 | INV05 | الدفعات والأرقام التسلسلية | partial | بطاقات هوية دفعات وتسلسل؛ بحث وتعديل وحالة وتدقيق وتزامن؛ فحص التاريخ وقفل تتبع الصنف؛ دون أثر مخزني | اعتماد الجودة وإلزام الصلاحية؛ إزالة افتراض الرقم القديم عند غيابه بعقد إصدار جديد؛ الاستخدام والضمان وربط المستندات وقيود الهوية المستخدمة غير منفذة |
 | INV06 | المخزون أول المدة | partial | تجهيز ومراجعة افتتاح ثم ترحيل ذري لحركة كمية وقيمة وقيد رقابة وOutbox؛ إعداد حساب التسوية ومعاينة الأثر؛ عكس مصدر معتمد بقيم تاريخية وحركات سالبة وقيد مرتبط؛ منع الافتتاح والعكس المكرر ومطابقة الإقفال وعزل الفروع | تسوية افتتاح GL02 الشاملة وإعادة افتتاح مصحح والعكس الجزئي والطباعة ومحرك تقييم الصرف؛ الأجنبية وسياسة القطع والجودة والمواقع وإدخال التسلسل النصي غير مكتملة |
-| INV07 | إذن إضافة واستلام مخزني | not-started | — | الشاشة كاملة |
-| INV08 | إذن صرف مخزني | not-started | — | الشاشة كاملة |
-| INV09 | طلب وتحويل مخزني | not-started | — | الشاشة كاملة |
-| INV10 | استلام تحويل مخزني | not-started | — | الشاشة كاملة |
+| INV07 | إذن إضافة واستلام مخزني | partial | FG01 structural scope only for إذن الاستلام; tenant key and scoped references mapped; all EF mutations fail closed | PUR06/PUR07/IMP05 source identity, supplier, receipt tolerance, provisional cost and GRNI/source-account route remain blocked. |
+| INV08 | إذن صرف مخزني | partial | FG01 structural scope only for إذن الصرف; tenant key and scoped references mapped; all EF mutations fail closed | Inventory valuation engine, SAL05 fulfillment, MFG03 source, purpose and account routing remain blocked. |
+| INV09 | طلب وتحويل مخزني | partial | FG01 structural scope only for طلب التحويل; tenant key and scoped references mapped; all EF mutations fail closed | In-transit quantity/cost, reserve/send semantics and INV10 receiving contract remain blocked. |
+| INV10 | استلام تحويل مخزني | partial | FG01 structural scope only for استلام التحويل; tenant key and scoped references mapped; all EF mutations fail closed | INV09 sent-line and in-transit balance, damaged/shortage disposition and reconciliation remain blocked. |
 | INV11 | حجز وإلغاء حجز المخزون | not-started | — | الشاشة كاملة |
-| INV12 | أوامر الجرد والعد | not-started | — | الشاشة كاملة |
-| INV13 | تسويات الجرد | not-started | — | الشاشة كاملة |
-| INV14 | تالف وصلاحية وعزل | not-started | — | الشاشة كاملة |
-| INV15 | احتساب وإعادة تقييم تكلفة المخزون | not-started | — | الشاشة كاملة |
+| INV12 | أوامر الجرد والعد | partial | FG01 structural scope only for أمر الجرد; tenant key and scoped references mapped; all EF mutations fail closed | Cutoff snapshot, blind-count visibility and exactly-once replay of post-cutoff movements remain blocked. |
+| INV13 | تسويات الجرد | partial | FG01 structural scope only for تسوية الجرد; tenant key and scoped references mapped; all EF mutations fail closed | Approved INV12 count, over/short valuation and GL03 difference account remain blocked. |
+| INV14 | تالف وصلاحية وعزل | partial | FG01 structural scope only for التالف والعزل; tenant key and scoped references mapped; all EF mutations fail closed | INV05 quality state, quarantine-versus-destruction decision, INV08 issue and loss-account approval remain blocked. |
+| INV15 | احتساب وإعادة تقييم تكلفة المخزون | partial | FG01 structural scope only for إعادة تقييم التكلفة; tenant key and scoped references mapped; all EF mutations fail closed | Approved cost-layer method, sold/remaining shares, IMP06 and GL10 remain blocked. |
 | INV16 | أسباب الحركات المخزنية | not-started | — | الشاشة كاملة |
 
 ### شاشات SAL
