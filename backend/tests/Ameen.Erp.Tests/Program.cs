@@ -647,6 +647,7 @@ ChequeFoundationTests.Register(Test);
 ChequeMovementFoundationTests.Register(Test);
 FiscalCalendarTests.Register(Test);
 RateAndCloseTests.Register(Test);
+PeriodReopenReasonValidationTests.Register(Test);
 UnitTests.Register(Test);
 ItemGroupTests.Register(Test);
 WarehouseTests.Register(Test);
