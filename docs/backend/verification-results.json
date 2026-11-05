@@ -1,5 +1,5 @@
 {
-  "startedAtUtc": "2026-11-05T18:41:12.944077+00:00",
+  "startedAtUtc": "2026-11-05T19:05:16.716062+00:00",
   "sdk": "10.0.403",
   "targetFramework": "net10.0",
   "configuration": "Release",
@@ -87,7 +87,7 @@
     }
   ],
   "result": "passed",
-  "sourceSha256": "055c676a4fd23c85fd034aa0a643dd0e44901b57185fb44f3402faccb7ff3d44",
+  "sourceSha256": "a84bc98a87deda3e7024c6bed6254a8adbcf39235d1c822cdb4c71eb3ae27a93",
   "checks": [
     "PASS CORE-01 baseline: 106 hashed files, 150 screens, 2759 fields, 28 diagrams",
     "PASS CORE DGM: 15 immutable module maps, 150 unique screen nodes; menu labels and navigation categories match",
@@ -100,7 +100,7 @@
     "PASS CORE DGM: 1 immutable module maps, 2 unique screen nodes; menu labels and navigation categories match",
     "PASS SPEC01: 2 original decisions linked to Notion, no missing tracked decision (online status not asserted)",
     "PASS SPEC01: 8 original decisions linked to Notion, no missing tracked decision (online status not asserted)",
-    "PASS schema migration sequence 001–049: unique, contiguous, SQL records match EF SchemaVersion",
+    "PASS schema migration sequence 001–050: unique, contiguous, SQL records match EF SchemaVersion",
     "PASS DIAG-module-CASH: 15 nodes, 14 directed navigation links, 3 category paths",
     "PASS DIAG-module-CASH: 11 screen headings, 213 contiguous original field IDs",
     "PASS DIAG-module-CASH: 11 matching SVG labels, 11 backend screen records",
@@ -231,6 +231,9 @@
     "PASS SAL09-01: reject missing required fields and invalid optional references",
     "PASS SAL15-01: group field fidelity without invoice or ledger effect",
     "PASS SAL15-01: invalid required references, amount and audit rejected",
+    "PASS SAL02-FG: price list header/lines retain exact references, decimals and dates",
+    "PASS SAL02-FG: nullable branch, end date and quantity remain optional",
+    "PASS SAL02-AC02: invalid references, precision, dates or audit are rejected",
     "PASS CASH10-01: bank period, signed balances and match fields retain exact values",
     "PASS CASH10-01: optional branch, file, ledger movement, difference explanation",
     "PASS CASH10-01: invalid dates, references, precision and negative match fail",
@@ -642,8 +645,8 @@
     "PASS HTTP: authentication boundary, journal lifecycle, replay, errors and exact JSON",
     "PASS OpenAPI: production routes expose optional draft headers without SQL dependency"
   ],
-  "passed": 536,
-  "total": 536,
+  "passed": 539,
+  "total": 539,
   "failed": 0,
-  "finishedAtUtc": "2026-11-05T18:42:25.888630+00:00"
+  "finishedAtUtc": "2026-11-05T19:06:27.871255+00:00"
 }

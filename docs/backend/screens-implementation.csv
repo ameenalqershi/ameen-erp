@@ -58,7 +58,7 @@ INV14,INV,تالف وصلاحية وعزل,not-started,,,الشاشة كاملة
 INV15,INV,احتساب وإعادة تقييم تكلفة المخزون,not-started,,,الشاشة كاملة,
 INV16,INV,أسباب الحركات المخزنية,not-started,,,الشاشة كاملة,
 SAL01,SAL,بطاقة العميل,not-started,,,الشاشة كاملة,
-SAL02,SAL,قوائم الأسعار والخصومات,not-started,,,الشاشة كاملة,
+SAL02,SAL,قوائم الأسعار والخصومات,partial,No public API; SQL 050 + EF mapping only; EF writes blocked,"SalesPriceLists/SalesPriceListLines tenant tables, branch/currency and item-unit-pair FKs, same-company CustomerGroups.PriceListId FK, decimal(20,6) and audit","Customer/group/general priority and assignment source, overlapping effective periods, discount authorization, customer-specific pricing, invoice integration and public API",backend/tests/Ameen.Erp.Tests/SalesPriceListFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SalesPriceListSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs
 SAL03,SAL,أرصدة العملاء أول المدة,not-started,,,الشاشة كاملة,
 SAL04,SAL,أمر البيع,not-started,,,الشاشة كاملة,
 SAL05,SAL,أمر تسليم مبيعات,not-started,,,الشاشة كاملة,
@@ -71,7 +71,7 @@ SAL11,SAL,تسوية وتخصيص تحصيل العملاء,not-started,,,الش
 SAL12,SAL,متابعة التحصيل وحد الائتمان,not-started,,,الشاشة كاملة,
 SAL13,SAL,حركات المبيعات والمرتجعات,not-started,,,الشاشة كاملة,
 SAL14,SAL,عرض أسعار المبيعات,not-started,,,الشاشة كاملة,
-SAL15,SAL,مجموعات العملاء وسياسات الائتمان,partial,No public API; SQL 049 + EF mapping only; EF writes blocked,"CustomerGroups tenant table, unique company/code, same-company parent, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit","SAL02 price-list provider (PriceListId remains opaque), active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API",backend/tests/Ameen.Erp.Tests/CustomerGroupFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SalesReferenceSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs
+SAL15,SAL,مجموعات العملاء وسياسات الائتمان,partial,No public API; SQL 049 + EF mapping only; EF writes blocked,"CustomerGroups tenant table, unique company/code, same-company parent, price-list, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit","Active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API",backend/tests/Ameen.Erp.Tests/CustomerGroupFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SalesReferenceSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs
 PUR01,PUR,بطاقة المورد,not-started,,,الشاشة كاملة,
 PUR02,PUR,أسعار واتفاقيات الموردين,not-started,,,الشاشة كاملة,
 PUR03,PUR,أرصدة الموردين أول المدة,not-started,,,الشاشة كاملة,

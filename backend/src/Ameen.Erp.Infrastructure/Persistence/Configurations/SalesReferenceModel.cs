@@ -55,7 +55,9 @@ public sealed partial class ErpDbContext
         groups.HasOne<Account>().WithMany()
             .HasForeignKey(x => new { x.CompanyId, x.ControlAccountId })
             .OnDelete(DeleteBehavior.NoAction);
-        // PriceListId remains an opaque required reference: SAL02 has no provider yet.
+        groups.HasOne<SalesPriceList>().WithMany()
+            .HasForeignKey(x => new { x.CompanyId, x.PriceListId })
+            .OnDelete(DeleteBehavior.NoAction);
         Constraint(groups, "CK_CustomerGroup_Audit",
             "[Revision] > 0 AND [LastModifiedAt] >= [CreatedAt]");
         Constraint(groups, "CK_CustomerGroup_Credit",

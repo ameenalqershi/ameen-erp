@@ -573,8 +573,18 @@ for code, n, binding, status in [
 ]:
     MAP[code]["fields"][f"{code}-F{n:02}"] = dict(status=status, binding=binding)
 
+# SAL02 price-list header/line persistence is structural; pricing priority,
+# overlap arbitration and discount approval are deliberately not implemented.
+screen("SAL02", "No public API; SQL 050 + EF mapping only; EF writes blocked",
+       "SalesPriceLists/SalesPriceListLines tenant tables, branch/currency and item-unit-pair FKs, same-company CustomerGroups.PriceListId FK, decimal(20,6) and audit",
+       "Customer/group/general priority and assignment source, overlapping effective periods, discount authorization, customer-specific pricing, invoice integration and public API",
+       {1:"CompanyId: tenant FK Companies",2:"BranchId: nullable same-company FK Branches",3:"Status: opaque nvarchar(64); no state graph",4:"Name: required nvarchar(200)",5:"CurrencyId: same-company FK Currencies",6:"EffectiveFrom: SQL date",7:"EffectiveTo: nullable SQL date; not before EffectiveFrom",8:"IncludesTax: bit snapshot only; no tax calculation",9:"ItemId: part of same-company ItemUnit FK",10:"UnitId: part of same-company ItemUnit FK; rejects mismatched pair",11:"Price: decimal(20,6), nonnegative",12:"DiscountLimit: decimal(20,6), nonnegative; policy/upper bound pending",13:"QuantityThreshold: nullable decimal(20,6), nonnegative",14:"CreatedBy: stored only; no actor API",15:"CreatedAt: datetimeoffset(7)",16:"Revision: positive SQL integer; no edit workflow",17:"LastModifiedAt: datetimeoffset(7) >= CreatedAt"})
+for n in range(1,18):
+    MAP["SAL02"]["fields"][f"SAL02-F{n:02}"]["status"] = "partial"
+MAP["SAL02"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in ["SalesPriceListFoundationTests.cs","SalesPriceListSqlIntegration.cs","SqlIntegration.cs"])
+
 # SAL09/SAL15 are persisted structurally only. These mappings deliberately
-# remain partial because HR03/SAL10/SAL02/SYS16 and customer-scope policies
+# remain partial because HR03/SAL10/SYS16 and customer-scope policies
 # are not available; no public write API is implied by the SQL/EF schema.
 screen("SAL09", "No public API; SQL 049 + EF mapping only; EF writes blocked",
        "SalesRepresentatives tenant table, unique company/code, audit, custody-account tenant FK; opaque employee/supervisor/commission IDs retained without fictional FKs",
@@ -585,9 +595,9 @@ for n in range(1,17):
 MAP["SAL09"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in ["SalesRepresentativeFoundationTests.cs","SalesReferenceSqlIntegration.cs","SqlIntegration.cs"])
 
 screen("SAL15", "No public API; SQL 049 + EF mapping only; EF writes blocked",
-       "CustomerGroups tenant table, unique company/code, same-company parent, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit",
-       "SAL02 price-list provider (PriceListId remains opaque), active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API",
-       {1:"CustomerGroup.Id: tenant PK",2:"CompanyId: FK Companies",3:"Code: nvarchar(32), unique per company",4:"Name: nvarchar(200)",5:"EnglishName: nullable nvarchar(200)",6:"IsActive: stored only",7:"Notes: nullable nvarchar(2000)",8:"ParentGroupId: nullable same-company self FK",9:"PriceListId: required opaque GUID; SAL02 provider missing",10:"DefaultCreditLimit: decimal(20,6), nonnegative",11:"CreditCurrencyId: same-company FK Currencies; active check pending",12:"PaymentTermId: same-company FK PaymentTerms; SYS16 writes blocked",13:"ControlAccountId: same-company FK Accounts; active check pending",14:"CreatedBy: nvarchar(200), no actor API",15:"CreatedAt: datetimeoffset(7)",16:"Revision: positive SQL integer; no edit workflow",17:"LastModifiedAt: datetimeoffset(7) >= CreatedAt"})
+       "CustomerGroups tenant table, unique company/code, same-company parent, price-list, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit",
+       "Active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API",
+       {1:"CustomerGroup.Id: tenant PK",2:"CompanyId: FK Companies",3:"Code: nvarchar(32), unique per company",4:"Name: nvarchar(200)",5:"EnglishName: nullable nvarchar(200)",6:"IsActive: stored only",7:"Notes: nullable nvarchar(2000)",8:"ParentGroupId: nullable same-company self FK",9:"PriceListId: required same-company FK SalesPriceLists; priority/active checks pending",10:"DefaultCreditLimit: decimal(20,6), nonnegative",11:"CreditCurrencyId: same-company FK Currencies; active check pending",12:"PaymentTermId: same-company FK PaymentTerms; SYS16 writes blocked",13:"ControlAccountId: same-company FK Accounts; active check pending",14:"CreatedBy: nvarchar(200), no actor API",15:"CreatedAt: datetimeoffset(7)",16:"Revision: positive SQL integer; no edit workflow",17:"LastModifiedAt: datetimeoffset(7) >= CreatedAt"})
 for n in range(1,18):
     MAP["SAL15"]["fields"][f"SAL15-F{n:02}"]["status"] = "partial"
 MAP["SAL15"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in ["CustomerGroupFoundationTests.cs","SalesReferenceSqlIntegration.cs","SqlIntegration.cs"])

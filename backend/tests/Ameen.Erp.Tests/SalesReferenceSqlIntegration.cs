@@ -67,16 +67,16 @@ public static class SalesReferenceSqlIntegration
         Ensure(groupType.FindProperty(nameof(CustomerGroup.DefaultCreditLimit))!.GetPrecision() == 20 &&
             groupType.FindProperty(nameof(CustomerGroup.DefaultCreditLimit))!.GetScale() == 6,
             "SAL15 credit limit precision mismatch");
-        Ensure(!groupType.GetForeignKeys().Any(fk =>
-                fk.Properties.Any(p => p.Name == nameof(CustomerGroup.PriceListId))) &&
+        Ensure(groupType.GetForeignKeys().Any(fk => fk.Properties.Select(p => p.Name).SequenceEqual(
+                new[] { nameof(CustomerGroup.CompanyId), nameof(CustomerGroup.PriceListId) })) &&
             !repType.GetForeignKeys().Any(fk => fk.Properties.Any(p =>
                 p.Name is nameof(SalesRepresentative.EmployeeId) or nameof(SalesRepresentative.SupervisorId) or
                     nameof(SalesRepresentative.CommissionPolicyId))),
-            "SAL09/SAL15 unavailable providers must not get fictional foreign keys");
+            "SAL09 unavailable providers must not get fictional FKs; SAL15 price list must be tenant-scoped");
         Console.WriteLine("  SQL PASS SAL09/SAL15 atomic/idempotent 049 migration, tenant FKs, EF mapping and no seeds");
     }
 
-    public static async Task Guard(ErpDbContext db, Guid companyId, Guid accountId, string actor)
+    public static async Task Guard(ErpDbContext db, Guid companyId, Guid accountId, Guid priceListId, string actor)
     {
         var currencyId = await db.Set<Currency>().Where(x => x.CompanyId == companyId && x.Code == "SAR")
             .Select(x => x.Id).SingleAsync();
@@ -87,7 +87,7 @@ public static class SalesReferenceSqlIntegration
         var employee = Guid.NewGuid();
         var supervisor = Guid.NewGuid();
         var commission = Guid.NewGuid();
-        var priceList = Guid.NewGuid();
+        var priceList = priceListId;
         var parentGroupId = Guid.NewGuid();
         var childGroupId = Guid.NewGuid();
         await db.Database.ExecuteSqlInterpolatedAsync($@"
@@ -156,6 +156,10 @@ public static class SalesReferenceSqlIntegration
         await RejectSql("SAL15 zero price list reference",
             db.Database.ExecuteSqlInterpolatedAsync($@"
               UPDATE dbo.CustomerGroups SET PriceListId={Guid.Empty}
+              WHERE CompanyId={companyId} AND Id={childGroupId}"), 547);
+        await RejectSql("SAL15 foreign price list",
+            db.Database.ExecuteSqlInterpolatedAsync($@"
+              UPDATE dbo.CustomerGroups SET PriceListId={Guid.NewGuid()}
               WHERE CompanyId={companyId} AND Id={childGroupId}"), 547);
         await RejectSql("SAL15 foreign currency",
             db.Database.ExecuteSqlInterpolatedAsync($@"

@@ -53,6 +53,7 @@ public static class SqlIntegration
                 await MembershipAuditSqlIntegration.Upgrade(db);
                 await CustomerSqlIntegration.Upgrade(db);
                 await SalesReferenceSqlIntegration.Upgrade(db);
+                await SalesPriceListSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await using (var fiscalAuditDb = f.Context())
@@ -63,8 +64,11 @@ public static class SqlIntegration
                 await CustomerSqlIntegration.Guard(customerDb, f.CompanyId, f.EquityId, f.Owner.Subject);
             await using (var paymentSchemaDb = f.Context())
                 await PaymentTermSqlIntegration.Guard(paymentSchemaDb, f.CompanyId, f.BranchId, f.CashId);
+            Guid priceListId;
+            await using (var salesPriceListDb = f.Context())
+                priceListId = await SalesPriceListSqlIntegration.Guard(salesPriceListDb, f.CompanyId, f.BranchId, f.Owner);
             await using (var salesReferenceDb = f.Context())
-                await SalesReferenceSqlIntegration.Guard(salesReferenceDb, f.CompanyId, f.EquityId, f.Owner.Subject);
+                await SalesReferenceSqlIntegration.Guard(salesReferenceDb, f.CompanyId, f.EquityId, priceListId, f.Owner.Subject);
             await using (var advanceSchemaDb = f.Context())
                 await CashAdvanceSqlIntegration.Guard(advanceSchemaDb, f.CompanyId, f.BranchId);
             await using (var reconDb = f.Context())

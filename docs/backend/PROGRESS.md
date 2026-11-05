@@ -1309,11 +1309,11 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 
 ## ملخص آلي من الأدلة المسجلة
 
-الشاشات: 150؛ منفذة جزئيًا: 45؛ لم تبدأ: 105؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
+الشاشات: 150؛ منفذة جزئيًا: 46؛ لم تبدأ: 104؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
 
-آخر تقرير محفوظ: `2026-11-05T18:42:25.888630+00:00`؛ النتيجة `passed`؛ 536/536، فشل 0؛ SQL حي مطلوب: `False`. بصمة المصادر: `055c676a4fd23c85fd034aa0a643dd0e44901b57185fb44f3402faccb7ff3d44`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
+آخر تقرير محفوظ: `2026-11-05T19:06:27.871255+00:00`؛ النتيجة `passed`؛ 539/539، فشل 0؛ SQL حي مطلوب: `False`. بصمة المصادر: `a84bc98a87deda3e7024c6bed6254a8adbcf39235d1c822cdb4c71eb3ae27a93`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 281. نسبة الشاشات التي بدأ تنفيذها: **30.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 298. نسبة الشاشات التي بدأ تنفيذها: **30.7%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -1323,7 +1323,7 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | GL | 14 | 11 | 3 |
 | CASH | 11 | 9 | 2 |
 | INV | 16 | 6 | 10 |
-| SAL | 15 | 2 | 13 |
+| SAL | 15 | 3 | 12 |
 | PUR | 13 | 0 | 13 |
 | POS | 6 | 0 | 6 |
 | IMP | 6 | 0 | 6 |
@@ -1342,8 +1342,8 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | audit | 46 |
 | derived | 4 |
 | implemented | 349 |
-| partial | 281 |
-| pending | 2079 |
+| partial | 298 |
+| pending | 2062 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 
@@ -1430,7 +1430,7 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | الشاشة | الاسم | الحالة | المنفذ | المتبقي |
 | --- | --- | --- | --- | --- |
 | SAL01 | بطاقة العميل | not-started | — | الشاشة كاملة |
-| SAL02 | قوائم الأسعار والخصومات | not-started | — | الشاشة كاملة |
+| SAL02 | قوائم الأسعار والخصومات | partial | SalesPriceLists/SalesPriceListLines tenant tables, branch/currency and item-unit-pair FKs, same-company CustomerGroups.PriceListId FK, decimal(20,6) and audit | Customer/group/general priority and assignment source, overlapping effective periods, discount authorization, customer-specific pricing, invoice integration and public API |
 | SAL03 | أرصدة العملاء أول المدة | not-started | — | الشاشة كاملة |
 | SAL04 | أمر البيع | not-started | — | الشاشة كاملة |
 | SAL05 | أمر تسليم مبيعات | not-started | — | الشاشة كاملة |
@@ -1443,7 +1443,7 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | SAL12 | متابعة التحصيل وحد الائتمان | not-started | — | الشاشة كاملة |
 | SAL13 | حركات المبيعات والمرتجعات | not-started | — | الشاشة كاملة |
 | SAL14 | عرض أسعار المبيعات | not-started | — | الشاشة كاملة |
-| SAL15 | مجموعات العملاء وسياسات الائتمان | partial | CustomerGroups tenant table, unique company/code, same-company parent, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit | SAL02 price-list provider (PriceListId remains opaque), active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API |
+| SAL15 | مجموعات العملاء وسياسات الائتمان | partial | CustomerGroups tenant table, unique company/code, same-company parent, price-list, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit | Active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API |
 
 ### شاشات PUR
 
@@ -1647,4 +1647,8 @@ Confirmed against the original read-only SYS10 dictionary and current `DocumentN
 
 ## SAL09 / SAL15 — tenant-scoped persistence foundation (5 November 2026)
 
-أُدمجت الأسس البنيوية المعلقة للمندوبين ومجموعات العملاء داخل فرع العمل `sal` ثم أضيفت تهيئة EF وترقية SQL 049 الذرية والمعادة بأمان: SalesRepresentatives وCustomerGroups. يثبت المخطط مفتاح الشركة المركب وفريدة الرمز داخل الشركة، وFK حساب العهدة، وعلاقة المجموعة الأب، وعملة الائتمان وشروط الدفع وحساب الرقابة، مع دقة حد الائتمان 20,6. EmployeeId/SupervisorId/CommissionPolicyId وPriceListId بقيت مراجع GUID غير موصولة لأن مزودي HR03/SAL10/SAL02 غير متاحين. أضيفت حواجز EF لمنع insert/update/delete حتى اعتماد سياسات المراجع ونطاق العميل والائتمان؛ لا توجد API كتابة. اختبارات SQL المعزولة تغطي rollback/idempotency والـ FKs والحقول ورفض الكتابة. التفاصيل: `docs/backend/sal09-sal15-persistence-foundation-20261105.md`. تبقى SAL09-01 وSAL15-01 جزئيتين/محجوبتين تشغيليًا، ولا تُغلق AC/CTRL/OP.
+أُضيفت تهيئة EF وترقية SQL 049 للمندوبين ومجموعات العملاء، ثم SQL 050 أضافت مزود قائمة الأسعار وربط PriceListId بـFK داخل الشركة. يبقى EmployeeId/SupervisorId/CommissionPolicyId غير موصول لأن HR03/SAL10 غير متاحين؛ وتبقى صلاحيات نطاق العملاء وسياسات الائتمان وشروط الدفع الفعالة محجوبة. حواجز EF تمنع جميع الكتابات، ولا توجد API تشغيلية. التفاصيل في `docs/backend/sal09-sal15-persistence-foundation-20261105.md`. تبقى SAL09-01 وSAL15-01 جزئيتين/محجوبتين تشغيليًا، ولا تُغلق AC/CTRL/OP.
+
+## SAL02 — tenant-scoped price-list persistence foundation (5 November 2026)
+
+أضيفت ترقية SQL 050 وجداول SalesPriceLists/SalesPriceListLines مع EF، وربطت PriceListId في مجموعات العملاء بـFK مركب داخل الشركة. تحفظ القائمة الفرع والعملة والتواريخ وحالة غير مفسرة وشمول الضريبة، وتحفظ السطور الصنف والوحدة كزوج ItemUnit صحيح والسعر وحد الخصم وحد الكمية بدقة 20,6. اختبارات SQL تغطي الترقية الذرية والتكرار ورفض المراجع غير الصحيحة وزوج الصنف/الوحدة، مع حظر insert/update/delete عبر EF. لا توجد API أو أولوية تسعير أو معالجة تداخل صلاحية أو تفويض خصم أو أثر فاتورة؛ حقول المصدر لا تحدد عقد تعيين قائمة العميل/المجموعة/العامة، فلا ننشئ جدول تعيين مخمّنًا. SAL02-01 يبقى جزئيًا/محجوبًا تشغيليًا، وتظل SAL15 جزئية بعد إضافة FK القائمة. التفاصيل: `docs/backend/sal02-price-list-persistence-20261105.md`.
