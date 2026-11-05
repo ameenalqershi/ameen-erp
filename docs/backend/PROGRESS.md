@@ -1,3 +1,22 @@
+## GL09-C01 — أساس تحقق الجدولة دون تفعيل قيد مالي (5 نوفمبر 2026)
+
+أضيف `AccrualScheduleTotalPolicy` كحارس حسابي **نقي وغير تشغيلي** لشاشة GL09:
+يقبل مجموع مبالغ الجدولة إذا طابق إجمالي العقد تمامًا دون التقريب، ويرفض
+تكرار معرّف الفترة، أو غياب بيانات الفترة أو تجاوز حدود جمع `decimal`.
+كما يرفض أي `GL09-F14/F20` خارج `Decimal(20,6)` أو يتطلب تقريبًا
+صامتًا قبل التخزين، بما في ذلك سطران بدقة زائدة مجموعهما صحيح ظاهريًا.
+حالات القبول والرفض موثقة بأربعة اختبارات في `AccrualScheduleTotalTests`.
+لا يستدعي الحارس دفتر الأستاذ أو قاعدة البيانات أو أي واجهة HTTP، ولا ينشئ
+قيودًا أو ترحيلًا أو تدقيقًا أو صلاحيات. يجب أن يتحقق مسار الكتابة المستقبلي
+من هوية الشركة والفرع والفترة والمراجع ضمن قاعدة البيانات وبالمعاملة الذرية.
+
+**حالة GL09-C01: جزئي فقط.** لا توجد بعد سياسة معتمدة لقائمة `GL09-F13`
+«نوع الجدولة»، أو عقد تشغيل/اعتماد التكامل مع GL04، ولا توجد دورة مستند GL09
+متكاملة أو اختبارات SQL/HTTPS/JWT/OpenAPI لها. لا يجوز استخدام هذه الدالة
+للترحيل أو إعلان اكتمال شاشة GL09 أو مهمة C01 حتى إقرار الحواجز التشغيلية.
+الأصل `muhaseb-erp-analysis/docs/modules/GL.md` لم يتغير، ولم تُحدّث
+مصفوفات التغطية لتوحي باكتمال الحقول. اجتاز التحقق المحلي 533/533 والـ CI رقم 41914117549 على SHA 33c81a1 بنجاح؛ تبقى المهمة جزئية.
+
 ## GL11-T02 / GL12 — cross-tenant period read acceptance (4 November 2026)
 
 **Independent regression only; no new accounting rule:** `RateAndCloseTests.cs` verifies that an actor explicitly authorized for Read, Audit, PeriodClose and PeriodReopen in a *different* company cannot query the source company's existing period via GL11 close preview, GL11 execution history, or GL12 reopen-only history. All three must return `reference_not_found`; source period version/status and audit, idempotency, journal, and outbox counts remain unchanged. The original period has real close/reopen audit decisions in the test, rather than an empty-history false positive.
