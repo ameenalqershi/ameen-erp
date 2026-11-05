@@ -46,6 +46,9 @@ public static class UserDataScopeFoundationTests
             UserDataScope Create(Guid cid,Guid? branch,Guid m,Guid r,
                 IReadOnlyList<(Guid,Guid?,Guid?,Guid?,Guid?)> l) =>
                 new(cid,branch,"unapproved-status",m,r,f.Owner.Subject,now,l);
+            Error("invalid_data_scope_audit_time",()=>new UserDataScope(
+                f.CompanyId,f.BranchId,"unapproved-status",member,role,f.Owner.Subject,
+                default,line));
             Error("company_required",()=>Create(Guid.Empty,f.BranchId,member,role,line));
             Error("data_scope_reference_invalid",()=>Create(f.CompanyId,Guid.Empty,member,role,line));
             Error("data_scope_reference_invalid",()=>Create(f.CompanyId,null,Guid.Empty,role,line));
