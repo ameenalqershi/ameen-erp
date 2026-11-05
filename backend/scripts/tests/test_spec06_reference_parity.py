@@ -71,7 +71,7 @@ class Spec06ReferenceParityTests(unittest.TestCase):
             audit.check(self.source, self.matrix, self.sources, self.report)
 
     def test_report_must_keep_unverified_boundary(self):
-        self.report.write_text(self.report.read_text(encoding="utf-8").replace("150/150 شاشة ما زالت", "150/150 شاشة أصبحت"), encoding="utf-8")
+        self.report.write_text(self.report.read_text(encoding="utf-8").replace("8/8 فجوات", "7/8 فجوات"), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "missing audit boundary"):
             audit.check(self.source, self.matrix, self.sources, self.report)
 
