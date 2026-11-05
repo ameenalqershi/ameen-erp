@@ -139,7 +139,7 @@ SYS09,SYS09-F09,المرحلة,required,partial,"ApprovalRouteStage.StageNumber:
 SYS09,SYS09-F10,الدور المعتمد,required,partial,ApproverRoleId: required tenant SYS07 role FK via SQL 029; role policy not validated; persistence blocked,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F11,مهلة التنبيه,optional,partial,AlertAfterMinutes: nullable nonnegative; no automatic approval,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F12,أنشأه,system,partial,"CreatedBy: actor field; hydrated audit preflight only, no API",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
-SYS09,SYS09-F13,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset; hydrated audit preflight only,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
+SYS09,SYS09-F13,وقت الإنشاء,system,partial,CreatedAt: datetimeoffset; creation rejects unset timestamp; hydrated audit preflight only,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F14,رقم إصدار التعديل,system,partial,"Revision: server integer, domain-only expected-revision editing and snapshot check",internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS09,SYS09-F15,آخر تعديل,system,partial,LastModifiedAt: datetimeoffset; hydrated audit chronology preflight,internal EF/SQL 028 only; no public SYS09 API; existing journal separation policy remains independent
 SYS10,SYS10-F01,الشركة,system,implemented,CompanyId,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
@@ -150,7 +150,7 @@ SYS10,SYS10-F05,السنة,required,implemented,FiscalYearId,GET/POST /companies
 SYS10,SYS10-F06,البادئة,optional,implemented,Prefix: optional user text,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F07,الرقم التالي,required,implemented,NextNumber: monotonic server allocation and explicit forward edit,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F08,أنشأه,system,implemented,CreatedBy,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
-SYS10,SYS10-F09,وقت الإنشاء,system,implemented,CreatedAt,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
+SYS10,SYS10-F09,وقت الإنشاء,system,implemented,CreatedAt: nondefault domain audit guard,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F10,رقم إصدار التعديل,system,implemented,Revision: integer separate from Version UUID,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS10,SYS10-F11,آخر تعديل,system,implemented,LastModifiedAt,GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events
 SYS11,SYS11-F01,الشركة,system,pending,,

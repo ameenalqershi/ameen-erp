@@ -16,6 +16,7 @@ public sealed class DocumentNumberSeries : CompanyEntity
     public DocumentNumberSeries(Guid cid, Guid? branchId, NumberingDocumentKind kind, Guid yearId,
         string? prefix, long next, string actor, DateTimeOffset now) : base(cid)
     {
+        Check.That(now != default, "invalid_numbering_audit_time", "وقت إنشاء سلسلة الترقيم غير صالح.");
         Check.That(Enum.IsDefined(kind), "invalid_numbering_kind", "نوع مستند غير صالح.");
         Check.That(branchId != Guid.Empty && yearId != Guid.Empty, "invalid_numbering_scope", "نطاق الترقيم غير صالح.");
         BranchId=branchId; DocumentKind=kind; FiscalYearId=yearId;

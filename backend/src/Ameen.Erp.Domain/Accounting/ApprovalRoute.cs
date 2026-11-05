@@ -23,6 +23,7 @@ public sealed class ApprovalRoute : CompanyEntity
         decimal minimumAmount, decimal? maximumAmount, Guid currencyId,
         bool separateCreatorAndApprover, string actor, DateTimeOffset now) : base(companyId)
     {
+        Check.That(now != default, "invalid_approval_audit_time", "وقت إنشاء مسار الاعتماد غير صالح.");
         Check.That(branchId != Guid.Empty, "invalid_approval_branch", "الفرع غير صالح.");
         BranchId = branchId;
         Configure(documentType, minimumAmount, maximumAmount, currencyId, separateCreatorAndApprover);

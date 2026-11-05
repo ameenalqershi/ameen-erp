@@ -16,5 +16,16 @@ public sealed class DocumentNumberAllocation : CompanyEntity
     { Check.That(DocumentId is null && documentId!=Guid.Empty,"number_document_binding","حجز الرقم يرتبط بمستند واحد فقط.");DocumentId=documentId; if(DocumentKind==NumberingDocumentKind.Journal) JournalId=documentId; else InventoryOpeningId=documentId; }
     private DocumentNumberAllocation() { }
     public DocumentNumberAllocation(DocumentNumberSeries series,Guid branchId,Guid sourceVersion,long sequence,string number,string actor,DateTimeOffset now) : base(series.CompanyId)
-    { SeriesId=series.Id; SeriesVersion=sourceVersion; BranchId=branchId; DocumentKind=series.DocumentKind; Sequence=sequence; Number=number; ReservedBy=actor; ReservedAt=now; }
+    {
+        Check.That(branchId != Guid.Empty && sourceVersion != Guid.Empty,
+            "invalid_number_allocation_reference", "مرجع الفرع أو إصدار السلسلة غير صالح.");
+        Check.That(sequence > 0, "invalid_number_allocation_sequence",
+            "تسلسل الرقم المحجوز غير صالح.");
+        Check.That(now != default, "invalid_number_allocation_audit_time",
+            "وقت حجز الرقم غير صالح.");
+        SeriesId=series.Id; SeriesVersion=sourceVersion; BranchId=branchId;
+        DocumentKind=series.DocumentKind; Sequence=sequence;
+        Number=Check.Text(number,"رقم المستند",64);
+        ReservedBy=Check.Text(actor,"حاجز الرقم",200); ReservedAt=now;
+    }
 }

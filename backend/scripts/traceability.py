@@ -107,7 +107,7 @@ for n, binding in {
     9:"ApprovalRouteStage.StageNumber: positive, unique per route; cross-route stage PK integrity preflight and domain-only atomic replacement",
     10:"ApproverRoleId: required tenant SYS07 role FK via SQL 029; role policy not validated; persistence blocked",
     11:"AlertAfterMinutes: nullable nonnegative; no automatic approval",
-    12:"CreatedBy: actor field; hydrated audit preflight only, no API", 13:"CreatedAt: datetimeoffset; hydrated audit preflight only",
+    12:"CreatedBy: actor field; hydrated audit preflight only, no API", 13:"CreatedAt: datetimeoffset; creation rejects unset timestamp; hydrated audit preflight only",
     14:"Revision: server integer, domain-only expected-revision editing and snapshot check", 15:"LastModifiedAt: datetimeoffset; hydrated audit chronology preflight"
 }.items():
     MAP["SYS09"]["fields"][f"SYS09-F{n:02}"] = dict(status="partial", binding=binding)
@@ -115,7 +115,7 @@ MAP["SYS09"]["test_file"] = "backend/tests/Ameen.Erp.Tests/ApprovalRouteFoundati
 screen("SYS10", "GET/POST /companies/{companyId}/number-series; GET/PUT /{id}; POST /status|reserve; GET /usage|audit-events",
        "سلاسل عامة أو لفرع وسنة ونوع مستند وبادئة ورقم تال قابل للإعداد؛ حجز ذري موثق لا يعاد بعد الإلغاء؛ ربط اليومية والافتتاحات؛ تعديل وتعطيل وبحث واستخدام وإصدار وتدقيق مع حماية السجلات التاريخية",
        "أنواع التشغيل الحالية Journal وInventoryOpening؛ الترقيم الضريبي مرفوض حتى TAX05 وملف الدولة؛ باقي أنواع المستندات تربط عند تنفيذ مصادرها ولا تدعى جاهزيتها",
-       {1:"CompanyId",2:"BranchId: optional company-wide or explicit branch, global configuration/read requires all branches",3:"IsActive",4:"DocumentKind: Journal/InventoryOpening; TaxInvoice guarded by country prerequisite",5:"FiscalYearId",6:"Prefix: optional user text",7:"NextNumber: monotonic server allocation and explicit forward edit",8:"CreatedBy",9:"CreatedAt",10:"Revision: integer separate from Version UUID",11:"LastModifiedAt"})
+       {1:"CompanyId",2:"BranchId: optional company-wide or explicit branch, global configuration/read requires all branches",3:"IsActive",4:"DocumentKind: Journal/InventoryOpening; TaxInvoice guarded by country prerequisite",5:"FiscalYearId",6:"Prefix: optional user text",7:"NextNumber: monotonic server allocation and explicit forward edit",8:"CreatedBy",9:"CreatedAt: nondefault domain audit guard",10:"Revision: integer separate from Version UUID",11:"LastModifiedAt"})
 MAP["SYS10"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/"+name for name in ["NumberingTests.cs","NumberingSqlIntegration.cs","SchemaUpgradeIntegration.cs","HostedApiIntegration.cs"])
 
 screen("GL14", "internal EF model and SQL 027 only; no public GL14 API",
