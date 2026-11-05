@@ -17,7 +17,7 @@
     "SYS01": {
       "api": "GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events",
       "implemented": "بطاقة قانونية وعنوانية وإصدار عددي؛ تحرير وحالة واستخدام وتدقيق؛ قفل العملة بعد الأثر وربط بداية أول سنة؛ منع كتابة الشركة المعطلة أو ناقصة البيانات",
-      "remaining": "ملفات الدولة وشروط إلزام التسجيل الضريبي والتجاري والعنوان الوطني حسب الاختصاص؛ مرجع دول معتمد بدل تحقق شكل الرمز؛ مشروع تحويل العملة الوظيفية التاريخي",
+      "remaining": "ملفات الدولة وشروط إلزام التسجيل الضريبي والتجاري والعنوان الوطني حسب الاختصاص؛ بطاقة دولة قابلة للإدارة/التعطيل ونطاقها التشغيلي؛ مشروع تحويل العملة الوظيفية التاريخي",
       "fields": {
         "SYS01-F01": {
           "status": "implemented",
@@ -53,7 +53,7 @@
         },
         "SYS01-F09": {
           "status": "implemented",
-          "binding": "CountryCode"
+          "binding": "Company.CountryCode validated against the 249 officially assigned ISO 3166-1 alpha-2 reference codes by Iso3166CountryCatalog; no country names, jurisdiction tax policy or editable per-company country cards"
         },
         "SYS01-F10": {
           "status": "implemented",

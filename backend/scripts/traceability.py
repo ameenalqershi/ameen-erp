@@ -26,11 +26,15 @@ def screen(code, api, implemented, remaining, fields, audit=()):
 
 screen("SYS01", "GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events",
        "بطاقة قانونية وعنوانية وإصدار عددي؛ تحرير وحالة واستخدام وتدقيق؛ قفل العملة بعد الأثر وربط بداية أول سنة؛ منع كتابة الشركة المعطلة أو ناقصة البيانات",
-       "ملفات الدولة وشروط إلزام التسجيل الضريبي والتجاري والعنوان الوطني حسب الاختصاص؛ مرجع دول معتمد بدل تحقق شكل الرمز؛ مشروع تحويل العملة الوظيفية التاريخي",
+       "ملفات الدولة وشروط إلزام التسجيل الضريبي والتجاري والعنوان الوطني حسب الاختصاص؛ بطاقة دولة قابلة للإدارة/التعطيل ونطاقها التشغيلي؛ مشروع تحويل العملة الوظيفية التاريخي",
        {1: "Company.Id / CreateCompanyRequest.Id", 2: "route.companyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "LegalName", 9: "CountryCode", 10: "Jurisdiction", 11: "FunctionalCurrency", 12: "CommercialRegistration", 13: "TaxRegistration", 14: "FiscalYearStartsOn", 17: "Revision", 19: "City", 20: "District", 21: "Street", 22: "BuildingNumber", 23: "PostalCode", 24: "AdditionalNumber"},
        [(15, "AuditEvent.ActorId: company.created"), (16, "AuditEvent.OccurredAt: company.created"), (18, "AuditEvent.OccurredAt: company.edited / company.status-changed")])
 MAP["SYS01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
     ["CompanyTests.cs", "CompanySqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
+MAP["SYS01"]["fields"]["SYS01-F09"]["binding"] = (
+    "Company.CountryCode validated against the 249 officially assigned ISO 3166-1 alpha-2 reference codes "
+    "by Iso3166CountryCatalog; no country names, jurisdiction tax policy or editable per-company country cards"
+)
 screen("SYS02", "GET/POST /companies/{companyId}/branches; GET /search; GET/PUT /{id}; POST /{id}/status; GET /{id}/usage|audit-events",
        "بطاقة فرع وعنوان وشجرة بلا دورات؛ بحث ضمن الصلاحية دون توريث الفروع؛ قفل بنية المستخدم؛ مركز افتراضي متسق؛ تعديل وحالة واستخدام وتدقيق",
        "نوع الموقع وقيمه ومرجع المدير بانتظار حسم التحليل؛ المركز الافتراضي إعداد لا يملأ سطور القيود تلقائيًا؛ الشركات القديمة تستكمل عناوين فروعها قبل التشغيل",

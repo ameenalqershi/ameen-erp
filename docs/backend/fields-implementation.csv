@@ -7,7 +7,7 @@ SYS01,SYS01-F05,الاسم الإنجليزي,optional,implemented,EnglishName,G
 SYS01,SYS01-F06,فعال,required,implemented,IsActive,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
 SYS01,SYS01-F07,ملاحظات,optional,implemented,Notes,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
 SYS01,SYS01-F08,الاسم القانوني,required,implemented,LegalName,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
-SYS01,SYS01-F09,الدولة,required,implemented,CountryCode,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
+SYS01,SYS01-F09,الدولة,required,implemented,"Company.CountryCode validated against the 249 officially assigned ISO 3166-1 alpha-2 reference codes by Iso3166CountryCatalog; no country names, jurisdiction tax policy or editable per-company country cards",GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
 SYS01,SYS01-F10,منطقة الاختصاص,required,implemented,Jurisdiction,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
 SYS01,SYS01-F11,العملة الوظيفية,required,implemented,FunctionalCurrency,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
 SYS01,SYS01-F12,السجل التجاري,conditional,implemented,CommercialRegistration,GET/POST /companies; GET/PUT /companies/{companyId}; POST /status; GET /usage|profile-audit-events
