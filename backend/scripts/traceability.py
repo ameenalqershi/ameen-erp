@@ -123,7 +123,7 @@ screen("GL14", "internal EF model and SQL 027 only; no public GL14 API",
        "SYS09 route schema and GL14 tenant FK exist but roles, route activation and policy validation are blocked; create/edit/disable/search/usage/audit APIs, GL03 binding, runtime enforcement of manual/automatic origin and reversal separation, and full acceptance remain unimplemented",
        {})
 for n, binding in {
-    1:"CompanyId: EF/SQL tenant key only", 2:"BranchId: nullable tenant FK only",
+    1:"CompanyId: required tenant key with SQL company FK; no public GL14 API", 2:"BranchId: nullable composite (CompanyId,BranchId) SQL/EF FK; active-branch authorization remains pending",
     3:"IsActive: persisted server state only", 4:"Code: nvarchar(32) unique per company only",
     5:"Name: nvarchar(200) only", 6:"Origin: Manual/Automatic enum plus domain-only MatchesSource guard; unknown hydrated values fail closed in domain acceptance; no GL03 enforcement",
     7:"NumberSeriesId: tenant FK; active/scope checks pending", 8:"ApprovalRouteId: required tenant FK via SQL 028; active route validation pending",
@@ -132,6 +132,13 @@ for n, binding in {
     13:"LastModifiedAt: datetimeoffset only"
 }.items():
     MAP["GL14"]["fields"][f"GL14-F{n:02}"] = dict(status="partial", binding=binding)
+# GL14-F09 is a self-contained data field: its required boolean is represented
+# in the domain aggregate and SQL 027 as NOT NULL bit. This does not enable
+# attachment enforcement at a source endpoint; that remains GL14-C01/API work.
+MAP["GL14"]["fields"]["GL14-F09"] = dict(
+    status="implemented",
+    binding="RequiresAttachment: required bool; domain create/edit and SQL 027 bit NOT NULL verified; source/API enforcement remains blocked"
+)
 MAP["GL14"]["test_file"] = "backend/tests/Ameen.Erp.Tests/JournalDocumentTypeFoundationTests.cs; backend/tests/Ameen.Erp.Tests/JournalDocumentTypeSqlIntegration.cs"
 
 screen("GL13", "GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}",

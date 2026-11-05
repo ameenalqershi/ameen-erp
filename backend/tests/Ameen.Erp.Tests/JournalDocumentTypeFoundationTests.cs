@@ -28,6 +28,30 @@ public static class JournalDocumentTypeFoundationTests
             Ensure(!type.IsActive && type.Revision == 3, "GL14 disable did not advance revision");
             return Task.CompletedTask;
         });
+        test("GL14-FG03: attachment requirement is an explicit persisted-domain field", f =>
+        {
+            var now = new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
+            var series = Guid.NewGuid();
+            var route = Guid.NewGuid();
+            var card = new JournalDocumentType(f.CompanyId, f.BranchId, "ATT-001",
+                "مستند يتطلب مرفقًا", JournalDocumentOrigin.Manual, series, route,
+                true, f.Owner.Subject, now);
+            Ensure(card.RequiresAttachment && card.IsActive &&
+                card.CompanyId == f.CompanyId && card.BranchId == f.BranchId &&
+                card.Code == "ATT-001" && card.CreatedBy == f.Owner.Subject &&
+                card.CreatedAt == now && card.LastModifiedAt == now,
+                "GL14-F09 did not preserve the required attachment flag with its tenant/source metadata");
+
+            var version = card.Version;
+            card.Edit("مستند لا يتطلب مرفقًا", series, route, false, 1, now.AddMinutes(1));
+            Ensure(!card.RequiresAttachment && card.Name == "مستند لا يتطلب مرفقًا" &&
+                card.CompanyId == f.CompanyId && card.BranchId == f.BranchId &&
+                card.Origin == JournalDocumentOrigin.Manual && card.Code == "ATT-001" &&
+                card.Revision == 2 && card.Version != version &&
+                card.CreatedAt == now && card.LastModifiedAt == now.AddMinutes(1),
+                "GL14-F09 edit failed to update the explicit boolean and audit revision atomically");
+            return Task.CompletedTask;
+        });
         test("GL14-FG04 partial: reject unset generated creation time without audit state", f =>
         {
             var numberSeriesId = Guid.NewGuid();

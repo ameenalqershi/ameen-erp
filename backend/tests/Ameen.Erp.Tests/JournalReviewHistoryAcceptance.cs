@@ -59,6 +59,45 @@ public static class JournalReviewHistoryAcceptance
                 (await f.Journal(submitted.ResourceId)).State == JournalState.Approved,
                 "GL05 result/history reads changed accounting or audit data");
         });
+        test("GL05-A05/T02: audit permission alone and malformed review-history pages fail closed", async f =>
+        {
+            var journal = await f.Draft();
+            var submitted = await f.Action(journal, "submit");
+            var accepted = await f.Service.Journal.ProcessJournals(f.CompanyId, f.Approver,
+                new("approve", new[] { new JournalProcessingItem(submitted.ResourceId,
+                    submitted.Version, Fixture.Key()) }), default);
+            Ensure(accepted.AllSucceeded, "Review fixture could not produce a real decision");
+            var auditOnly = new Actor("gl05-audit-only-domain");
+            await f.Service.Membership.GrantMembership(f.CompanyId, f.Owner, Fixture.Key(),
+                new(auditOnly.Subject, new[] { Permissions.Audit }, true,
+                    Array.Empty<Guid>(), null), default);
+
+            var audits = f.Store.Count<AuditEvent>();
+            var receipts = f.Store.Count<IdempotencyRecord>();
+            var journals = f.Store.Count<JournalEntry>();
+            var outbox = f.Store.Count<OutboxEvent>();
+            var sequence = f.Store.All<NumberSequence>().Sum(x => x.LastNumber);
+            await Reject("permission_denied", () => f.Service.Journal.ProcessingHistory(
+                f.CompanyId, journal.ResourceId, auditOnly, 0, 10, default));
+            foreach (var (offset, limit) in new[]
+            {
+                (-1, 10), (1_000_001, 10), (0, 0), (0, 201)
+            })
+                await Reject("invalid_pagination", () => f.Service.Journal.ProcessingHistory(
+                    f.CompanyId, journal.ResourceId, f.Owner, offset, limit, default));
+            var positive = await f.Service.Journal.ProcessingHistory(f.CompanyId,
+                journal.ResourceId, f.Owner, 0, 10, default);
+            Ensure(positive.TotalCount == 1 &&
+                positive.Items.Single().Action == "journal.processing-succeeded",
+                "Valid GL05 review-history read should remain available");
+            Ensure(f.Store.Count<AuditEvent>() == audits &&
+                f.Store.Count<IdempotencyRecord>() == receipts &&
+                f.Store.Count<JournalEntry>() == journals &&
+                f.Store.Count<OutboxEvent>() == outbox &&
+                f.Store.All<NumberSequence>().Sum(x => x.LastNumber) == sequence &&
+                (await f.Journal(journal.ResourceId)).State == JournalState.Approved,
+                "Denied GL05 review history read changed financial state or audit");
+        });
     }
 
     public static async Task RunSql(string connection, Guid cid, Actor clerk, Actor approver,
@@ -97,6 +136,10 @@ public static class JournalReviewHistoryAcceptance
         await Call(s => s.Membership.GrantMembership(cid, owner, Fixture.Key(),
             new(readOnly.Subject, new[] { Permissions.Read }, true, Array.Empty<Guid>(), null),
             default));
+        var auditOnly = new Actor("gl05-sql-audit-only");
+        await Call(s => s.Membership.GrantMembership(cid, owner, Fixture.Key(),
+            new(auditOnly.Subject, new[] { Permissions.Audit }, true, Array.Empty<Guid>(), null),
+            default));
         int audits, receipts, outbox;
         long seq;
         await using (var db = Db())
@@ -121,6 +164,14 @@ public static class JournalReviewHistoryAcceptance
             "GL05 SQL decision history not queryable/paginated");
         await Reject("permission_denied", () => Call(s =>
             s.Journal.ProcessingHistory(cid, created.ResourceId, readOnly, 0, 10, default)));
+        await Reject("permission_denied", () => Call(s =>
+            s.Journal.ProcessingHistory(cid, created.ResourceId, auditOnly, 0, 10, default)));
+        foreach (var (offset, limit) in new[]
+        {
+            (-1, 10), (1_000_001, 10), (0, 0), (0, 201)
+        })
+            await Reject("invalid_pagination", () => Call(s =>
+                s.Journal.ProcessingHistory(cid, created.ResourceId, owner, offset, limit, default)));
         await using (var db = Db())
         {
             Ensure(await db.Set<AuditEvent>().CountAsync(x => x.CompanyId == cid) == audits &&
