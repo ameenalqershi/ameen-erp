@@ -34,6 +34,37 @@ public static class CompanyTests
                 f.Store.Count<IdempotencyRecord>()==receiptsBefore);
             Ensure((await f.Service.Company.GetCompany(id,f.Owner,default)).Name==request.Name);
         });
+        test("SYS01-GAP02: assigned ISO 3166-1 alpha-2 country reference replaces shape-only validation", async f =>
+        {
+            var codes = Iso3166CountryCatalog.AssignedAlpha2Codes;
+            Ensure(codes.Count == 249 && codes.Distinct(StringComparer.Ordinal).Count() == 249);
+            foreach (var code in codes)
+            {
+                var candidate = new Company(Guid.NewGuid(), "ISO-" + code, "شركة اختبار", code,
+                    "SAR", 2, Fixture.Profile());
+                Ensure(candidate.CountryCode == code);
+            }
+            var lowerCase = new Company(Guid.NewGuid(), "ISO-LOWER", "شركة اختبار", "ye",
+                "SAR", 2, Fixture.Profile());
+            Ensure(lowerCase.CountryCode == "YE");
+            foreach (var invalid in new[] { "ZZ", "AA", "XK", "UK" })
+                await Error("invalid_country", () => f.Service.Company.CreateCompany(f.Owner, Fixture.Key(),
+                    new(Guid.NewGuid(), "INVALID-COUNTRY", "شركة غير صالحة", invalid,
+                        "SAR", 2, Fixture.Profile()), default));
+            await Error("invalid_text", () => f.Service.Company.CreateCompany(f.Owner, Fixture.Key(),
+                new(Guid.NewGuid(), "INVALID-LENGTH", "شركة غير صالحة", "YEM",
+                    "SAR", 2, Fixture.Profile()), default));
+
+            var before = await Company(f);
+            var auditBefore = f.Store.Count<AuditEvent>();
+            var receiptsBefore = f.Store.Count<IdempotencyRecord>();
+            await Error("invalid_country", () => f.Service.Company.EditCompany(f.CompanyId, f.Owner,
+                Fixture.Key(), Edit(before) with { CountryCode = "ZZ" }, default));
+            var after = await Company(f);
+            Ensure(after.CountryCode == before.CountryCode && after.Version == before.Version &&
+                after.Revision == before.Revision && f.Store.Count<AuditEvent>() == auditBefore &&
+                f.Store.Count<IdempotencyRecord>() == receiptsBefore);
+        });
         test("SYS01: legal profile, Unicode address and leading zero registrations roundtrip", async f =>
         {
             var c = await Company(f); var profile = Profile(c) with { EnglishName = "Example company", Notes = "ملاحظات", CommercialRegistration = "000123",

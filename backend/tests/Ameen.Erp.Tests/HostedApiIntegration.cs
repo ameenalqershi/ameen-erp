@@ -2091,6 +2091,26 @@ public static class HostedApiIntegration
                         "SYS01-FG01 HTTPS accepted a duplicate company code");
                 }
                 Console.WriteLine("  HOST PASS SYS01-FG01 identity/code/Arabic and duplicate rejection over HTTPS/JWT/SQL");
+                // SYS01-GAP02: reject syntactically valid but unassigned country codes
+                // through the real HTTPS/JWT company edit path without changing the row.
+                using (var invalidCountryRequest = new HttpRequestMessage(HttpMethod.Put, companyPath))
+                {
+                    invalidCountryRequest.Headers.Add("Idempotency-Key", Fixture.Key());
+                    invalidCountryRequest.Content = new StringContent(JsonSerializer.Serialize(
+                        new EditCompanyRequest(companyReceipt.Version, company.Code, company.Name, "ZZ",
+                            company.FunctionalCurrency, company.Profile, "رفض رمز دولة غير مخصص"),
+                        JsonDefaults.Options), Encoding.UTF8, "application/json");
+                    using var invalidCountryResponse = await client.SendAsync(invalidCountryRequest);
+                    var invalidCountryBody = await invalidCountryResponse.Content.ReadAsStringAsync();
+                    using var persistedCompany = await client.GetAsync(companyPath);
+                    using var persistedJson = JsonDocument.Parse(await persistedCompany.Content.ReadAsStringAsync());
+                    Ensure(!invalidCountryResponse.IsSuccessStatusCode &&
+                        invalidCountryBody.Contains("invalid_country", StringComparison.Ordinal) &&
+                        persistedJson.RootElement.GetProperty("countryCode").GetString() == company.CountryCode &&
+                        persistedJson.RootElement.GetProperty("revision").GetInt32() == 1,
+                        "SYS01-GAP02 HTTPS/JWT accepted an unassigned country code or changed the company");
+                }
+                Console.WriteLine("  HOST PASS SYS01-GAP02 ISO country reference rejects unassigned code over HTTPS/JWT/SQL");
                 // SYS01-OP01: search is scoped to visible companies, never
                 // to all tenants. Positive code/Arabic queries and negative scope.
                 using (var byCode = await client.GetAsync("/api/v1/companies?search=HTTPTEST"))

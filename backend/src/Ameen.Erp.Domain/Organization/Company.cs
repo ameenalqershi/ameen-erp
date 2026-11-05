@@ -36,7 +36,8 @@ public sealed class Company : Entity
         Check.That(scale is >= 0 and <= 6, "invalid_scale", "دقة العملة بين صفر وست خانات.");
         Code = Check.Code(code, "رمز الشركة"); Name = Check.Text(name, "اسم الشركة");
         CountryCode = Check.Code(country, "الدولة", 2);
-        Check.That(CountryCode.Length == 2 && CountryCode.All(c => c >= 'A' && c <= 'Z'), "invalid_country", "رمز الدولة من حرفين.");
+        Check.That(Iso3166CountryCatalog.IsAssignedAlpha2(CountryCode), "invalid_country",
+            "الدولة يجب أن تستخدم رمزًا مخصصًا من ISO 3166-1 alpha-2.");
         FunctionalCurrency = Check.Currency(currency); CurrencyScale = scale;
         LegalName = Check.Text(profile!.LegalName, "الاسم القانوني"); Jurisdiction = Check.Text(profile.Jurisdiction, "منطقة الاختصاص");
         FiscalYearStartsOn = profile.FiscalYearStartsOn; City = Check.Text(profile.City, "المدينة"); Street = Check.Text(profile.Street, "الشارع", 300);

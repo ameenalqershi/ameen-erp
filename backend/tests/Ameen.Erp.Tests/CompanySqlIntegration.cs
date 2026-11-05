@@ -28,6 +28,22 @@ public static class CompanySqlIntegration
             company.PostalCode == "00123" && company.AdditionalNumber == "0009" &&
             company.TaxRegistration == "000456" && company.District == "حي SQL" &&
             company.FiscalYearStartsOn == new DateOnly(2026, 1, 1) && company.IsProfileComplete, "SYS01-FG01/FG02 company profile SQL differs");
+        var beforeInvalidCountry = await Call(s => s.Company.GetCompany(cid, owner, default));
+        var countryAuditBefore = (await Call(s => s.Company.ListCompanyAudit(cid, owner, 0, 20, default))).TotalCount;
+        try
+        {
+            await Call(s => s.Company.EditCompany(cid, owner, Fixture.Key(),
+                CompanyTests.Edit(beforeInvalidCountry) with { CountryCode = "ZZ" }, default));
+            throw new Exception("SQL accepted an unassigned ISO country code");
+        }
+        catch (BusinessException ex) when (ex.Code == "invalid_country") { }
+        var afterInvalidCountry = await Call(s => s.Company.GetCompany(cid, owner, default));
+        Ensure(afterInvalidCountry.CountryCode == beforeInvalidCountry.CountryCode &&
+            afterInvalidCountry.Version == beforeInvalidCountry.Version &&
+            afterInvalidCountry.Revision == beforeInvalidCountry.Revision &&
+            (await Call(s => s.Company.ListCompanyAudit(cid, owner, 0, 20, default))).TotalCount == countryAuditBefore,
+            "Rejected ISO country code changed persisted company, audit or version");
+        Console.WriteLine("  SQL PASS SYS01-GAP02 ISO country reference rejects unassigned code without audit or version changes");
         Ensure((await Call(s => s.Company.ListCompanyAudit(cid, owner, 0, 20, default))).Items.Count(x => x.Action == "company.edited") == 1, "Company replay duplicated audit");
         // SYS01-FG01: the authoritative SQL identity and Unicode name must
         // agree with the tenant-scoped public record, including after concurrent replay.
