@@ -6,10 +6,10 @@
   "partially_implemented_screens": 43,
   "complete_screens": 0,
   "field_status_counts": {
-    "implemented": 349,
+    "implemented": 350,
     "audit": 46,
     "derived": 4,
-    "partial": 248,
+    "partial": 247,
     "pending": 2112
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
@@ -621,11 +621,11 @@
       "fields": {
         "GL14-F01": {
           "status": "partial",
-          "binding": "CompanyId: EF/SQL tenant key only"
+          "binding": "CompanyId: required tenant key with SQL company FK; no public GL14 API"
         },
         "GL14-F02": {
           "status": "partial",
-          "binding": "BranchId: nullable tenant FK only"
+          "binding": "BranchId: nullable composite (CompanyId,BranchId) SQL/EF FK; active-branch authorization remains pending"
         },
         "GL14-F03": {
           "status": "partial",
@@ -652,8 +652,8 @@
           "binding": "ApprovalRouteId: required tenant FK via SQL 028; active route validation pending"
         },
         "GL14-F09": {
-          "status": "partial",
-          "binding": "RequiresAttachment: bit only"
+          "status": "implemented",
+          "binding": "RequiresAttachment: required bool; domain create/edit and SQL 027 bit NOT NULL verified; source/API enforcement remains blocked"
         },
         "GL14-F10": {
           "status": "partial",
