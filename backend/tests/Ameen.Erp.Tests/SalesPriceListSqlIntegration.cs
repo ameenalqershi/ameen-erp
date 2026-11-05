@@ -123,7 +123,7 @@ public static class SalesPriceListSqlIntegration
             INSERT dbo.SalesPriceListLines
             (CompanyId,Id,Version,PriceListId,Position,ItemId,UnitId,Price,DiscountLimit,QuantityThreshold)
             VALUES({companyId},{lineId},{Guid.NewGuid()},{priceListId},{1},{item.ResourceId},{unit.ResourceId},
-                   {12.123456m},{0.000001m},{2.5m})");
+                   12.123456,0.000001,2.5)");
 
         db.ChangeTracker.Clear();
         var list = await db.Set<SalesPriceList>().AsNoTracking()
