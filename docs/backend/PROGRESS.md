@@ -1659,3 +1659,8 @@ Added a read-only audit of the complete original `muhaseb-erp-analysis/docs/06-r
 ## CORE SPEC07 — workflow and acceptance-scenario audit (2026-11-05)
 
 Added a read-only traceability audit of the complete original `muhaseb-erp-analysis/docs/07-workflows-and-acceptance.md`. All 30 future acceptance scenarios AT01–AT30 are linked to their existing Notion scenario pages with source screens, expected result and an explicit blocker/dependency. Added a CSV, audit report, fail-closed checker and eight positive/negative tests. The source explicitly describes these as future acceptance tests; no scenario is reported as executed or passed. Policy-sensitive examples (FX valuation, inventory-cost allocation, tax, payroll, manufacturing, project retention) remain examples/dependencies, not new policies. No source-analysis changes.
+
+
+## CORE SPEC08 — report contracts and roadmap audit (2026-11-05)
+
+Added a read-only audit of the complete original `muhaseb-erp-analysis/docs/08-reports-and-roadmap.md`. All 19 report contracts are mapped to existing RPT-CONTRACT-01..19 Notion tasks, and all seven roadmap phases are mapped to existing decision/acceptance tasks. The shared report controls (company/branch/period/currency/conversion/status/extraction time, authorized drill-through, filter-consistent export, single-source aggregation) and report-specific reconciliation rules are recorded. Added two CSV matrices, an audit report, fail-closed checker and eight positive/negative tests. No report query was executed; all evidence remains `not-verified`. The source's no-technology/no-date/no-cost boundary is preserved.
