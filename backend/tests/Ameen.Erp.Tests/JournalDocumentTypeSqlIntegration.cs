@@ -33,6 +33,44 @@ public static class JournalDocumentTypeSqlIntegration
         Ensure(await db.Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS [Value] FROM sys.columns WHERE object_id=OBJECT_ID('JournalDocumentTypes')").SingleAsync() == 15,
             "GL14 columns do not match field dictionary");
+        var columnShapes = await db.Database.SqlQueryRaw<string>(
+            "SELECT CONCAT([name], '|', TYPE_NAME([user_type_id]), '|', [max_length], '|', [is_nullable]) AS [Value] " +
+            "FROM sys.columns WHERE [object_id]=OBJECT_ID('dbo.JournalDocumentTypes') ORDER BY [column_id]")
+            .ToListAsync();
+        var expectedColumnShapes = new[]
+        {
+            "CompanyId|uniqueidentifier|16|0",
+            "Id|uniqueidentifier|16|0",
+            "Version|uniqueidentifier|16|0",
+            "BranchId|uniqueidentifier|16|1",
+            "IsActive|bit|1|0",
+            "Code|nvarchar|64|0",
+            "Name|nvarchar|400|0",
+            "Origin|int|4|0",
+            "NumberSeriesId|uniqueidentifier|16|0",
+            "ApprovalRouteId|uniqueidentifier|16|0",
+            "RequiresAttachment|bit|1|0",
+            "CreatedBy|nvarchar|400|0",
+            "CreatedAt|datetimeoffset|10|0",
+            "Revision|int|4|0",
+            "LastModifiedAt|datetimeoffset|10|0"
+        };
+        Ensure(columnShapes.SequenceEqual(expectedColumnShapes),
+            "GL14 SQL 027 column names, SQL types, lengths or nullability diverge from the field contract: " +
+            string.Join(", ", columnShapes));
+        Ensure(await db.Database.SqlQueryRaw<string>(
+            "SELECT [collation_name] AS [Value] FROM sys.columns " +
+            "WHERE [object_id]=OBJECT_ID('dbo.JournalDocumentTypes') AND [name]='Code'").SingleAsync()
+                == "Latin1_General_100_BIN2",
+            "GL14 code must retain exact binary comparison and leading-zero semantics");
+        var checks = await db.Database.SqlQueryRaw<string>(
+            "SELECT [name] AS [Value] FROM sys.check_constraints " +
+            "WHERE [parent_object_id]=OBJECT_ID('dbo.JournalDocumentTypes') ORDER BY [name]")
+            .ToListAsync();
+        Ensure(checks.SequenceEqual(new[]
+        {
+            "CK_JournalDocumentType_Origin", "CK_JournalDocumentType_Revision"
+        }), "GL14 SQL 027 source/audit check constraints diverge from the domain contract");
         Ensure(await db.Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS [Value] FROM sys.foreign_keys WHERE parent_object_id=OBJECT_ID('JournalDocumentTypes')").SingleAsync() == 3,
             "GL14 company, branch or numbering FK missing");
@@ -40,7 +78,7 @@ public static class JournalDocumentTypeSqlIntegration
             "SELECT COUNT(*) AS [Value] FROM sys.indexes WHERE object_id=OBJECT_ID('JournalDocumentTypes') AND name='IX_JournalDocumentTypes_CompanyId_Code' AND is_unique=1").SingleAsync() == 1,
             "GL14 code uniqueness missing");
         Ensure(!await db.Set<JournalDocumentType>().AnyAsync(), "GL14 migration invented configuration");
-        Console.WriteLine("  SQL PASS GL14 026→027 atomic/idempotent schema, tenant FKs, code uniqueness, no seeded cards");
+        Console.WriteLine("  SQL PASS GL14-FG01/FG03: exact 15-column shape, optional tenant branch, binary code, required attachment bit, audit checks, FKs, uniqueness and no seeded cards");
     }
 
     public static async Task Guard(string connection, Guid companyId)

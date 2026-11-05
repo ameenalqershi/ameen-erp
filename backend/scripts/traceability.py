@@ -132,6 +132,13 @@ for n, binding in {
     13:"LastModifiedAt: datetimeoffset only"
 }.items():
     MAP["GL14"]["fields"][f"GL14-F{n:02}"] = dict(status="partial", binding=binding)
+# GL14-F09 is a self-contained data field: its required boolean is represented
+# in the domain aggregate and SQL 027 as NOT NULL bit. This does not enable
+# attachment enforcement at a source endpoint; that remains GL14-C01/API work.
+MAP["GL14"]["fields"]["GL14-F09"] = dict(
+    status="implemented",
+    binding="RequiresAttachment: required bool; domain create/edit and SQL 027 bit NOT NULL verified; source/API enforcement remains blocked"
+)
 MAP["GL14"]["test_file"] = "backend/tests/Ameen.Erp.Tests/JournalDocumentTypeFoundationTests.cs; backend/tests/Ameen.Erp.Tests/JournalDocumentTypeSqlIntegration.cs"
 
 screen("GL13", "GET/POST /companies/{companyId}/financial-mappings; GET/PUT /{id}; POST /status|review; GET /usage|audit-events; GET /reviews/{id}",
