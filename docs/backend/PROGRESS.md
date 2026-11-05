@@ -1649,3 +1649,8 @@ Confirmed against the original read-only SYS10 dictionary and current `DocumentN
 ## CORE SPEC04 — تدقيق التوطين القانوني والإقليمي (5 نوفمبر 2026)
 
 تمت مراجعة 04-localization.md الأصلي دون تعديله وربط 14 مجموعة متطلب و7 بوابات دولة بمهام V1 وشاشات التنفيذ. المخرجات: core-spec04-localization-traceability.csv وcore-spec04-country-gates.csv وcore-spec04-localization-audit-20261105.md، مع حارس check_spec04_localization_coverage.py و10 اختبارات موجبة/سالبة. النتيجة على main SHA 03bf0e1: TAX01–TAX08 كلها not-started و133 حقلًا pending؛ SYS04/SYS05 جزئيتان؛ SYS12/SYS15 غير مدمجتين إلى main رغم إنجاز بنيوي على sys؛ SAL06/PUR07/IMP06/HR05/GL08 غير جاهزة، وCASH03 جزئية. لا ملف دولة أو نسبة أو موصل ضريبي مفعّل. ملاك القرارات القانونية غير معينين، لذلك SPEC04 جزئية حتى تعيين المالك والتحقق الرسمي من المواصفات السارية. المصدر الأصلي محفوظ دون تغيير.
+
+
+## CORE-07 — تقوية قبول جرد الترحيلات (5 نوفمبر 2026)
+
+أضيف اختباران سلبيان إلى حارس جرد الترحيلات الموجود في main دون تغيير كود الترحيلات: رفض ملف SQL الرمزي (symlink) ورفض مجلد يحمل امتداد SQL؛ وهما يغطيان فرعي fail-closed موجودين في check_migration_versions.py. اختبارات CORE-07 أصبحت 14/14 PASS. هذه زيادة تغطية لجزء الجرد فقط، ولا تغلق اختبار backup/restore؛ لا تزال الاستعادة الفعلية بحاجة إلى SYS15 وتشغيل SQL Server معزول، ولا يوجد اختبار أو تغيير لبيانات إنتاج.

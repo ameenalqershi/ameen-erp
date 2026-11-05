@@ -83,6 +83,17 @@ class MigrationSequenceAcceptance(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "expected exactly one recorded schema version 2"):
             migration_check.check(self.sql, self.ef)
 
+
+    def test_symlinked_migration_is_rejected(self):
+        (self.sql / "003_link.sql").symlink_to(self.sql / "001_initial.sql")
+        with self.assertRaisesRegex(ValueError, "migration must be a regular file: 003_link.sql"):
+            migration_check.check(self.sql, self.ef)
+
+    def test_directory_with_sql_extension_is_rejected(self):
+        (self.sql / "003_directory.sql").mkdir()
+        with self.assertRaisesRegex(ValueError, "migration must be a regular file: 003_directory.sql"):
+            migration_check.check(self.sql, self.ef)
+
     def test_ef_schema_contract_must_match_latest_migration(self):
         self.ef.write_text("public const int SchemaVersion = 1;", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "SchemaVersion should be 2"):
