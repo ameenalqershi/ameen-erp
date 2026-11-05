@@ -1654,3 +1654,8 @@ Added a read-only traceability audit for the complete original `muhaseb-erp-anal
 ## CORE SPEC06 — reference parity evidence audit (2026-11-05)
 
 Added a read-only audit of the complete original `muhaseb-erp-analysis/docs/06-reference-parity.md`, `data/sources.json`, and `data/parity-matrix.csv`. The eight source gaps GAP01–GAP08 are linked to existing Notion decisions/tasks. The source matrix currently contains 150 unique screen rows, all `غير متحقق`; reference build, page/screenshot, owner and verification-date fields remain blank. S01–S03 provide only broad product-domain evidence; S04–S06 remain recorded as inaccessible PDFs. Added report, traceability CSV, fail-closed checker, and eight positive/negative tests. No original analysis or matrix was changed; no parity percentage or match claim is made. D01/D02 and access to an authorized reference build remain prerequisites for actual comparison. CI pending on the combined SPEC05/SPEC06 PR.
+
+
+## CORE SPEC07 — workflow and acceptance-scenario audit (2026-11-05)
+
+Added a read-only traceability audit of the complete original `muhaseb-erp-analysis/docs/07-workflows-and-acceptance.md`. All 30 future acceptance scenarios AT01–AT30 are linked to their existing Notion scenario pages with source screens, expected result and an explicit blocker/dependency. Added a CSV, audit report, fail-closed checker and eight positive/negative tests. The source explicitly describes these as future acceptance tests; no scenario is reported as executed or passed. Policy-sensitive examples (FX valuation, inventory-cost allocation, tax, payroll, manufacturing, project retention) remain examples/dependencies, not new policies. No source-analysis changes.
