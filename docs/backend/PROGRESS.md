@@ -1343,11 +1343,11 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 
 ## ملخص آلي من الأدلة المسجلة
 
-الشاشات: 150؛ منفذة جزئيًا: 43؛ لم تبدأ: 107؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
+الشاشات: 150؛ منفذة جزئيًا: 51؛ لم تبدأ: 99؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
 
 آخر تقرير محفوظ: `2026-11-02T19:37:11.777004+00:00`؛ النتيجة `passed`؛ 356/356، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 248. نسبة الشاشات التي بدأ تنفيذها: **28.7%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 280. نسبة الشاشات التي بدأ تنفيذها: **34.0%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -1356,7 +1356,7 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | SYS | 17 | 12 | 5 |
 | GL | 14 | 11 | 3 |
 | CASH | 11 | 9 | 2 |
-| INV | 16 | 6 | 10 |
+| INV | 16 | 14 | 2 |
 | SAL | 15 | 0 | 15 |
 | PUR | 13 | 0 | 13 |
 | POS | 6 | 0 | 6 |
@@ -1376,8 +1376,8 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | audit | 46 |
 | derived | 4 |
 | implemented | 349 |
-| partial | 248 |
-| pending | 2112 |
+| partial | 280 |
+| pending | 2080 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 
@@ -1448,15 +1448,15 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | INV04 | بطاقة الصنف | partial | بطاقة صنف ووحدات خاصة به ومعامل أساسي واحد وباركود فريد وسعر بالعملة الوظيفية؛ تحويل دقيق؛ حماية المجموعات والوحدات المستخدمة؛ بحث وحالة وتدقيق | قوائم نوع الصنف والتتبع نطاق أولي مستنتج من الغرض وINV05 وليست قائمة سياسة نهائية؛ الضريبة وحركة المخزون والدفعات والتسلسل التشغيلي والاستخدام المستندي غير منفذة؛ قفل الصنف بعد الحركة يجب إضافته مع دفتر المخزون |
 | INV05 | الدفعات والأرقام التسلسلية | partial | بطاقات هوية دفعات وتسلسل؛ بحث وتعديل وحالة وتدقيق وتزامن؛ فحص التاريخ وقفل تتبع الصنف؛ دون أثر مخزني | اعتماد الجودة وإلزام الصلاحية؛ إزالة افتراض الرقم القديم عند غيابه بعقد إصدار جديد؛ الاستخدام والضمان وربط المستندات وقيود الهوية المستخدمة غير منفذة |
 | INV06 | المخزون أول المدة | partial | تجهيز ومراجعة افتتاح ثم ترحيل ذري لحركة كمية وقيمة وقيد رقابة وOutbox؛ إعداد حساب التسوية ومعاينة الأثر؛ عكس مصدر معتمد بقيم تاريخية وحركات سالبة وقيد مرتبط؛ منع الافتتاح والعكس المكرر ومطابقة الإقفال وعزل الفروع | تسوية افتتاح GL02 الشاملة وإعادة افتتاح مصحح والعكس الجزئي والطباعة ومحرك تقييم الصرف؛ الأجنبية وسياسة القطع والجودة والمواقع وإدخال التسلسل النصي غير مكتملة |
-| INV07 | إذن إضافة واستلام مخزني | not-started | — | الشاشة كاملة |
-| INV08 | إذن صرف مخزني | not-started | — | الشاشة كاملة |
-| INV09 | طلب وتحويل مخزني | not-started | — | الشاشة كاملة |
-| INV10 | استلام تحويل مخزني | not-started | — | الشاشة كاملة |
+| INV07 | إذن إضافة واستلام مخزني | partial | FG01 structural scope only for إذن الاستلام; tenant key and scoped references mapped; all EF mutations fail closed | PUR06/PUR07/IMP05 source identity, supplier, receipt tolerance, provisional cost and GRNI/source-account route remain blocked. |
+| INV08 | إذن صرف مخزني | partial | FG01 structural scope only for إذن الصرف; tenant key and scoped references mapped; all EF mutations fail closed | Inventory valuation engine, SAL05 fulfillment, MFG03 source, purpose and account routing remain blocked. |
+| INV09 | طلب وتحويل مخزني | partial | FG01 structural scope only for طلب التحويل; tenant key and scoped references mapped; all EF mutations fail closed | In-transit quantity/cost, reserve/send semantics and INV10 receiving contract remain blocked. |
+| INV10 | استلام تحويل مخزني | partial | FG01 structural scope only for استلام التحويل; tenant key and scoped references mapped; all EF mutations fail closed | INV09 sent-line and in-transit balance, damaged/shortage disposition and reconciliation remain blocked. |
 | INV11 | حجز وإلغاء حجز المخزون | not-started | — | الشاشة كاملة |
-| INV12 | أوامر الجرد والعد | not-started | — | الشاشة كاملة |
-| INV13 | تسويات الجرد | not-started | — | الشاشة كاملة |
-| INV14 | تالف وصلاحية وعزل | not-started | — | الشاشة كاملة |
-| INV15 | احتساب وإعادة تقييم تكلفة المخزون | not-started | — | الشاشة كاملة |
+| INV12 | أوامر الجرد والعد | partial | FG01 structural scope only for أمر الجرد; tenant key and scoped references mapped; all EF mutations fail closed | Cutoff snapshot, blind-count visibility and exactly-once replay of post-cutoff movements remain blocked. |
+| INV13 | تسويات الجرد | partial | FG01 structural scope only for تسوية الجرد; tenant key and scoped references mapped; all EF mutations fail closed | Approved INV12 count, over/short valuation and GL03 difference account remain blocked. |
+| INV14 | تالف وصلاحية وعزل | partial | FG01 structural scope only for التالف والعزل; tenant key and scoped references mapped; all EF mutations fail closed | INV05 quality state, quarantine-versus-destruction decision, INV08 issue and loss-account approval remain blocked. |
+| INV15 | احتساب وإعادة تقييم تكلفة المخزون | partial | FG01 structural scope only for إعادة تقييم التكلفة; tenant key and scoped references mapped; all EF mutations fail closed | Approved cost-layer method, sold/remaining shares, IMP06 and GL10 remain blocked. |
 | INV16 | أسباب الحركات المخزنية | not-started | — | الشاشة كاملة |
 
 ### شاشات SAL
