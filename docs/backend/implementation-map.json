@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 43,
+  "partially_implemented_screens": 46,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 46,
     "derived": 4,
-    "partial": 248,
-    "pending": 2112
+    "partial": 298,
+    "pending": 2062
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -2943,6 +2943,230 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/InventoryReportTests.cs; backend/tests/Ameen.Erp.Tests/InventoryOpeningSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "SAL02": {
+      "api": "No public API; SQL 050 + EF mapping only; EF writes blocked",
+      "implemented": "SalesPriceLists/SalesPriceListLines tenant tables, branch/currency and item-unit-pair FKs, same-company CustomerGroups.PriceListId FK, decimal(20,6) and audit",
+      "remaining": "Customer/group/general priority and assignment source, overlapping effective periods, discount authorization, customer-specific pricing, invoice integration and public API",
+      "fields": {
+        "SAL02-F01": {
+          "status": "partial",
+          "binding": "CompanyId: tenant FK Companies"
+        },
+        "SAL02-F02": {
+          "status": "partial",
+          "binding": "BranchId: nullable same-company FK Branches"
+        },
+        "SAL02-F03": {
+          "status": "partial",
+          "binding": "Status: opaque nvarchar(64); no state graph"
+        },
+        "SAL02-F04": {
+          "status": "partial",
+          "binding": "Name: required nvarchar(200)"
+        },
+        "SAL02-F05": {
+          "status": "partial",
+          "binding": "CurrencyId: same-company FK Currencies"
+        },
+        "SAL02-F06": {
+          "status": "partial",
+          "binding": "EffectiveFrom: SQL date"
+        },
+        "SAL02-F07": {
+          "status": "partial",
+          "binding": "EffectiveTo: nullable SQL date; not before EffectiveFrom"
+        },
+        "SAL02-F08": {
+          "status": "partial",
+          "binding": "IncludesTax: bit snapshot only; no tax calculation"
+        },
+        "SAL02-F09": {
+          "status": "partial",
+          "binding": "ItemId: part of same-company ItemUnit FK"
+        },
+        "SAL02-F10": {
+          "status": "partial",
+          "binding": "UnitId: part of same-company ItemUnit FK; rejects mismatched pair"
+        },
+        "SAL02-F11": {
+          "status": "partial",
+          "binding": "Price: decimal(20,6), nonnegative"
+        },
+        "SAL02-F12": {
+          "status": "partial",
+          "binding": "DiscountLimit: decimal(20,6), nonnegative; policy/upper bound pending"
+        },
+        "SAL02-F13": {
+          "status": "partial",
+          "binding": "QuantityThreshold: nullable decimal(20,6), nonnegative"
+        },
+        "SAL02-F14": {
+          "status": "partial",
+          "binding": "CreatedBy: stored only; no actor API"
+        },
+        "SAL02-F15": {
+          "status": "partial",
+          "binding": "CreatedAt: datetimeoffset(7)"
+        },
+        "SAL02-F16": {
+          "status": "partial",
+          "binding": "Revision: positive SQL integer; no edit workflow"
+        },
+        "SAL02-F17": {
+          "status": "partial",
+          "binding": "LastModifiedAt: datetimeoffset(7) >= CreatedAt"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/SalesPriceListFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SalesPriceListSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "SAL09": {
+      "api": "No public API; SQL 049 + EF mapping only; EF writes blocked",
+      "implemented": "SalesRepresentatives tenant table, unique company/code, audit, custody-account tenant FK; opaque employee/supervisor/commission IDs retained without fictional FKs",
+      "remaining": "HR03 employee provider, supervisor target semantics, SAL10 commission policy, customer-scope authorization, active-reference checks and public API/SQL workflow acceptance",
+      "fields": {
+        "SAL09-F01": {
+          "status": "partial",
+          "binding": "SalesRepresentative.Id: tenant PK"
+        },
+        "SAL09-F02": {
+          "status": "partial",
+          "binding": "CompanyId: FK Companies"
+        },
+        "SAL09-F03": {
+          "status": "partial",
+          "binding": "Code: nvarchar(32), unique per company"
+        },
+        "SAL09-F04": {
+          "status": "partial",
+          "binding": "Name: nvarchar(200)"
+        },
+        "SAL09-F05": {
+          "status": "partial",
+          "binding": "EnglishName: nullable nvarchar(200)"
+        },
+        "SAL09-F06": {
+          "status": "partial",
+          "binding": "IsActive: stored only"
+        },
+        "SAL09-F07": {
+          "status": "partial",
+          "binding": "Notes: nullable nvarchar(2000)"
+        },
+        "SAL09-F08": {
+          "status": "partial",
+          "binding": "EmployeeId: opaque nullable GUID; HR03 missing, no FK"
+        },
+        "SAL09-F09": {
+          "status": "partial",
+          "binding": "Region: required nvarchar(200)"
+        },
+        "SAL09-F10": {
+          "status": "partial",
+          "binding": "SupervisorId: opaque nullable GUID; target semantics unapproved"
+        },
+        "SAL09-F11": {
+          "status": "partial",
+          "binding": "CustodyAccountId: nullable composite FK Accounts within company"
+        },
+        "SAL09-F12": {
+          "status": "partial",
+          "binding": "CommissionPolicyId: opaque nullable GUID; SAL10 missing, no FK"
+        },
+        "SAL09-F13": {
+          "status": "partial",
+          "binding": "CreatedBy: nvarchar(200), no actor API"
+        },
+        "SAL09-F14": {
+          "status": "partial",
+          "binding": "CreatedAt: datetimeoffset(7)"
+        },
+        "SAL09-F15": {
+          "status": "partial",
+          "binding": "Revision: positive SQL integer; no edit workflow"
+        },
+        "SAL09-F16": {
+          "status": "partial",
+          "binding": "LastModifiedAt: datetimeoffset(7) >= CreatedAt"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/SalesRepresentativeFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SalesReferenceSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
+    },
+    "SAL15": {
+      "api": "No public API; SQL 049 + EF mapping only; EF writes blocked",
+      "implemented": "CustomerGroups tenant table, unique company/code, same-company parent, price-list, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit",
+      "remaining": "Active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API",
+      "fields": {
+        "SAL15-F01": {
+          "status": "partial",
+          "binding": "CustomerGroup.Id: tenant PK"
+        },
+        "SAL15-F02": {
+          "status": "partial",
+          "binding": "CompanyId: FK Companies"
+        },
+        "SAL15-F03": {
+          "status": "partial",
+          "binding": "Code: nvarchar(32), unique per company"
+        },
+        "SAL15-F04": {
+          "status": "partial",
+          "binding": "Name: nvarchar(200)"
+        },
+        "SAL15-F05": {
+          "status": "partial",
+          "binding": "EnglishName: nullable nvarchar(200)"
+        },
+        "SAL15-F06": {
+          "status": "partial",
+          "binding": "IsActive: stored only"
+        },
+        "SAL15-F07": {
+          "status": "partial",
+          "binding": "Notes: nullable nvarchar(2000)"
+        },
+        "SAL15-F08": {
+          "status": "partial",
+          "binding": "ParentGroupId: nullable same-company self FK"
+        },
+        "SAL15-F09": {
+          "status": "partial",
+          "binding": "PriceListId: required same-company FK SalesPriceLists; priority/active checks pending"
+        },
+        "SAL15-F10": {
+          "status": "partial",
+          "binding": "DefaultCreditLimit: decimal(20,6), nonnegative"
+        },
+        "SAL15-F11": {
+          "status": "partial",
+          "binding": "CreditCurrencyId: same-company FK Currencies; active check pending"
+        },
+        "SAL15-F12": {
+          "status": "partial",
+          "binding": "PaymentTermId: same-company FK PaymentTerms; SYS16 writes blocked"
+        },
+        "SAL15-F13": {
+          "status": "partial",
+          "binding": "ControlAccountId: same-company FK Accounts; active check pending"
+        },
+        "SAL15-F14": {
+          "status": "partial",
+          "binding": "CreatedBy: nvarchar(200), no actor API"
+        },
+        "SAL15-F15": {
+          "status": "partial",
+          "binding": "CreatedAt: datetimeoffset(7)"
+        },
+        "SAL15-F16": {
+          "status": "partial",
+          "binding": "Revision: positive SQL integer; no edit workflow"
+        },
+        "SAL15-F17": {
+          "status": "partial",
+          "binding": "LastModifiedAt: datetimeoffset(7) >= CreatedAt"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/CustomerGroupFoundationTests.cs; backend/tests/Ameen.Erp.Tests/SalesReferenceSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     }
   }
 }

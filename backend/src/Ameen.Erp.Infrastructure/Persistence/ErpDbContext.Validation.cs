@@ -16,6 +16,30 @@ public sealed partial class ErpDbContext
             "حفظ بطاقة العميل محجوب حتى اكتمال التصنيف والهوية والتفويض والائتمان.",
             ErrorKind.Conflict);
 
+        // SAL09/SAL15 are schema-only. HR03, SAL10, SAL02, SYS16 and
+        // customer-scope/credit authorization are not operationally approved.
+        // Deny direct EF writes as well as public writes until those providers exist.
+        Check.That(!ChangeTracker.Entries<SalesRepresentative>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "sales_representative_policy_unavailable",
+            "حفظ المندوب محجوب حتى اعتماد الموظف والمشرف والعمولة ونطاق العملاء والصلاحيات.",
+            ErrorKind.Conflict);
+        Check.That(!ChangeTracker.Entries<CustomerGroup>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "customer_group_policy_unavailable",
+            "حفظ مجموعة العملاء محجوب حتى اعتماد قائمة الأسعار وشروط الدفع والائتمان والتفويض.",
+            ErrorKind.Conflict);
+
+        // SAL02 price-list records are structural only. Priority, overlap,
+        // discount approval and invoice-price resolution are not yet approved.
+        Check.That(!ChangeTracker.Entries<SalesPriceList>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<SalesPriceListLine>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "sales_price_list_policy_unavailable",
+            "حفظ قائمة الأسعار محجوب حتى اعتماد الأولوية وتعارض الصلاحية وحدود الخصم والتفويض.",
+            ErrorKind.Conflict);
+
         // CASH09 transition list, authorized actor, cheque clearing, bank
         // debit and returned receivables are unapproved. Do not record an
         // apparent financial transition through any EF caller.

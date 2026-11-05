@@ -1309,11 +1309,11 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 
 ## ملخص آلي من الأدلة المسجلة
 
-الشاشات: 150؛ منفذة جزئيًا: 43؛ لم تبدأ: 107؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
+الشاشات: 150؛ منفذة جزئيًا: 46؛ لم تبدأ: 104؛ مكتملة: 0. الحقول: 2759؛ المخططات: 28؛ القواعد: 20. لا يمثل ذلك نسبة اكتمال مالي أو تشغيلي.
 
-آخر تقرير محفوظ: `2026-11-02T19:37:11.777004+00:00`؛ النتيجة `passed`؛ 356/356، فشل 0؛ SQL حي مطلوب: `True`. بصمة المصادر: `c13d8b407ef2a454df29b79d1953d501f10d880091dcfe4a161a628421700e18`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
+آخر تقرير محفوظ: `2026-11-05T19:06:27.871255+00:00`؛ النتيجة `passed`؛ 539/539، فشل 0؛ SQL حي مطلوب: `False`. بصمة المصادر: `a84bc98a87deda3e7024c6bed6254a8adbcf39235d1c822cdb4c71eb3ae27a93`. هذه نتيجة التقرير المحفوظ وليست فحصًا جديدًا للشجرة الحالية.
 
-تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 248. نسبة الشاشات التي بدأ تنفيذها: **28.7%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
+تغطية الحقول المنفذة/المشتقة/التدقيق: **14.5%** (399/2759)؛ الحقول الجزئية: 298. نسبة الشاشات التي بدأ تنفيذها: **30.7%**. هذه مؤشرات ربط متطلبات وليست نسبة جاهزية تشغيلية أو ساعات إنجاز.
 
 ### حصيلة الأقسام
 
@@ -1323,7 +1323,7 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | GL | 14 | 11 | 3 |
 | CASH | 11 | 9 | 2 |
 | INV | 16 | 6 | 10 |
-| SAL | 15 | 0 | 15 |
+| SAL | 15 | 3 | 12 |
 | PUR | 13 | 0 | 13 |
 | POS | 6 | 0 | 6 |
 | IMP | 6 | 0 | 6 |
@@ -1342,8 +1342,8 @@ On branch `temp/gl14-agent03-rejected-edit-atomicity-20261102` from main `d02dbb
 | audit | 46 |
 | derived | 4 |
 | implemented | 349 |
-| partial | 248 |
-| pending | 2112 |
+| partial | 298 |
+| pending | 2062 |
 
 implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في التدقيق؛ derived مشتق؛ partial جزئي؛ pending غير منفذ. راجع fields-implementation.csv لمعرفة اسم كل حقل وعقده.
 
@@ -1430,20 +1430,20 @@ implemented يعني ربط الحقل بعقد؛ audit يعني وجوده في
 | الشاشة | الاسم | الحالة | المنفذ | المتبقي |
 | --- | --- | --- | --- | --- |
 | SAL01 | بطاقة العميل | not-started | — | الشاشة كاملة |
-| SAL02 | قوائم الأسعار والخصومات | not-started | — | الشاشة كاملة |
+| SAL02 | قوائم الأسعار والخصومات | partial | SalesPriceLists/SalesPriceListLines tenant tables, branch/currency and item-unit-pair FKs, same-company CustomerGroups.PriceListId FK, decimal(20,6) and audit | Customer/group/general priority and assignment source, overlapping effective periods, discount authorization, customer-specific pricing, invoice integration and public API |
 | SAL03 | أرصدة العملاء أول المدة | not-started | — | الشاشة كاملة |
 | SAL04 | أمر البيع | not-started | — | الشاشة كاملة |
 | SAL05 | أمر تسليم مبيعات | not-started | — | الشاشة كاملة |
 | SAL06 | فاتورة المبيعات | not-started | — | الشاشة كاملة |
 | SAL07 | مرتجع المبيعات | not-started | — | الشاشة كاملة |
 | SAL08 | إشعار دائن أو مدين للعميل | not-started | — | الشاشة كاملة |
-| SAL09 | المندوبون والمناطق | not-started | — | الشاشة كاملة |
+| SAL09 | المندوبون والمناطق | partial | SalesRepresentatives tenant table, unique company/code, audit, custody-account tenant FK; opaque employee/supervisor/commission IDs retained without fictional FKs | HR03 employee provider, supervisor target semantics, SAL10 commission policy, customer-scope authorization, active-reference checks and public API/SQL workflow acceptance |
 | SAL10 | العمولات وأهداف المبيعات | not-started | — | الشاشة كاملة |
 | SAL11 | تسوية وتخصيص تحصيل العملاء | not-started | — | الشاشة كاملة |
 | SAL12 | متابعة التحصيل وحد الائتمان | not-started | — | الشاشة كاملة |
 | SAL13 | حركات المبيعات والمرتجعات | not-started | — | الشاشة كاملة |
 | SAL14 | عرض أسعار المبيعات | not-started | — | الشاشة كاملة |
-| SAL15 | مجموعات العملاء وسياسات الائتمان | not-started | — | الشاشة كاملة |
+| SAL15 | مجموعات العملاء وسياسات الائتمان | partial | CustomerGroups tenant table, unique company/code, same-company parent, price-list, currency, payment-term and control-account FKs, decimal(20,6) credit limit and audit | Active-reference checks, SYS16 operational payment terms, credit override/precedence policy, customer assignment, historical invoice handling, permissions and public API |
 
 ### شاشات PUR
 
@@ -1644,3 +1644,11 @@ Confirmed against the original read-only SYS10 dictionary and current `DocumentN
 ## CORE SPEC01 — تدقيق ربط قرارات النطاق (4 نوفمبر 2026)
 
 أضيف تقرير [تدقيق SPEC01 والقرارات D01–D08](core-spec01-decisions-audit-20261104.md) وحارس `backend/scripts/check_scope_decision_links.py` مع اختبارات قبول إيجابية وسلبية ضمن discovery الحالي لـ `verify.py`. القرارات الثمانية كلها محجوبة في Notion؛ التقرير يربط مصدرها بالمهام الحالية ولا يحسم سياسة أو مالك قرار غير محدد. هذه حزمة قراءة/مطابقة مستقلة من `temp/core-spec01-decision-audit-20261104-chat`؛ تبقى SPEC01 جزئية إلى حين قبول CI/مراجعة SUPERVISOR، وتبقى القرارات محجوبة ولا يتحول تدقيق النطاق إلى شهادة جاهزية إنتاج.
+
+## SAL09 / SAL15 — tenant-scoped persistence foundation (5 November 2026)
+
+أُضيفت تهيئة EF وترقية SQL 049 للمندوبين ومجموعات العملاء، ثم SQL 050 أضافت مزود قائمة الأسعار وربط PriceListId بـFK داخل الشركة. يبقى EmployeeId/SupervisorId/CommissionPolicyId غير موصول لأن HR03/SAL10 غير متاحين؛ وتبقى صلاحيات نطاق العملاء وسياسات الائتمان وشروط الدفع الفعالة محجوبة. حواجز EF تمنع جميع الكتابات، ولا توجد API تشغيلية. التفاصيل في `docs/backend/sal09-sal15-persistence-foundation-20261105.md`. تبقى SAL09-01 وSAL15-01 جزئيتين/محجوبتين تشغيليًا، ولا تُغلق AC/CTRL/OP.
+
+## SAL02 — tenant-scoped price-list persistence foundation (5 November 2026)
+
+أضيفت ترقية SQL 050 وجداول SalesPriceLists/SalesPriceListLines مع EF، وربطت PriceListId في مجموعات العملاء بـFK مركب داخل الشركة. تحفظ القائمة الفرع والعملة والتواريخ وحالة غير مفسرة وشمول الضريبة، وتحفظ السطور الصنف والوحدة كزوج ItemUnit صحيح والسعر وحد الخصم وحد الكمية بدقة 20,6. اختبارات SQL تغطي الترقية الذرية والتكرار ورفض المراجع غير الصحيحة وزوج الصنف/الوحدة، مع حظر insert/update/delete عبر EF. لا توجد API أو أولوية تسعير أو معالجة تداخل صلاحية أو تفويض خصم أو أثر فاتورة؛ حقول المصدر لا تحدد عقد تعيين قائمة العميل/المجموعة/العامة، فلا ننشئ جدول تعيين مخمّنًا. SAL02-01 يبقى جزئيًا/محجوبًا تشغيليًا، وتظل SAL15 جزئية بعد إضافة FK القائمة. التفاصيل: `docs/backend/sal02-price-list-persistence-20261105.md`.
