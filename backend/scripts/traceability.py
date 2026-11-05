@@ -62,6 +62,9 @@ screen("SYS05", "GET/POST /companies/{companyId}/exchange-rates; GET /search|/qu
        {1: "CompanyId", 4: "CurrencyCode", 5: "ExchangeRateDetail.FunctionalCurrency / ExchangeRateQuote.FunctionalCurrency", 6: "EffectiveDate", 8: "Source", 9: "RateToFunctional"},
        [(10, "AuditEvent.ActorId: exchange-rate.created"), (11, "AuditEvent.OccurredAt: exchange-rate.created")])
 MAP["SYS05"]["test_file"] = "backend/tests/Ameen.Erp.Tests/RateAndCloseTests.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+MAP["SYS05"]["fields"]["SYS05-F06"]["binding"] = (
+    "ExchangeRate.EffectiveDate: required nondefault date at create; quote requires nondefault date; "
+    "type/branch catalogues remain unapproved")
 screen("SYS06", "POST /companies/{companyId}/memberships/{id}/status",
        "تعطيل وتفعيل عضوية ERP؛ ربط sub بجهة OIDC", "شاشة المستخدم الكاملة؛ إنشاء الهوية والبريد واللغة وMFA لدى مزود الهوية لم يُدمج تشغيليًا",
        {1: "Membership.Id", 2: "CompanyId"})

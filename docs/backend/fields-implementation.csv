@@ -74,7 +74,7 @@ SYS05,SYS05-F02,الفرع,conditional,pending,,
 SYS05,SYS05-F03,الحالة,system,pending,,
 SYS05,SYS05-F04,عملة المصدر,required,implemented,CurrencyCode,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
 SYS05,SYS05-F05,العملة الوظيفية,required,derived,Company.FunctionalCurrency,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
-SYS05,SYS05-F06,تاريخ السريان,required,implemented,EffectiveDate,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
+SYS05,SYS05-F06,تاريخ السريان,required,implemented,ExchangeRate.EffectiveDate: required nondefault date at create; quote requires nondefault date; type/branch catalogues remain unapproved,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
 SYS05,SYS05-F07,نوع السعر,required,pending,,
 SYS05,SYS05-F08,مصدر السعر,required,implemented,Source,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events
 SYS05,SYS05-F09,السعر,required,implemented,RateToFunctional,GET/POST /companies/{companyId}/exchange-rates; GET /search|/quote|/{id}|/{id}/usage|/{id}/audit-events

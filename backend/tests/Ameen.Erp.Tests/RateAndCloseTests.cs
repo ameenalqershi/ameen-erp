@@ -7,6 +7,33 @@ public static class RateAndCloseTests
 {
     public static void Register(Action<string, Func<Fixture, Task>> test)
     {
+        test("SYS05-FG02: missing effective date rejects create and both quote paths without effects", async f =>
+        {
+            await Currency(f);
+            var auditCount=f.Store.Count<AuditEvent>();
+            var receiptCount=f.Store.Count<IdempotencyRecord>();
+            var rateCount=f.Store.Count<ExchangeRate>();
+            try
+            {
+                _=new ExchangeRate(f.CompanyId,"USD",default,3.75m,"test source");
+                throw new Exception("Expected missing exchange rate date");
+            }
+            catch(BusinessException ex) when(ex.Code=="exchange_rate_date_required") {}
+            await Error("exchange_rate_date_required",()=>
+                f.Service.ExchangeRate.CreateExchangeRate(f.CompanyId,f.Owner,Fixture.Key(),
+                    new("USD",default,3.75m,"test source"),default));
+            await Error("exchange_rate_date_required",()=>
+                f.Service.ExchangeRate.QuoteExchangeRate(f.CompanyId,f.Clerk,"USD",default,default));
+            await Error("exchange_rate_date_required",()=>
+                f.Service.ExchangeRate.QuoteExchangeRate(f.CompanyId,f.Clerk,"SAR",default,default));
+            Ensure(f.Store.Count<ExchangeRate>()==rateCount &&
+                f.Store.Count<AuditEvent>()==auditCount &&
+                f.Store.Count<IdempotencyRecord>()==receiptCount);
+            var valid=await Rate(f,Fixture.Date,3.75m);
+            var quote=await f.Service.ExchangeRate.QuoteExchangeRate(
+                f.CompanyId,f.Clerk,"USD",Fixture.Date,default);
+            Ensure(quote.ExchangeRateId==valid.ResourceId && quote.RateToFunctional==3.75m);
+        });
         test("SYS05: quote selects latest effective date, fixes direction and preserves exact rate", async f =>
         {
             await Currency(f);
