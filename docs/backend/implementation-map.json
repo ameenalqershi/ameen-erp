@@ -621,11 +621,11 @@
       "fields": {
         "GL14-F01": {
           "status": "partial",
-          "binding": "CompanyId: EF/SQL tenant key only"
+          "binding": "CompanyId: required tenant key with SQL company FK; no public GL14 API"
         },
         "GL14-F02": {
           "status": "partial",
-          "binding": "BranchId: nullable tenant FK only"
+          "binding": "BranchId: nullable composite (CompanyId,BranchId) SQL/EF FK; active-branch authorization remains pending"
         },
         "GL14-F03": {
           "status": "partial",

@@ -1651,8 +1651,8 @@ Confirmed against the original read-only SYS10 dictionary and current `DocumentN
 قيمة `RequiresAttachment` true/false عند الإنشاء والتعديل مع ثبات الشركة/الفرع
 والرمز والمصدر، وزيادة Revision وVersion ووقت التعديل مرة واحدة. اختبار SQL
 المعزول يثبت أسماء وأشكال الأعمدة الخمسة عشر في SQL 027، وخصوصًا
-`RequiresAttachment bit NOT NULL`، و`BranchId` الاختياري، وCode بترتيب
-ثنائي، وحقول التدقيق والقيود والفهارس. هذه دفعة بيانات/اختبار فقط؛ لا تفعّل
+`RequiresAttachment bit NOT NULL`، و`BranchId` الاختياري، وأزواج FK المركبة للشركة/الفرع/سلسلة الترقيم،
+وفهرس تفرد `(CompanyId,Code)`، وCode بترتيب ثنائي، وحقول التدقيق والقيود. هذه دفعة بيانات/اختبار فقط؛ لا تفعّل
 إلزام المرفق عند إرسال GL03 لأن GL14 لا يملك بعد مسار API/اعتماد SYS09 صالحًا.
 تظل FG01 جزئية بسبب التحقق من الفرع الفعال والتفويض، وFG02/FG04 وC01 وT01/T02
 جزئية بحسب اعتماديات SYS09/GL03. التحليل الأصلي وSQL migrations والإجراءات
