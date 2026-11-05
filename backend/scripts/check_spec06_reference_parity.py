@@ -34,7 +34,7 @@ def check(source=SOURCE, matrix=MATRIX, sources=SOURCES, report=REPORT):
             raise ValueError(f"SPEC06 reference identity/evidence unexpectedly populated: {row['معرفنا']}")
     source_rows = json.loads(Path(sources).read_text(encoding="utf-8"))
     refs = {row["id"]: row for row in source_rows}
-    if set(refs) < EXPECTED_REFERENCES:
+    if not EXPECTED_REFERENCES.issubset(refs):
         raise ValueError("SPEC06 expected reference sources S01–S06")
     for ref in ("S04", "S05", "S06"):
         if refs[ref]["status"] != "تعذر الجلب":
