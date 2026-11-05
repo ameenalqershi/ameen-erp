@@ -253,6 +253,25 @@ screen("INV01", "GET/POST /companies/{companyId}/warehouses; GET/PUT /{id}; POST
        {1: "Warehouse.Id", 2: "CompanyId", 3: "Code", 4: "Name", 5: "EnglishName", 6: "IsActive", 7: "Notes", 8: "BranchId", 9: "KeeperMembershipId", 10: "Type", 11: "InventoryAccountId", 12: "TrackLocations", 13: "Locations[].Code", 14: "Locations[].Description", 17: "Revision"},
        [(15, "AuditEvent.ActorId: warehouse.created"), (16, "AuditEvent.OccurredAt: warehouse.created"), (18, "AuditEvent.OccurredAt: warehouse.edited / warehouse.status-changed")])
 MAP["INV01"]["fields"]["INV01-F09"] = dict(status="partial", binding="KeeperMembershipId: initial active ERP membership with branch scope")
+
+# INV07/08/09/10/12/13/14/15 FG01: structural-only header scope.
+# No public API or EF writes until each source/lifecycle policy is accepted.
+for code, title, fields, remaining in [
+    ("INV07", "إذن الاستلام", {1:"CompanyEntity.Id: generated UUID; no document API", 2:"CompanyEntity.CompanyId: tenant key", 3:"BranchId: required company-scoped FK", 4:"FiscalYearId: required company-scoped FK"}, "PUR06/PUR07/IMP05 source identity, supplier, receipt tolerance, provisional cost and GRNI/source-account route remain blocked."),
+    ("INV08", "إذن الصرف", {1:"CompanyEntity.Id: generated UUID; no document API", 2:"CompanyEntity.CompanyId: tenant key", 3:"BranchId: required company-scoped FK", 4:"FiscalYearId: required company-scoped FK"}, "Inventory valuation engine, SAL05 fulfillment, MFG03 source, purpose and account routing remain blocked."),
+    ("INV09", "طلب التحويل", {1:"CompanyEntity.Id: generated UUID; no document API", 2:"CompanyEntity.CompanyId: tenant key", 3:"BranchId: required company-scoped FK", 4:"FiscalYearId: required company-scoped FK"}, "In-transit quantity/cost, reserve/send semantics and INV10 receiving contract remain blocked."),
+    ("INV10", "استلام التحويل", {1:"CompanyEntity.Id: generated UUID; no document API", 2:"CompanyEntity.CompanyId: tenant key", 3:"BranchId: required company-scoped FK", 4:"FiscalYearId: required company-scoped FK"}, "INV09 sent-line and in-transit balance, damaged/shortage disposition and reconciliation remain blocked."),
+    ("INV12", "أمر الجرد", {1:"CompanyEntity.CompanyId: tenant key", 2:"BranchId: optional company-scoped FK", 3:"StatusCode: opaque shape only; no approved lifecycle", 4:"WarehouseId: required company-scoped FK"}, "Cutoff snapshot, blind-count visibility and exactly-once replay of post-cutoff movements remain blocked."),
+    ("INV13", "تسوية الجرد", {1:"CompanyEntity.Id: generated UUID; no document API", 2:"CompanyEntity.CompanyId: tenant key", 3:"BranchId: required company-scoped FK", 4:"FiscalYearId: required company-scoped FK"}, "Approved INV12 count, over/short valuation and GL03 difference account remain blocked."),
+    ("INV14", "التالف والعزل", {1:"CompanyEntity.Id: generated UUID; no document API", 2:"CompanyEntity.CompanyId: tenant key", 3:"BranchId: required company-scoped FK", 4:"FiscalYearId: required company-scoped FK"}, "INV05 quality state, quarantine-versus-destruction decision, INV08 issue and loss-account approval remain blocked."),
+    ("INV15", "إعادة تقييم التكلفة", {1:"CompanyEntity.CompanyId: tenant key", 2:"BranchId: optional company-scoped FK", 3:"StatusCode: opaque shape only; no approved lifecycle", 4:"FromDate: SQL date; non-default only"}, "Approved cost-layer method, sold/remaining shares, IMP06 and GL10 remain blocked."),
+]:
+    screen(code, "", f"FG01 structural scope only for {title}; tenant key and scoped references mapped; all EF mutations fail closed",
+           remaining, fields)
+    MAP[code]["test_file"] = "backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationTests.cs; backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationSqlIntegration.cs"
+    for item in MAP[code]["fields"].values():
+        item["status"] = "partial"
+
 MAP["INV01"]["fields"]["INV01-F10"] = dict(status="partial", binding="Warehouse.Type: Standard/Quarantine initial inferred scope")
 MAP["INV01"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in ["WarehouseTests.cs", "WarehouseSqlIntegration.cs", "SchemaUpgradeIntegration.cs", "HostedApiIntegration.cs"])
 screen("INV02", "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups",

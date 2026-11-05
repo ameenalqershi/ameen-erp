@@ -3,14 +3,14 @@
   "screen_count": 150,
   "field_count": 2759,
   "diagram_count": 28,
-  "partially_implemented_screens": 43,
+  "partially_implemented_screens": 51,
   "complete_screens": 0,
   "field_status_counts": {
     "implemented": 349,
     "audit": 46,
     "derived": 4,
-    "partial": 248,
-    "pending": 2112
+    "partial": 280,
+    "pending": 2080
   },
   "coverage_note": "Field bindings are reviewed mappings, not proof of an end-to-end UI or production operation.",
   "screens": {
@@ -1737,6 +1737,198 @@
         }
       },
       "test_file": "backend/tests/Ameen.Erp.Tests/WarehouseTests.cs; backend/tests/Ameen.Erp.Tests/WarehouseSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SchemaUpgradeIntegration.cs; backend/tests/Ameen.Erp.Tests/HostedApiIntegration.cs"
+    },
+    "INV07": {
+      "api": "",
+      "implemented": "FG01 structural scope only for إذن الاستلام; tenant key and scoped references mapped; all EF mutations fail closed",
+      "remaining": "PUR06/PUR07/IMP05 source identity, supplier, receipt tolerance, provisional cost and GRNI/source-account route remain blocked.",
+      "fields": {
+        "INV07-F01": {
+          "status": "partial",
+          "binding": "CompanyEntity.Id: generated UUID; no document API"
+        },
+        "INV07-F02": {
+          "status": "partial",
+          "binding": "CompanyEntity.CompanyId: tenant key"
+        },
+        "INV07-F03": {
+          "status": "partial",
+          "binding": "BranchId: required company-scoped FK"
+        },
+        "INV07-F04": {
+          "status": "partial",
+          "binding": "FiscalYearId: required company-scoped FK"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationTests.cs; backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationSqlIntegration.cs"
+    },
+    "INV08": {
+      "api": "",
+      "implemented": "FG01 structural scope only for إذن الصرف; tenant key and scoped references mapped; all EF mutations fail closed",
+      "remaining": "Inventory valuation engine, SAL05 fulfillment, MFG03 source, purpose and account routing remain blocked.",
+      "fields": {
+        "INV08-F01": {
+          "status": "partial",
+          "binding": "CompanyEntity.Id: generated UUID; no document API"
+        },
+        "INV08-F02": {
+          "status": "partial",
+          "binding": "CompanyEntity.CompanyId: tenant key"
+        },
+        "INV08-F03": {
+          "status": "partial",
+          "binding": "BranchId: required company-scoped FK"
+        },
+        "INV08-F04": {
+          "status": "partial",
+          "binding": "FiscalYearId: required company-scoped FK"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationTests.cs; backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationSqlIntegration.cs"
+    },
+    "INV09": {
+      "api": "",
+      "implemented": "FG01 structural scope only for طلب التحويل; tenant key and scoped references mapped; all EF mutations fail closed",
+      "remaining": "In-transit quantity/cost, reserve/send semantics and INV10 receiving contract remain blocked.",
+      "fields": {
+        "INV09-F01": {
+          "status": "partial",
+          "binding": "CompanyEntity.Id: generated UUID; no document API"
+        },
+        "INV09-F02": {
+          "status": "partial",
+          "binding": "CompanyEntity.CompanyId: tenant key"
+        },
+        "INV09-F03": {
+          "status": "partial",
+          "binding": "BranchId: required company-scoped FK"
+        },
+        "INV09-F04": {
+          "status": "partial",
+          "binding": "FiscalYearId: required company-scoped FK"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationTests.cs; backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationSqlIntegration.cs"
+    },
+    "INV10": {
+      "api": "",
+      "implemented": "FG01 structural scope only for استلام التحويل; tenant key and scoped references mapped; all EF mutations fail closed",
+      "remaining": "INV09 sent-line and in-transit balance, damaged/shortage disposition and reconciliation remain blocked.",
+      "fields": {
+        "INV10-F01": {
+          "status": "partial",
+          "binding": "CompanyEntity.Id: generated UUID; no document API"
+        },
+        "INV10-F02": {
+          "status": "partial",
+          "binding": "CompanyEntity.CompanyId: tenant key"
+        },
+        "INV10-F03": {
+          "status": "partial",
+          "binding": "BranchId: required company-scoped FK"
+        },
+        "INV10-F04": {
+          "status": "partial",
+          "binding": "FiscalYearId: required company-scoped FK"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationTests.cs; backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationSqlIntegration.cs"
+    },
+    "INV12": {
+      "api": "",
+      "implemented": "FG01 structural scope only for أمر الجرد; tenant key and scoped references mapped; all EF mutations fail closed",
+      "remaining": "Cutoff snapshot, blind-count visibility and exactly-once replay of post-cutoff movements remain blocked.",
+      "fields": {
+        "INV12-F01": {
+          "status": "partial",
+          "binding": "CompanyEntity.CompanyId: tenant key"
+        },
+        "INV12-F02": {
+          "status": "partial",
+          "binding": "BranchId: optional company-scoped FK"
+        },
+        "INV12-F03": {
+          "status": "partial",
+          "binding": "StatusCode: opaque shape only; no approved lifecycle"
+        },
+        "INV12-F04": {
+          "status": "partial",
+          "binding": "WarehouseId: required company-scoped FK"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationTests.cs; backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationSqlIntegration.cs"
+    },
+    "INV13": {
+      "api": "",
+      "implemented": "FG01 structural scope only for تسوية الجرد; tenant key and scoped references mapped; all EF mutations fail closed",
+      "remaining": "Approved INV12 count, over/short valuation and GL03 difference account remain blocked.",
+      "fields": {
+        "INV13-F01": {
+          "status": "partial",
+          "binding": "CompanyEntity.Id: generated UUID; no document API"
+        },
+        "INV13-F02": {
+          "status": "partial",
+          "binding": "CompanyEntity.CompanyId: tenant key"
+        },
+        "INV13-F03": {
+          "status": "partial",
+          "binding": "BranchId: required company-scoped FK"
+        },
+        "INV13-F04": {
+          "status": "partial",
+          "binding": "FiscalYearId: required company-scoped FK"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationTests.cs; backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationSqlIntegration.cs"
+    },
+    "INV14": {
+      "api": "",
+      "implemented": "FG01 structural scope only for التالف والعزل; tenant key and scoped references mapped; all EF mutations fail closed",
+      "remaining": "INV05 quality state, quarantine-versus-destruction decision, INV08 issue and loss-account approval remain blocked.",
+      "fields": {
+        "INV14-F01": {
+          "status": "partial",
+          "binding": "CompanyEntity.Id: generated UUID; no document API"
+        },
+        "INV14-F02": {
+          "status": "partial",
+          "binding": "CompanyEntity.CompanyId: tenant key"
+        },
+        "INV14-F03": {
+          "status": "partial",
+          "binding": "BranchId: required company-scoped FK"
+        },
+        "INV14-F04": {
+          "status": "partial",
+          "binding": "FiscalYearId: required company-scoped FK"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationTests.cs; backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationSqlIntegration.cs"
+    },
+    "INV15": {
+      "api": "",
+      "implemented": "FG01 structural scope only for إعادة تقييم التكلفة; tenant key and scoped references mapped; all EF mutations fail closed",
+      "remaining": "Approved cost-layer method, sold/remaining shares, IMP06 and GL10 remain blocked.",
+      "fields": {
+        "INV15-F01": {
+          "status": "partial",
+          "binding": "CompanyEntity.CompanyId: tenant key"
+        },
+        "INV15-F02": {
+          "status": "partial",
+          "binding": "BranchId: optional company-scoped FK"
+        },
+        "INV15-F03": {
+          "status": "partial",
+          "binding": "StatusCode: opaque shape only; no approved lifecycle"
+        },
+        "INV15-F04": {
+          "status": "partial",
+          "binding": "FromDate: SQL date; non-default only"
+        }
+      },
+      "test_file": "backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationTests.cs; backend/tests/Ameen.Erp.Tests/InventoryDocumentFoundationSqlIntegration.cs"
     },
     "INV02": {
       "api": "GET/POST /companies/{companyId}/item-groups; GET/PUT /{id}; POST /{id}/status; GET /{id}/audit-events|usage|items; GET /accounts/{id}/item-groups",

@@ -16,6 +16,19 @@ public sealed partial class ErpDbContext
             "inventory_movement_reason_policy_unavailable",
             "حفظ أسباب الحركات محجوب حتى اعتماد الاتجاه والحساب المقابل ومسار الموافقة.",
             ErrorKind.Conflict);
+        // INV07/08/09/10/12/13/14/15-FG01 are field-scope foundations only.
+        // Source, lifecycle, availability, valuation, approval and posting contracts are not accepted.
+        Check.That(!ChangeTracker.Entries<InventoryReceiptHeader>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<InventoryIssueHeader>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<InventoryTransferHeader>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<InventoryTransferReceiptHeader>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<InventoryCountHeader>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<InventoryAdjustmentHeader>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<InventoryDamageHeader>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted) &&
+            !ChangeTracker.Entries<InventoryRevaluationHeader>().Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "inventory_document_foundation_policy_unavailable",
+            "كتابة مستندات المخزون محجوبة حتى اعتماد المصدر والحركة والتقييم ومسار الموافقة.",
+            ErrorKind.Conflict);
         // SAL01-01 structural only. Customer classification (SAL15), country
         // identity rules, credit override authorization and SAL09 are unavailable.
         Check.That(!ChangeTracker.Entries<Customer>().Any(e =>

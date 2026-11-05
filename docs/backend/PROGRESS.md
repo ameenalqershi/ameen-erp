@@ -1,3 +1,13 @@
+## INV07/08/09/10/12/13/14/15-FG01 — isolated header-scope foundations (5 November 2026)
+
+**Selection:** Notion V1 numbered FG01 tasks only; original inventory analysis, field registry and module-INV diagram. Independent PRE work only; fail-closed INT/AC. INV07 remains blocked by PUR06/PUR07/IMP05/GL06 source contracts; INV08 by valuation + SAL05/MFG03; INV09/10 by in-transit and sender/receiver contracts; INV11 excluded because SAL04 is domain-only and its required SalesOrder provider is not SQL/EF-ready; INV12 by complete stock ledger/cutoff/blind-count replay; INV13 by INV12 and GL03 valuation; INV14 by quality/issue/disposal approval; INV15 by cost layers, IMP06 and GL10.
+
+**Implemented PRE scope:** eight separate tenant-scoped header-scope entities/tables for INV07-FG01, INV08-FG01, INV09-FG01, INV10-FG01, INV12-FG01, INV13-FG01, INV14-FG01 and INV15-FG01. Six tables contain CompanyEntity identity/tenant/version plus required BranchId and FiscalYearId (composite tenant FKs); INV12 has optional BranchId, opaque StatusCode and required WarehouseId; INV15 has optional BranchId, opaque StatusCode and non-default FromDate. Migration 050 is atomic/idempotent and creates 8 tables / 23 tenant-scoped FKs. Field mappings are partial with no API. An EF guard rejects Added/Modified/Deleted across all eight types. No guessed status enum, source discriminator, order/sales reference, valuation/cost, movement, approval or GL route.
+
+**Acceptance boundary:** InventoryDocumentFoundationTests checks field scope and invalid empty identifiers/status/date; InventoryDocumentFoundationSqlIntegration tests migration rollback on collision, idempotency, all eight SQL/EF table mappings, tenant branch/year/warehouse FKs, status/date checks and fail-closed EF writes with no audit/outbox/journal effects. Local Release verification: 546/546 PASS; live SQL unavailable locally and must be verified in CI on the pushed SHA. Eight Notion FG01 tasks will remain partial until SQL CI evidence; each parent screen remains blocked. INV11-FG01 is not started because SAL04 provider is not ready. No original analysis or production data is changed.
+
+---
+
 ## INV16-01 — قاعدة أسباب الحركات المخزنية الآمنة دون تشغيل السياسة (5 نوفمبر 2026)
 
 **المصدر المعتمد:** Notion V1 (INV16-01، INV16-FG01..FG04) والتحليل الأصلي `muhaseb-erp-analysis/docs/modules/INV.md`؛ لا يعتمد على مخططات التخطيط الإضافية. حالة مهمة INV16-01 الأم `محجوب` إلى أن تُعتمد قيم اتجاه الحركة والحالة، شروط حساب المقابل ومركز التكلفة، وحدود مسارات الاعتماد/الفرع والمستندات INV07/INV08/INV13/INV14.
