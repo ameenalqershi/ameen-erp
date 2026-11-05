@@ -23,7 +23,7 @@ def check(source=SOURCE, contracts=CONTRACTS, phases=PHASES, report=REPORT):
     source_text = Path(source).read_text(encoding="utf-8")
     if source_text.count("## عقد التقرير") != 1 or source_text.count("## مراحل تنفيذ لاحقة") != 1:
         raise ValueError("SPEC08 source sections missing or duplicated")
-    report_rows = [line for line in source_text.splitlines() if line.startswith("| ") and line.count("|") >= 3]
+    report_rows = [line for line in source_text.splitlines() if line.startswith("|") and line.count("|") >= 3]
     if len(report_rows) - 2 != 19:
         raise ValueError(f"SPEC08 expected 19 source report contracts; found {len(report_rows) - 2}")
     contract_rows = read_csv(contracts)
