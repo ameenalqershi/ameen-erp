@@ -448,6 +448,28 @@ Test("SYS06-FG05 partial: new membership has numeric revision and server-owned a
     Assert(old.Revision is null && old.CreatedBy is null && old.CreatedAt is null &&
         old.LastModifiedAt is null, "SYS06 manufactured legacy origin from unknown history");
 });
+Test("SYS06-FG05: rejected audit timestamp and revision overflow cannot mutate membership", async f =>
+{
+    var now = new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+    var member = new Membership(f.CompanyId, "sys06-atomic", new[] { Permissions.Read },
+        true, Array.Empty<Guid>(), f.Owner.Subject, now);
+    var version = member.Version;
+    await Error("invalid_membership_audit_time", () => Task.Run(() =>
+        member.ConfigureAuthorized(new[] { Permissions.Audit }, true, Array.Empty<Guid>(), now.AddSeconds(-1))));
+    await Error("invalid_membership_audit_time", () => Task.Run(() =>
+        member.SetActiveAuthorized(false, now.AddSeconds(-1))));
+    Assert(member.Has(Permissions.Read) && !member.Has(Permissions.Audit) && member.IsActive &&
+        member.Revision == 1 && member.LastModifiedAt == now && member.Version == version,
+        "SYS06 rejected timestamp mutated permissions, status or audit metadata");
+    typeof(Membership).GetProperty(nameof(Membership.Revision))!.SetValue(member, int.MaxValue);
+    await Error("membership_revision_overflow", () => Task.Run(() =>
+        member.ConfigureAuthorized(new[] { Permissions.Audit }, true, Array.Empty<Guid>(), now.AddSeconds(1))));
+    await Error("membership_revision_overflow", () => Task.Run(() =>
+        member.SetActiveAuthorized(false, now.AddSeconds(1))));
+    Assert(member.Has(Permissions.Read) && !member.Has(Permissions.Audit) && member.IsActive &&
+        member.Revision == int.MaxValue && member.LastModifiedAt == now && member.Version == version,
+        "SYS06 overflow mutated membership before audit rejection");
+});
 Test("SYS06: disabled membership immediately loses read and replay access", async f =>
 {
     var key = Fixture.Key(); await f.Draft(key: key);
