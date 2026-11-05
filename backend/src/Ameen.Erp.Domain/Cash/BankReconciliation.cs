@@ -33,6 +33,10 @@ public sealed class BankReconciliation : CompanyEntity
             "نطاق تاريخ الكشف غير صالح.");
         CheckSignedBalance(openingBalance);
         CheckSignedBalance(closingBalance);
+        // CASH10 audit is system-owned even for an unposted structural record.
+        // A missing creation instant must not be recorded as year 0001.
+        Check.That(createdAt != default, "bank_reconciliation_created_at_required",
+            "وقت إنشاء محضر المطابقة مطلوب.");
         BranchId = branchId;
         State = Check.Text(state, "حالة المطابقة", 32);
         BankAccountId = bankAccountId;

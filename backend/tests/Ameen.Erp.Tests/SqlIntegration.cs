@@ -52,6 +52,7 @@ public static class SqlIntegration
                 await FiscalYearAuditSqlIntegration.Upgrade(db);
                 await MembershipAuditSqlIntegration.Upgrade(db);
                 await CustomerSqlIntegration.Upgrade(db);
+                await CashTransferSqlIntegration.Upgrade(db);
             }
             await f.Initialize();
             await using (var fiscalAuditDb = f.Context())
@@ -106,6 +107,9 @@ public static class SqlIntegration
             }
             await using (var cashGuardDb = f.Context())
                 await CashBoxSqlIntegration.Guard(cashGuardDb, f.CompanyId, cashReceipts[0].ResourceId, f.EquityId);
+            await using (var transferDb = f.Context())
+                await CashTransferSqlIntegration.Guard(transferDb, f.CompanyId,
+                    f.BranchId, cashReceipts[0].ResourceId, f.CashId, f.Owner.Subject);
             await Expect("cashbox_account_already_linked", () =>
                 f.Call(s => s.CashBox.CreateCashBox(f.CompanyId, f.Owner, Fixture.Key(),
                     cashRequest with { Code = "SQL-CASH-2" }, default)));

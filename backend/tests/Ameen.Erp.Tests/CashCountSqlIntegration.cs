@@ -169,6 +169,11 @@ public static class CashCountSqlIntegration
 
         // Every rejected statement is atomic. Neither the cash box nor any
         // ledger, audit, outbox event or actual available balance is changed.
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, count, "cash_count_policy_unavailable");
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, savedLine, "cash_count_policy_unavailable");
+
         var after = await db.Set<CashCount>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == countId);
         var cashBoxAfter = await db.Set<CashBox>().AsNoTracking()

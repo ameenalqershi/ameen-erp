@@ -103,20 +103,26 @@ def check() -> None:
     ensure(all(r["module"] == "CASH" for r in actual.values()), "wrong module ownership")
     for code, record in actual.items():
         ensure(record["status"] in {"partial", "not-started"}, f"unsupported status for {code}")
-        if code in {"CASH01", "CASH02", "CASH03", "CASH06", "CASH07", "CASH08", "CASH09", "CASH10", "CASH11"}:
+        if code in {"CASH01", "CASH02", "CASH03", "CASH05", "CASH06", "CASH07", "CASH08", "CASH09", "CASH10", "CASH11"}:
             ensure(record["status"] == "partial" and bool(record["implemented_scope"]),
                    f"structural/operational scope must be partial: {code}")
             ensure(bool(record["remaining"]), f"missing operational blockers {code}")
             tests = [x.strip() for x in record["test_file"].split(";") if x.strip()]
             ensure(bool(tests) and all((ROOT / x).is_file() for x in tests),
                    f"missing recorded acceptance file for {code}")
+            if code == "CASH05":
+                ensure(record["api"].startswith("internal EF/SQL 049 only"),
+                       "CASH05 must not claim operational API")
+                ensure("FX" in record["remaining"] and "GL06" in record["remaining"],
+                       "CASH05 missing operational FX/ledger blockers")
         else:
-            ensure(record["status"] == "not-started", f"false operational completion {code}")
+            ensure(code == "CASH04" and record["status"] == "not-started",
+                   f"false operational completion {code}")
 
     print("PASS DIAG-module-CASH: 15 nodes, 14 directed navigation links, 3 category paths")
     print("PASS DIAG-module-CASH: 11 screen headings, 213 contiguous original field IDs")
     print("PASS DIAG-module-CASH: 11 matching SVG labels, 11 backend screen records")
-    print("PASS DIAG-module-CASH: CASH01/02/03/06/07/08/09/10/11 structural partial; CASH04/05 operational not-started")
+    print("PASS DIAG-module-CASH: CASH01/02/03/05/06/07/08/09/10/11 structural partial; CASH04/05 operational not-started")
 
 
 if __name__ == "__main__":

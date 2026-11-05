@@ -185,6 +185,11 @@ public static class CashReceiptSqlIntegration
             db.Database.ExecuteSqlInterpolatedAsync(
                 $"DELETE FROM [CashReceipts] WHERE [CompanyId]={companyId} AND [Id]={receiptId}"));
 
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, receipt, "cash_receipt_policy_unavailable");
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, allocation, "cash_receipt_policy_unavailable");
+
         var after = await db.Set<CashReceipt>().AsNoTracking().SingleAsync(x =>
             x.CompanyId == companyId && x.Id == receiptId);
         var boxAfter = await db.Set<CashBox>().AsNoTracking()

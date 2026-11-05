@@ -157,6 +157,12 @@ public static class BankReconciliationSqlIntegration
         await RejectSql("parent cannot delete with rows", 547,
             db.Database.ExecuteSqlInterpolatedAsync(
                 $"DELETE FROM [BankReconciliations] WHERE [CompanyId]={companyId} AND [Id]={reconciliationId}"));
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, saved, "bank_reconciliation_policy_unavailable");
+        var savedReconciliationLine = await db.Set<BankReconciliationLine>()
+            .AsNoTracking().SingleAsync(x => x.CompanyId == companyId && x.Id == line1);
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, savedReconciliationLine, "bank_reconciliation_policy_unavailable");
         Ensure((await db.Set<BankReconciliation>().AsNoTracking().SingleAsync(
             x => x.CompanyId == companyId && x.Id == reconciliationId)).Revision == 1 &&
             (await db.Set<BankReconciliationLine>().AsNoTracking().SingleAsync(

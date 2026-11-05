@@ -193,6 +193,11 @@ public static class ChequeSqlIntegration
         await RejectSql("outgoing audit backdating", 547, db.Database.ExecuteSqlInterpolatedAsync(
             $"UPDATE [OutgoingCheques] SET [LastModifiedAt]={now.AddDays(-1)} WHERE [CompanyId]={companyId} AND [Id]={outgoingId}"));
 
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, incoming, "cheque_policy_unavailable");
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, outgoing, "cheque_policy_unavailable");
+
         var outgoingAfter = await db.Set<OutgoingCheque>().AsNoTracking().SingleAsync(x =>
             x.CompanyId==companyId && x.Id==outgoingId);
         var incomingAfter = await db.Set<IncomingCheque>().AsNoTracking().SingleAsync(x =>

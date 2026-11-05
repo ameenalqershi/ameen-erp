@@ -365,6 +365,31 @@ MAP["CASH03"]["test_file"] = "; ".join(
     ["CashReceiptAllocationTests.cs", "CashReceiptFoundationTests.cs",
      "CashReceiptSqlIntegration.cs", "SqlIntegration.cs"])
 
+screen("CASH05", "internal EF/SQL 049 only; no transfer/approval/GL endpoint",
+       "بنية تحويل بين صندوق وبنك أو صناديق/بنوك بمرجعين ذوي نوع صريح؛ 22 حقلاً مصدرها التحليل؛ أسعار الطرفين ودقة المبالغ والعمولة؛ مفاتيح SQL مركبة للشركة مع أعمدة FK تقنية مشروطة؛ ترقية SQL 049 ذرية قابلة للإعادة؛ EF يحجب كل كتابة وأي مستند جديد يجب أن يكون Draft",
+       "لم ينفذ اعتماد/ترحيل أو حجز رصيد أو FX/عمولة أو اختيار حسابات GL06، ولا SYS07 والتأكد من المصدر الفعال وHTTP/JWT/API والتزامن؛ الحقول بنيوية محجوبة حتى اعتماد السياسات",
+       {})
+for n, binding in {
+    1:"CashTransfer.Id / tenant key", 2:"CashTransfer.CompanyId / tenant key",
+    3:"CashTransfer.BranchId / scoped branch FK", 4:"CashTransfer.FiscalYearId / scoped year FK",
+    5:"CashTransfer.Number / document metadata no SYS10 allocator",
+    6:"CashTransfer.DocumentDate", 7:"CashTransfer.AccountingDate",
+    8:"CashTransfer.CurrencyCode / tenant FK", 9:"CashTransfer.ExchangeRate decimal(20.10)",
+    10:"CashTransfer.Description", 11:"CashTransfer.ExternalReference",
+    12:"CashTransfer.State Draft-only guard",
+    13:"CashTransfer.SourceKind/SourceAccountId / scoped typed FK aliases",
+    14:"CashTransfer.DestinationKind/DestinationAccountId / scoped typed FK aliases",
+    15:"CashTransfer.SourceAmount decimal(20.6)",
+    16:"CashTransfer.DestinationAmount decimal(20.6)",
+    17:"CashTransfer.DestinationCurrencyCode / scoped FK",
+    18:"CashTransfer.Fee decimal(20.6) optional", 19:"CashTransfer.CreatedBy",
+    20:"CashTransfer.CreatedAt", 21:"CashTransfer.Revision",
+    22:"CashTransfer.LastModifiedAt"
+}.items():
+    MAP["CASH05"]["fields"][f"CASH05-F{n:02}"] = dict(status="partial", binding=binding)
+MAP["CASH05"]["test_file"] = "; ".join("backend/tests/Ameen.Erp.Tests/" + name for name in
+    ["CashTransferValidationTests.cs", "CashTransferSqlIntegration.cs", "SqlIntegration.cs"])
+
 screen("CASH06", "internal EF/SQL schema 039 only; no live advance/settlement API or GL posting",
        "بنية 23 حقلًا أصليًا لعنوان وسطور العهد والسلف التشغيلية: جداول SQL 039 وEF مع مبالغ دقيقة وسعر صرف وفحص مراجع الشركة والفرع والسنة والعملة، وتسجيل وقت/إصدار تدقيق، ومنع الكتابة تشغيلًا",
        "HR03 صاحب العهدة والمصروف الفعلي غير موصولين، ولا قائمة أنواع/حالات العهدة المعتمدة ولا سياسة رد النقد أو الزيادة أو تسوية ذمم GL06؛ كل EF writes محجوبة، وCASH06 API/HTTPS/JWT/Outbox/موافقات غير منفذة",
@@ -599,6 +624,33 @@ def csv_text(headers, rows):
     return stream.getvalue()
 
 
+
+# CASH05/06/10 are deliberately schema-only. A mapped field means the
+# original field is represented and tested in the structural model; it does
+# NOT mean that the financial workflow or EF writes are operational.
+screen("CASH05", "internal EF/SQL 049 only; no public HTTP API; all EF writes denied",
+       "CASH05 schema 049: company-scoped typed cashbox/bank endpoint FKs, exact decimal(20,6)/(20,10), Draft-only guard; domain validation rejects self-transfer and validates both endpoint rates; SQL constraint also rejects same endpoint",
+       "Approval and actor authorization; balance reservation; SYS03 period, SYS05 FX source/valuation, fee policy, GL06 posting/reversal, HTTP/JWT lifecycle and operational concurrency remain blocked",
+       {1:"CashTransfer.Id",2:"CompanyId",3:"BranchId",4:"FiscalYearId",5:"Number (leading zeroes preserved; no SYS10 uniqueness claim)",6:"DocumentDate",7:"AccountingDate",8:"CurrencyCode",9:"ExchangeRate",10:"Description",11:"ExternalReference",12:"State (Draft-only)",13:"SourceKind + SourceAccountId + SourceCashBoxId/SourceBankAccountId",14:"DestinationKind + DestinationAccountId + DestinationCashBoxId/DestinationBankAccountId",15:"SourceAmount",16:"DestinationAmount",17:"DestinationCurrencyCode",18:"Fee",19:"CreatedBy",20:"CreatedAt",21:"Revision",22:"LastModifiedAt"})
+MAP["CASH05"]["test_file"] = "backend/tests/Ameen.Erp.Tests/CashTransferValidationTests.cs; backend/tests/Ameen.Erp.Tests/CashTransferSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/CashUnauthorizedEfMutationSqlIntegration.cs"
+
+screen("CASH06", "internal EF/SQL 039 only; no public HTTP API; all EF writes denied",
+       "CASH06 header/settlement-line field structure, exact money/rate precision, audit metadata and default-CreatedAt rejection; domain and SQL acceptance cover original fields",
+       "HR03 holder/expense FK and eligibility, approved advance-type catalogue, settlement/reimbursement workflow, CASH04 disbursement, SYS03/SYS07, GL06 posting/reversal and operational authorization remain unavailable",
+       {1:"CashAdvance.Id",2:"CompanyId",3:"BranchId",4:"FiscalYearId",5:"Number",6:"DocumentDate",7:"AccountingDate",8:"CurrencyCode",9:"ExchangeRate",10:"Description",11:"ExternalReference",12:"State (unapproved state catalogue)",13:"HolderId (opaque HR03 reference; no FK)",14:"AdvanceType (text placeholder; no approved value catalogue)",15:"Amount",16:"ExpectedSettlementDate",17:"CashAdvanceLine.ExpenseReferenceId (opaque HR03 reference; no FK)",18:"CashAdvanceLine.SettlementAmount",19:"CashAdvanceLine.AttachmentReference",20:"CreatedBy",21:"CreatedAt",22:"Revision",23:"LastModifiedAt"})
+for field in ("CASH06-F12","CASH06-F13","CASH06-F14","CASH06-F17","CASH06-F18","CASH06-F19"):
+    MAP["CASH06"]["fields"][field]["status"] = "partial"
+MAP["CASH06"]["test_file"] = "backend/tests/Ameen.Erp.Tests/CashAdvanceFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashAdvanceSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/CashUnauthorizedEfMutationSqlIntegration.cs"
+
+screen("CASH10", "internal EF/SQL 040 only; no public HTTP API; all EF writes denied",
+       "CASH10 header and reconciliation-line structural fields, company-scoped bank/branch FKs, signed statement balances with decimal precision, statement date range and audit metadata; no journal or bank movement is created",
+       "Statement-file ingestion/deduplication, bank/ledger movement source FKs, match allocation policy, GL06 posting/reversal, SYS07/JWT and operational reconciliation remain blocked",
+       {1:"CompanyId",2:"BranchId (nullable)",3:"State (no approved lifecycle)",4:"BankAccountId (company-scoped FK)",5:"StatementFrom",6:"StatementTo",7:"OpeningBalance (signed)",8:"ClosingBalance (signed)",9:"StatementFileId (optional text; no import workflow)",10:"BankReconciliationLine.BankMovementId (no source FK)",11:"BankReconciliationLine.LedgerMovementId (no source FK)",12:"BankReconciliationLine.MatchedAmount",13:"BankReconciliationLine.VarianceReason",14:"CreatedBy",15:"CreatedAt",16:"Revision",17:"LastModifiedAt"})
+for field in ("CASH10-F03","CASH10-F10","CASH10-F11"):
+    MAP["CASH10"]["fields"][field]["status"] = "partial"
+MAP["CASH10"]["test_file"] = "backend/tests/Ameen.Erp.Tests/BankReconciliationFoundationTests.cs; backend/tests/Ameen.Erp.Tests/BankReconciliationSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/CashUnauthorizedEfMutationSqlIntegration.cs"
+
+
 def generate():
     screens = json.loads((ANALYSIS / "data/screens.json").read_text())
     diagrams = json.loads((ANALYSIS / "data/diagrams.json").read_text())
@@ -621,7 +673,7 @@ def generate():
         "module-GL": "دليل حسابات مع تحرير مضبوط وطبيعة صريحة وتدقيق؛ أستاذ وقوالب وتوليد مسودات؛ باقي وظائف GL غير مكتملة",
         "module-INV": "وحدات INV03 ومجموعات INV02 وبطاقات INV04 وتحويلات وباركود وحماية المراجع وعرض الاستخدام؛ بطاقات مخازن INV01 ومواقعها؛ الحركات والتكلفة والتتبع التشغيلي لم تنفذ",
         "module-COST": "شجرة مراكز ومسؤول وتعديل وتعطيل؛ نوع المركز والموازنات والتوزيعات لم تكتمل",
-        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي للحقول مع حظر كتابته؛ CASH03 أساس سند قبض بنيوي فقط مع حظر كتابته؛ CASH07/CASH08 أساس شيكات بنيوي فقط مع حظر كتابتها؛ CASH09 أساس حركة شيك بنيوي مع منع جميع الكتابات؛ CASH11 أساس جرد بنيوي فقط مع حظر الكتابة؛ الأرصدة والسندات والشيكات والمطابقة لم تنفذ",
+        "module-CASH": "CASH01 بطاقة صندوق بيانات وواجهات؛ CASH02 أساس بنكي بنيوي مع حظر كتابته؛ CASH03 أساس سند قبض بنيوي مع حظر كتابته؛ CASH05 أساس تحويل typed endpoints مع ضابط منع التحويل الذاتي وتوثيق سعري الطرفين دون تشغيل؛ CASH06 أساس عهدة بنيوي مع حظر الكتابة؛ CASH07/CASH08 أساس شيكات بنيوي مع حظر الكتابة؛ CASH09 أساس حركة شيك بنيوي مع منع جميع الكتابات؛ CASH10 أساس مطابقة بنكي بنيوي مع حظر الكتابة؛ CASH11 أساس جرد بنيوي مع حظر الكتابة؛ CASH04 محجوب لاعتماد مرجع المستفيد والفاتورة/الحساب ومصدر الدفع؛ الأرصدة والسندات والشيكات والمطابقة التشغيلية لم تنفذ",
         "module-RPT": "ميزان وأستاذ جزئيان",
         "system-map": "أساس SYS وGL وبعض COST وINV وRPT؛ بقية الأقسام لم تبدأ",
         "data-model": "شركات وفروع وحسابات وفترات وقيود وسطـور وتدقيق وOutbox؛ امتداد قوالب دورية بإصدار وتوليد ووحدات ومجموعات وITEM/ITEM_UNIT وWAREHOUSE/Locations؛ DOCUMENT والدفاتر المساعدة لاحقًا",

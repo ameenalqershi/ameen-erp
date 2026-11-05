@@ -50,6 +50,13 @@ public sealed partial class ErpDbContext
             "cash_advance_policy_unavailable",
             "لا يمكن حفظ عهدة أو تسوية قبل اعتماد صاحب العهدة وربط المصروف ودورة الصرف.",
             ErrorKind.Conflict);
+        // CASH05 transfer endpoints and FX/fee posting are not approved.
+        // Even a domain Draft cannot be saved by direct EF callers.
+        Check.That(!ChangeTracker.Entries<CashTransfer>().Any(e =>
+            e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted),
+            "cash_transfer_policy_unavailable",
+            "حفظ التحويل محجوب حتى اعتماد الحسابين والتفويض وفروق الصرف والعمولة.",
+            ErrorKind.Conflict);
         // CASH10 is structural only. No approved statement import dedup,
         // bank/ledger movement binding, matching policy or GL journal exists.
         Check.That(!ChangeTracker.Entries<BankReconciliation>().Any(e =>

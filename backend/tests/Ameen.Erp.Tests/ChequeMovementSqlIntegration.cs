@@ -140,6 +140,11 @@ public static class ChequeMovementSqlIntegration
             db.Database.ExecuteSqlInterpolatedAsync(
                 $"DELETE [OutgoingCheques] WHERE [CompanyId]={companyId} AND [Id]={outgoingId}"));
 
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, incomingAction, "cheque_movement_policy_unavailable");
+        await CashUnauthorizedEfMutationSqlIntegration.RejectUpdateAndDelete(
+            db, outgoingAction, "cheque_movement_policy_unavailable");
+
         var after = await db.Set<ChequeMovement>().AsNoTracking().SingleAsync(x =>
             x.CompanyId==companyId && x.Id==received);
         Ensure(after.Version==incomingAction.Version && after.Revision==1 &&
