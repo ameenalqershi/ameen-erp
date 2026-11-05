@@ -1,4 +1,5 @@
 """Positive and negative tests for the CORE SPEC05 data/control traceability audit."""
+import csv
 from pathlib import Path
 import shutil
 import sys
@@ -23,6 +24,15 @@ class Spec05DataControlsAuditTests(unittest.TestCase):
         shutil.copy2(audit.MATRIX, self.matrix)
         shutil.copy2(audit.REPORT, self.report)
 
+    def edit_csv(self, transform):
+        with self.matrix.open(encoding="utf-8-sig", newline="") as stream:
+            rows = list(csv.DictReader(stream))
+        transform(rows)
+        with self.matrix.open("w", encoding="utf-8-sig", newline="") as stream:
+            writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+
     def test_all_requirements_are_linked(self):
         self.assertEqual(audit.check(self.source, self.matrix, self.report), 14)
 
@@ -32,40 +42,27 @@ class Spec05DataControlsAuditTests(unittest.TestCase):
             audit.check(self.source, self.matrix, self.report)
 
     def test_duplicate_requirement_rejected(self):
-        text = self.matrix.read_text(encoding="utf-8")
-        lines = text.splitlines()
-        lines[2] = lines[1]
-        self.matrix.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        self.edit_csv(lambda rows: rows.__setitem__(1, dict(rows[0])))
         with self.assertRaisesRegex(ValueError, "expected 14 unique requirement groups"):
             audit.check(self.source, self.matrix, self.report)
 
     def test_unlinked_requirement_rejected(self):
-        text = self.matrix.read_text(encoding="utf-8")
-        self.matrix.write_text(text.replace("https://app.notion.com/p/", "https://example.com/p/", 1), encoding="utf-8")
+        self.edit_csv(lambda rows: rows[0].update(notion_task_refs="https://example.com/unlinked"))
         with self.assertRaisesRegex(ValueError, "no Notion task link"):
             audit.check(self.source, self.matrix, self.report)
 
     def test_missing_blocker_rejected(self):
-        text = self.matrix.read_text(encoding="utf-8")
-        lines = text.splitlines()
-        fields = lines[0].split(",")
-        blocker_index = fields.index("blocker")
-        values = lines[1].split(",")
-        values[blocker_index] = ""
-        lines[1] = ",".join(values)
-        self.matrix.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        self.edit_csv(lambda rows: rows[0].update(blocker=""))
         with self.assertRaisesRegex(ValueError, "incomplete traceability row"):
             audit.check(self.source, self.matrix, self.report)
 
     def test_unassigned_decision_owner_is_explicit(self):
-        text = self.matrix.read_text(encoding="utf-8")
-        self.matrix.write_text(text.replace("UNASSIGNED", "", 1), encoding="utf-8")
-        with self.assertRaisesRegex(ValueError, "decision owner must be named or explicitly unassigned"):
+        self.edit_csv(lambda rows: rows[0].update(decision_owner=""))
+        with self.assertRaisesRegex(ValueError, "incomplete traceability row"):
             audit.check(self.source, self.matrix, self.report)
 
     def test_runtime_acceptance_overclaim_rejected(self):
-        text = self.matrix.read_text(encoding="utf-8")
-        self.matrix.write_text(text.replace("not-verified", "implemented", 1), encoding="utf-8")
+        self.edit_csv(lambda rows: rows[0].update(acceptance_evidence="implemented"))
         with self.assertRaisesRegex(ValueError, "cannot claim runtime acceptance"):
             audit.check(self.source, self.matrix, self.report)
 
