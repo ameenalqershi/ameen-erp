@@ -139,7 +139,7 @@ public static class SalesPriceListSqlIntegration
             line.ItemId == item.ResourceId && line.UnitId == unit.ResourceId &&
             line.Price == 12.123456m && line.DiscountLimit == 0.000001m &&
             line.QuantityThreshold == 2.5m,
-            "SAL02 line SQL/EF roundtrip mismatch");
+            $"SAL02 line SQL/EF roundtrip mismatch: price={line.Price}, discount={line.DiscountLimit}, threshold={line.QuantityThreshold}, list={line.PriceListId}, position={line.Position}, item={line.ItemId}, unit={line.UnitId}; expected price=12.123456, discount=0.000001, threshold=2.5, list={priceListId}, position=1, item={item.ResourceId}, unit={unit.ResourceId}");
 
         await RejectSql("SAL02 reversed effective dates",
             db.Database.ExecuteSqlInterpolatedAsync($@"
