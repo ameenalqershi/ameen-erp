@@ -567,51 +567,51 @@ CASH04,CASH04-F21,أنشأه,system,pending,,
 CASH04,CASH04-F22,وقت الإنشاء,system,pending,,
 CASH04,CASH04-F23,رقم إصدار التعديل,system,pending,,
 CASH04,CASH04-F24,آخر تعديل,system,pending,,
-CASH05,CASH05-F01,المعرف الداخلي,system,implemented,CashTransfer.Id,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F02,الشركة,system,implemented,CompanyId,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F03,الفرع,required,implemented,BranchId,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F04,السنة,system,implemented,FiscalYearId,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F05,رقم المستند,system,implemented,Number (leading zeroes preserved; no SYS10 uniqueness claim),No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F06,تاريخ الوثيقة,required,implemented,DocumentDate,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F07,تاريخ الأثر,required,implemented,AccountingDate,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F08,العملة,required,implemented,CurrencyCode,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F09,سعر الصرف,required,implemented,ExchangeRate,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F10,البيان,required,implemented,Description,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F11,المرجع الخارجي,optional,implemented,ExternalReference,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F12,الحالة,system,implemented,State (Draft-only),No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F13,الحساب المرسل,required,implemented,SourceKind + SourceAccountId + SourceCashBoxId/SourceBankAccountId,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F14,الحساب المستلم,required,implemented,DestinationKind + DestinationAccountId + DestinationCashBoxId/DestinationBankAccountId,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F15,مبلغ الإرسال,required,implemented,SourceAmount,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F16,مبلغ الاستلام,required,implemented,DestinationAmount,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F17,عملة الاستلام,required,implemented,DestinationCurrencyCode,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F18,عمولة,optional,implemented,Fee,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F19,أنشأه,system,implemented,CreatedBy,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F20,وقت الإنشاء,system,implemented,CreatedAt,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F21,رقم إصدار التعديل,system,implemented,Revision,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH05,CASH05-F22,آخر تعديل,system,implemented,LastModifiedAt,No public HTTP API; SQL 049 schema-only; all EF writes denied
-CASH06,CASH06-F01,المعرف الداخلي,system,implemented,CashAdvance.Id,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F02,الشركة,system,implemented,CompanyId,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F03,الفرع,required,implemented,BranchId,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F04,السنة,system,implemented,FiscalYearId,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F05,رقم المستند,system,implemented,Number,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F06,تاريخ الوثيقة,required,implemented,DocumentDate,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F07,تاريخ الأثر,required,implemented,AccountingDate,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F08,العملة,required,implemented,CurrencyCode,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F09,سعر الصرف,required,implemented,ExchangeRate,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F10,البيان,required,implemented,Description,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F11,المرجع الخارجي,optional,implemented,ExternalReference,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F12,الحالة,system,partial,State (unapproved state catalogue),No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F13,صاحب العهدة,required,partial,HolderId (opaque HR03 reference; no FK),No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F14,نوع العهدة,required,partial,AdvanceType (text placeholder; no approved value catalogue),No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F15,مبلغ العهدة,required,implemented,Amount,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F16,تاريخ التسوية المتوقع,required,implemented,ExpectedSettlementDate,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F17,المصروف,conditional,partial,CashAdvanceLine.ExpenseReferenceId (opaque HR03 reference; no FK),No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F18,مبلغ التسوية,conditional,partial,CashAdvanceLine.SettlementAmount,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F19,المرفق,conditional,partial,CashAdvanceLine.AttachmentReference,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F20,أنشأه,system,implemented,CreatedBy,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F21,وقت الإنشاء,system,implemented,CreatedAt,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F22,رقم إصدار التعديل,system,implemented,Revision,No public HTTP API; SQL 039 schema-only; all EF writes denied
-CASH06,CASH06-F23,آخر تعديل,system,implemented,LastModifiedAt,No public HTTP API; SQL 039 schema-only; all EF writes denied
+CASH05,CASH05-F01,المعرف الداخلي,system,implemented,CashTransfer.Id,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F02,الشركة,system,implemented,CompanyId,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F03,الفرع,required,implemented,BranchId,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F04,السنة,system,implemented,FiscalYearId,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F05,رقم المستند,system,implemented,Number (leading zeroes preserved; no SYS10 uniqueness claim),internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F06,تاريخ الوثيقة,required,implemented,DocumentDate,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F07,تاريخ الأثر,required,implemented,AccountingDate,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F08,العملة,required,implemented,CurrencyCode,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F09,سعر الصرف,required,implemented,ExchangeRate,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F10,البيان,required,implemented,Description,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F11,المرجع الخارجي,optional,implemented,ExternalReference,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F12,الحالة,system,implemented,State (Draft-only),internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F13,الحساب المرسل,required,implemented,SourceKind + SourceAccountId + SourceCashBoxId/SourceBankAccountId,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F14,الحساب المستلم,required,implemented,DestinationKind + DestinationAccountId + DestinationCashBoxId/DestinationBankAccountId,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F15,مبلغ الإرسال,required,implemented,SourceAmount,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F16,مبلغ الاستلام,required,implemented,DestinationAmount,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F17,عملة الاستلام,required,implemented,DestinationCurrencyCode,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F18,عمولة,optional,implemented,Fee,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F19,أنشأه,system,implemented,CreatedBy,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F20,وقت الإنشاء,system,implemented,CreatedAt,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F21,رقم إصدار التعديل,system,implemented,Revision,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH05,CASH05-F22,آخر تعديل,system,implemented,LastModifiedAt,internal EF/SQL 049 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F01,المعرف الداخلي,system,implemented,CashAdvance.Id,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F02,الشركة,system,implemented,CompanyId,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F03,الفرع,required,implemented,BranchId,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F04,السنة,system,implemented,FiscalYearId,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F05,رقم المستند,system,implemented,Number,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F06,تاريخ الوثيقة,required,implemented,DocumentDate,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F07,تاريخ الأثر,required,implemented,AccountingDate,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F08,العملة,required,implemented,CurrencyCode,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F09,سعر الصرف,required,implemented,ExchangeRate,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F10,البيان,required,implemented,Description,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F11,المرجع الخارجي,optional,implemented,ExternalReference,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F12,الحالة,system,partial,State (unapproved state catalogue),internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F13,صاحب العهدة,required,partial,HolderId (opaque HR03 reference; no FK),internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F14,نوع العهدة,required,partial,AdvanceType (text placeholder; no approved value catalogue),internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F15,مبلغ العهدة,required,implemented,Amount,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F16,تاريخ التسوية المتوقع,required,implemented,ExpectedSettlementDate,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F17,المصروف,conditional,partial,CashAdvanceLine.ExpenseReferenceId (opaque HR03 reference; no FK),internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F18,مبلغ التسوية,conditional,partial,CashAdvanceLine.SettlementAmount,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F19,المرفق,conditional,partial,CashAdvanceLine.AttachmentReference,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F20,أنشأه,system,implemented,CreatedBy,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F21,وقت الإنشاء,system,implemented,CreatedAt,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F22,رقم إصدار التعديل,system,implemented,Revision,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
+CASH06,CASH06-F23,آخر تعديل,system,implemented,LastModifiedAt,internal EF/SQL 039 only; no public HTTP API; all EF writes denied
 CASH07,CASH07-F01,المعرف الداخلي,system,partial,"IncomingCheque.Id internal GUID, no business number allocation","internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
 CASH07,CASH07-F02,الشركة,system,partial,IncomingCheque.CompanyId tenant key,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
 CASH07,CASH07-F03,الفرع,required,partial,IncomingCheque.BranchId tenant composite FK; operational branch permission pending,"internal EF/SQL schema 035 only; no cheque receipt, clearing, rejection or bank API"
@@ -669,23 +669,23 @@ CASH09,CASH09-F10,أنشأه,system,partial,ChequeMovement.CreatedBy actor store
 CASH09,CASH09-F11,وقت الإنشاء,system,partial,ChequeMovement.CreatedAt datetimeoffset(7) stored,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
 CASH09,CASH09-F12,رقم إصدار التعديل,system,partial,ChequeMovement.Revision int>0; no edit API or CAS transaction,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
 CASH09,CASH09-F13,آخر تعديل,system,partial,ChequeMovement.LastModifiedAt datetimeoffset(7)>=CreatedAt; audit events pending,internal EF/SQL schema 037 only; no cheque clearing/cancellation API
-CASH10,CASH10-F01,الشركة,system,implemented,CompanyId,No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F02,الفرع,conditional,implemented,BranchId (nullable),No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F03,الحالة,system,partial,State (no approved lifecycle),No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F04,البنك,required,implemented,BankAccountId (company-scoped FK),No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F05,من تاريخ الكشف,required,implemented,StatementFrom,No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F06,إلى تاريخ الكشف,required,implemented,StatementTo,No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F07,رصيد أول الكشف,required,implemented,OpeningBalance (signed),No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F08,رصيد آخر الكشف,required,implemented,ClosingBalance (signed),No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F09,معرف ملف الكشف,optional,implemented,StatementFileId (optional text; no import workflow),No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F10,حركة البنك,required,partial,BankReconciliationLine.BankMovementId (no source FK),No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F11,حركة الدفتر,conditional,partial,BankReconciliationLine.LedgerMovementId (no source FK),No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F12,مبلغ مطابق,required,implemented,BankReconciliationLine.MatchedAmount,No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F13,سبب فرق,conditional,implemented,BankReconciliationLine.VarianceReason,No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F14,أنشأه,system,implemented,CreatedBy,No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F15,وقت الإنشاء,system,implemented,CreatedAt,No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F16,رقم إصدار التعديل,system,implemented,Revision,No public HTTP API; SQL 040 schema-only; all EF writes denied
-CASH10,CASH10-F17,آخر تعديل,system,implemented,LastModifiedAt,No public HTTP API; SQL 040 schema-only; all EF writes denied
+CASH10,CASH10-F01,الشركة,system,implemented,CompanyId,internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F02,الفرع,conditional,implemented,BranchId (nullable),internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F03,الحالة,system,partial,State (no approved lifecycle),internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F04,البنك,required,implemented,BankAccountId (company-scoped FK),internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F05,من تاريخ الكشف,required,implemented,StatementFrom,internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F06,إلى تاريخ الكشف,required,implemented,StatementTo,internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F07,رصيد أول الكشف,required,implemented,OpeningBalance (signed),internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F08,رصيد آخر الكشف,required,implemented,ClosingBalance (signed),internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F09,معرف ملف الكشف,optional,implemented,StatementFileId (optional text; no import workflow),internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F10,حركة البنك,required,partial,BankReconciliationLine.BankMovementId (no source FK),internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F11,حركة الدفتر,conditional,partial,BankReconciliationLine.LedgerMovementId (no source FK),internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F12,مبلغ مطابق,required,implemented,BankReconciliationLine.MatchedAmount,internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F13,سبب فرق,conditional,implemented,BankReconciliationLine.VarianceReason,internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F14,أنشأه,system,implemented,CreatedBy,internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F15,وقت الإنشاء,system,implemented,CreatedAt,internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F16,رقم إصدار التعديل,system,implemented,Revision,internal EF/SQL 040 only; no public HTTP API; all EF writes denied
+CASH10,CASH10-F17,آخر تعديل,system,implemented,LastModifiedAt,internal EF/SQL 040 only; no public HTTP API; all EF writes denied
 CASH11,CASH11-F01,الشركة,system,partial,CashCount.CompanyId: tenant primary key and SQL FK; no API,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
 CASH11,CASH11-F02,الفرع,conditional,partial,CashCount.BranchId: nullable tenant FK; no branch operation permission yet,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment
 CASH11,CASH11-F03,الحالة,system,partial,CashCount.State: text slot with nonempty SQL check; lifecycle values not approved; EF writes blocked,internal EF/SQL schema 033 only; no CASH11 public API or balance adjustment

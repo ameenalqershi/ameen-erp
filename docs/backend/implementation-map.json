@@ -2279,7 +2279,7 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/CashReceiptAllocationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashReceiptSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "CASH05": {
-      "api": "No public HTTP API; SQL 049 schema-only; all EF writes denied",
+      "api": "internal EF/SQL 049 only; no public HTTP API; all EF writes denied",
       "implemented": "CASH05 schema 049: company-scoped typed cashbox/bank endpoint FKs, exact decimal(20,6)/(20,10), Draft-only guard; domain validation rejects self-transfer and validates both endpoint rates; SQL constraint also rejects same endpoint",
       "remaining": "Approval and actor authorization; balance reservation; SYS03 period, SYS05 FX source/valuation, fee policy, GL06 posting/reversal, HTTP/JWT lifecycle and operational concurrency remain blocked",
       "fields": {
@@ -2375,7 +2375,7 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/CashTransferValidationTests.cs; backend/tests/Ameen.Erp.Tests/CashTransferSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/CashUnauthorizedEfMutationSqlIntegration.cs"
     },
     "CASH06": {
-      "api": "No public HTTP API; SQL 039 schema-only; all EF writes denied",
+      "api": "internal EF/SQL 039 only; no public HTTP API; all EF writes denied",
       "implemented": "CASH06 header/settlement-line field structure, exact money/rate precision, audit metadata and default-CreatedAt rejection; domain and SQL acceptance cover original fields",
       "remaining": "HR03 holder/expense FK and eligibility, approved advance-type catalogue, settlement/reimbursement workflow, CASH04 disbursement, SYS03/SYS07, GL06 posting/reversal and operational authorization remain unavailable",
       "fields": {
@@ -2727,7 +2727,7 @@
       "test_file": "backend/tests/Ameen.Erp.Tests/ChequeMovementFoundationTests.cs; backend/tests/Ameen.Erp.Tests/ChequeMovementSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/ChequeSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/SqlIntegration.cs"
     },
     "CASH10": {
-      "api": "No public HTTP API; SQL 040 schema-only; all EF writes denied",
+      "api": "internal EF/SQL 040 only; no public HTTP API; all EF writes denied",
       "implemented": "CASH10 header and reconciliation-line structural fields, company-scoped bank/branch FKs, signed statement balances with decimal precision, statement date range and audit metadata; no journal or bank movement is created",
       "remaining": "Statement-file ingestion/deduplication, bank/ledger movement source FKs, match allocation policy, GL06 posting/reversal, SYS07/JWT and operational reconciliation remain blocked",
       "fields": {

@@ -628,13 +628,13 @@ def csv_text(headers, rows):
 # CASH05/06/10 are deliberately schema-only. A mapped field means the
 # original field is represented and tested in the structural model; it does
 # NOT mean that the financial workflow or EF writes are operational.
-screen("CASH05", "No public HTTP API; SQL 049 schema-only; all EF writes denied",
+screen("CASH05", "internal EF/SQL 049 only; no public HTTP API; all EF writes denied",
        "CASH05 schema 049: company-scoped typed cashbox/bank endpoint FKs, exact decimal(20,6)/(20,10), Draft-only guard; domain validation rejects self-transfer and validates both endpoint rates; SQL constraint also rejects same endpoint",
        "Approval and actor authorization; balance reservation; SYS03 period, SYS05 FX source/valuation, fee policy, GL06 posting/reversal, HTTP/JWT lifecycle and operational concurrency remain blocked",
        {1:"CashTransfer.Id",2:"CompanyId",3:"BranchId",4:"FiscalYearId",5:"Number (leading zeroes preserved; no SYS10 uniqueness claim)",6:"DocumentDate",7:"AccountingDate",8:"CurrencyCode",9:"ExchangeRate",10:"Description",11:"ExternalReference",12:"State (Draft-only)",13:"SourceKind + SourceAccountId + SourceCashBoxId/SourceBankAccountId",14:"DestinationKind + DestinationAccountId + DestinationCashBoxId/DestinationBankAccountId",15:"SourceAmount",16:"DestinationAmount",17:"DestinationCurrencyCode",18:"Fee",19:"CreatedBy",20:"CreatedAt",21:"Revision",22:"LastModifiedAt"})
 MAP["CASH05"]["test_file"] = "backend/tests/Ameen.Erp.Tests/CashTransferValidationTests.cs; backend/tests/Ameen.Erp.Tests/CashTransferSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/CashUnauthorizedEfMutationSqlIntegration.cs"
 
-screen("CASH06", "No public HTTP API; SQL 039 schema-only; all EF writes denied",
+screen("CASH06", "internal EF/SQL 039 only; no public HTTP API; all EF writes denied",
        "CASH06 header/settlement-line field structure, exact money/rate precision, audit metadata and default-CreatedAt rejection; domain and SQL acceptance cover original fields",
        "HR03 holder/expense FK and eligibility, approved advance-type catalogue, settlement/reimbursement workflow, CASH04 disbursement, SYS03/SYS07, GL06 posting/reversal and operational authorization remain unavailable",
        {1:"CashAdvance.Id",2:"CompanyId",3:"BranchId",4:"FiscalYearId",5:"Number",6:"DocumentDate",7:"AccountingDate",8:"CurrencyCode",9:"ExchangeRate",10:"Description",11:"ExternalReference",12:"State (unapproved state catalogue)",13:"HolderId (opaque HR03 reference; no FK)",14:"AdvanceType (text placeholder; no approved value catalogue)",15:"Amount",16:"ExpectedSettlementDate",17:"CashAdvanceLine.ExpenseReferenceId (opaque HR03 reference; no FK)",18:"CashAdvanceLine.SettlementAmount",19:"CashAdvanceLine.AttachmentReference",20:"CreatedBy",21:"CreatedAt",22:"Revision",23:"LastModifiedAt"})
@@ -642,7 +642,7 @@ for field in ("CASH06-F12","CASH06-F13","CASH06-F14","CASH06-F17","CASH06-F18","
     MAP["CASH06"]["fields"][field]["status"] = "partial"
 MAP["CASH06"]["test_file"] = "backend/tests/Ameen.Erp.Tests/CashAdvanceFoundationTests.cs; backend/tests/Ameen.Erp.Tests/CashAdvanceSqlIntegration.cs; backend/tests/Ameen.Erp.Tests/CashUnauthorizedEfMutationSqlIntegration.cs"
 
-screen("CASH10", "No public HTTP API; SQL 040 schema-only; all EF writes denied",
+screen("CASH10", "internal EF/SQL 040 only; no public HTTP API; all EF writes denied",
        "CASH10 header and reconciliation-line structural fields, company-scoped bank/branch FKs, signed statement balances with decimal precision, statement date range and audit metadata; no journal or bank movement is created",
        "Statement-file ingestion/deduplication, bank/ledger movement source FKs, match allocation policy, GL06 posting/reversal, SYS07/JWT and operational reconciliation remain blocked",
        {1:"CompanyId",2:"BranchId (nullable)",3:"State (no approved lifecycle)",4:"BankAccountId (company-scoped FK)",5:"StatementFrom",6:"StatementTo",7:"OpeningBalance (signed)",8:"ClosingBalance (signed)",9:"StatementFileId (optional text; no import workflow)",10:"BankReconciliationLine.BankMovementId (no source FK)",11:"BankReconciliationLine.LedgerMovementId (no source FK)",12:"BankReconciliationLine.MatchedAmount",13:"BankReconciliationLine.VarianceReason",14:"CreatedBy",15:"CreatedAt",16:"Revision",17:"LastModifiedAt"})
