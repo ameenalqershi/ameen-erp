@@ -1,0 +1,22 @@
+name: Documentation / تحسين التوثيق
+description: Clarify existing docs, onboarding or examples
+title: "[Docs] "
+body:
+  - type: input
+    id: path
+    attributes:
+      label: Document path or link / الملف
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's unclear or outdated? / المشكلة
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed correction and evidence / التصحيح والدليل
+    validations:
+      required: true
