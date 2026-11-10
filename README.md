@@ -1,4 +1,4 @@
-# Ameen ERP
+# WOW ERP | واو ERP
 
 مشروع نظام ERP محاسبي لليمن والخليج.
 
@@ -34,7 +34,7 @@
 ## هيكل المشروع
 
 ```text
-ameen-erp/
+wow-erp/
 ├── README.md
 ├── .gitignore
 ├── backend/
@@ -66,10 +66,12 @@ node scripts/check_report_logic.cjs
 
 فحص مطابقة التنفيذ دون تغيير التحليل: `python3 backend/scripts/traceability.py --check`.
 
-## إعداد المستودع المطلوب
+## حالة المشروع وحقوق الاستخدام
 
-الحساب المستهدف: `ameenalqershi`.
-اسم المستودع المقترح: `ameen-erp`.
-إعداد GitHub المطلوب: **Private**.
+المستودع الحالي: [ameenalqershi/wow-erp](https://github.com/ameenalqershi/wow-erp)، وهو **عام (Public)** ويرحب بالمساهمين عبر Issues وPull Requests.
 
-أُنشئ [المستودع](https://github.com/ameenalqershi/ameen-erp) بخصوصية Private، ورُفع main وتحقق تطابقه مع النسخة المحلية. لا تحفظ كلمات المرور أو رموز الوصول ضمن المشروع.
+> **ملاحظة قانونية:** لم يُعتمد بعد ملف LICENSE على الفرع الرئيسي؛ إتاحة الشيفرة للجميع لا تعني تلقائيًا ترخيص إعادة استخدامها. حزمة تهيئة المصدر المفتوح وسياسة المجتمع وترخيص MIT المقترح تخضع للمراجعة في [PR #172](https://github.com/ameenalqershi/wow-erp/pull/172). لا توجد رسوم مطلوبة للمساهمة.
+
+اسم المشروع المعتمد حديثًا **WOW ERP**؛ قد تبقى أسماء تقنية قديمة مثل `Ameen.Erp.*` و`AMEEN_TEST_SQL_CONNECTION` داخل الباك إند مؤقتًا للحفاظ على التوافق مع البناء والترحيلات والبيئات الحالية. لا تغيّرها دون خطة ترحيل واختبارات.
+
+لا تحفظ كلمات مرور أو رموز الوصول ضمن المستودع.
