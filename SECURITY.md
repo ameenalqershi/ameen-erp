@@ -2,7 +2,7 @@
 
 ## Project maturity
 
-Ameen ERP is under active development and is **not certified or recommended for production deployment**. Financial data and identity configuration are security-sensitive. No security support SLA is promised.
+WOW ERP is under active development and is **not certified or recommended for production deployment**. Financial data and identity configuration are security-sensitive. No security support SLA is promised.
 
 ## Report a vulnerability privately
 

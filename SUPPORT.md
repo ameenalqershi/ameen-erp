@@ -4,9 +4,9 @@ This is a community-driven, in-development project. No paid support, delivery sc
 
 | Need | Where |
 | --- | --- |
-| Reproducible defect | [GitHub Issues](https://github.com/ameenalqershi/ameen-erp/issues/new/choose) |
-| Feature or requirement discussion | [Feature request form](https://github.com/ameenalqershi/ameen-erp/issues/new/choose) |
-| Documentation correction | [Documentation form](https://github.com/ameenalqershi/ameen-erp/issues/new/choose) |
+| Reproducible defect | [GitHub Issues](https://github.com/ameenalqershi/wow-erp/issues/new/choose) |
+| Feature or requirement discussion | [Feature request form](https://github.com/ameenalqershi/wow-erp/issues/new/choose) |
+| Documentation correction | [Documentation form](https://github.com/ameenalqershi/wow-erp/issues/new/choose) |
 | Setup question | Search existing Issues first; then open a question Issue with environment details |
 | Vulnerability | Follow [Security policy](SECURITY.md), **never public Issues** |
 

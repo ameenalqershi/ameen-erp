@@ -1,8 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security reporting / بلاغ أمني
-    url: https://github.com/ameenalqershi/ameen-erp/blob/main/SECURITY.md
+    url: https://github.com/ameenalqershi/wow-erp/blob/main/SECURITY.md
     about: Never publish vulnerability details in a public issue.
   - name: Contribution guide / دليل المساهمة
-    url: https://github.com/ameenalqershi/ameen-erp/blob/main/CONTRIBUTING.md
+    url: https://github.com/ameenalqershi/wow-erp/blob/main/CONTRIBUTING.md
     about: Read the workflow before starting.

@@ -1,4 +1,4 @@
-# Ameen ERP | أمين ERP
+# WOW ERP | أمين ERP
 
 **An Arabic-first, modular accounting ERP project — open for engineering collaboration.**
 
@@ -64,7 +64,7 @@ dotnet tests/Ameen.Erp.Tests/bin/Release/net10.0/Ameen.Erp.Tests.dll
 **مرحب بالمطورين والمراجعين وكتّاب التوثيق والمختبرين.** يمكنك البدء بتصحيح وثيقة، أو اختبار مستقل، أو تحسين مأخوذ من مشكلة موثقة. العضوية الرسمية والصلاحيات الإدارية ليست شرطًا لإرسال Pull Request.
 
 1. اقرأ [دليل البداية](docs/community/START_HERE.md) و[قواعد المساهمة](CONTRIBUTING.md).
-2. راجع [Issues](https://github.com/ameenalqershi/ameen-erp/issues) وابحث عن مهمة محددة ذات قبول واضح، أو ناقش مقترحك عبر Issue.
+2. راجع [Issues](https://github.com/ameenalqershi/wow-erp/issues) وابحث عن مهمة محددة ذات قبول واضح، أو ناقش مقترحك عبر Issue.
 3. اعمل في فرع مستقل، ثم أرسل Pull Request صغيرًا بقدر يكفي للمراجعة مع اختبارات وأدلة.
 4. للمشكلات الأمنية، لا تنشر تفاصيل الاستغلال؛ اتبع [SECURITY.md](SECURITY.md).
 
@@ -76,4 +76,4 @@ dotnet tests/Ameen.Erp.Tests/bin/Release/net10.0/Ameen.Erp.Tests.dll
 
 ## English quick start
 
-Ameen ERP is an **in-progress** Arabic-first accounting ERP backend built with .NET 10, ASP.NET Core, EF Core, and SQL Server. It is organized as a modular monolith with tenant-aware financial workflows. The analysis documents cover a broader scope than what is implemented. There is no production-readiness claim and no completed Flutter client. Start with [contributor onboarding](docs/community/START_HERE.md), follow [development setup](docs/community/DEVELOPMENT.md), and read [contribution guidelines](CONTRIBUTING.md) before opening a PR.
+WOW ERP is an **in-progress** Arabic-first accounting ERP backend built with .NET 10, ASP.NET Core, EF Core, and SQL Server. It is organized as a modular monolith with tenant-aware financial workflows. The analysis documents cover a broader scope than what is implemented. There is no production-readiness claim and no completed Flutter client. Start with [contributor onboarding](docs/community/START_HERE.md), follow [development setup](docs/community/DEVELOPMENT.md), and read [contribution guidelines](CONTRIBUTING.md) before opening a PR.

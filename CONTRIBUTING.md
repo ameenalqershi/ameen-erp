@@ -1,19 +1,19 @@
-# Contributing to Ameen ERP | المساهمة في المشروع
+# Contributing to WOW ERP | المساهمة في المشروع
 
 شكرًا لرغبتك في المساهمة. نرحب بمساهمات البرمجة، الاختبار، التوثيق، مراجعة العقود، قابلية الاستخدام، وترجمة الشروحات. Contributions from any experience level are welcome.
 
 ## قبل البدء / Before you start
 
 1. اقرأ [Start Here](docs/community/START_HERE.md)، والبنية في [Architecture](docs/community/ARCHITECTURE.md)، وحالة التنفيذ في [PROGRESS](docs/backend/PROGRESS.md).
-2. تحقق من [Issues](https://github.com/ameenalqershi/ameen-erp/issues) وطلبات الدمج المفتوحة لتفادي ازدواج العمل.
+2. تحقق من [Issues](https://github.com/ameenalqershi/wow-erp/issues) وطلبات الدمج المفتوحة لتفادي ازدواج العمل.
 3. في الأعمال الوظيفية الكبيرة، افتح Issue يحدد المتطلبات والاعتماديات وحدود الميزة قبل البرمجة. لا تحسم سياسة مالية أو أمنية غير معتمدة من نفسك.
 4. ابدأ من فرع feature مستقل مبني على `main` الحالي؛ تجنب الدفع إلى فروع الوحدات التي يعمل عليها الآخرون.
 
 ## خطوات الطلب / Pull request workflow
 
 ```bash
-git clone https://github.com/ameenalqershi/ameen-erp.git
-cd ameen-erp
+git clone https://github.com/ameenalqershi/wow-erp.git
+cd wow-erp
 git switch -c docs/improve-onboarding
 # Make one focused change, then commit.
 git add .

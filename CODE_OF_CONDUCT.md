@@ -2,7 +2,7 @@
 
 ## Our commitment
 
-We aim to make Ameen ERP a respectful, technically rigorous community for contributors of all experience levels. Participation is welcome regardless of background, language, identity, or level of expertise.
+We aim to make WOW ERP a respectful, technically rigorous community for contributors of all experience levels. Participation is welcome regardless of background, language, identity, or level of expertise.
 
 ## Expected behavior
 

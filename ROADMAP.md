@@ -26,7 +26,7 @@ This is a **directional roadmap**, not a commitment to dates or a claim that all
 
 ## How to help
 
-Pick a task with clear prerequisites and acceptance criteria in [Issues](https://github.com/ameenalqershi/ameen-erp/issues). Don't assume an item is ready merely because it appears on this roadmap. New proposals should link to relevant module docs and identify dependencies and tests.
+Pick a task with clear prerequisites and acceptance criteria in [Issues](https://github.com/ameenalqershi/wow-erp/issues). Don't assume an item is ready merely because it appears on this roadmap. New proposals should link to relevant module docs and identify dependencies and tests.
 
 ## Release maturity
 
