@@ -70,6 +70,8 @@ dotnet tests/Ameen.Erp.Tests/bin/Release/net10.0/Ameen.Erp.Tests.dll
 
 **Policy:** No unreviewed merges or access grants. Sustained contributions may lead to maintainer invitations based on trust, code quality, and project needs; see [Governance](GOVERNANCE.md).
 
+**No paid services required for the contributor workflow.** See [Zero-cost tooling & licensing limits](docs/community/ZERO_COST_STACK.md).
+
 ## الترخيص
 
 ملف `LICENSE` المقترح في التغييرات التحضيرية يحتاج مراجعة مالك حقوق الشيفرة ومصدر المواد المرجعية والتبعيات قبل اعتماد الترخيص. لا تعتبر مجرد إتاحة المستودع عامًا إذنًا قانونيًا بإعادة الاستخدام قبل دمج رخصة صالحة.
