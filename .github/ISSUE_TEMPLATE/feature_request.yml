@@ -1,0 +1,33 @@
+name: Feature proposal / اقتراح ميزة
+description: Propose a scoped improvement with measurable acceptance
+title: "[Feature] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and users / المشكلة والمستفيدون
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / السلوك المقترح
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and financial policy / التبعيات والسياسات
+      description: Cite relevant module analysis. Do not invent undefined policies.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria / معايير القبول
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Verification plan / الاختبارات

@@ -1,0 +1,37 @@
+name: Bug report / بلاغ خطأ
+description: Report a reproducible non-security defect
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Before reporting, search existing issues. **Do not disclose security vulnerabilities or secrets here**; see SECURITY.md."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Actual behavior / السلوك الفعلي
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior / المتوقع
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction / خطوات إعادة المشكلة
+      description: Use synthetic data only.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment / البيئة
+      placeholder: ".NET SDK, OS, SQL Server version, commit SHA"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs and tests / أدلة منقحة
+      description: Remove credentials and personal data.

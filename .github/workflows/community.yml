@@ -1,0 +1,59 @@
+name: Community documentation checks
+on:
+  pull_request:
+    paths:
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'LICENSE'
+      - 'CONTRIBUTING.md'
+      - 'CODE_OF_CONDUCT.md'
+      - 'GOVERNANCE.md'
+      - 'SECURITY.md'
+      - 'SUPPORT.md'
+      - 'ROADMAP.md'
+      - 'docs/community/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
+      - '.github/workflows/community.yml'
+      - 'scripts/check_community_docs.py'
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'LICENSE'
+      - 'CONTRIBUTING.md'
+      - 'CODE_OF_CONDUCT.md'
+      - 'GOVERNANCE.md'
+      - 'SECURITY.md'
+      - 'SUPPORT.md'
+      - 'ROADMAP.md'
+      - 'docs/community/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
+      - '.github/workflows/community.yml'
+      - 'scripts/check_community_docs.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  community:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install validator dependency
+        run: python3 -m pip install PyYAML==6.0.2
+      - name: Validate local docs and issue form YAML
+        run: python3 scripts/check_community_docs.py
+      - name: Ensure checker detects broken links
+        run: python3 scripts/check_community_docs.py --self-test
