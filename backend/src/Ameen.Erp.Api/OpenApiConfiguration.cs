@@ -41,7 +41,7 @@ public static class OpenApiConfiguration
         });
         options.AddDocumentTransformer((document, context, ct) =>
         {
-            document.Info.Title = "Ameen ERP API"; document.Info.Version = "v1";
+            document.Info.Title = "WOW ERP API"; document.Info.Version = "v1";
             document.Servers = new List<OpenApiServer> { new() { Url = "/" } };
             document.Components ??= new OpenApiComponents();
             document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
