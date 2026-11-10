@@ -10,8 +10,8 @@
 ## Restore, build and test
 
 ```bash
-git clone https://github.com/ameenalqershi/ameen-erp.git
-cd ameen-erp/backend
+git clone https://github.com/ameenalqershi/wow-erp.git
+cd wow-erp/backend
 dotnet --info
 dotnet restore Ameen.Erp.sln --locked-mode
 dotnet build Ameen.Erp.sln -c Release --no-restore

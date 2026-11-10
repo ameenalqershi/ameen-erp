@@ -8,7 +8,7 @@
 
 | خبرتك / Your focus | Start |
 | --- | --- |
-| New contributor | [Contributing](../../CONTRIBUTING.md) then [Issues](https://github.com/ameenalqershi/ameen-erp/issues) |
+| New contributor | [Contributing](../../CONTRIBUTING.md) then [Issues](https://github.com/ameenalqershi/wow-erp/issues) |
 | .NET developer | [Architecture](ARCHITECTURE.md) and [Local development](DEVELOPMENT.md) |
 | QA / testing | [Backend tests](../../backend/README.md) and [Validation limits](../backend/validation.md) |
 | Database engineer | [Migrations](../../backend/database/) and [Schema integration](../backend/schema-migration-integration.md) |
@@ -24,7 +24,7 @@
 5. Open a PR using the template; link the Issue and explain what remains untested.
 6. Respond to code-review comments constructively; wait for maintainer review.
 
-## What makes Ameen ERP different?
+## What makes WOW ERP different?
 
 Financial invariants matter: the absence of duplicate postings, precision of monetary values, accurate accounting dates, company and branch isolation, approved business rules, and an audit trail. A change that compiles but violates these boundaries cannot be accepted.
 
